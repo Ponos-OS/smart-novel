@@ -7,7 +7,6 @@ import { join } from 'path';
 import { PrismaTransactionClient } from '../../src/modules/prisma';
 
 interface NovelDetails {
-  databaseId: string;
   id: string;
   name: string;
   description: string;
@@ -162,12 +161,6 @@ export async function seedNovels(
 
       console.log(`\n📖 Processing novel: "${details.name}"`);
 
-      if (!details.databaseId) {
-        throw new Error(
-          'Novel is missing databaseId in details.json',
-        );
-      }
-
       const chapters = await loadChapters(novelPath);
       console.log(`   Found ${chapters.length} chapters`);
 
@@ -184,7 +177,7 @@ export async function seedNovels(
 
         await tx.novel.create({
           data: {
-            id: details.databaseId,
+            id: details.id,
             name: details.name,
             author: details.author,
             description: details.description,
@@ -194,7 +187,7 @@ export async function seedNovels(
           },
         });
 
-        await batchInsertChapters(tx, details.databaseId, chapters);
+        await batchInsertChapters(tx, details.id, chapters);
 
         if (categoryIds.length === 0) {
           return;
@@ -202,7 +195,7 @@ export async function seedNovels(
 
         await tx.novelCategory.createMany({
           data: categoryIds.map((categoryId) => ({
-            novelId: details.databaseId,
+            novelId: details.id,
             categoryId,
           })),
           skipDuplicates: true,
