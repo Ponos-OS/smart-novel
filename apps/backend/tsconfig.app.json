@@ -10,7 +10,7 @@
     "target": "es2021",
     "moduleResolution": "nodenext"
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts"],
   "exclude": [
     "vitest.config.ts",
     "vitest.setup.ts",

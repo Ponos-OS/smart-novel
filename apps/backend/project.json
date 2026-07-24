@@ -125,7 +125,7 @@
       "dependsOn": ["prisma:generate", "beatrice:codegen"],
       "description": "Generate the GraphQL SDL schema file on the host",
       "options": {
-        "command": "npx ts-node --project tsconfig.app.json gen-graphql-schema.ts",
+        "command": "npx ts-node --files --project tsconfig.app.json gen-graphql-schema.ts",
         "cwd": "{projectRoot}"
       }
     }

@@ -1,22 +1,19 @@
 import type { ConfigType } from '@nestjs/config';
-import type { TadaDocumentNode } from 'gql.tada';
 
 import {
   Inject,
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
+import { graphql, type TadaDocumentNode } from 'gql.tada';
 import ms from 'ms';
 import { CustomLoggerService } from 'nestjs-backend-common';
 
 import { appConfigs } from '../../app/configs/app.config';
-import { graphql, runOperation } from '../../shared';
+import { runOperation } from '../../shared';
 
 const EXPLAIN_WORD_MUTATION = graphql(`
-  mutation ExplainWord(
-    $word: NonEmptyTrimmedString!
-    $context: NonEmptyTrimmedString!
-  ) {
+  mutation ExplainWord($word: String!, $context: String!) {
     explainWord(word: $word, context: $context) {
       meaning
       simplifiedExplanation
@@ -26,7 +23,7 @@ const EXPLAIN_WORD_MUTATION = graphql(`
   }
 `);
 const NORMALIZE_TEXT_FOR_TTS_MUTATION = graphql(`
-  mutation NormalizeTextForTts($text: NonEmptyTrimmedString!) {
+  mutation NormalizeTextForTts($text: String!) {
     normalizeTextForTts(text: $text)
   }
 `);

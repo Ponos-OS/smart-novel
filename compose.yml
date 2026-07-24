@@ -443,7 +443,11 @@ services:
       start_period: 30s
 
   beatrice:
-    image: 9109679196/smart-novel-beatrice:1.0.1
+    image: 9109679196/smart-novel-beatrice:2.0.0
+    profiles:
+      - dev
+      - backend-e2e
+      - frontend-e2e
     environment:
       PORT: 3000
       SERVICE_NAME: beatrice
