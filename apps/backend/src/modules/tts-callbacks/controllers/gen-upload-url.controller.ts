@@ -12,6 +12,7 @@ import {
 import { appConfigs } from '../../../app/configs/app.config';
 import { Public } from '../../auth';
 import { PresignedUploadUrlService } from '../../object-storage';
+import { TTS_AUDIO_OBJECT_KEY_PREFIX } from '../constants';
 import { BeatriceTokenGuard } from '../guards';
 
 interface GenUploadUrlResponse {
@@ -26,7 +27,6 @@ const UUID_PATTERN =
 export class GenUploadUrlController {
   /** @description Short-lived by design — Beatrice uses the URL once, right after requesting it. */
   private static readonly PRESIGNED_URL_TTL_SECONDS = 5 * 60;
-  private static readonly OBJECT_KEY_PREFIX = 'tts-audio';
   private static readonly CONTENT_TYPE = 'audio/mpeg';
 
   constructor(
@@ -57,7 +57,7 @@ export class GenUploadUrlController {
       throw new BadRequestException('Idempotency-Key must be a UUID');
     }
 
-    const objectKey = `${GenUploadUrlController.OBJECT_KEY_PREFIX}/${idempotencyKey}.mp3`;
+    const objectKey = `${TTS_AUDIO_OBJECT_KEY_PREFIX}/${idempotencyKey}.mp3`;
     const url = await this.presignedUploadUrlService.generate(
       this.appConfig.OBJECT_STORAGE_BUCKET,
       objectKey,

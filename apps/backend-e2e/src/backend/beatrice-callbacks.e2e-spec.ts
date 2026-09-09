@@ -156,22 +156,152 @@ describe('Beatrice callbacks (e2e)', () => {
       expect(status).toBe(400);
     });
   });
+
+  describe('Step 2.1: reacting to a "completed" status', () => {
+    // Not used by any other spec's updateContent/generateAudio call — keeps this
+    // test's TTS_STATUS_CHANNEL listening free of unrelated "queued" messages.
+    const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829';
+    const CHAPTER_TWO_ID = '4769a024-6267-4abc-a412-5ab0241a8d0e';
+
+    let redisSubscriber: Redis;
+
+    beforeAll(() => {
+      const host = process.env.HOST ?? 'localhost';
+      const port = process.env.REDIS_PORT ?? '6379';
+
+      redisSubscriber = new Redis(`redis://${host}:${port}`, {
+        password: process.env.REDIS_PASSWORD,
+      });
+    });
+
+    afterAll(async () => {
+      await redisSubscriber.quit();
+    });
+
+    it('should persist the audio URL onto the chapter once Beatrice reports the job as completed', async () => {
+      const authorization =
+        await AuthorizationFixture.getWriterAuthorizationHeader();
+
+      // Arrange: subscribe before triggering generation so the "queued" message
+      // (which carries the real jobId Beatrice assigned) can't be missed. Beatrice
+      // picks the job up off RabbitMQ asynchronously, so this can take a few
+      // seconds under load — well past the 5s default used by the other test
+      // in this file (a direct, synchronous POST /status call).
+      const queued = waitForMessage(
+        redisSubscriber,
+        TTS_STATUS_CHANNEL,
+        30_000,
+      );
+      await redisSubscriber.subscribe(TTS_STATUS_CHANNEL);
+
+      // Act: trigger generation (Step 2.0b) via updateContent.
+      const updateRes = await axios.post(
+        '/graphql',
+        {
+          query: `#graphql
+              mutation UpdateContent($id: ID!, $content: String!) {
+                updateContent(id: $id, content: $content) {
+                  id
+                }
+              }
+            `,
+          variables: {
+            id: CHAPTER_TWO_ID,
+            content: '# Chapter 2\n\nStep 2.1 e2e content',
+          },
+        },
+        { headers: { Authorization: authorization } },
+      );
+
+      expect(updateRes.data.errors).toBeUndefined();
+
+      const { jobId } = JSON.parse(await queued) as { jobId: string };
+
+      // Act: simulate Beatrice's "completed" status callback for that job.
+      const statusRes = await axios.post(
+        '/beatrice-callbacks/status',
+        {
+          jobId,
+          status: 'completed',
+          fileSizeBytes: 4,
+          attempt: 1,
+        },
+      );
+
+      expect(statusRes.status).toBe(204);
+
+      // Assert: the chapter's narrationUrl reflects this specific job. Polling for
+      // this exact substring (rather than any truthy value) matters because
+      // CHAPTER_TWO_ID's narrationUrl is also written by the old piper-based flow's
+      // e2e tests elsewhere in the suite — checking for our own job's URL, not just
+      // "is it set", keeps this assertion correct even if those tests interleave.
+      await expectNarrationUrlToContain(
+        NOVEL_ID,
+        CHAPTER_TWO_ID,
+        `tts-audio/${jobId}.mp3`,
+      );
+    }, 35_000);
+  });
 });
 
 /**
- * @description Resolves with the next message on `channel`, or rejects after 5s.
+ * @description Polls the chapter's `narrationUrl` until it contains `expectedSubstring`,
+ * or throws after 10s.
+ */
+async function expectNarrationUrlToContain(
+  novelId: string,
+  chapterId: string,
+  expectedSubstring: string,
+): Promise<void> {
+  const maxAttempts = 40;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const res = await axios.post('/graphql', {
+      query: `#graphql
+        query GetChapter($novelId: ID!, $chapterId: ID!) {
+          novel(id: $novelId) {
+            chapter(id: $chapterId) {
+              narrationUrl
+            }
+          }
+        }
+      `,
+      variables: { novelId, chapterId },
+    });
+
+    const narrationUrl = res.data.data.novel.chapter.narrationUrl;
+
+    if (narrationUrl?.includes(expectedSubstring)) {
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+
+  throw new Error(
+    `narrationUrl never contained "${expectedSubstring}" within 10s`,
+  );
+}
+
+/**
+ * @description Resolves with the next message on `channel`, or rejects after `timeoutMs`.
  * Caller must `await client.subscribe(channel)` before the event that triggers
  * the publish, so the subscription is confirmed before the message can be sent.
  */
 function waitForMessage(
   client: Redis,
   channel: string,
+  timeoutMs = 5000,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       client.off('message', onMessage);
-      reject(new Error(`No message received on "${channel}" in 5s`));
-    }, 5000);
+      reject(
+        new Error(
+          `No message received on "${channel}" in ${timeoutMs}ms`,
+        ),
+      );
+    }, timeoutMs);
 
     function onMessage(receivedChannel: string, message: string) {
       if (receivedChannel !== channel) {

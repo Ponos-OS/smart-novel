@@ -5,6 +5,7 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  OnModuleInit,
 } from '@nestjs/common';
 import { Chapter, NarrationStatus } from '@prisma/client';
 import axios from 'axios';
@@ -26,6 +27,12 @@ import {
   UploaderService,
 } from '../../object-storage';
 import { PrismaService } from '../../prisma';
+import { RedisService } from '../../redis';
+import {
+  TTS_AUDIO_OBJECT_KEY_PREFIX,
+  TTS_STATUS_CHANNEL,
+  TtsStatusCallbackDto,
+} from '../../tts-callbacks';
 import {
   CHAPTER_REPOSITORY,
   type IChapterRepository,
@@ -38,7 +45,7 @@ import { chapterNarrationUpdateSubscriptionKey } from '../utils';
 import { NarrationLockService } from './narration-lock.service';
 
 @Injectable()
-export class ChapterNarrationService {
+export class ChapterNarrationService implements OnModuleInit {
   /**
    * @description Tracks in-flight TTS HTTP requests per chapter so a `forceRegenerate` call can cancel them. Aborting the AbortController causes the underlying HTTP request to be closed, which the piper-tts-rest-api service detects (`req.on('aborted')`) and uses to kill the piper/ffmpeg child processes.
    *
@@ -65,7 +72,58 @@ export class ChapterNarrationService {
     private readonly llmClient: LlmClient,
     @Inject(JOB_TO_CHAPTER_MAP)
     private readonly jobToChapterMap: IJobToChapterMap,
+    private readonly redisService: RedisService,
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    await this.redisService.subscribe(
+      TTS_STATUS_CHANNEL,
+      (message) => void this.handleStatusUpdate(message),
+    );
+  }
+
+  /**
+   * @description
+   * Reacts to Beatrice's `completed` status update: looks up the chapter the job belongs
+   * to via {@link jobToChapterMap} and persists the deterministic audio URL built in
+   * Step 1b (`tts-audio/<jobId>.mp3`). `failed`/other statuses and unmapped (unknown or
+   * expired) jobIds are logged and dropped, not thrown — this runs off a best-effort
+   * pub/sub channel, not a request that can report an error back to a caller.
+   */
+  private async handleStatusUpdate(message: string): Promise<void> {
+    const update = JSON.parse(message) as TtsStatusCallbackDto;
+
+    if (update.status !== 'completed') {
+      return;
+    }
+
+    const chapterId = this.jobToChapterMap.get(update.jobId);
+
+    if (isNil(chapterId)) {
+      this.logger.warn(
+        `Received "completed" status for unknown/expired job ${update.jobId}, dropping`,
+        { context: ChapterNarrationService.name },
+      );
+
+      return;
+    }
+
+    const audioUrl = urlBuilder(
+      this.appConfig.OBJECT_STORAGE_PUBLIC_URL,
+      this.appConfig.OBJECT_STORAGE_BUCKET,
+      `${TTS_AUDIO_OBJECT_KEY_PREFIX}/${update.jobId}.mp3`,
+    );
+
+    await this.chapterRepository.updateChapterNarrationUrl(
+      chapterId,
+      audioUrl,
+    );
+
+    this.logger.debug(
+      `Persisted audio URL for chapter ${chapterId} (job ${update.jobId})`,
+      { context: ChapterNarrationService.name },
+    );
+  }
 
   /**
    * @description

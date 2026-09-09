@@ -9,6 +9,7 @@ import { appConfigs } from '../../../app';
 import { BackgroundRunnerService } from '../../background-runner';
 import { LlmClient } from '../../llm';
 import { PrismaService } from '../../prisma';
+import { RedisService } from '../../redis';
 import { IChapterRepository, IJobToChapterMap } from '../interfaces';
 import { chapterNarrationUpdateSubscriptionKey } from '../utils';
 import { ChapterNarrationService } from './chapter-narration.service';
@@ -43,6 +44,7 @@ describe(ChapterNarrationService.name, () => {
   let appConfig: ConfigType<typeof appConfigs>;
   let llmClient: LlmClient;
   let jobToChapterMap: IJobToChapterMap;
+  let redisService: RedisService;
   const mockChapterId = 'e8cec22d-a2c2-4f68-ac1c-6a3cdbbfef33';
   const mockNarrationUrl =
     'http://localhost:9000/smart-novel/narrations/chapter-e8cec22d-a2c2-4f68-ac1c-6a3cdbbfef33.mp3';
@@ -81,11 +83,14 @@ describe(ChapterNarrationService.name, () => {
     chapterRepository = {
       updateChapterNarrationComplete: vi.fn(),
       updateNarrationStatus: vi.fn(),
+      updateChapterNarrationUrl: vi.fn(),
     } as any;
     appConfig = {
       TTS_ENDPOINT: 'http://tts-service/api/tts',
       BACKEND_INTERNAL_URL: 'http://backend:3000',
       BEATRICE_DEFAULT_VOICE: 'default',
+      OBJECT_STORAGE_PUBLIC_URL: 'http://localhost:9000',
+      OBJECT_STORAGE_BUCKET: 'smart-novel',
     } as any;
     llmClient = {
       generateAudio: vi.fn(),
@@ -93,6 +98,9 @@ describe(ChapterNarrationService.name, () => {
     jobToChapterMap = {
       set: vi.fn(),
       get: vi.fn(),
+    } as any;
+    redisService = {
+      subscribe: vi.fn(),
     } as any;
 
     uut = new ChapterNarrationService(
@@ -106,6 +114,7 @@ describe(ChapterNarrationService.name, () => {
       appConfig,
       llmClient,
       jobToChapterMap,
+      redisService,
     );
   });
 
@@ -554,5 +563,85 @@ describe(ChapterNarrationService.name, () => {
       );
       expect(jobToChapterMap.set).not.toHaveBeenCalled();
     });
+  });
+
+  describe('onModuleInit', () => {
+    it('should subscribe to the TTS status channel', async () => {
+      // Act
+      await uut.onModuleInit();
+
+      // Assert
+      expect(redisService.subscribe).toHaveBeenCalledWith(
+        'tts-audio:status',
+        expect.any(Function),
+      );
+    });
+  });
+
+  describe('handleStatusUpdate (private, via onModuleInit subscription)', () => {
+    const mockJobId = '2bce49d6-6592-4ed3-b421-f913b9ecc3bd';
+
+    it('should persist the audio URL for a completed callback whose job is mapped to a chapter', async () => {
+      // Arrange
+      vi.mocked(jobToChapterMap.get).mockReturnValue(mockChapterId);
+      const message = JSON.stringify({
+        jobId: mockJobId,
+        status: 'completed',
+        fileSizeBytes: 4,
+        attempt: 1,
+      });
+
+      // Act
+      await (uut as any).handleStatusUpdate(message);
+
+      // Assert
+      expect(jobToChapterMap.get).toHaveBeenCalledWith(mockJobId);
+      expect(
+        chapterRepository.updateChapterNarrationUrl,
+      ).toHaveBeenCalledWith(
+        mockChapterId,
+        `http://localhost:9000/smart-novel/tts-audio/${mockJobId}.mp3`,
+      );
+    });
+
+    it('should log and drop a completed callback for an unknown/expired jobId', async () => {
+      // Arrange
+      vi.mocked(jobToChapterMap.get).mockReturnValue(undefined);
+      const message = JSON.stringify({
+        jobId: mockJobId,
+        status: 'completed',
+        fileSizeBytes: 4,
+        attempt: 1,
+      });
+
+      // Act
+      await (uut as any).handleStatusUpdate(message);
+
+      // Assert
+      expect(
+        chapterRepository.updateChapterNarrationUrl,
+      ).not.toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining(mockJobId),
+        expect.any(Object),
+      );
+    });
+
+    it.each(['queued', 'generating', 'uploading', 'failed'])(
+      'should ignore a "%s" status callback',
+      async (status) => {
+        // Arrange
+        const message = JSON.stringify({ jobId: mockJobId, status });
+
+        // Act
+        await (uut as any).handleStatusUpdate(message);
+
+        // Assert
+        expect(jobToChapterMap.get).not.toHaveBeenCalled();
+        expect(
+          chapterRepository.updateChapterNarrationUrl,
+        ).not.toHaveBeenCalled();
+      },
+    );
   });
 });

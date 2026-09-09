@@ -12,6 +12,7 @@ import {
 @Injectable()
 export class RedisService implements OnModuleDestroy {
   private readonly client: Redis;
+  private readonly subscriberClients: Redis[] = [];
 
   constructor(
     @Inject(MODULE_OPTIONS_TOKEN)
@@ -44,6 +45,9 @@ export class RedisService implements OnModuleDestroy {
   }
 
   async onModuleDestroy() {
+    await Promise.all(
+      this.subscriberClients.map((subscriber) => subscriber.quit()),
+    );
     await this.client.quit();
     this.logger.log('Redis client disconnected', {
       context: RedisService.name,
@@ -143,6 +147,34 @@ export class RedisService implements OnModuleDestroy {
    */
   async publish(channel: string, message: string): Promise<number> {
     return this.client.publish(channel, message);
+  }
+
+  /**
+   * @description
+   * Subscribe to a Redis pub/sub channel. Uses a dedicated duplicated connection
+   * since a client in subscriber mode can't run other commands.
+   */
+  async subscribe(
+    channel: string,
+    onMessage: (message: string) => void,
+  ): Promise<void> {
+    const subscriber = this.client.duplicate();
+    this.subscriberClients.push(subscriber);
+
+    subscriber.on('error', (error: Error) => {
+      this.logger.error(`Redis subscriber error: ${error.message}`, {
+        context: RedisService.name,
+        error,
+      });
+    });
+
+    subscriber.on('message', (receivedChannel, message) => {
+      if (receivedChannel === channel) {
+        onMessage(message);
+      }
+    });
+
+    await subscriber.subscribe(channel);
   }
 
   /**
