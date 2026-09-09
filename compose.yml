@@ -464,7 +464,7 @@ services:
       start_period: 30s
 
   beatrice:
-    image: 9109679196/smart-novel-beatrice:3.0.0
+    image: 9109679196/smart-novel-beatrice:3.0.1
     profiles:
       - dev
       - backend-e2e
