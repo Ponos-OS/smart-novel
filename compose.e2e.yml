@@ -18,6 +18,8 @@ services:
         DATABASE_URL: ${DATABASE_URL}
     environment:
       OLLAMA_RETRY_COUNT: 1
+      # Beatrice must call back into this container (not `backend`) under the e2e profile.
+      BACKEND_INTERNAL_URL: http://backend-e2e:${BACKEND_PORT}
     volumes:
       - zitadel-pat:/zitadel-pat:ro
 

@@ -13,12 +13,14 @@ import { PubSubEngine } from 'graphql-subscriptions';
 import {
   CustomLoggerService,
   isNil,
+  retryAsync,
   urlBuilder,
 } from 'nestjs-backend-common';
 import { Readable } from 'node:stream';
 
 import { appConfigs } from '../../../app/configs/app.config';
 import { BackgroundRunnerService } from '../../background-runner';
+import { LlmClient } from '../../llm';
 import {
   createChecksum,
   UploaderService,
@@ -27,6 +29,8 @@ import { PrismaService } from '../../prisma';
 import {
   CHAPTER_REPOSITORY,
   type IChapterRepository,
+  type IJobToChapterMap,
+  JOB_TO_CHAPTER_MAP,
 } from '../interfaces';
 import { PUBSUB_TOKEN } from '../providers';
 import { ChapterNarrationResponse } from '../types';
@@ -58,7 +62,63 @@ export class ChapterNarrationService {
     private readonly chapterRepository: IChapterRepository,
     @Inject(appConfigs.KEY)
     private readonly appConfig: ConfigType<typeof appConfigs>,
+    private readonly llmClient: LlmClient,
+    @Inject(JOB_TO_CHAPTER_MAP)
+    private readonly jobToChapterMap: IJobToChapterMap,
   ) {}
+
+  /**
+   * @description
+   * Reusable audio-regeneration entry point — the hook any mutation that saves chapter
+   * content must call, so audio generation can never be forgotten. Kicks off a Beatrice
+   * `generateAudio` job and remembers which chapter it belongs to via {@link jobToChapterMap},
+   * so Step 2.1/2.2 can later persist the audio URL and route status updates.
+   *
+   * Beatrice being unavailable (or otherwise failing) must not fail the content save that
+   * already committed — this only ever logs, never throws, so callers can fire-and-forget it.
+   */
+  async regenerateAudio(
+    chapterId: string,
+    content: string,
+  ): Promise<void> {
+    const genUploadUrl = urlBuilder(
+      this.appConfig.BACKEND_INTERNAL_URL,
+      'beatrice-callbacks',
+      'gen-upload-url',
+    );
+    const statusCallbackUrl = urlBuilder(
+      this.appConfig.BACKEND_INTERNAL_URL,
+      'beatrice-callbacks',
+      'status',
+    );
+
+    const [error, result] = await retryAsync(
+      () =>
+        this.llmClient.generateAudio(
+          content,
+          this.appConfig.BEATRICE_DEFAULT_VOICE,
+          genUploadUrl,
+          statusCallbackUrl,
+        ),
+      { retry: 0 },
+    );
+
+    if (error) {
+      this.logger.error(
+        `Failed to queue Beatrice generateAudio job for chapter ${chapterId}: ${error.message}`,
+        { context: ChapterNarrationService.name, error },
+      );
+
+      return;
+    }
+
+    this.jobToChapterMap.set(result.generateAudio.jobId, chapterId);
+
+    this.logger.debug(
+      `Queued Beatrice generateAudio job ${result.generateAudio.jobId} for chapter ${chapterId}`,
+      { context: ChapterNarrationService.name },
+    );
+  }
 
   /**
    * Entry point: Try to start generation, return current status

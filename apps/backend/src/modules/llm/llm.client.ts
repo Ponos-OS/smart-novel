@@ -27,6 +27,23 @@ const NORMALIZE_TEXT_FOR_TTS_MUTATION = graphql(`
     normalizeTextForTts(text: $text)
   }
 `);
+const GENERATE_AUDIO_MUTATION = graphql(`
+  mutation GenerateAudio(
+    $text: String!
+    $voice: String!
+    $genUploadUrl: String!
+    $statusCallbackUrl: String!
+  ) {
+    generateAudio(
+      text: $text
+      voice: $voice
+      genUploadUrl: $genUploadUrl
+      statusCallbackUrl: $statusCallbackUrl
+    ) {
+      jobId
+    }
+  }
+`);
 
 /**
  * @description Thin, typed wrapper around Beatrice's GraphQL API.
@@ -45,6 +62,20 @@ export class LlmClient {
 
   normalizeTextForTts(text: string) {
     return this.run(NORMALIZE_TEXT_FOR_TTS_MUTATION, { text });
+  }
+
+  generateAudio(
+    text: string,
+    voice: string,
+    genUploadUrl: string,
+    statusCallbackUrl: string,
+  ) {
+    return this.run(GENERATE_AUDIO_MUTATION, {
+      text,
+      voice,
+      genUploadUrl,
+      statusCallbackUrl,
+    });
   }
 
   private async run<TResult, TVariables>(

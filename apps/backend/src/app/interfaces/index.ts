@@ -19,6 +19,16 @@ export interface AppConfig {
    */
   BEATRICE_TIMEOUT: StringValue;
   /**
+   * @description Voice name passed to Beatrice's `generateAudio` mutation — must be one Beatrice's configured TTS provider actually exposes via `audioVoices`.
+   * @example `default`
+   */
+  BEATRICE_DEFAULT_VOICE: string;
+  /**
+   * @description This backend's own base URL, as reachable from inside the Docker network — used to build the `genUploadUrl`/`statusCallbackUrl` callbacks passed to Beatrice's `generateAudio`.
+   * @example `http://backend:3000`
+   */
+  BACKEND_INTERNAL_URL: string;
+  /**
    * @description TTL for the backend-side cache of `explainWord` responses, keyed on the (word, context) pair.
    * Use https://www.npmjs.com/package/ms for human-readable duration
    */

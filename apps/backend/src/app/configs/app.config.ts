@@ -84,6 +84,14 @@ class EnvironmentVariables implements AppConfig {
 
   @IsNotEmpty()
   @IsString()
+  BEATRICE_DEFAULT_VOICE: string;
+
+  @IsNotEmpty()
+  @IsString()
+  BACKEND_INTERNAL_URL: string;
+
+  @IsNotEmpty()
+  @IsString()
   LLM_CACHE_TTL: StringValue;
 
   @IsNotEmpty()

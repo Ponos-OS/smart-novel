@@ -2,12 +2,15 @@ import { Args, ID, Mutation, Resolver } from '@nestjs/graphql';
 
 import { ParseUuidPipe, RequiredStringPipe } from '../../../shared';
 import { CheckPolicy } from '../../auth';
-import { ChapterService } from '../services';
+import { ChapterNarrationService, ChapterService } from '../services';
 import { Chapter } from '../types';
 
 @Resolver(() => Chapter)
 export class ChapterResolver {
-  constructor(private readonly chapterService: ChapterService) {}
+  constructor(
+    private readonly chapterService: ChapterService,
+    private readonly chapterNarrationService: ChapterNarrationService,
+  ) {}
 
   @CheckPolicy('chapter', 'update')
   @Mutation(() => Chapter, {
@@ -34,7 +37,17 @@ export class ChapterResolver {
     )
     content: string,
   ) {
-    return this.chapterService.updateContent(chapterId, content);
+    const chapter = await this.chapterService.updateContent(
+      chapterId,
+      content,
+    );
+
+    await this.chapterNarrationService.regenerateAudio(
+      chapterId,
+      content,
+    );
+
+    return chapter;
   }
 
   // @Mutation(() => Chapter, { description: 'Internal mutation for writers to add new chapters.' })

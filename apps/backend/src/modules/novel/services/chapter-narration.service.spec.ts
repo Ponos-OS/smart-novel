@@ -7,8 +7,9 @@ import { CustomLoggerService } from 'nestjs-backend-common';
 
 import { appConfigs } from '../../../app';
 import { BackgroundRunnerService } from '../../background-runner';
+import { LlmClient } from '../../llm';
 import { PrismaService } from '../../prisma';
-import { IChapterRepository } from '../interfaces';
+import { IChapterRepository, IJobToChapterMap } from '../interfaces';
 import { chapterNarrationUpdateSubscriptionKey } from '../utils';
 import { ChapterNarrationService } from './chapter-narration.service';
 import { NarrationLockService } from './narration-lock.service';
@@ -40,6 +41,8 @@ describe(ChapterNarrationService.name, () => {
   let pubSub: PubSubEngine;
   let chapterRepository: IChapterRepository;
   let appConfig: ConfigType<typeof appConfigs>;
+  let llmClient: LlmClient;
+  let jobToChapterMap: IJobToChapterMap;
   const mockChapterId = 'e8cec22d-a2c2-4f68-ac1c-6a3cdbbfef33';
   const mockNarrationUrl =
     'http://localhost:9000/smart-novel/narrations/chapter-e8cec22d-a2c2-4f68-ac1c-6a3cdbbfef33.mp3';
@@ -81,6 +84,15 @@ describe(ChapterNarrationService.name, () => {
     } as any;
     appConfig = {
       TTS_ENDPOINT: 'http://tts-service/api/tts',
+      BACKEND_INTERNAL_URL: 'http://backend:3000',
+      BEATRICE_DEFAULT_VOICE: 'default',
+    } as any;
+    llmClient = {
+      generateAudio: vi.fn(),
+    } as any;
+    jobToChapterMap = {
+      set: vi.fn(),
+      get: vi.fn(),
     } as any;
 
     uut = new ChapterNarrationService(
@@ -92,6 +104,8 @@ describe(ChapterNarrationService.name, () => {
       pubSub,
       chapterRepository,
       appConfig,
+      llmClient,
+      jobToChapterMap,
     );
   });
 
@@ -493,6 +507,52 @@ describe(ChapterNarrationService.name, () => {
       expect(pubSub.asyncIterableIterator).toHaveBeenCalledWith(
         chapterNarrationUpdateSubscriptionKey(mockChapterId),
       );
+    });
+  });
+
+  describe('regenerateAudio', () => {
+    it('should call Beatrice generateAudio with the expected callback URLs and voice, then record the jobId in the map', async () => {
+      // Arrange
+      const content = '# Chapter 1\n\nSome content';
+      vi.mocked(llmClient.generateAudio).mockResolvedValue({
+        generateAudio: {
+          jobId: '2bce49d6-6592-4ed3-b421-f913b9ecc3bd',
+        },
+      });
+
+      // Act
+      await uut.regenerateAudio(mockChapterId, content);
+
+      // Assert
+      expect(llmClient.generateAudio).toHaveBeenCalledWith(
+        content,
+        'default',
+        'http://backend:3000/beatrice-callbacks/gen-upload-url',
+        'http://backend:3000/beatrice-callbacks/status',
+      );
+      expect(jobToChapterMap.set).toHaveBeenCalledWith(
+        '2bce49d6-6592-4ed3-b421-f913b9ecc3bd',
+        mockChapterId,
+      );
+    });
+
+    it('should log and resolve (not throw) when Beatrice generateAudio fails, and not touch the map', async () => {
+      // Arrange
+      const content = '# Chapter 1\n\nSome content';
+      vi.mocked(llmClient.generateAudio).mockRejectedValue(
+        new Error('Beatrice unreachable'),
+      );
+
+      // Act
+      const result = uut.regenerateAudio(mockChapterId, content);
+
+      // Assert
+      await expect(result).resolves.toBeUndefined();
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('Beatrice unreachable'),
+        expect.any(Object),
+      );
+      expect(jobToChapterMap.set).not.toHaveBeenCalled();
     });
   });
 });
