@@ -146,7 +146,6 @@ describe(ChapterNarrationService.name, () => {
                   content: 'Chapter content',
                   contentHash:
                     'bbb5c978731fabeea7f228aa482143f59734a1419c728e1a30ab3a53e96199e0',
-                  ttsFriendlyContent: 'Chapter content',
                 },
                 narrationUrl: mockNarrationUrl,
                 narrationStatus: 'READY',
@@ -158,7 +157,6 @@ describe(ChapterNarrationService.name, () => {
                   content: 'Chapter content',
                   contentHash:
                     'bbb5c978731fabeea7f228aa482143f59734a1419c728e1a30ab3a53e96199e0',
-                  ttsFriendlyContent: 'Chapter content',
                 },
                 narrationUrl: null,
                 narrationStatus: 'PENDING',
@@ -192,7 +190,6 @@ describe(ChapterNarrationService.name, () => {
                   content: 'Chapter content',
                   contentHash:
                     'bbb5c978731fabeea7f228aa482143f59734a1419c728e1a30ab3a53e96199e0',
-                  ttsFriendlyContent: 'Chapter content',
                 },
                 narrationUrl: mockNarrationUrl,
                 narrationStatus: 'READY',
@@ -204,7 +201,6 @@ describe(ChapterNarrationService.name, () => {
                   content: 'Chapter content',
                   contentHash:
                     'bbb5c978731fabeea7f228aa482143f59734a1419c728e1a30ab3a53e96199e0',
-                  ttsFriendlyContent: 'Chapter content',
                 },
                 narrationUrl: null,
                 narrationStatus: 'PROCESSING',
@@ -404,7 +400,7 @@ describe(ChapterNarrationService.name, () => {
       );
     });
 
-    it('should throw BadRequestException if ttsFriendlyContent is missing', async () => {
+    it('should throw BadRequestException if the chapter has no content', async () => {
       // Arrange
       vi.mocked(prisma.$transaction).mockImplementation(
         async (callback: any) => {
@@ -414,10 +410,9 @@ describe(ChapterNarrationService.name, () => {
                 id: mockChapterId,
                 content: {
                   id: '69f8cc7c-0974-433b-9bfc-135b39164246',
-                  content: '# Chapter Title\n\nChapter content',
+                  content: '',
                   contentHash:
                     '089a4bfbf15cd6a3ca36f8a37daa23befa2468190f7aa7e8867a199eaa38060b',
-                  ttsFriendlyContent: null,
                 },
                 narrationUrl: null,
                 narrationStatus: 'PENDING',
@@ -435,15 +430,12 @@ describe(ChapterNarrationService.name, () => {
 
       // Assert
       await expect(res).rejects.toThrow(
-        new BadRequestException(
-          'You need to first generate TTS version of the chapter',
-        ),
+        new BadRequestException('Chapter has no content to narrate'),
       );
     });
 
     it('should start background processing and return PROCESSING status', async () => {
       // Arrange
-      const mockTtsFriendlyText = 'Chapter Title: Chapter content';
       const chapter = {
         id: mockChapterId,
         content: {
@@ -451,7 +443,6 @@ describe(ChapterNarrationService.name, () => {
           content: '# Chapter Title\n\nChapter content',
           contentHash:
             '089a4bfbf15cd6a3ca36f8a37daa23befa2468190f7aa7e8867a199eaa38060b',
-          ttsFriendlyContent: mockTtsFriendlyText,
         },
         narrationUrl: null,
         narrationStatus: 'PENDING',

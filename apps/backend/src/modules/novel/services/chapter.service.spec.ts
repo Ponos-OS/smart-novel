@@ -54,7 +54,6 @@ describe(ChapterService.name, () => {
       const res = await uut.updateContent(
         '4bbc4da9-107c-4872-9809-78f6191a092d',
         '# Chapter 1\n\nHooray',
-        'Chapter 1\n\nHooray',
       );
 
       expect(
@@ -62,7 +61,6 @@ describe(ChapterService.name, () => {
       ).toHaveBeenCalledWith(
         '4bbc4da9-107c-4872-9809-78f6191a092d',
         '# Chapter 1\n\nHooray',
-        'Chapter 1\n\nHooray',
       );
       expect(res.contentId).toBe(
         'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
@@ -75,7 +73,6 @@ describe(ChapterService.name, () => {
       const res = uut.updateContent(
         '761ba2ab-8d2f-46b0-8cf2-11f072be3bba',
         '# Chapter 1\n\nHello',
-        'Chapter 1\n\nHello',
       );
 
       await expect(res).rejects.toThrow(NotFoundException);

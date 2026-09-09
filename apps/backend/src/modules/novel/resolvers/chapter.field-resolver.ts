@@ -36,24 +36,6 @@ export class ChapterFieldResolver {
     return chapterContent.content;
   }
 
-  @ResolveField(() => String, {
-    nullable: true,
-    description: 'TTS-friendly version of the chapter content',
-  })
-  async ttsFriendlyContent(
-    @Parent() chapter: Chapter,
-  ): Promise<string | undefined> {
-    const chapterContent = await this.chapterContentDataLoader.load(
-      chapter.contentId,
-    );
-
-    if (!chapterContent) {
-      throw new BadRequestException('Chapter content not found');
-    }
-
-    return chapterContent?.ttsFriendlyContent;
-  }
-
   @ResolveField(() => Chapter, {
     nullable: true,
     description: 'The next chapter',

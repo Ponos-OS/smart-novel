@@ -5,7 +5,6 @@ import { ThemeProvider } from '../hooks/useTheme';
 import { CallbackPage } from '../pages/auth/CallbackPage';
 import { HomePage } from '../pages/home/HomePage';
 import { NovelPage } from '../pages/novel/NovelPage';
-import { TtsReviewPage } from '../pages/novel/TtsReviewPage';
 import { SearchPage } from '../pages/search/SearchPage';
 import { SettingsPage } from '../pages/settings/SettingsPage';
 import { Layout } from './layout/Layout';
@@ -47,10 +46,6 @@ export function App() {
 
           {/* Novel page without Layout (has its own theme toggle) */}
           <Route path="/novel/:id" element={<NovelPage />} />
-          <Route
-            path="/novel/:id/chapter/:chapterId/tts-review"
-            element={<TtsReviewPage />}
-          />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

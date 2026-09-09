@@ -42,9 +42,7 @@ export class ChapterService {
   async updateContent(
     chapterId: string,
     content: string,
-    ttsFriendlyContent: string,
   ): Promise<IChapter> {
-    // TODO: validate the ttsFriendlyContent make sense (the content should match the TTS-friendly version)!
     const chapter = await this.chapterRepository.findById(chapterId);
 
     if (!chapter) {
@@ -56,7 +54,6 @@ export class ChapterService {
     await this.chapterContentRepository.upsertByChapterId(
       chapterId,
       content,
-      ttsFriendlyContent,
     );
 
     return chapter;

@@ -45,7 +45,6 @@ export class PrismaChapterContentRepository implements IChapterContentRepository
   async upsertByChapterId(
     chapterId: string,
     content: string,
-    ttsFriendlyContent: string,
     tx?: PrismaTransactionClient,
   ): Promise<IChapterContent> {
     const client = tx ?? this.prisma;
@@ -58,8 +57,8 @@ export class PrismaChapterContentRepository implements IChapterContentRepository
       data: {
         content: {
           upsert: {
-            create: { content, ttsFriendlyContent, contentHash },
-            update: { content, ttsFriendlyContent, contentHash },
+            create: { content, contentHash },
+            update: { content, contentHash },
           },
         },
       },
@@ -75,7 +74,6 @@ export class PrismaChapterContentRepository implements IChapterContentRepository
     return {
       id: record.id,
       content: record.content,
-      ttsFriendlyContent: record.ttsFriendlyContent ?? undefined,
       contentHash: record.contentHash,
       ttsHash: record.ttsHash ?? undefined,
     };

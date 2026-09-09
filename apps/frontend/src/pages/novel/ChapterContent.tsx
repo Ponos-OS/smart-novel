@@ -21,7 +21,6 @@ type ChapterContentData = Pick<
   | 'updatedAt'
   | 'narrationStatus'
   | 'narrationUrl'
-  | 'ttsFriendlyContent'
 >;
 
 interface ChapterContentProps {
@@ -49,7 +48,6 @@ export function ChapterContent({
   const generateAudioMutation = useGenerateChapterAudioMutation();
 
   // Derive UI state directly from the chapter prop (sourced from TanStack Query cache)
-  const hasTtsFriendlyContent = !!chapter.ttsFriendlyContent;
   const hasNarrationUrl = !!chapter.narrationUrl;
   const isProcessing =
     chapter.narrationStatus === NarrationStatus.Processing ||
@@ -130,9 +128,6 @@ export function ChapterContent({
   const getGenerateButtonTooltip = (): string => {
     if (!canManageTts) {
       return '';
-    }
-    if (!hasTtsFriendlyContent) {
-      return 'TTS-friendly content must be generated first before creating audio narration';
     }
     if (hasNarrationUrl) {
       return 'Regenerate audio narration (will replace the existing one)';
@@ -228,7 +223,7 @@ export function ChapterContent({
           <GenerateTtsButton
             novelId={chapter.novelId}
             chapterId={chapter.id}
-            hasTtsFriendlyContent={hasTtsFriendlyContent}
+            hasTtsFriendlyContent={false}
             returnUrl={`/novel/${chapter.novelId}?chapter=${chapter.id}`}
           />
 
@@ -241,7 +236,6 @@ export function ChapterContent({
           ) : (
             <button
               onClick={handleNarrationButtonClick}
-              disabled={!hasTtsFriendlyContent}
               className="cursor-pointer rounded bg-green-100 px-3 py-1.5 text-xs font-medium text-green-800 transition-colors hover:bg-green-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-green-900 dark:text-green-200 dark:hover:bg-green-800"
               title={getGenerateButtonTooltip()}
             >

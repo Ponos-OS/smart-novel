@@ -28,7 +28,6 @@ describe(PrismaChapterContentRepository.name, () => {
         {
           id: '3f0288ed-4042-429f-a89a-37dbd9874efa',
           content: 'Hello',
-          ttsFriendlyContent: null,
           contentHash:
             '185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969',
           ttsHash: null,
@@ -42,7 +41,6 @@ describe(PrismaChapterContentRepository.name, () => {
         {
           id: 'fd3c3ffe-945e-4d41-9129-e3c85e8ade6d',
           content: 'World',
-          ttsFriendlyContent: 'World',
           contentHash:
             '78ae647dc5544d227130a0682a51e30bc7777fbb6d8a8f17007463a3ecd1d524',
           ttsHash: 'tts-hash-b',
@@ -69,7 +67,6 @@ describe(PrismaChapterContentRepository.name, () => {
       ).toStrictEqual({
         id: '3f0288ed-4042-429f-a89a-37dbd9874efa',
         content: 'Hello',
-        ttsFriendlyContent: undefined,
         contentHash:
           '185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969',
         ttsHash: undefined,
@@ -79,7 +76,6 @@ describe(PrismaChapterContentRepository.name, () => {
       ).toStrictEqual({
         id: 'fd3c3ffe-945e-4d41-9129-e3c85e8ade6d',
         content: 'World',
-        ttsFriendlyContent: 'World',
         contentHash:
           '78ae647dc5544d227130a0682a51e30bc7777fbb6d8a8f17007463a3ecd1d524',
         ttsHash: 'tts-hash-b',
@@ -103,7 +99,6 @@ describe(PrismaChapterContentRepository.name, () => {
         content: {
           id: 'eb82843d-d041-4dd2-94db-aadad59df0a6',
           content: '# Chapter text',
-          ttsFriendlyContent: null,
           contentHash:
             'b5a8193c78d9bc46c31904d8cf75c99d06ff824830a408e1f451bc3ae3dc1a37',
           ttsHash: null,
@@ -117,7 +112,6 @@ describe(PrismaChapterContentRepository.name, () => {
       expect(result).toEqual({
         id: 'eb82843d-d041-4dd2-94db-aadad59df0a6',
         content: '# Chapter text',
-        ttsFriendlyContent: undefined,
         contentHash:
           'b5a8193c78d9bc46c31904d8cf75c99d06ff824830a408e1f451bc3ae3dc1a37',
         ttsHash: undefined,
@@ -149,7 +143,6 @@ describe(PrismaChapterContentRepository.name, () => {
   describe('upsertByChapterId', () => {
     it('should upsert content and return the result', async () => {
       const contentText = '# Chapter 1\n\nSome content';
-      const ttsFriendlyContent = 'Chapter 1 Some content';
       const expectedHash = createHash('sha256')
         .update(contentText)
         .digest('hex');
@@ -157,7 +150,6 @@ describe(PrismaChapterContentRepository.name, () => {
         content: {
           id: '0be4fe14-8fa6-48b5-b894-3b4fdca60943',
           content: contentText,
-          ttsFriendlyContent,
           contentHash: expectedHash,
           ttsHash: null,
         },
@@ -166,13 +158,11 @@ describe(PrismaChapterContentRepository.name, () => {
       const result = await uut.upsertByChapterId(
         '0ba68b7c-ca4e-4829-84f2-253c45c746dc',
         contentText,
-        ttsFriendlyContent,
       );
 
       expect(result).toEqual({
         id: '0be4fe14-8fa6-48b5-b894-3b4fdca60943',
         content: contentText,
-        ttsFriendlyContent,
         contentHash: expectedHash,
         ttsHash: undefined,
       });
@@ -183,12 +173,10 @@ describe(PrismaChapterContentRepository.name, () => {
             upsert: {
               create: {
                 content: contentText,
-                ttsFriendlyContent,
                 contentHash: expectedHash,
               },
               update: {
                 content: contentText,
-                ttsFriendlyContent,
                 contentHash: expectedHash,
               },
             },
@@ -205,7 +193,6 @@ describe(PrismaChapterContentRepository.name, () => {
             content: {
               id: 'b6c8df91-c655-4e76-bf16-ecfacb6e1aff',
               content: 'tx content',
-              ttsFriendlyContent: null,
               contentHash:
                 'd5bf5cb7cea90a4a42394a89ca5c06f9bbb27ae7bd87d1cb35cd1b65f73317c7',
               ttsHash: null,
@@ -217,7 +204,6 @@ describe(PrismaChapterContentRepository.name, () => {
       const result = await uut.upsertByChapterId(
         '0ba68b7c-ca4e-4829-84f2-253c45c746dc',
         'tx content',
-        'tx tts',
         txClient,
       );
 

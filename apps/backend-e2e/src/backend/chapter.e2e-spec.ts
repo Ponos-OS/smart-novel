@@ -6,35 +6,6 @@ describe('Chapter (e2e)', () => {
   const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829'; // example-novel from seed data
   const CHAPTER_ONE_ID = '4dd92f16-4743-47b9-960c-6529678e9bc5'; // chapter1 from seed data
 
-  it('should return ttsFriendlyContent for a chapter', async () => {
-    const res = await axios.post('/graphql', {
-      query: `#graphql
-        query GetChapterTts($novelId: ID!, $chapterId: ID!) {
-          novel(id: $novelId) {
-            chapter(id: $chapterId) {
-              id
-              content
-              ttsFriendlyContent
-            }
-          }
-        }
-      `,
-      variables: {
-        novelId: NOVEL_ID,
-        chapterId: CHAPTER_ONE_ID,
-      },
-    });
-
-    expect(res.status).toBe(200);
-    expect(res.data.errors).toBeUndefined();
-    expect(res.data.data.novel.chapter.id).toBe(CHAPTER_ONE_ID);
-    expect(res.data.data.novel.chapter.content).toBeString();
-    expect(res.data.data.novel.chapter.ttsFriendlyContent).toBeOneOf([
-      null,
-      expect.any(String),
-    ]);
-  });
-
   it('should return the selected chapter', async () => {
     const res = await axios.post('/graphql', {
       query: `#graphql
@@ -128,7 +99,7 @@ describe('Chapter (e2e)', () => {
         AuthorizationFixture.getWriterAuthorizationHeader,
     },
   ])(
-    'should ONLY allow $role to update content & ttsFriendlyContent',
+    'should ONLY allow $role to update content',
     async ({ getAuthorizationHeader }) => {
       const authorizationHeader = await getAuthorizationHeader();
 
@@ -136,8 +107,8 @@ describe('Chapter (e2e)', () => {
         '/graphql',
         {
           query: `#graphql
-            mutation UpdateContent($id: ID!, $content: String!, $ttsFriendlyContent: String!) {
-              updateContent(id: $id, content: $content, ttsFriendlyContent: $ttsFriendlyContent) {
+            mutation UpdateContent($id: ID!, $content: String!) {
+              updateContent(id: $id, content: $content) {
                 id
                 content
                 updatedAt
@@ -147,7 +118,6 @@ describe('Chapter (e2e)', () => {
           variables: {
             id: CHAPTER_ONE_ID,
             content: '# Chapter 1\n\nUpdated content',
-            ttsFriendlyContent: 'Chapter 1\n\nUpdated content',
           },
         },
         { headers: { Authorization: authorizationHeader } },
@@ -167,74 +137,12 @@ describe('Chapter (e2e)', () => {
 
   it.each([
     {
-      role: 'admin',
-      getAuthorizationHeader:
-        AuthorizationFixture.getAdminAuthorizationHeader,
-    },
-    {
-      role: 'writer',
-      getAuthorizationHeader:
-        AuthorizationFixture.getWriterAuthorizationHeader,
-    },
-  ])(
-    'should ONLY allow $role to generate TTS-friendly for the text',
-    async ({ getAuthorizationHeader }) => {
-      const authorizationHeader = await getAuthorizationHeader();
-
-      const { status, data } = await axios.post(
-        '/graphql',
-        {
-          query: `#graphql
-            mutation GenerateTtsFriendlyText($text: String!) {
-              generateTtsFriendlyText(text: $text)
-            }
-          `,
-          variables: {
-            text: 'W-What was that?! BOOM! The [Fireball] exploded!',
-          },
-        },
-        { headers: { Authorization: authorizationHeader } },
-      );
-
-      expect(status).toBe(200);
-      expect(data.errors).toBeUndefined();
-      expect(data.data.generateTtsFriendlyText).toBeString();
-    },
-    200_000,
-  );
-
-  it('should deny a regular user from generating TTS-friendly text', async () => {
-    const authorizationHeader =
-      await AuthorizationFixture.getUserAuthorizationHeader();
-
-    const { status, data } = await axios.post(
-      '/graphql',
-      {
-        query: `#graphql
-          mutation GenerateTtsFriendlyText($text: String!) {
-            generateTtsFriendlyText(text: $text)
-          }
-        `,
-        variables: {
-          text: 'Hello world',
-        },
-      },
-      { headers: { Authorization: authorizationHeader } },
-    );
-
-    expect(status).toBe(200);
-    expect(data.errors).toBeArray();
-    expect(data.errors[0].message).toContain('role');
-  });
-
-  it.each([
-    {
       role: 'user',
       getAuthorizationHeader:
         AuthorizationFixture.getUserAuthorizationHeader,
     },
   ])(
-    'should NOT allow unauthorized errors when $role tries to update content & ttsFriendlyContent',
+    'should NOT allow unauthorized errors when $role tries to update content',
     async ({ getAuthorizationHeader }) => {
       const authorizationHeader = await getAuthorizationHeader();
 
@@ -242,8 +150,8 @@ describe('Chapter (e2e)', () => {
         '/graphql',
         {
           query: `#graphql
-          mutation UpdateContent($id: ID!, $content: String!, $ttsFriendlyContent: String!) {
-            updateContent(id: $id, content: $content, ttsFriendlyContent: $ttsFriendlyContent) {
+          mutation UpdateContent($id: ID!, $content: String!) {
+            updateContent(id: $id, content: $content) {
               id
               content
               updatedAt
@@ -253,7 +161,6 @@ describe('Chapter (e2e)', () => {
           variables: {
             id: CHAPTER_ONE_ID,
             content: '# Chapter 1\n\nUpdated content',
-            ttsFriendlyContent: 'Chapter 1\n\nUpdated content',
           },
         },
         { headers: { Authorization: authorizationHeader } },

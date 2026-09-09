@@ -18,7 +18,6 @@ export interface IChapterContentRepository {
   upsertByChapterId(
     chapterId: string,
     content: string,
-    ttsFriendlyContent: string,
     tx?: PrismaTransactionClient,
   ): Promise<IChapterContent>;
 }

@@ -20,7 +20,6 @@ describe('Chapter Narration (e2e)', () => {
   const CHAPTER_THREE_ID = 'a3987a2f-eaa5-4a05-8714-34a110511cba';
 
   it('should start chapter audio generation and return PROCESSING status', async () => {
-    await fixture.prepareTtsFriendlyContent(NOVEL_ID, CHAPTER_ONE_ID);
     const authorizationHeader =
       await AuthorizationFixture.getWriterAuthorizationHeader();
 
@@ -52,7 +51,6 @@ describe('Chapter Narration (e2e)', () => {
 
   it('should force regenerate chapter audio even if the narrationUrl exists', async () => {
     const chapterId = '038dd3f5-e921-4076-be91-66175ebd1bc3';
-    await fixture.prepareTtsFriendlyContent(NOVEL_ID, chapterId);
     await fixture.generateChapterAudio(chapterId);
     await new Promise((resolve) => setTimeout(resolve, 12_000)); // 12 seconds
     const { traceparent, traceId } =
@@ -88,7 +86,6 @@ describe('Chapter Narration (e2e)', () => {
   }, 180_000);
 
   it('should NOT call TTS service twice for the same chapter', async () => {
-    await fixture.prepareTtsFriendlyContent(NOVEL_ID, CHAPTER_TWO_ID);
     const firstCall = ChapterNarrationFixture.generateTraceparent();
     const secondCall = ChapterNarrationFixture.generateTraceparent();
     const authorizationHeader =
@@ -144,7 +141,6 @@ describe('Chapter Narration (e2e)', () => {
 
   it('should return the narration URL', async () => {
     // Arrange & Act
-    await fixture.prepareTtsFriendlyContent(NOVEL_ID, CHAPTER_ONE_ID);
     const authorizationHeader =
       await AuthorizationFixture.getWriterAuthorizationHeader();
     await axios.post(
@@ -250,10 +246,6 @@ describe('Chapter Narration (e2e)', () => {
             },
           );
           await new Promise((resolve) => setTimeout(resolve, 100)); // <== Small delay to ensure subscription is active
-          await fixture.prepareTtsFriendlyContent(
-            NOVEL_ID,
-            CHAPTER_THREE_ID,
-          );
           fixture.generateChapterAudio(CHAPTER_THREE_ID);
         },
       );

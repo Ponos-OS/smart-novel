@@ -136,9 +136,9 @@ export class ChapterNarrationService {
         return { status: NarrationStatus.PROCESSING };
       }
 
-      if (isEmpty(chapter.content?.ttsFriendlyContent)) {
+      if (isEmpty(chapter.content?.content)) {
         throw new BadRequestException(
-          'You need to first generate TTS version of the chapter',
+          'Chapter has no content to narrate',
         );
       }
 
@@ -162,7 +162,7 @@ export class ChapterNarrationService {
       // Start background processing
       this.processInBackground(
         chapterId,
-        chapter.content.ttsFriendlyContent!,
+        chapter.content.content,
         lockKey,
         token,
       );

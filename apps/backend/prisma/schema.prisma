@@ -62,9 +62,8 @@ model Chapter {
 }
 
 model ChapterContent {
-  id                 String  @id @default(uuid()) @db.Uuid
-  content            String  @db.Text
-  ttsFriendlyContent String? @map("tts_friendly_content") @db.Text
+  id      String @id @default(uuid()) @db.Uuid
+  content String @db.Text
 
   // optional full-text search/materialized info
   contentTsv  Unsupported("tsvector")? @map("content_tsv")

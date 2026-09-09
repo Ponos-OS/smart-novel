@@ -1,45 +1,18 @@
 import { Args, ID, Mutation, Resolver } from '@nestjs/graphql';
 
 import { ParseUuidPipe, RequiredStringPipe } from '../../../shared';
-import { CheckPolicy, RequireRole, Role } from '../../auth';
-import { ChapterService, TtsTextService } from '../services';
+import { CheckPolicy } from '../../auth';
+import { ChapterService } from '../services';
 import { Chapter } from '../types';
 
 @Resolver(() => Chapter)
 export class ChapterResolver {
-  constructor(
-    private readonly chapterService: ChapterService,
-    private readonly ttsTextService: TtsTextService,
-  ) {}
-
-  @RequireRole(Role.writer)
-  @Mutation(() => String, {
-    description:
-      'Convert markdown content into TTS-friendly text and return the result for preview',
-  })
-  async generateTtsFriendlyText(
-    @Args(
-      'text',
-      {
-        type: () => String,
-        description:
-          'Markdown content to convert into TTS-friendly text',
-      },
-      RequiredStringPipe,
-    )
-    text: string,
-  ): Promise<string> {
-    const speechText = await this.ttsTextService.toSpeechText(text);
-    const normalizedText =
-      await this.ttsTextService.normalizeTtsText(speechText);
-
-    return normalizedText;
-  }
+  constructor(private readonly chapterService: ChapterService) {}
 
   @CheckPolicy('chapter', 'update')
   @Mutation(() => Chapter, {
     description:
-      'Update both the content and its TTS-friendly version for a chapter.',
+      "Update a chapter's content. Saving will regenerate the chapter's audio narration once that feature ships — there is no draft support here; use a VCS if you want to draft before saving.",
   })
   async updateContent(
     @Args(
@@ -60,21 +33,8 @@ export class ChapterResolver {
       RequiredStringPipe,
     )
     content: string,
-    @Args(
-      'ttsFriendlyContent',
-      {
-        type: () => String,
-        description: 'Content in a TTS friendly format',
-      },
-      RequiredStringPipe,
-    )
-    ttsFriendlyContent: string,
   ) {
-    return this.chapterService.updateContent(
-      chapterId,
-      content,
-      ttsFriendlyContent,
-    );
+    return this.chapterService.updateContent(chapterId, content);
   }
 
   // @Mutation(() => Chapter, { description: 'Internal mutation for writers to add new chapters.' })
