@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { createLocalJWKSet, jwtVerify } from 'jose';
+import { createLocalJWKSet, errors, jwtVerify } from 'jose';
 import { CustomLoggerService } from 'nestjs-backend-common';
 
 import { RedisService } from '../../redis';
@@ -8,10 +8,15 @@ import { ZitadelUserInfoResponse } from '../interfaces';
 import { ZitadelAuthProvider } from './zitadel-auth.provider';
 
 vi.mock('axios');
-vi.mock('jose', () => ({
-  jwtVerify: vi.fn(),
-  createLocalJWKSet: vi.fn(),
-}));
+vi.mock('jose', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('jose')>();
+
+  return {
+    jwtVerify: vi.fn(),
+    createLocalJWKSet: vi.fn(),
+    errors: actual.errors,
+  };
+});
 
 describe(ZitadelAuthProvider.name, () => {
   let uut: ZitadelAuthProvider;
@@ -427,6 +432,110 @@ describe(ZitadelAuthProvider.name, () => {
         roles: [],
         metadata: {},
       });
+    });
+  });
+
+  describe('verifyIssuedByUs', () => {
+    beforeEach(async () => {
+      vi.clearAllMocks();
+      const mockJwks = vi.fn();
+      vi.mocked(createLocalJWKSet).mockReturnValue(mockJwks as any);
+      vi.mocked(axios.get)
+        .mockResolvedValueOnce({
+          data: {
+            issuer: 'http://traefik:80',
+            jwks_uri: 'http://localhost:8080/oauth/v2/keys',
+            userinfo_endpoint:
+              'http://localhost:8080/oidc/v1/userinfo',
+          },
+        })
+        .mockResolvedValueOnce({
+          data: { keys: [{ kty: 'RSA', kid: 'key-1' }] },
+        });
+      await uut.onModuleInit();
+    });
+
+    it('should resolve for a valid, unexpired token', async () => {
+      const { accessToken } = getTestData();
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload: { sub: 'irrelevant' },
+        protectedHeader: { alg: 'RS256' },
+      } as any);
+
+      await expect(
+        uut.verifyIssuedByUs(accessToken),
+      ).resolves.toBeUndefined();
+
+      expect(jwtVerify).toHaveBeenCalledWith(
+        accessToken,
+        expect.any(Function),
+        { issuer: 'http://localhost:8080' },
+      );
+    });
+
+    it('should resolve for a token with a valid signature that has expired', async () => {
+      const { accessToken } = getTestData();
+      vi.mocked(jwtVerify).mockRejectedValue(
+        new errors.JWTExpired(
+          '"exp" claim timestamp check failed',
+          { sub: 'irrelevant' },
+          'exp',
+          'check_failed',
+        ),
+      );
+
+      await expect(
+        uut.verifyIssuedByUs(accessToken),
+      ).resolves.toBeUndefined();
+    });
+
+    it('should reject a token with a tampered signature', async () => {
+      const { accessToken } = getTestData();
+      vi.mocked(jwtVerify).mockRejectedValue(
+        new errors.JWSSignatureVerificationFailed(
+          'signature verification failed',
+        ),
+      );
+
+      await expect(uut.verifyIssuedByUs(accessToken)).rejects.toThrow(
+        errors.JWSSignatureVerificationFailed,
+      );
+    });
+
+    it('should reject a token issued by a different issuer', async () => {
+      const { accessToken } = getTestData();
+      vi.mocked(jwtVerify).mockRejectedValue(
+        new errors.JWTClaimValidationFailed(
+          'unexpected "iss" claim value',
+          { sub: 'irrelevant' },
+          'iss',
+          'check_failed',
+        ),
+      );
+
+      await expect(uut.verifyIssuedByUs(accessToken)).rejects.toThrow(
+        errors.JWTClaimValidationFailed,
+      );
+    });
+
+    it('should throw when JWKS cannot be obtained even after lazy retry', async () => {
+      const { accessToken } = getTestData();
+      const freshProvider = new ZitadelAuthProvider(
+        options,
+        logger,
+        redisService,
+      );
+      vi.mocked(axios.get).mockReset();
+      vi.mocked(axios.get).mockRejectedValue(
+        new Error('ECONNREFUSED'),
+      );
+      await freshProvider.onModuleInit();
+
+      await expect(
+        freshProvider.verifyIssuedByUs(accessToken),
+      ).rejects.toThrow(
+        'OIDC provider is not available. Could not discover JWKS.',
+      );
     });
   });
 });

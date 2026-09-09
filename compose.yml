@@ -90,6 +90,10 @@ services:
       - traefik.http.routers.backend-web.entrypoints=web
       - traefik.http.routers.backend-web.service=backend
       - traefik.http.routers.backend-web.priority=300
+      - traefik.http.routers.backend-beatrice-callbacks.rule=PathPrefix(`/beatrice-callbacks`)
+      - traefik.http.routers.backend-beatrice-callbacks.entrypoints=web
+      - traefik.http.routers.backend-beatrice-callbacks.service=backend
+      - traefik.http.routers.backend-beatrice-callbacks.priority=300
 
   frontend:
     build:
@@ -461,6 +465,7 @@ services:
       OTEL__EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
       OTEL__TRACES_SAMPLER: ${OTEL_TRACES_SAMPLER}
       RABBITMQ__CONNECTION_STRING: amqp://guest:guest@rabbitmq:5672/
+      GENERATE_AUDIO__CALLBACK__ALLOWED_HOSTS: backend
     depends_on:
       ollama:
         condition: service_healthy

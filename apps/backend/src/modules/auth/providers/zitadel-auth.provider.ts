@@ -2,6 +2,7 @@ import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import axios from 'axios';
 import {
   createLocalJWKSet,
+  errors as joseErrors,
   type JSONWebKeySet,
   jwtVerify,
   type JWTVerifyGetKey,
@@ -88,6 +89,30 @@ export class ZitadelAuthProvider
     }
 
     return user;
+  }
+
+  async verifyIssuedByUs(token: string): Promise<void> {
+    // Lazy-init if discovery failed at startup
+    if (!this.jwks) {
+      await this.discoverOidcConfig();
+    }
+
+    if (!this.jwks) {
+      throw new Error(
+        'OIDC provider is not available. Could not discover JWKS.',
+      );
+    }
+
+    try {
+      await jwtVerify(token, this.jwks, { issuer: this.issuer });
+    } catch (error) {
+      // JWTExpired is only thrown once the signature and issuer have already checked out, so it's the one failure we accept.
+      if (error instanceof joseErrors.JWTExpired) {
+        return;
+      }
+
+      throw error;
+    }
   }
 
   /**

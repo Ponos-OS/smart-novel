@@ -17,6 +17,7 @@ import {
   ObjectStorageModule,
   PrismaModule,
   RedisModule,
+  TtsCallbacksModule,
 } from '../modules';
 import {
   graphqlSpanRenamePlugin,
@@ -79,6 +80,7 @@ import {
     }),
     NovelModule,
     LlmModule,
+    TtsCallbacksModule,
   ],
   providers: [
     AppResolver,
