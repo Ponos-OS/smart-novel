@@ -10,6 +10,7 @@ const mockClient = {
   ping: vi.fn(),
   eval: vi.fn(),
   sendCommand: vi.fn(),
+  publish: vi.fn(),
 };
 
 vi.mock('ioredis', () => {
@@ -101,6 +102,18 @@ describe(RedisService.name, () => {
 
     expect(mockClient.del).toHaveBeenCalledWith('key');
     expect(result).toBeFalse();
+  });
+
+  it('should publish a message on a channel and return the subscriber count', async () => {
+    mockClient.publish.mockResolvedValue(2);
+
+    const result = await uut.publish('tts-audio:status', '{"a":1}');
+
+    expect(mockClient.publish).toHaveBeenCalledWith(
+      'tts-audio:status',
+      '{"a":1}',
+    );
+    expect(result).toBe(2);
   });
 
   it('should evaluate and execute a Lua script server side', () => {

@@ -138,6 +138,14 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /**
+   * @description Publish a message on a Redis pub/sub channel
+   * @returns the number of subscribers that received the message
+   */
+  async publish(channel: string, message: string): Promise<number> {
+    return this.client.publish(channel, message);
+  }
+
+  /**
    * @description Delete a key from Redis
    * @returns `true` if the key was deleted, `false` if the key did not exist
    */
