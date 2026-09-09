@@ -18,6 +18,10 @@ interface GenUploadUrlResponse {
   url: string;
 }
 
+/** @description Beatrice's `jobId` — the only value it ever sends as `Idempotency-Key` — is a UUID. */
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 @Controller('beatrice-callbacks')
 export class GenUploadUrlController {
   /** @description Short-lived by design — Beatrice uses the URL once, right after requesting it. */
@@ -45,6 +49,12 @@ export class GenUploadUrlController {
   ): Promise<GenUploadUrlResponse> {
     if (!idempotencyKey) {
       throw new BadRequestException('Missing Idempotency-Key header');
+    }
+
+    // Reject anything that isn't a bare UUID before it becomes part of the object key —
+    // otherwise a caller-controlled header could inject `/`/`..` segments into the S3 key.
+    if (!UUID_PATTERN.test(idempotencyKey)) {
+      throw new BadRequestException('Idempotency-Key must be a UUID');
     }
 
     const objectKey = `${GenUploadUrlController.OBJECT_KEY_PREFIX}/${idempotencyKey}.mp3`;

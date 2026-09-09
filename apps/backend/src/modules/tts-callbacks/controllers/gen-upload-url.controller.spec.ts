@@ -29,6 +29,23 @@ describe(GenUploadUrlController.name, () => {
     expect(presignedUploadUrlService.generate).not.toHaveBeenCalled();
   });
 
+  it.each([
+    'not-a-uuid',
+    '../../narrations/chapter-1',
+    'tts-audio/../../narrations/chapter-1',
+    '2bce49d6-6592-4ed3-b421-f913b9ecc3bd.mp3/../../narrations/chapter-1',
+  ])(
+    'should throw BadRequestException for a non-UUID Idempotency-Key (%s)',
+    async (idempotencyKey) => {
+      await expect(uut.genUploadUrl(idempotencyKey)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(
+        presignedUploadUrlService.generate,
+      ).not.toHaveBeenCalled();
+    },
+  );
+
   it('should return the presigned URL for a deterministic, jobId-scoped object key', async () => {
     const jobId = '2bce49d6-6592-4ed3-b421-f913b9ecc3bd';
     vi.mocked(presignedUploadUrlService.generate).mockResolvedValue(
