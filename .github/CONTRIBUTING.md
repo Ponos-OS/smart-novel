@@ -1,8 +1,3 @@
-## Contributing
-
-- After each change run the linter for the changed files.
-- If you are an LLM, write in chunks to not overload your write tool!
-
 ## 🚀 Quick Start
 
 ```bash
@@ -132,91 +127,9 @@ nx e2e backend-e2e
     const html = '<html> ... trimmed ... </html>'; // ✅ DO (GOOD)
     const html = 'dummy'; // ❌ DO NOT (BAD)
     ```
-
-### Unit Test Example
-
-```ts
-import { Model } from 'mongoose';
-
-import { UserRepository } from './repositories';
-import { UserDocument } from './schemas';
-
-describe(UserRepository.name, () => {
-  let uut: UserRepository;
-  let userModel: Model<UserDocument>;
-
-  beforeEach(() => {
-    userModel = {
-      findById: vi.fn(),
-    } as any;
-    uut = new UserRepository(userModel);
-  });
-
-  it('should return the user', async () => {
-    vi.mocked(userModel).mockResolvedValue({
-      _id: '69b13a073469bd6633c282b2',
-    });
-
-    await uut.getUser('69b13a073469bd6633c282b2');
-
-    expect(userModel.findById).toHaveBeenCalledWith({
-      _id: '69b13a073469bd6633c282b2',
-    });
-  });
-});
-```
-
-### E2E Test Example
-
-```ts
-import axios from 'axios';
-
-describe('Hi (e2e)', () => {
-  it('should say hi', async () => {
-    const res = await axios.post('/graphql', {
-      query: `#graphql
-        query { hi }
-      `,
-    });
-
-    expect(res.status).toBe(200);
-    expect(res.data.data.hi).toBeString();
-  });
-});
-```
-
-And this is when e.g. the expect part needs prep work:
-
-```ts
-import axios from 'axios';
-
-describe('Greet (e2e)', () => {
-  let fixture: ChapterNarrationFixture;
-
-  beforeEach(() => {
-    fixture = new ChapterNarrationFixture();
-    fixture.beforeEach();
-  });
-
-  it('should start chapter audio generation and return PROCESSING status', async () => {
-    const { traceparent, traceId } =
-      ChapterNarrationFixture.generateTraceparent();
-    const res = await axios.post(
-      '/graphql',
-      {
-        query: `#graphql
-        mutation {
-          greet
-        }
-      `,
-      },
-      { headers: { traceparent } },
-    );
-
-    await fixture.thenTtsCalledOnceWith(traceId);
-  });
-});
-```
+- See `apps/backend/src/**/*.spec.ts` for examples for backend and `apps/frontend/src/**/*.spec.ts` for examples for frontend.
+- See `apps/backend-e2e/src/**/*.e2e-spec.ts` for examples for backend e2e tests and `apps/frontend-e2e/src/e2e/**/*.cy.ts` for examples for frontend e2e tests.
+- If you need to upgrading 3rd party libs: `.github/docs/update-npm.md`.
 
 #### Run E2E Tests Locally
 
@@ -224,28 +137,3 @@ describe('Greet (e2e)', () => {
 docker compose --profile frontend-e2e up -d --build --wait
 npx cypress open --project apps/frontend-e2e
 ```
-
-## Upgrading 3rd Party Libraries
-
-Use [`npm-check-updates`](https://www.npmjs.com/package/npm-check-updates).
-
-```bash
-# List all packages with their latest version
-ncu
-
-# You can selectively upgrade
-ncu --interactive
-
-# Changes the versions in package.json
-ncu -u
-
-npm i
-```
-
-> [!TIP]
->
-> **Should we use `--force` flag if `npm audit fix` did not work?**
->
-> tl;dr would be no, just run `npm audit --omit=dev` and it might return zero security vulnerability.
->
-> This is especially helpful when running `npm audit fix` cannot fix the security vulnerability issues and `npm audit` shows a list of security vulnerabilities that would be only fixed if you force your way (**not recommended**).
