@@ -443,7 +443,7 @@ services:
       start_period: 30s
 
   beatrice:
-    image: 9109679196/smart-novel-beatrice:2.0.0
+    image: 9109679196/smart-novel-beatrice:3.0.0
     profiles:
       - dev
       - backend-e2e
@@ -460,11 +460,27 @@ services:
       OTEL__ENABLED: ${OTEL_ENABLED}
       OTEL__EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
       OTEL__TRACES_SAMPLER: ${OTEL_TRACES_SAMPLER}
+      RABBITMQ__CONNECTION_STRING: amqp://guest:guest@rabbitmq:5672/
     depends_on:
       ollama:
         condition: service_healthy
       otel-collector:
         condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    profiles:
+      - dev
+      - backend-e2e
+      - frontend-e2e
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.110.0
