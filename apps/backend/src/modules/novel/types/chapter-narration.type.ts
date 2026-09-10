@@ -1,4 +1,9 @@
-import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
+import {
+  Field,
+  Int,
+  ObjectType,
+  registerEnumType,
+} from '@nestjs/graphql';
 import { NarrationStatus } from '@prisma/client';
 
 registerEnumType(NarrationStatus, {
@@ -44,4 +49,11 @@ export class ChapterNarrationEvent {
     description: 'Error message if narration failed',
   })
   error?: string;
+
+  @Field(() => Int, {
+    nullable: true,
+    description:
+      'Progress percentage (0-100), present while generating/uploading',
+  })
+  percent?: number;
 }

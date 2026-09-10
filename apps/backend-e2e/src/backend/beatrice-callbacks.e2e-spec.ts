@@ -1,5 +1,7 @@
 import axios from 'axios';
+import { createClient } from 'graphql-ws';
 import Redis from 'ioredis';
+import { WebSocket } from 'ws';
 
 import { AuthorizationFixture } from '../support';
 
@@ -242,6 +244,164 @@ describe('Beatrice callbacks (e2e)', () => {
       );
     }, 35_000);
   });
+
+  describe('Step 2.2: chapterNarrationUpdated live progress', () => {
+    const CHAPTER_TWO_ID = '4769a024-6267-4abc-a412-5ab0241a8d0e';
+
+    let redisSubscriber: Redis;
+
+    beforeAll(() => {
+      const host = process.env.HOST ?? 'localhost';
+      const port = process.env.REDIS_PORT ?? '6379';
+
+      redisSubscriber = new Redis(`redis://${host}:${port}`, {
+        password: process.env.REDIS_PASSWORD,
+      });
+    });
+
+    afterAll(async () => {
+      await redisSubscriber.quit();
+    });
+
+    it('should stream generating/uploading/completed progress over the chapterNarrationUpdated subscription, in order', async () => {
+      const authorization =
+        await AuthorizationFixture.getWriterAuthorizationHeader();
+      const wsHost = process.env.HOST ?? 'localhost';
+      const wsPort = process.env.TRAEFIK_EXPOSED_PORT ?? '8080';
+      const client = createClient({
+        url: `ws://${wsHost}:${wsPort}/graphql`,
+        webSocketImpl: WebSocket,
+      });
+
+      const events: Array<{
+        status: string;
+        narrationUrl: string | null;
+        percent: number | null;
+        error: string | null;
+      }> = [];
+
+      try {
+        const unsubscribe = client.subscribe(
+          {
+            query: `#graphql
+                subscription ChapterNarrationUpdated($chapterId: ID!) {
+                  chapterNarrationUpdated(chapterId: $chapterId) {
+                    status
+                    narrationUrl
+                    percent
+                    error
+                  }
+                }
+              `,
+            variables: { chapterId: CHAPTER_TWO_ID },
+          },
+          {
+            next: (data: any) => {
+              const event = data.data?.chapterNarrationUpdated;
+
+              if (event) {
+                events.push(event);
+              }
+            },
+            error: () => {
+              // Errors surfaced via the assertions below timing out.
+            },
+            complete: () => {
+              // Should not complete before the assertions below run.
+            },
+          },
+        );
+
+        // Small delay to ensure the subscription is active before triggering generation.
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Arrange: subscribe to the raw channel too, to learn the real jobId
+        // Beatrice assigns — chapterNarrationUpdated events don't expose jobId
+        // by design, so this is the only way to correlate.
+        const queued = waitForMessage(
+          redisSubscriber,
+          TTS_STATUS_CHANNEL,
+          30_000,
+        );
+        await redisSubscriber.subscribe(TTS_STATUS_CHANNEL);
+
+        const updateRes = await axios.post(
+          '/graphql',
+          {
+            query: `#graphql
+                mutation UpdateContent($id: ID!, $content: String!) {
+                  updateContent(id: $id, content: $content) {
+                    id
+                  }
+                }
+              `,
+            variables: {
+              id: CHAPTER_TWO_ID,
+              content: '# Chapter 2\n\nStep 2.2 e2e content',
+            },
+          },
+          { headers: { Authorization: authorization } },
+        );
+
+        expect(updateRes.data.errors).toBeUndefined();
+
+        const { jobId } = JSON.parse(await queued) as {
+          jobId: string;
+        };
+
+        // Act: simulate the rest of Beatrice's progress sequence directly, using
+        // distinctive percent markers so this test's own events are identifiable
+        // even if an unrelated old-flow test interleaves chapterNarrationUpdated
+        // events for the same seed chapter concurrently.
+        const payloads = [
+          { jobId, status: 'generating', percent: 33 },
+          { jobId, status: 'uploading', percent: 77 },
+          {
+            jobId,
+            status: 'completed',
+            fileSizeBytes: 4,
+            attempt: 1,
+          },
+        ];
+
+        for (const payload of payloads) {
+          const res = await axios.post(
+            '/beatrice-callbacks/status',
+            payload,
+          );
+
+          expect(res.status).toBe(204);
+        }
+
+        // Assert: our own marked events arrive, in order.
+        const generatingIndex = await waitForEventIndex(
+          events,
+          (event) =>
+            event.status === 'PROCESSING' && event.percent === 33,
+        );
+        const uploadingIndex = await waitForEventIndex(
+          events,
+          (event) =>
+            event.status === 'PROCESSING' && event.percent === 77,
+        );
+        const completedIndex = await waitForEventIndex(
+          events,
+          (event) =>
+            event.status === 'READY' &&
+            Boolean(
+              event.narrationUrl?.includes(`tts-audio/${jobId}.mp3`),
+            ),
+        );
+
+        expect(generatingIndex).toBeLessThan(uploadingIndex);
+        expect(uploadingIndex).toBeLessThan(completedIndex);
+
+        unsubscribe();
+      } finally {
+        client.dispose();
+      }
+    }, 35_000);
+  });
 });
 
 /**
@@ -280,6 +440,32 @@ async function expectNarrationUrlToContain(
 
   throw new Error(
     `narrationUrl never contained "${expectedSubstring}" within 10s`,
+  );
+}
+
+/**
+ * @description Polls `events` until an element matching `predicate` appears, returning
+ * its index, or throws after 10s. Used to find our own marked events among whatever
+ * else the subscription happens to deliver.
+ */
+async function waitForEventIndex<T>(
+  events: T[],
+  predicate: (event: T) => boolean,
+): Promise<number> {
+  const maxAttempts = 40;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const index = events.findIndex(predicate);
+
+    if (index !== -1) {
+      return index;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+
+  throw new Error(
+    `No event matching the predicate arrived within 10s (got ${JSON.stringify(events)})`,
   );
 }
 

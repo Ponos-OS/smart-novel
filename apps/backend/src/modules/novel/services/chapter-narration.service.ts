@@ -84,45 +84,79 @@ export class ChapterNarrationService implements OnModuleInit {
 
   /**
    * @description
-   * Reacts to Beatrice's `completed` status update: looks up the chapter the job belongs
-   * to via {@link jobToChapterMap} and persists the deterministic audio URL built in
-   * Step 1b (`tts-audio/<jobId>.mp3`). `failed`/other statuses and unmapped (unknown or
-   * expired) jobIds are logged and dropped, not thrown — this runs off a best-effort
-   * pub/sub channel, not a request that can report an error back to a caller.
+   * Reacts to every Beatrice `statusCallbackUrl` update: looks up the chapter the job
+   * belongs to via {@link jobToChapterMap}, and both (a) on `completed`, persists the
+   * deterministic audio URL built in Step 1b (`tts-audio/<jobId>.mp3`) (Step 2.1), and
+   * (b) re-publishes the update onto the GraphQL `PubSub` so `chapterNarrationUpdated`
+   * fires with live progress (Step 2.2). Unmapped (unknown or expired) jobIds are logged
+   * and dropped, not thrown — this runs off a best-effort pub/sub channel, not a request
+   * that can report an error back to a caller.
    */
   private async handleStatusUpdate(message: string): Promise<void> {
     const update = JSON.parse(message) as TtsStatusCallbackDto;
-
-    if (update.status !== 'completed') {
-      return;
-    }
 
     const chapterId = this.jobToChapterMap.get(update.jobId);
 
     if (isNil(chapterId)) {
       this.logger.warn(
-        `Received "completed" status for unknown/expired job ${update.jobId}, dropping`,
+        `Received "${update.status}" status for unknown/expired job ${update.jobId}, dropping`,
         { context: ChapterNarrationService.name },
       );
 
       return;
     }
 
-    const audioUrl = urlBuilder(
-      this.appConfig.OBJECT_STORAGE_PUBLIC_URL,
-      this.appConfig.OBJECT_STORAGE_BUCKET,
-      `${TTS_AUDIO_OBJECT_KEY_PREFIX}/${update.jobId}.mp3`,
-    );
+    let narrationUrl: string | undefined;
 
-    await this.chapterRepository.updateChapterNarrationUrl(
-      chapterId,
-      audioUrl,
-    );
+    if (update.status === 'completed') {
+      narrationUrl = urlBuilder(
+        this.appConfig.OBJECT_STORAGE_PUBLIC_URL,
+        this.appConfig.OBJECT_STORAGE_BUCKET,
+        `${TTS_AUDIO_OBJECT_KEY_PREFIX}/${update.jobId}.mp3`,
+      );
 
-    this.logger.debug(
-      `Persisted audio URL for chapter ${chapterId} (job ${update.jobId})`,
-      { context: ChapterNarrationService.name },
+      await this.chapterRepository.updateChapterNarrationUrl(
+        chapterId,
+        narrationUrl,
+      );
+
+      this.logger.debug(
+        `Persisted audio URL for chapter ${chapterId} (job ${update.jobId})`,
+        { context: ChapterNarrationService.name },
+      );
+    }
+
+    await this.pubSub.publish(
+      chapterNarrationUpdateSubscriptionKey(chapterId),
+      {
+        chapterNarrationUpdated: {
+          chapterId,
+          status: this.mapBeatriceStatus(update.status),
+          narrationUrl,
+          percent: update.percent,
+          error: update.error
+            ? `${update.error.code}: ${update.error.message}`
+            : undefined,
+        },
+      },
     );
+  }
+
+  /**
+   * @description Maps Beatrice's own status vocabulary onto the GraphQL-facing
+   * `NarrationStatus` enum: `queued`/`generating`/`uploading` are all in-progress.
+   */
+  private mapBeatriceStatus(
+    status: TtsStatusCallbackDto['status'],
+  ): NarrationStatus {
+    switch (status) {
+      case 'completed':
+        return NarrationStatus.READY;
+      case 'failed':
+        return NarrationStatus.FAILED;
+      default:
+        return NarrationStatus.PROCESSING;
+    }
   }
 
   /**

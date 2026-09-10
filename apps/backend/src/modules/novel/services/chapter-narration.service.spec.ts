@@ -581,7 +581,7 @@ describe(ChapterNarrationService.name, () => {
   describe('handleStatusUpdate (private, via onModuleInit subscription)', () => {
     const mockJobId = '2bce49d6-6592-4ed3-b421-f913b9ecc3bd';
 
-    it('should persist the audio URL for a completed callback whose job is mapped to a chapter', async () => {
+    it('should persist the audio URL and publish a READY event for a completed callback whose job is mapped to a chapter', async () => {
       // Arrange
       vi.mocked(jobToChapterMap.get).mockReturnValue(mockChapterId);
       const message = JSON.stringify({
@@ -602,16 +602,96 @@ describe(ChapterNarrationService.name, () => {
         mockChapterId,
         `http://localhost:9000/smart-novel/tts-audio/${mockJobId}.mp3`,
       );
+      expect(pubSub.publish).toHaveBeenCalledWith(
+        chapterNarrationUpdateSubscriptionKey(mockChapterId),
+        {
+          chapterNarrationUpdated: {
+            chapterId: mockChapterId,
+            status: NarrationStatus.READY,
+            narrationUrl: `http://localhost:9000/smart-novel/tts-audio/${mockJobId}.mp3`,
+            percent: undefined,
+            error: undefined,
+          },
+        },
+      );
     });
 
-    it('should log and drop a completed callback for an unknown/expired jobId', async () => {
+    it.each([
+      'queued',
+      'generating',
+      'uploading',
+      'completed',
+      'failed',
+    ])(
+      'should log and drop a "%s" callback for an unknown/expired jobId, without publishing',
+      async (status) => {
+        // Arrange
+        vi.mocked(jobToChapterMap.get).mockReturnValue(undefined);
+        const message = JSON.stringify({ jobId: mockJobId, status });
+
+        // Act
+        await (uut as any).handleStatusUpdate(message);
+
+        // Assert
+        expect(
+          chapterRepository.updateChapterNarrationUrl,
+        ).not.toHaveBeenCalled();
+        expect(pubSub.publish).not.toHaveBeenCalled();
+        expect(logger.warn).toHaveBeenCalledWith(
+          expect.stringContaining(mockJobId),
+          expect.any(Object),
+        );
+      },
+    );
+
+    it.each([
+      ['queued', undefined],
+      ['generating', 42],
+      ['uploading', 87],
+    ])(
+      'should publish a PROCESSING event with percent for a "%s" callback, without persisting a narration URL',
+      async (status, percent) => {
+        // Arrange
+        vi.mocked(jobToChapterMap.get).mockReturnValue(mockChapterId);
+        const message = JSON.stringify({
+          jobId: mockJobId,
+          status,
+          percent,
+        });
+
+        // Act
+        await (uut as any).handleStatusUpdate(message);
+
+        // Assert
+        expect(
+          chapterRepository.updateChapterNarrationUrl,
+        ).not.toHaveBeenCalled();
+        expect(pubSub.publish).toHaveBeenCalledWith(
+          chapterNarrationUpdateSubscriptionKey(mockChapterId),
+          {
+            chapterNarrationUpdated: {
+              chapterId: mockChapterId,
+              status: NarrationStatus.PROCESSING,
+              narrationUrl: undefined,
+              percent,
+              error: undefined,
+            },
+          },
+        );
+      },
+    );
+
+    it('should publish a FAILED event with the error flattened to a string, without persisting a narration URL', async () => {
       // Arrange
-      vi.mocked(jobToChapterMap.get).mockReturnValue(undefined);
+      vi.mocked(jobToChapterMap.get).mockReturnValue(mockChapterId);
       const message = JSON.stringify({
         jobId: mockJobId,
-        status: 'completed',
-        fileSizeBytes: 4,
-        attempt: 1,
+        status: 'failed',
+        failedAt: '2026-09-10T00:00:00.000Z',
+        error: {
+          code: 'TTS_PROVIDER_ERROR',
+          message: 'qwen-tts timed out',
+        },
       });
 
       // Act
@@ -621,27 +701,18 @@ describe(ChapterNarrationService.name, () => {
       expect(
         chapterRepository.updateChapterNarrationUrl,
       ).not.toHaveBeenCalled();
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining(mockJobId),
-        expect.any(Object),
+      expect(pubSub.publish).toHaveBeenCalledWith(
+        chapterNarrationUpdateSubscriptionKey(mockChapterId),
+        {
+          chapterNarrationUpdated: {
+            chapterId: mockChapterId,
+            status: NarrationStatus.FAILED,
+            narrationUrl: undefined,
+            percent: undefined,
+            error: 'TTS_PROVIDER_ERROR: qwen-tts timed out',
+          },
+        },
       );
     });
-
-    it.each(['queued', 'generating', 'uploading', 'failed'])(
-      'should ignore a "%s" status callback',
-      async (status) => {
-        // Arrange
-        const message = JSON.stringify({ jobId: mockJobId, status });
-
-        // Act
-        await (uut as any).handleStatusUpdate(message);
-
-        // Assert
-        expect(jobToChapterMap.get).not.toHaveBeenCalled();
-        expect(
-          chapterRepository.updateChapterNarrationUrl,
-        ).not.toHaveBeenCalled();
-      },
-    );
   });
 });
