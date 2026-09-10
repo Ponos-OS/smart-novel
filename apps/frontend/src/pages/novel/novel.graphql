@@ -66,8 +66,8 @@ mutation UpdateContent($id: ID!, $content: String!) {
   }
 }
 
-mutation GenerateChapterAudio($id: ID!, $forceRegenerate: Boolean) {
-  generateChapterAudio(id: $id, forceRegenerate: $forceRegenerate) {
+mutation GenerateChapterAudio($id: ID!) {
+  generateChapterAudio(id: $id) {
     status
     narrationUrl
   }

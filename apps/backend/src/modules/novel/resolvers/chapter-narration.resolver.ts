@@ -35,19 +35,8 @@ export class ChapterNarrationResolver {
       ParseUuidPipe,
     )
     chapterId: string,
-    @Args('forceRegenerate', {
-      type: () => Boolean,
-      nullable: true,
-      defaultValue: false,
-      description:
-        'Force regeneration even if audio already exists. Use this when TTS voice changes or markdown-to-text conversion is improved.',
-    })
-    forceRegenerate = false,
   ): Promise<ChapterNarrationResponse> {
-    return this.narrationService.startGeneration(
-      chapterId,
-      forceRegenerate,
-    );
+    return this.narrationService.generateChapterAudio(chapterId);
   }
 
   /**

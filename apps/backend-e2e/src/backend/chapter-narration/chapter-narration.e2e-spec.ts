@@ -1,23 +1,28 @@
-import { NarrationStatus } from '@prisma/client';
 import axios from 'axios';
 import { createClient } from 'graphql-ws';
+import Redis from 'ioredis';
 import { WebSocket } from 'ws';
 
 import { AuthorizationFixture } from '../../support';
 import { ChapterNarrationFixture } from './chapter-narration.fixture';
+
+/** @description Must match `TTS_STATUS_CHANNEL` in apps/backend/src/modules/tts-callbacks/constants.ts */
+const TTS_STATUS_CHANNEL = 'tts-audio:status';
 
 describe('Chapter Narration (e2e)', () => {
   let fixture: ChapterNarrationFixture;
 
   beforeEach(() => {
     fixture = new ChapterNarrationFixture();
-    fixture.beforeEach();
   });
 
   const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829';
   const CHAPTER_ONE_ID = '4dd92f16-4743-47b9-960c-6529678e9bc5';
-  const CHAPTER_TWO_ID = '4769a024-6267-4abc-a412-5ab0241a8d0e';
+  // Chapter 2 (4769a024-...) is deliberately left to beatrice-callbacks.e2e-spec.ts's
+  // Step 2.1/2.2 tests — this file's real-generation tests use chapters 1/3/4 instead,
+  // so the two files' narration locks/status messages don't race each other.
   const CHAPTER_THREE_ID = 'a3987a2f-eaa5-4a05-8714-34a110511cba';
+  const CHAPTER_FOUR_ID = '038dd3f5-e921-4076-be91-66175ebd1bc3';
 
   it('should start chapter audio generation and return PROCESSING status', async () => {
     const authorizationHeader =
@@ -49,129 +54,136 @@ describe('Chapter Narration (e2e)', () => {
     });
   }, 120_000);
 
-  it('should force regenerate chapter audio even if the narrationUrl exists', async () => {
-    const chapterId = '038dd3f5-e921-4076-be91-66175ebd1bc3';
-    await fixture.generateChapterAudio(chapterId);
-    await new Promise((resolve) => setTimeout(resolve, 12_000)); // 12 seconds
-    const { traceparent, traceId } =
-      ChapterNarrationFixture.generateTraceparent();
+  it('should always regenerate audio, even once a narrationUrl already exists', async () => {
+    await fixture.generateChapterAudio(CHAPTER_FOUR_ID);
+    await fixture.waitFor(NOVEL_ID, CHAPTER_FOUR_ID);
+
+    // Act: call again now that the first job's lock has been released on completion —
+    // there's no forceRegenerate anymore, a plain call always regenerates.
     const authorizationHeader =
       await AuthorizationFixture.getWriterAuthorizationHeader();
-
     const res = await axios.post(
       '/graphql',
       {
         query: `#graphql
           mutation GenerateChapterAudio($id: ID!) {
-            generateChapterAudio(id: $id, forceRegenerate: true) {
-              status
-              narrationUrl
-            }
-          }
-        `,
-        variables: {
-          id: chapterId,
-        },
-      },
-      {
-        headers: {
-          traceparent,
-          Authorization: authorizationHeader,
-        },
-      },
-    );
-
-    expect(res.status).toBe(200);
-    await fixture.thenTtsCalledOnceWith(traceId);
-  }, 180_000);
-
-  it('should NOT call TTS service twice for the same chapter', async () => {
-    const firstCall = ChapterNarrationFixture.generateTraceparent();
-    const secondCall = ChapterNarrationFixture.generateTraceparent();
-    const authorizationHeader =
-      await AuthorizationFixture.getWriterAuthorizationHeader();
-    await axios.post(
-      '/graphql',
-      {
-        query: `#graphql
-          mutation GenerateChapterAudio($id: ID!) {
             generateChapterAudio(id: $id) {
               status
             }
           }
         `,
         variables: {
-          id: CHAPTER_TWO_ID,
-        },
-      },
-      {
-        headers: {
-          traceparent: firstCall.traceparent,
-          Authorization: authorizationHeader,
-        },
-      },
-    );
-
-    // Act: Query chapter status with a different trace
-    await axios.post(
-      '/graphql',
-      {
-        query: `#graphql
-          mutation GenerateChapterAudio($id: ID!) {
-            generateChapterAudio(id: $id) {
-              status
-            }
-          }
-        `,
-        variables: {
-          id: CHAPTER_TWO_ID,
-        },
-      },
-      {
-        headers: {
-          traceparent: secondCall.traceparent,
-          Authorization: authorizationHeader,
-        },
-      },
-    );
-
-    await fixture.thenTtsCalledOnceWith(firstCall.traceId);
-    await fixture.thenTtsNotCalledWith(secondCall.traceId);
-  }, 150_000);
-
-  it('should return the narration URL', async () => {
-    // Arrange & Act
-    const authorizationHeader =
-      await AuthorizationFixture.getWriterAuthorizationHeader();
-    await axios.post(
-      '/graphql',
-      {
-        query: `#graphql
-          mutation GenerateChapterAudio($id: ID!) {
-            generateChapterAudio(id: $id) {
-              status
-              narrationUrl
-            }
-          }
-        `,
-        variables: {
-          id: CHAPTER_ONE_ID,
+          id: CHAPTER_FOUR_ID,
         },
       },
       { headers: { Authorization: authorizationHeader } },
     );
+
+    expect(res.data.errors).toBeUndefined();
+    expect(res.data.data.generateChapterAudio).toEqual({
+      status: 'PROCESSING',
+    });
+  }, 220_000);
+
+  it('should reject a second generateChapterAudio call while one is already in flight for the same chapter', async () => {
+    const authorizationHeader =
+      await AuthorizationFixture.getWriterAuthorizationHeader();
+    const query = `#graphql
+      mutation GenerateChapterAudio($id: ID!) {
+        generateChapterAudio(id: $id) {
+          status
+        }
+      }
+    `;
+    const host = process.env.HOST ?? 'localhost';
+    const port = process.env.REDIS_PORT ?? '6379';
+    const redisSubscriber = new Redis(`redis://${host}:${port}`, {
+      password: process.env.REDIS_PASSWORD,
+    });
+
+    try {
+      // Arrange: listen for the real jobId Beatrice assigns, so we can release its
+      // lock ourselves at the end — otherwise this chapter stays locked (up to the
+      // 1h TTL) until the real, unmocked Beatrice job happens to finish on its own,
+      // which would leak into (and likely time out) any later test on this chapter.
+      const queued = new Promise<{ jobId: string }>(
+        (resolve, reject) => {
+          const timeout = setTimeout(
+            () =>
+              reject(
+                new Error('No "queued" message received in 30s'),
+              ),
+            30_000,
+          );
+
+          redisSubscriber.on('message', (channel, message) => {
+            if (channel !== TTS_STATUS_CHANNEL) {
+              return;
+            }
+            const parsed = JSON.parse(message);
+            if (parsed.status !== 'queued') {
+              return;
+            }
+            clearTimeout(timeout);
+            resolve(parsed);
+          });
+        },
+      );
+      await redisSubscriber.subscribe(TTS_STATUS_CHANNEL);
+
+      // Act: fire the first call (kicks off a real, in-flight Beatrice job — the lock
+      // stays held until it reaches a terminal status) and immediately fire a second one.
+      const firstRes = await axios.post(
+        '/graphql',
+        { query, variables: { id: CHAPTER_THREE_ID } },
+        { headers: { Authorization: authorizationHeader } },
+      );
+      const secondRes = await axios.post(
+        '/graphql',
+        { query, variables: { id: CHAPTER_THREE_ID } },
+        { headers: { Authorization: authorizationHeader } },
+      );
+
+      // Assert
+      expect(firstRes.data.errors).toBeUndefined();
+      expect(firstRes.data.data.generateChapterAudio).toEqual({
+        status: 'PROCESSING',
+      });
+      expect(secondRes.data.errors).toBeDefined();
+      expect(secondRes.data.errors[0].message).toContain(
+        'already in progress',
+      );
+
+      // Cleanup: terminate the first call's job so its lock doesn't linger into
+      // later tests on this chapter.
+      const { jobId } = await queued;
+      await axios.post('/beatrice-callbacks/status', {
+        jobId,
+        status: 'failed',
+        failedAt: new Date().toISOString(),
+        error: {
+          code: 'TTS_PROVIDER_ERROR',
+          message: 'test cleanup',
+        },
+      });
+    } finally {
+      await redisSubscriber.quit();
+    }
+  }, 60_000);
+
+  it('should return the narration URL', async () => {
+    // Arrange & Act
+    await fixture.generateChapterAudio(CHAPTER_ONE_ID);
     const narrationUrl = await fixture.waitFor(
       NOVEL_ID,
       CHAPTER_ONE_ID,
-      NarrationStatus.READY,
     );
 
     // Assert
     expect(narrationUrl).toBeTruthy();
-    expect(narrationUrl).toContain('narrations/');
+    expect(narrationUrl).toContain('tts-audio/');
     expect(narrationUrl).toContain('.mp3');
-    expect(narrationUrl).toContain(CHAPTER_ONE_ID);
-  }, 150_000);
+  }, 200_000);
 
   it('should return error for non-existent chapter', async () => {
     const authorizationHeader =
@@ -253,9 +265,8 @@ describe('Chapter Narration (e2e)', () => {
 
       // Assert
       expect(event.narrationUrl).toBeTruthy();
-      expect(event.narrationUrl).toContain('narrations/');
+      expect(event.narrationUrl).toContain('tts-audio/');
       expect(event.narrationUrl).toContain('.mp3');
-      expect(event.narrationUrl).toContain(CHAPTER_THREE_ID);
     } finally {
       client.dispose();
     }

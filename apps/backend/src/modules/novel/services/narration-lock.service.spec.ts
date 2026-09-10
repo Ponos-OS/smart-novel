@@ -29,7 +29,7 @@ describe(NarrationLockService.name, () => {
     const ttlMs = 5000;
     vi.mocked(redisService.set).mockResolvedValue(true);
 
-    const token = await uut.tryAcquire(key, ttlMs, false);
+    const token = await uut.tryAcquire(key, ttlMs);
 
     expect(redisService.set).toHaveBeenCalledWith(
       key,
@@ -40,6 +40,16 @@ describe(NarrationLockService.name, () => {
       },
     );
     expect(token).toBeTruthy();
+  });
+
+  it('should return null when the lock is already held', async () => {
+    const key = 'chapter_tts:a33ac257-ff1d-4c20-ac4f-e9b4365439ca';
+    const ttlMs = 5000;
+    vi.mocked(redisService.set).mockResolvedValue(false);
+
+    const token = await uut.tryAcquire(key, ttlMs);
+
+    expect(token).toBeNull();
   });
 
   it('should return false if lock does NOT exist', async () => {
@@ -59,15 +69,6 @@ describe(NarrationLockService.name, () => {
 
     expect(redisService.get).toHaveBeenCalledWith(key);
     expect(exists).toBe(true);
-  });
-
-  it('should delete the key before acquiring if forceRegenerate is true', async () => {
-    const key = 'chapter_tts:a33ac257-ff1d-4c20-ac4f-e9b4365439ca';
-    const ttlMs = 5000;
-
-    await uut.tryAcquire(key, ttlMs, true);
-
-    expect(redisService.del).toHaveBeenCalledWith(key);
   });
 
   it('should release the lock', async () => {

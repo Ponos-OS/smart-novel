@@ -23,12 +23,7 @@ export class NarrationLockService {
   async tryAcquire(
     key: string,
     ttlMs: number,
-    forceRegenerate: boolean,
   ): Promise<string | null> {
-    if (forceRegenerate) {
-      await this.redisService.del(key);
-    }
-
     const token = Math.random().toString(36).slice(2);
     // Sets TTL using SET NX PX.
     const res = await this.redisService.set(key, token, {

@@ -90,39 +90,36 @@ export function ChapterContent({
     [chapter.id, chapter.novelId, queryClient],
   );
 
-  const handleGenerateAudio = useCallback(
-    (forceRegenerate = false) => {
-      // Optimistically set PROCESSING in cache
-      updateCacheNarrationStatus(NarrationStatus.Processing);
+  const handleGenerateAudio = useCallback(() => {
+    // Optimistically set PROCESSING in cache
+    updateCacheNarrationStatus(NarrationStatus.Processing);
 
-      generateAudioMutation.mutate(
-        { id: chapter.id, forceRegenerate },
-        {
-          onSuccess: (data) => {
-            const result = data.generateChapterAudio;
-            // Update cache with mutation response (likely still PROCESSING)
-            // The subscription will handle the final READY/FAILED update
-            updateCacheNarrationStatus(
-              result.status,
-              result.narrationUrl,
-            );
-          },
-          onError: () => {
-            updateCacheNarrationStatus(NarrationStatus.Failed);
-          },
+    generateAudioMutation.mutate(
+      { id: chapter.id },
+      {
+        onSuccess: (data) => {
+          const result = data.generateChapterAudio;
+          // Update cache with mutation response (likely still PROCESSING)
+          // The subscription will handle the final READY/FAILED update
+          updateCacheNarrationStatus(
+            result.status,
+            result.narrationUrl,
+          );
         },
-      );
-      setShowRegenerateConfirm(false);
-    },
-    [chapter.id, generateAudioMutation, updateCacheNarrationStatus],
-  );
+        onError: () => {
+          updateCacheNarrationStatus(NarrationStatus.Failed);
+        },
+      },
+    );
+    setShowRegenerateConfirm(false);
+  }, [chapter.id, generateAudioMutation, updateCacheNarrationStatus]);
 
   const handleNarrationButtonClick = () => {
     if (hasNarrationUrl) {
       setShowRegenerateConfirm(true);
       return;
     }
-    handleGenerateAudio(false);
+    handleGenerateAudio();
   };
 
   const getGenerateButtonTooltip = (): string => {
@@ -249,7 +246,7 @@ export function ChapterContent({
             <span className="text-xs text-red-600 dark:text-red-400">
               Audio generation failed.{' '}
               <button
-                onClick={() => handleGenerateAudio(true)}
+                onClick={() => handleGenerateAudio()}
                 className="cursor-pointer underline hover:no-underline"
               >
                 Retry
@@ -279,7 +276,7 @@ export function ChapterContent({
                 Cancel
               </button>
               <button
-                onClick={() => handleGenerateAudio(true)}
+                onClick={() => handleGenerateAudio()}
                 className="cursor-pointer rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
               >
                 Yes, Regenerate

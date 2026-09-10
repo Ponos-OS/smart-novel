@@ -133,9 +133,13 @@ describe('Beatrice callbacks (e2e)', () => {
         jobId: '2bce49d6-6592-4ed3-b421-f913b9ecc3bd',
         status: 'completed',
       };
+      // Filter by our own jobId — other tests' real Beatrice jobs publish onto this
+      // same channel concurrently, so "the next message" isn't reliably ours.
       const received = waitForMessage(
         redisSubscriber,
         TTS_STATUS_CHANNEL,
+        5000,
+        (message) => JSON.parse(message).jobId === payload.jobId,
       );
       await redisSubscriber.subscribe(TTS_STATUS_CHANNEL);
 
@@ -189,10 +193,14 @@ describe('Beatrice callbacks (e2e)', () => {
       // picks the job up off RabbitMQ asynchronously, so this can take a few
       // seconds under load — well past the 5s default used by the other test
       // in this file (a direct, synchronous POST /status call).
+      // Filter for "queued" specifically — other tests' real Beatrice jobs share this
+      // channel too, and a "generating"/"failed" message from one of those arriving in
+      // the same window would otherwise be mistaken for ours.
       const queued = waitForMessage(
         redisSubscriber,
         TTS_STATUS_CHANNEL,
         30_000,
+        (message) => JSON.parse(message).status === 'queued',
       );
       await redisSubscriber.subscribe(TTS_STATUS_CHANNEL);
 
@@ -470,14 +478,20 @@ async function waitForEventIndex<T>(
 }
 
 /**
- * @description Resolves with the next message on `channel`, or rejects after `timeoutMs`.
- * Caller must `await client.subscribe(channel)` before the event that triggers
- * the publish, so the subscription is confirmed before the message can be sent.
+ * @description Resolves with the next message on `channel` matching `predicate` (default:
+ * any message), or rejects after `timeoutMs`. Caller must `await client.subscribe(channel)`
+ * before the event that triggers the publish, so the subscription is confirmed before the
+ * message can be sent.
+ *
+ * Filtering matters whenever other tests may have real Beatrice jobs in flight
+ * concurrently — every job's status updates share this one Redis channel, so "resolve on
+ * the very next message" can pick up an unrelated job's update instead of the caller's own.
  */
 function waitForMessage(
   client: Redis,
   channel: string,
   timeoutMs = 5000,
+  predicate: (message: string) => boolean = () => true,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -490,7 +504,7 @@ function waitForMessage(
     }, timeoutMs);
 
     function onMessage(receivedChannel: string, message: string) {
-      if (receivedChannel !== channel) {
+      if (receivedChannel !== channel || !predicate(message)) {
         return;
       }
       clearTimeout(timeout);
