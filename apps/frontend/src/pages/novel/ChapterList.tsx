@@ -75,7 +75,6 @@ export function ChapterList({
                 <GenerateTtsButton
                   novelId={novelId}
                   chapterId={chapter.id}
-                  returnUrl={`/novel/${novelId}`}
                 />
               )}
             </div>

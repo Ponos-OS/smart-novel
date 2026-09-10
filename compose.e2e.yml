@@ -38,6 +38,7 @@ services:
         VITE_OIDC_REDIRECT_URI: ${VITE_OIDC_REDIRECT_URI}
         VITE_OIDC_SCOPE: ${VITE_OIDC_SCOPE}
         ZITADEL_CLIENT_ID_FILE: ${ZITADEL_CLIENT_ID_FILE}
+        VITE_OTLP_ENDPOINT: ${VITE_OTLP_ENDPOINT}
     profiles:
       - frontend-e2e
     depends_on:

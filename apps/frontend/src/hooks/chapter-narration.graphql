@@ -2,6 +2,7 @@ subscription ChapterNarrationUpdated($chapterId: ID!) {
   chapterNarrationUpdated(chapterId: $chapterId) {
     status
     narrationUrl
+    percent
     error
   }
 }

@@ -48,18 +48,16 @@ describe('Chapter Audio Narration', () => {
   }
 
   describe('Writer Tools section', () => {
-    it('should display the Writer Tools section for authenticated writers', () => {
+    it('should display the Writer Tools section with a single Generate/Regenerate Audio button for authenticated writers', () => {
       visitChapterAsWriter();
 
       cy.contains('Writer Tools', { timeout: 10000 }).should(
         'be.visible',
       );
-    });
 
-    it('should display the Generate Audio button', () => {
-      visitChapterAsWriter();
-
-      // The button text is either "Generate Audio" or "Regenerate Audio"
+      // Exactly one generate/regenerate button — Step 3b collapses the old
+      // "Generate TTS" (review-page navigation) and "Generate Audio" buttons
+      // into a single action.
       cy.get('body').should(($body) => {
         const text = $body.text();
         const hasGenerate = text.includes('Generate Audio');
@@ -71,18 +69,12 @@ describe('Chapter Audio Narration', () => {
       });
     });
 
-    it('should display the Generate TTS button', () => {
+    it('should never show a "Generate TTS"/"Edit TTS Content" review-page button or link', () => {
       visitChapterAsWriter();
 
-      cy.get('body').should(($body) => {
-        const text = $body.text();
-        const hasGenerateTts = text.includes('Generate TTS');
-        const hasEditTts = text.includes('Edit TTS Content');
-        expect(
-          hasGenerateTts || hasEditTts,
-          'Should show either Generate TTS or Edit TTS Content button',
-        ).to.equal(true);
-      });
+      cy.contains('Generate TTS').should('not.exist');
+      cy.contains('Edit TTS Content').should('not.exist');
+      cy.get('a[href*="tts-review"]').should('not.exist');
     });
   });
 
@@ -102,23 +94,21 @@ describe('Chapter Audio Narration', () => {
       cy.get('audio[controls]').should('exist');
     });
 
-    it('should show "Regenerate Audio" when narration already exists', () => {
+    it('should show "Regenerate Audio" (not disabled) when narration already exists', () => {
       visitChapterWithMock({
         narrationStatus: 'READY',
         narrationUrl: 'https://example.com/test-narration.mp3',
-        ttsFriendlyContent: 'Some TTS content',
       });
 
-      cy.contains('Regenerate Audio', { timeout: 10000 }).should(
-        'be.visible',
-      );
+      cy.contains('button', 'Regenerate Audio', { timeout: 10000 })
+        .should('be.visible')
+        .and('not.be.disabled');
     });
 
     it('should show confirmation modal when clicking Regenerate Audio', () => {
       visitChapterWithMock({
         narrationStatus: 'READY',
         narrationUrl: 'https://example.com/test-narration.mp3',
-        ttsFriendlyContent: 'Some TTS content',
       });
 
       // Click Regenerate Audio
@@ -138,7 +128,6 @@ describe('Chapter Audio Narration', () => {
       visitChapterWithMock({
         narrationStatus: 'READY',
         narrationUrl: 'https://example.com/test-narration.mp3',
-        ttsFriendlyContent: 'Some TTS content',
       });
 
       // Open modal
@@ -158,170 +147,98 @@ describe('Chapter Audio Narration', () => {
       );
     });
 
-    it('should show error state with retry link when narration fails', () => {
+    it('should show a failure message and a usable (non-disabled) button to retry when narration fails', () => {
       visitChapterWithMock({
         narrationStatus: 'FAILED',
         narrationUrl: null,
-        ttsFriendlyContent: 'Some TTS content',
       });
 
       cy.contains('Audio generation failed.', {
         timeout: 10000,
       }).should('be.visible');
-      cy.contains('button', 'Retry').should('be.visible');
+      cy.contains('button', 'Generate Audio', { timeout: 10000 })
+        .should('be.visible')
+        .and('not.be.disabled');
     });
 
-    it('should disable Generate Audio button when no TTS-friendly content exists', () => {
+    it('should never disable the Generate Audio button — there is no more precondition gating it', () => {
       visitChapterWithMock({
         narrationStatus: null,
         narrationUrl: null,
-        ttsFriendlyContent: null,
       });
 
       cy.contains('button', 'Generate Audio', { timeout: 10000 })
         .should('be.visible')
-        .and('be.disabled');
+        .and('not.be.disabled');
     });
   });
 
-  describe('Full flow: generate TTS content → generate audio → audio player', () => {
+  describe('Full flow: generate audio → live progress → audio player', () => {
     /**
-     * This is a slow integration test that exercises the full narration flow
-     * against the real backend services (Ollama for TTS normalization,
-     * TTS service for audio generation, MinIO for storage).
-     *
-     * Timeouts are generous to account for:
-     * - TTS-friendly content generation via LLM (~30-60s)
-     * - Audio generation via TTS service (~30-120s)
-     * - S3 upload and DB update (~5s)
+     * Slow integration test against the real backend services (RabbitMQ,
+     * Beatrice, the local Qwen3-TTS shim, S3). Timeouts are generous to
+     * account for CPU-only local TTS synthesis.
      */
-    it('should generate TTS content, then generate audio, and display the audio player', () => {
+    it('should generate audio directly (no TTS-review detour) and reflect live progress via the subscription', () => {
       cy.login();
       cy.intercept('POST', '**/graphql').as('graphql');
 
-      // Step 1: Navigate to the novel page (chapter list view)
       cy.visit(NOVEL_URL);
       cy.wait('@graphql');
 
-      // Step 2: Click on the first chapter from the chapter list
       cy.contains('Chapter 1', { timeout: 10000 }).first().click();
       cy.wait('@graphql');
 
-      // Wait for chapter content
       cy.get('.prose-container', { timeout: 15000 }).should(
         'be.visible',
       );
 
-      // Step 3: Check if TTS-friendly content already exists.
-      // If "Edit TTS Content" is visible, TTS content exists already.
-      // If "Generate TTS" is visible, we need to generate it first.
+      // The single button is always "Generate Audio" or "Regenerate Audio" —
+      // no TTS-review detour exists anymore.
       cy.get('body').then(($body) => {
-        const needsTtsGeneration =
-          $body.text().includes('Generate TTS') &&
-          !$body.text().includes('Edit TTS Content');
-
-        if (needsTtsGeneration) {
-          cy.task(
-            'log',
-            'TTS content not found — generating via TTS review page...',
-          );
-
-          // Click "Generate TTS" to navigate to TTS review page
-          cy.contains('button', 'Generate TTS').click();
-
-          // Wait for TTS review page to load and content to generate
-          cy.url().should('include', '/tts-review');
-
-          // Wait for the TTS content to be generated (LLM processing)
-          // The page will show "Generating TTS-friendly content..." then the review view
-          cy.contains('h1', 'TTS Content Review', {
-            timeout: 120000,
-          }).should('be.visible');
-
-          // Click "Confirm & Save" to save the TTS-friendly content
-          cy.contains('button', 'Confirm & Save').first().click();
-
-          // Should navigate back to the novel page
-          cy.url({ timeout: 10000 }).should('include', NOVEL_URL);
-          cy.url().should('not.include', 'tts-review');
-
-          // Re-open the chapter from the chapter list
-          cy.contains('Chapter 1', { timeout: 10000 })
-            .first()
-            .click();
-          cy.wait('@graphql');
-
-          cy.get('.prose-container', { timeout: 15000 }).should(
-            'be.visible',
-          );
-        } else {
-          cy.task(
-            'log',
-            'TTS content already exists — skipping TTS generation.',
-          );
-        }
-      });
-
-      // Step 4: Now the chapter should have TTS-friendly content.
-      // The button should show either "Generate Audio" or "Regenerate Audio".
-      cy.get('body', { timeout: 10000 }).then(($body) => {
         const hasExistingNarration = $body
           .text()
           .includes('Regenerate Audio');
 
         if (hasExistingNarration) {
-          cy.task(
-            'log',
-            'Narration already exists — clicking Regenerate Audio...',
-          );
-
-          // Click Regenerate Audio → confirmation modal → Yes, Regenerate
           cy.contains('button', 'Regenerate Audio').click();
           cy.contains('h3', 'Regenerate Audio Narration?').should(
             'be.visible',
           );
           cy.contains('button', 'Yes, Regenerate').click();
         } else {
-          cy.task(
-            'log',
-            'No narration yet — clicking Generate Audio...',
-          );
           cy.contains('button', 'Generate Audio', {
             timeout: 10000,
           }).click();
         }
       });
 
-      // Step 5: Verify processing spinner appears
+      // Processing spinner appears immediately (optimistic update)
       cy.contains('Generating audio...', { timeout: 10000 }).should(
         'be.visible',
       );
 
-      cy.task(
-        'log',
-        'Audio generation in progress — waiting for completion (up to 3 minutes)...',
-      );
+      // The subscription-driven percent eventually renders alongside the
+      // spinner text (Step 2.2/3b) — CPU-only local synthesis can take a
+      // while to report its first "generating"/"uploading" event.
+      cy.contains(/Generating audio\.\.\. \d+%/, {
+        timeout: 60000,
+      }).should('be.visible');
 
-      // Step 6: Wait for the audio player to appear.
-      // The subscription will update the UI when generation completes.
-      // Using a generous timeout for the full TTS → S3 upload pipeline.
-      cy.contains('Audio Narration', { timeout: 180000 }).should(
+      // Wait for the audio player to appear once generation completes.
+      // Matches Beatrice's own TTS__QWEN__TIMEOUT_MS (compose.yml) — CPU-only
+      // local Qwen3-TTS synthesis can take a while, especially under
+      // concurrent test-suite load.
+      cy.contains('Audio Narration', { timeout: 300000 }).should(
         'be.visible',
       );
 
-      // Step 7: Verify the audio element is present and has controls
       cy.get('audio[controls]').should('exist');
       cy.get('audio[controls]')
         .should('have.attr', 'src')
         .and('include', '.mp3');
 
-      // Step 8: After narration is generated, the button should now say "Regenerate Audio"
       cy.contains('button', 'Regenerate Audio').should('be.visible');
-
-      cy.task(
-        'log',
-        'Audio narration generated and player is visible — test passed!',
-      );
     });
   });
 });

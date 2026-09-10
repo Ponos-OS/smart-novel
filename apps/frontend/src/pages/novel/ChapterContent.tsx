@@ -1,15 +1,8 @@
-import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useRef, useState } from 'react';
+import { useRef } from 'react';
 
 import { GenerateTtsButton } from '../../components/GenerateTtsButton';
 import { MarkdownRenderer } from '../../components/MarkdownRenderer';
-import {
-  Chapter,
-  GetChapterQuery,
-  NarrationStatus,
-  useGenerateChapterAudioMutation,
-  useGetChapterQuery,
-} from '../../generated/graphql';
+import { Chapter, NarrationStatus } from '../../generated/graphql';
 import { useChapterNarrationSubscription } from '../../hooks/useChapterNarrationSubscription';
 
 type ChapterContentData = Pick<
@@ -40,97 +33,21 @@ export function ChapterContent({
   hasNext,
   canManageTts,
 }: ChapterContentProps) {
-  const queryClient = useQueryClient();
-  const [showRegenerateConfirm, setShowRegenerateConfirm] =
-    useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
-
-  const generateAudioMutation = useGenerateChapterAudioMutation();
 
   // Derive UI state directly from the chapter prop (sourced from TanStack Query cache)
   const hasNarrationUrl = !!chapter.narrationUrl;
   const isProcessing =
-    chapter.narrationStatus === NarrationStatus.Processing ||
-    generateAudioMutation.isPending;
+    chapter.narrationStatus === NarrationStatus.Processing;
   const isFailed = chapter.narrationStatus === NarrationStatus.Failed;
 
   // Subscribe to real-time narration updates when processing
   // The subscription updates the TanStack Query cache directly
-  useChapterNarrationSubscription({
+  const { percent } = useChapterNarrationSubscription({
     chapterId: chapter.id,
     novelId: chapter.novelId,
     enabled: isProcessing,
   });
-
-  const updateCacheNarrationStatus = useCallback(
-    (status: NarrationStatus, narrationUrl?: string | null) => {
-      const queryKey = useGetChapterQuery.getKey({
-        novelId: chapter.novelId,
-        chapterId: chapter.id,
-      });
-
-      queryClient.setQueryData<GetChapterQuery>(queryKey, (old) => {
-        if (!old?.novel?.chapter) {
-          return old;
-        }
-
-        return {
-          ...old,
-          novel: {
-            ...old.novel,
-            chapter: {
-              ...old.novel.chapter,
-              narrationStatus: status,
-              ...(narrationUrl !== undefined && { narrationUrl }),
-            },
-          },
-        };
-      });
-    },
-    [chapter.id, chapter.novelId, queryClient],
-  );
-
-  const handleGenerateAudio = useCallback(() => {
-    // Optimistically set PROCESSING in cache
-    updateCacheNarrationStatus(NarrationStatus.Processing);
-
-    generateAudioMutation.mutate(
-      { id: chapter.id },
-      {
-        onSuccess: (data) => {
-          const result = data.generateChapterAudio;
-          // Update cache with mutation response (likely still PROCESSING)
-          // The subscription will handle the final READY/FAILED update
-          updateCacheNarrationStatus(
-            result.status,
-            result.narrationUrl,
-          );
-        },
-        onError: () => {
-          updateCacheNarrationStatus(NarrationStatus.Failed);
-        },
-      },
-    );
-    setShowRegenerateConfirm(false);
-  }, [chapter.id, generateAudioMutation, updateCacheNarrationStatus]);
-
-  const handleNarrationButtonClick = () => {
-    if (hasNarrationUrl) {
-      setShowRegenerateConfirm(true);
-      return;
-    }
-    handleGenerateAudio();
-  };
-
-  const getGenerateButtonTooltip = (): string => {
-    if (!canManageTts) {
-      return '';
-    }
-    if (hasNarrationUrl) {
-      return 'Regenerate audio narration (will replace the existing one)';
-    }
-    return 'Generate audio narration for this chapter';
-  };
 
   return (
     <div className="space-y-6">
@@ -217,72 +134,25 @@ export function ChapterContent({
             </span>
           </div>
 
-          <GenerateTtsButton
-            novelId={chapter.novelId}
-            chapterId={chapter.id}
-            hasTtsFriendlyContent={false}
-            returnUrl={`/novel/${chapter.novelId}?chapter=${chapter.id}`}
-          />
-
-          {/* Generate / Regenerate Narration Button */}
+          {/* Generate / Regenerate Narration */}
           {isProcessing ? (
             <div className="flex items-center gap-2 rounded bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
               <div className="h-3 w-3 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
-              Generating audio...
+              Generating audio...{percent !== null && ` ${percent}%`}
             </div>
           ) : (
-            <button
-              onClick={handleNarrationButtonClick}
-              className="cursor-pointer rounded bg-green-100 px-3 py-1.5 text-xs font-medium text-green-800 transition-colors hover:bg-green-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-green-900 dark:text-green-200 dark:hover:bg-green-800"
-              title={getGenerateButtonTooltip()}
-            >
-              {hasNarrationUrl
-                ? '🔄 Regenerate Audio'
-                : '🔊 Generate Audio'}
-            </button>
+            <GenerateTtsButton
+              novelId={chapter.novelId}
+              chapterId={chapter.id}
+              hasNarrationUrl={hasNarrationUrl}
+            />
           )}
 
           {isFailed && (
             <span className="text-xs text-red-600 dark:text-red-400">
-              Audio generation failed.{' '}
-              <button
-                onClick={() => handleGenerateAudio()}
-                className="cursor-pointer underline hover:no-underline"
-              >
-                Retry
-              </button>
+              Audio generation failed.
             </span>
           )}
-        </div>
-      )}
-
-      {/* Regeneration Confirmation Modal */}
-      {showRegenerateConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="mx-4 max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
-            <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
-              Regenerate Audio Narration?
-            </h3>
-            <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-              This chapter already has an audio narration.
-              Regenerating will permanently replace the existing audio
-              file with a new one. This action cannot be undone.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowRegenerateConfirm(false)}
-                className="cursor-pointer rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleGenerateAudio()}
-                className="cursor-pointer rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
-              >
-                Yes, Regenerate
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
