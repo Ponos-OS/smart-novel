@@ -53,8 +53,6 @@ services:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
-      tts:
-        condition: service_healthy
       traefik:
         condition: service_healthy
       setup-zitadel:
@@ -438,30 +436,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 60s
-
-  tts:
-    image: 9109679196/piper-tts-rest-api:3.0.0
-    user: "1000:1000"
-    environment:
-      PIPER_MODEL: /app/models/en_US-lessac-medium.onnx
-      PORT: 3000
-      LOGGING_MODE: "JSON"
-      NODE_ENV: "production"
-      OTEL_ENABLED: ${OTEL_ENABLED}
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
-      SERVICE_NAME: piper-tts-rest-api
-      OTEL_TRACES_SAMPLER: ${OTEL_TRACES_SAMPLER}
-      OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_SAMPLER_ARG}
-      OTEL_BATCH_MAX_PENDING_SPANS: ${OTEL_BATCH_MAX_PENDING_SPANS}
-      OTEL_BATCH_SPANS_PER_EXPORT: ${OTEL_BATCH_SPANS_PER_EXPORT}
-      OTEL_BATCH_FLUSH_INTERVAL_MS: ${OTEL_BATCH_FLUSH_INTERVAL_MS}
-      OTEL_BATCH_EXPORT_TIMEOUT_MS: ${OTEL_BATCH_EXPORT_TIMEOUT_MS}
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
 
   beatrice:
     image: 9109679196/smart-novel-beatrice:3.1.0

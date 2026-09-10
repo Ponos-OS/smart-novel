@@ -56,10 +56,6 @@ class EnvironmentVariables implements AppConfig {
   @IsIn(['development', 'production', 'test'])
   NODE_ENV: AppConfig['NODE_ENV'];
 
-  @IsNotEmpty()
-  @IsString()
-  TTS_ENDPOINT: string;
-
   @IsIn(['PLAIN_TEXT', 'JSON'])
   LOG_MODE: LogMode;
 
