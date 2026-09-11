@@ -314,7 +314,7 @@ describe(ChapterNarrationService.name, () => {
   describe('handleStatusUpdate (private, via onModuleInit subscription)', () => {
     it('should persist the audio URL and publish a READY event for a completed callback whose job is mapped to a chapter', async () => {
       // Arrange
-      vi.mocked(jobToChapterMap.get).mockReturnValue(mockChapterId);
+      vi.mocked(jobToChapterMap.get).mockResolvedValue(mockChapterId);
       const message = JSON.stringify({
         jobId: mockJobId,
         status: 'completed',
@@ -357,7 +357,7 @@ describe(ChapterNarrationService.name, () => {
       'should log and drop a "%s" callback for an unknown/expired jobId, without publishing',
       async (status) => {
         // Arrange
-        vi.mocked(jobToChapterMap.get).mockReturnValue(undefined);
+        vi.mocked(jobToChapterMap.get).mockResolvedValue(undefined);
         const message = JSON.stringify({ jobId: mockJobId, status });
 
         // Act
@@ -383,7 +383,9 @@ describe(ChapterNarrationService.name, () => {
       'should publish a PROCESSING event with percent for a "%s" callback, without persisting a narration URL',
       async (status, percent) => {
         // Arrange
-        vi.mocked(jobToChapterMap.get).mockReturnValue(mockChapterId);
+        vi.mocked(jobToChapterMap.get).mockResolvedValue(
+          mockChapterId,
+        );
         const message = JSON.stringify({
           jobId: mockJobId,
           status,
@@ -414,7 +416,7 @@ describe(ChapterNarrationService.name, () => {
 
     it('should publish a FAILED event with the error flattened to a string, without persisting a narration URL', async () => {
       // Arrange
-      vi.mocked(jobToChapterMap.get).mockReturnValue(mockChapterId);
+      vi.mocked(jobToChapterMap.get).mockResolvedValue(mockChapterId);
       const message = JSON.stringify({
         jobId: mockJobId,
         status: 'failed',
@@ -450,7 +452,9 @@ describe(ChapterNarrationService.name, () => {
       'should release the narration lock held for the job on a "%s" callback',
       async (status) => {
         // Arrange
-        vi.mocked(jobToChapterMap.get).mockReturnValue(mockChapterId);
+        vi.mocked(jobToChapterMap.get).mockResolvedValue(
+          mockChapterId,
+        );
         (uut as any).jobLockTokens.set(mockJobId, {
           lockKey: mockLockKey,
           token: mockLockToken,
@@ -480,7 +484,9 @@ describe(ChapterNarrationService.name, () => {
       'should NOT release the narration lock on a "%s" (non-terminal) callback',
       async (status) => {
         // Arrange
-        vi.mocked(jobToChapterMap.get).mockReturnValue(mockChapterId);
+        vi.mocked(jobToChapterMap.get).mockResolvedValue(
+          mockChapterId,
+        );
         (uut as any).jobLockTokens.set(mockJobId, {
           lockKey: mockLockKey,
           token: mockLockToken,
@@ -497,7 +503,7 @@ describe(ChapterNarrationService.name, () => {
 
     it('should not attempt to release a lock for a job this replica never queued', async () => {
       // Arrange
-      vi.mocked(jobToChapterMap.get).mockReturnValue(mockChapterId);
+      vi.mocked(jobToChapterMap.get).mockResolvedValue(mockChapterId);
       const message = JSON.stringify({
         jobId: mockJobId,
         status: 'completed',

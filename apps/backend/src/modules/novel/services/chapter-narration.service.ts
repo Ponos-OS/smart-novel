@@ -91,7 +91,7 @@ export class ChapterNarrationService implements OnModuleInit {
   private async handleStatusUpdate(message: string): Promise<void> {
     const update = JSON.parse(message) as TtsStatusCallbackDto;
 
-    const chapterId = this.jobToChapterMap.get(update.jobId);
+    const chapterId = await this.jobToChapterMap.get(update.jobId);
 
     if (isNil(chapterId)) {
       this.logger.warn(
@@ -295,7 +295,7 @@ export class ChapterNarrationService implements OnModuleInit {
 
     const jobId = result.generateAudio.jobId;
 
-    this.jobToChapterMap.set(jobId, chapterId);
+    await this.jobToChapterMap.set(jobId, chapterId);
     this.jobLockTokens.set(jobId, { lockKey, token });
 
     this.logger.debug(

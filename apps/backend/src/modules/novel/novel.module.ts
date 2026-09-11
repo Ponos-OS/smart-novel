@@ -12,7 +12,7 @@ import {
   JOB_TO_CHAPTER_MAP,
   NOVEL_REPOSITORY,
 } from './interfaces';
-import { InMemoryJobToChapterMap, PubSubProvider } from './providers';
+import { PubSubProvider, RedisJobToChapterMap } from './providers';
 import {
   PrismaChapterContentRepository,
   PrismaChapterRepository,
@@ -77,7 +77,7 @@ import {
     },
     {
       provide: JOB_TO_CHAPTER_MAP,
-      useClass: InMemoryJobToChapterMap,
+      useClass: RedisJobToChapterMap,
     },
   ],
 })
