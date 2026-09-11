@@ -381,6 +381,11 @@ export class ZitadelManagementV1Service {
     const data = await response.json();
 
     if (!response.ok) {
+      // Rerunning setup against an already-configured policy with identical values is a no-op, not a failure.
+      if (data.message?.includes('LoginPolicy.NotChanged')) {
+        return;
+      }
+
       Logger.error(
         `Failed to update login policy: ${JSON.stringify(data, null, 2)}`,
       );
@@ -408,6 +413,14 @@ export class ZitadelManagementV1Service {
     const data = await response.json();
 
     if (!response.ok) {
+      // Setup can rerun against an already-provisioned instance (e.g. the
+      // container restarted without being recreated); treat "already exists"
+      // as success and update the existing policy instead.
+      if (data.message?.includes('Login Policy already exists')) {
+        await this.updateLoginPolicies(body);
+        return;
+      }
+
       Logger.error(
         `Failed to create custom login policy: ${JSON.stringify(data, null, 2)}`,
       );
@@ -493,6 +506,11 @@ export class ZitadelManagementV1Service {
       return data.id;
     }
 
+    // Check if action already exists
+    if (JSON.stringify(data).toLowerCase().includes('already')) {
+      return await this.#findActionByName(name);
+    }
+
     Logger.error(
       `Failed to create action '${name}': ${JSON.stringify(data, null, 2)}`,
     );
@@ -544,6 +562,12 @@ export class ZitadelManagementV1Service {
     const data = await response.json();
 
     if (!response.ok) {
+      // Rerunning setup with the same action IDs already set is a no-op,
+      // not a failure.
+      if (data.message?.toLowerCase().includes('no changes')) {
+        return;
+      }
+
       Logger.error(
         `Failed to set trigger actions for flow ${flowType}, trigger ${triggerType}: ${JSON.stringify(data, null, 2)}`,
       );
@@ -589,6 +613,46 @@ export class ZitadelManagementV1Service {
       `Failed to find project: ${JSON.stringify(data, null, 2)}`,
     );
     throw new Error(`Failed to find project`);
+  }
+
+  /**
+   * Find an action by name
+   * @param {string} actionName - Action name
+   * @see https://zitadel.com/docs/reference/api/management/zitadel.management.v1.ManagementService.ListActions
+   * @returns {Promise<string>} Action ID
+   */
+  async #findActionByName(actionName) {
+    const response = await fetch(
+      `${this.baseUrl}/management/v1/actions/_search`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          queries: [
+            {
+              actionNameQuery: {
+                name: actionName,
+                method: 'TEXT_QUERY_METHOD_EQUALS',
+              },
+            },
+          ],
+        }),
+      },
+    );
+
+    const data = await response.json();
+
+    if (data.result?.[0]?.id) {
+      return data.result[0].id;
+    }
+
+    Logger.error(
+      `Failed to find action '${actionName}': ${JSON.stringify(data, null, 2)}`,
+    );
+    throw new Error(`Failed to find action '${actionName}'`);
   }
 
   /**

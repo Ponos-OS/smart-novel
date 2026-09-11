@@ -43,6 +43,13 @@ export class ZitadelAdminV1Service {
     const responseBody = await response.json();
 
     if (!response.ok) {
+      // Rerunning setup with impersonation already enabled is a no-op, not a failure.
+      if (
+        responseBody.message?.toLowerCase().includes('no changes')
+      ) {
+        return;
+      }
+
       Logger.error(
         `Failed to enable impersonation in security policy: ${JSON.stringify(responseBody, null, 2)}`,
       );
