@@ -424,6 +424,31 @@ describe(ChapterNarrationService.name, () => {
       );
     });
 
+    it('should log an error for a "failed" callback carrying clientContextId', async () => {
+      // Arrange
+      const message = JSON.stringify({
+        jobId: mockJobId,
+        status: 'failed',
+        failedAt: '2026-09-10T00:00:00.000Z',
+        clientContextId: mockChapterId,
+        error: {
+          code: 'TTS_PROVIDER_ERROR',
+          message: 'qwen-tts timed out',
+        },
+      });
+
+      // Act
+      await (uut as any).handleStatusUpdate(message);
+
+      // Assert
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining(
+          `job ${mockJobId} for chapter ${mockChapterId} as failed: TTS_PROVIDER_ERROR: qwen-tts timed out`,
+        ),
+        expect.any(Object),
+      );
+    });
+
     it.each(['completed', 'failed'])(
       'should release the narration lock held for the job on a "%s" callback',
       async (status) => {

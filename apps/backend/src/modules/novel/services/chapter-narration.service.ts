@@ -121,6 +121,13 @@ export class ChapterNarrationService implements OnModuleInit {
       );
     }
 
+    if (update.status === 'failed') {
+      this.logger.error(
+        `Beatrice reported job ${update.jobId} for chapter ${chapterId} as failed: ${update.error?.code ?? 'UNKNOWN'}: ${update.error?.message ?? 'no error details'}`,
+        { context: ChapterNarrationService.name },
+      );
+    }
+
     if (update.status === 'completed' || update.status === 'failed') {
       await this.releaseJobLock(update.jobId);
     }

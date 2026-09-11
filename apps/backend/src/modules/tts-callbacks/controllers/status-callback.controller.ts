@@ -5,6 +5,7 @@ import {
   HttpStatus,
   Post,
 } from '@nestjs/common';
+import { CustomLoggerService } from 'nestjs-backend-common';
 
 import { Public } from '../../auth';
 import { RedisService } from '../../redis';
@@ -13,7 +14,10 @@ import { TtsStatusCallbackDto } from '../dtos';
 
 @Controller('beatrice-callbacks')
 export class StatusCallbackController {
-  constructor(private readonly redisService: RedisService) {}
+  constructor(
+    private readonly redisService: RedisService,
+    private readonly logger: CustomLoggerService,
+  ) {}
 
   /**
    * @description
@@ -28,6 +32,11 @@ export class StatusCallbackController {
   async statusCallback(
     @Body() body: TtsStatusCallbackDto,
   ): Promise<void> {
+    this.logger.log(
+      `Received "${body.status}" status callback for job ${body.jobId} (chapter ${body.clientContextId ?? 'unknown'})`,
+      { context: StatusCallbackController.name },
+    );
+
     await this.redisService.publish(
       TTS_STATUS_CHANNEL,
       JSON.stringify(body),

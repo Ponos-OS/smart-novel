@@ -1,6 +1,6 @@
 ---
 name: build-step
-description: Implement, test, and commit exactly one step of the TTS generation feature from REQUIREMENTS.md, following .github/docs/process/PROCESS.md and .github/docs/process/SELF_IMPROVE.md. Use when the user asks to build/continue/resume the next TTS pipeline step, or names a step number.
+description: Implement, test, and commit exactly one step of the feature from REQUIREMENTS.md, following .github/docs/process/PROCESS.md and .github/docs/process/SELF_IMPROVE.md. Use when the user asks to build/continue/resume the next step, or names a step number.
 ---
 
 Run the loop in `.github/docs/process/PROCESS.md` for a single step of `REQUIREMENTS.md`.
@@ -8,4 +8,4 @@ Run the loop in `.github/docs/process/PROCESS.md` for a single step of `REQUIREM
 1. If the user named a step number in `args`, use it. Otherwise determine the next unimplemented step by checking `git log` and the current code against `REQUIREMENTS.md` — do not assume, verify.
 2. Read only that step's section (and its `### AC` / `### Test` subsections) in `REQUIREMENTS.md`. Do not read ahead into later steps.
 3. Follow `.github/docs/process/PROCESS.md` steps 2-8 exactly, including invoking graphql-api-tester when (and only when) the step's `### Test` subsection calls for it, and the mandatory `.github/docs/process/SELF_IMPROVE.md` pass before stopping.
-4. Stop after the one step is committed. Do not chain into the next step in the same run — that defeats the point of committing/testing steps individually.
+4. Stop after the one step is committed. Do not chain into the next step in the same run, that defeats the point of committing/testing steps individually.
