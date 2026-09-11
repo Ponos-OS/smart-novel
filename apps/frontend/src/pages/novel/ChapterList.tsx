@@ -1,10 +1,13 @@
 import { GenerateTtsButton } from '../../components/GenerateTtsButton';
+import { NarrationStatus } from '../../generated/graphql';
 import { useReadChapters } from '../../hooks/useReadChapters';
 
 interface ChapterInfo {
   id: string;
   title: string | null;
   createdAt: string;
+  narrationStatus?: NarrationStatus | null;
+  narrationUrl?: string | null;
 }
 
 interface ChapterListProps {
@@ -75,6 +78,8 @@ export function ChapterList({
                 <GenerateTtsButton
                   novelId={novelId}
                   chapterId={chapter.id}
+                  narrationStatus={chapter.narrationStatus}
+                  narrationUrl={chapter.narrationUrl}
                 />
               )}
             </div>

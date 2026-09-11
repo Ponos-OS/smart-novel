@@ -2,31 +2,53 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 
 import {
+  ChapterNarrationUpdatedDocument,
+  ChapterNarrationUpdatedSubscription,
   GetChapterQuery,
   NarrationStatus,
   useGenerateChapterAudioMutation,
   useGetChapterQuery,
 } from '../generated/graphql';
+import { useGraphQLSubscription } from '../hooks/useGraphQLSubscription';
+
+/** @description Maps Beatrice's raw in-progress stage to user-friendly text. */
+const STAGE_LABELS: Record<string, string> = {
+  queued: 'Queued',
+  generating: 'Generating',
+  uploading: 'Uploading',
+};
 
 interface GenerateTtsButtonProps {
   novelId: string;
   chapterId: string;
-  /** Whether the chapter already has a narration — gates the regenerate-confirmation modal */
-  hasNarrationUrl?: boolean;
+  /** Initial narration status, from whichever query already loaded it. */
+  narrationStatus?: NarrationStatus | null;
+  /** Initial narration URL, from whichever query already loaded it. */
+  narrationUrl?: string | null;
 }
 
 export function GenerateTtsButton({
   novelId,
   chapterId,
-  hasNarrationUrl,
+  narrationStatus,
+  narrationUrl: initialNarrationUrl,
 }: GenerateTtsButtonProps) {
   const queryClient = useQueryClient();
   const [showRegenerateConfirm, setShowRegenerateConfirm] =
     useState(false);
+  const [isProcessing, setIsProcessing] = useState(
+    narrationStatus === NarrationStatus.Processing,
+  );
+  const [narrationUrl, setNarrationUrl] = useState(
+    initialNarrationUrl ?? null,
+  );
+  const [stage, setStage] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
   const generateAudioMutation = useGenerateChapterAudioMutation();
+  const hasNarrationUrl = !!narrationUrl;
 
-  const updateCacheNarrationStatus = useCallback(
-    (status: NarrationStatus, narrationUrl?: string | null) => {
+  const patchChapterCache = useCallback(
+    (status: NarrationStatus, url?: string | null) => {
       const queryKey = useGetChapterQuery.getKey({
         novelId,
         chapterId,
@@ -44,7 +66,7 @@ export function GenerateTtsButton({
             chapter: {
               ...old.novel.chapter,
               narrationStatus: status,
-              ...(narrationUrl !== undefined && { narrationUrl }),
+              ...(url !== undefined && { narrationUrl: url }),
             },
           },
         };
@@ -53,26 +75,43 @@ export function GenerateTtsButton({
     [chapterId, novelId, queryClient],
   );
 
+  useGraphQLSubscription<ChapterNarrationUpdatedSubscription>({
+    query: ChapterNarrationUpdatedDocument.toString(),
+    variables: { chapterId },
+    enabled: isProcessing,
+    onData: (data) => {
+      const event = data.chapterNarrationUpdated;
+      setStage(event.stage ?? null);
+
+      if (event.status === NarrationStatus.Ready) {
+        setIsProcessing(false);
+        setNarrationUrl(event.narrationUrl ?? narrationUrl);
+        setFailed(false);
+        patchChapterCache(event.status, event.narrationUrl);
+      } else if (event.status === NarrationStatus.Failed) {
+        setIsProcessing(false);
+        setFailed(true);
+        patchChapterCache(event.status);
+      }
+    },
+  });
+
   const generate = useCallback(() => {
-    updateCacheNarrationStatus(NarrationStatus.Processing);
+    setFailed(false);
+    setStage(null);
+    setIsProcessing(true);
 
     generateAudioMutation.mutate(
       { id: chapterId },
       {
-        onSuccess: (data) => {
-          const result = data.generateChapterAudio;
-          updateCacheNarrationStatus(
-            result.status,
-            result.narrationUrl,
-          );
-        },
         onError: () => {
-          updateCacheNarrationStatus(NarrationStatus.Failed);
+          setIsProcessing(false);
+          setFailed(true);
         },
       },
     );
     setShowRegenerateConfirm(false);
-  }, [chapterId, generateAudioMutation, updateCacheNarrationStatus]);
+  }, [chapterId, generateAudioMutation]);
 
   const handleClick = () => {
     if (hasNarrationUrl) {
@@ -82,22 +121,42 @@ export function GenerateTtsButton({
     generate();
   };
 
+  const stageLabel = stage
+    ? `${STAGE_LABELS[stage] ?? stage}...`
+    : 'Starting...';
+
   return (
     <>
-      <button
-        onClick={handleClick}
-        disabled={generateAudioMutation.isPending}
-        className="cursor-pointer rounded bg-green-100 px-3 py-1.5 text-xs font-medium text-green-800 transition-colors hover:bg-green-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-green-900 dark:text-green-200 dark:hover:bg-green-800"
-        title={
-          hasNarrationUrl
-            ? 'Regenerate audio narration (will replace the existing one)'
-            : 'Generate audio narration for this chapter'
-        }
-      >
-        {hasNarrationUrl
-          ? '🔄 Regenerate Audio'
-          : '🔊 Generate Audio'}
-      </button>
+      {isProcessing ? (
+        <div className="flex items-center gap-2 rounded bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+          <span
+            aria-hidden="true"
+            className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent"
+          />
+          <span>{stageLabel}</span>
+        </div>
+      ) : (
+        <button
+          onClick={handleClick}
+          disabled={generateAudioMutation.isPending}
+          className="cursor-pointer rounded bg-green-100 px-3 py-1.5 text-xs font-medium text-green-800 transition-colors hover:bg-green-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-green-900 dark:text-green-200 dark:hover:bg-green-800"
+          title={
+            hasNarrationUrl
+              ? 'Regenerate audio narration (will replace the existing one)'
+              : 'Generate audio narration for this chapter'
+          }
+        >
+          {hasNarrationUrl
+            ? '🔄 Regenerate Audio'
+            : '🔊 Generate Audio'}
+        </button>
+      )}
+
+      {failed && !isProcessing && (
+        <span className="text-xs text-red-600 dark:text-red-400">
+          Audio generation failed.
+        </span>
+      )}
 
       {showRegenerateConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">

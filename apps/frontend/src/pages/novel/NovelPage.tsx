@@ -136,6 +136,8 @@ export function NovelPage() {
     id: ch.id,
     title: ch.title ?? null,
     createdAt: ch.createdAt,
+    narrationStatus: ch.narrationStatus,
+    narrationUrl: ch.narrationUrl,
   }));
 
   return (

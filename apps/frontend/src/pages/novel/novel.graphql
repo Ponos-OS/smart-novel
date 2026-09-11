@@ -19,6 +19,8 @@ query GetNovel($id: ID!) {
           title
           chapterNumber
           createdAt
+          narrationStatus
+          narrationUrl
         }
       }
       pageInfo {

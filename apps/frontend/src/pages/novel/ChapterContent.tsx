@@ -2,20 +2,7 @@ import { useRef } from 'react';
 
 import { GenerateTtsButton } from '../../components/GenerateTtsButton';
 import { MarkdownRenderer } from '../../components/MarkdownRenderer';
-import { Chapter, NarrationStatus } from '../../generated/graphql';
-import { useChapterNarrationSubscription } from '../../hooks/useChapterNarrationSubscription';
-
-/** @description Beatrice's in-progress stages, in order — used to size the progress bar. */
-const NARRATION_STAGES = [
-  'queued',
-  'generating',
-  'uploading',
-] as const;
-const NARRATION_STAGE_LABELS: Record<string, string> = {
-  queued: 'Queued',
-  generating: 'Generating',
-  uploading: 'Uploading',
-};
+import { Chapter } from '../../generated/graphql';
 
 type ChapterContentData = Pick<
   Chapter,
@@ -49,26 +36,6 @@ export function ChapterContent({
 
   // Derive UI state directly from the chapter prop (sourced from TanStack Query cache)
   const hasNarrationUrl = !!chapter.narrationUrl;
-  const isProcessing =
-    chapter.narrationStatus === NarrationStatus.Processing;
-  const isFailed = chapter.narrationStatus === NarrationStatus.Failed;
-
-  // Subscribe to real-time narration updates when processing
-  // The subscription updates the TanStack Query cache directly
-  const { stage } = useChapterNarrationSubscription({
-    chapterId: chapter.id,
-    novelId: chapter.novelId,
-    enabled: isProcessing,
-  });
-  const stageIndex = stage
-    ? NARRATION_STAGES.indexOf(
-        stage as (typeof NARRATION_STAGES)[number],
-      )
-    : -1;
-  const stageProgressPercent =
-    stageIndex >= 0
-      ? ((stageIndex + 1) / NARRATION_STAGES.length) * 100
-      : 0;
 
   return (
     <div className="space-y-6">
@@ -156,33 +123,12 @@ export function ChapterContent({
           </div>
 
           {/* Generate / Regenerate Narration */}
-          {isProcessing ? (
-            <div className="flex min-w-[180px] flex-1 flex-col gap-1 rounded bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-              <span>
-                {stage
-                  ? `${NARRATION_STAGE_LABELS[stage] ?? stage}...`
-                  : 'Generating audio...'}
-              </span>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-blue-200 dark:bg-blue-800">
-                <div
-                  className="h-full rounded-full bg-blue-600 transition-all duration-300 dark:bg-blue-400"
-                  style={{ width: `${stageProgressPercent}%` }}
-                />
-              </div>
-            </div>
-          ) : (
-            <GenerateTtsButton
-              novelId={chapter.novelId}
-              chapterId={chapter.id}
-              hasNarrationUrl={hasNarrationUrl}
-            />
-          )}
-
-          {isFailed && (
-            <span className="text-xs text-red-600 dark:text-red-400">
-              Audio generation failed.
-            </span>
-          )}
+          <GenerateTtsButton
+            novelId={chapter.novelId}
+            chapterId={chapter.id}
+            narrationStatus={chapter.narrationStatus}
+            narrationUrl={chapter.narrationUrl}
+          />
         </div>
       )}
 
