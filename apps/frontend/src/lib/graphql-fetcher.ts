@@ -5,26 +5,18 @@
  * It reads the OIDC access token from `localStorage` (where `oidc-client-ts` persists it) and sends it as a Bearer token.
  */
 function getAccessToken(): string | null {
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    /**
-     * @description oidc-client-ts stores user objects under a key that starts with "oidc.user:"
-     */
-    const isOidcUserKey = key?.startsWith('oidc.user:');
+  /**
+   * @description
+   * `oidc-client-ts` keys user objects as `oidc.user:<authority>:<client_id>` (see `main.tsx`). Reading that exact key — rather than scanning for any key starting with "oidc.user:" — avoids picking up a stale entry left behind by a previous OIDC client id (e.g. after the local ZITADEL instance was recreated with a new client id).
+   */
+  const key = `oidc.user:${import.meta.env.VITE_OIDC_AUTHORITY}:${import.meta.env.VITE_OIDC_CLIENT_ID}`;
 
-    if (!key || !isOidcUserKey) {
-      continue;
-    }
-
-    try {
-      const user = JSON.parse(localStorage.getItem(key) ?? '');
-      return user?.access_token ?? null;
-    } catch {
-      return null;
-    }
+  try {
+    const user = JSON.parse(localStorage.getItem(key) ?? '');
+    return user?.access_token ?? null;
+  } catch {
+    return null;
   }
-
-  return null;
 }
 
 export function graphqlFetcher<TResult, TVariables>(
