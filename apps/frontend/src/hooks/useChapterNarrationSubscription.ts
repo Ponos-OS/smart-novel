@@ -19,9 +19,10 @@ interface UseChapterNarrationSubscriptionOptions {
 /**
  * @description
  * Subscribes to real-time chapter narration updates via graphql-ws, updates the TanStack
- * Query cache when the narration status changes, and returns the in-progress `percent`
- * (from `generating`/`uploading` events) — that field isn't part of the persisted chapter
- * query, so it's tracked as local hook state rather than written into the cache.
+ * Query cache when the narration status changes, and returns the in-progress `stage`
+ * (Beatrice's raw `queued`/`generating`/`uploading` value) — that field isn't part of the
+ * persisted chapter query, so it's tracked as local hook state rather than written into
+ * the cache.
  */
 export function useChapterNarrationSubscription({
   chapterId,
@@ -29,12 +30,12 @@ export function useChapterNarrationSubscription({
   enabled,
 }: UseChapterNarrationSubscriptionOptions) {
   const queryClient = useQueryClient();
-  const [percent, setPercent] = useState<number | null>(null);
+  const [stage, setStage] = useState<string | null>(null);
 
   const onData = useCallback(
     (data: ChapterNarrationUpdatedSubscription) => {
       const event = data.chapterNarrationUpdated;
-      setPercent(event.percent ?? null);
+      setStage(event.stage ?? null);
 
       const queryKey = useGetChapterQuery.getKey({
         novelId,
@@ -70,5 +71,5 @@ export function useChapterNarrationSubscription({
     onData,
   });
 
-  return { percent: enabled ? percent : null };
+  return { stage: enabled ? stage : null };
 }

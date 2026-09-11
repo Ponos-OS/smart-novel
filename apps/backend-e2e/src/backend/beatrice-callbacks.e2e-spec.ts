@@ -235,6 +235,7 @@ describe('Beatrice callbacks (e2e)', () => {
           status: 'completed',
           fileSizeBytes: 4,
           attempt: 1,
+          clientContextId: CHAPTER_TWO_ID,
         },
       );
 
@@ -284,7 +285,7 @@ describe('Beatrice callbacks (e2e)', () => {
       const events: Array<{
         status: string;
         narrationUrl: string | null;
-        percent: number | null;
+        stage: string | null;
         error: string | null;
       }> = [];
 
@@ -296,7 +297,7 @@ describe('Beatrice callbacks (e2e)', () => {
                   chapterNarrationUpdated(chapterId: $chapterId) {
                     status
                     narrationUrl
-                    percent
+                    stage
                     error
                   }
                 }
@@ -357,18 +358,28 @@ describe('Beatrice callbacks (e2e)', () => {
           jobId: string;
         };
 
-        // Act: simulate the rest of Beatrice's progress sequence directly, using
-        // distinctive percent markers so this test's own events are identifiable
-        // even if an unrelated old-flow test interleaves chapterNarrationUpdated
-        // events for the same seed chapter concurrently.
+        // Act: simulate the rest of Beatrice's progress sequence directly. The raw
+        // `stage` string doubles as our own distinctive marker here, same role
+        // `percent` used to play, so this test's own events stay identifiable even if
+        // an unrelated old-flow test interleaves chapterNarrationUpdated events for
+        // the same seed chapter concurrently.
         const payloads = [
-          { jobId, status: 'generating', percent: 33 },
-          { jobId, status: 'uploading', percent: 77 },
+          {
+            jobId,
+            status: 'generating',
+            clientContextId: CHAPTER_TWO_ID,
+          },
+          {
+            jobId,
+            status: 'uploading',
+            clientContextId: CHAPTER_TWO_ID,
+          },
           {
             jobId,
             status: 'completed',
             fileSizeBytes: 4,
             attempt: 1,
+            clientContextId: CHAPTER_TWO_ID,
           },
         ];
 
@@ -385,12 +396,14 @@ describe('Beatrice callbacks (e2e)', () => {
         const generatingIndex = await waitForEventIndex(
           events,
           (event) =>
-            event.status === 'PROCESSING' && event.percent === 33,
+            event.status === 'PROCESSING' &&
+            event.stage === 'generating',
         );
         const uploadingIndex = await waitForEventIndex(
           events,
           (event) =>
-            event.status === 'PROCESSING' && event.percent === 77,
+            event.status === 'PROCESSING' &&
+            event.stage === 'uploading',
         );
         const completedIndex = await waitForEventIndex(
           events,

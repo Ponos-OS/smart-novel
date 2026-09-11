@@ -21,7 +21,7 @@ function renderChapterContent(
 }
 
 const mutate = vi.fn();
-let subscriptionPercent: number | null = null;
+let subscriptionStage: string | null = null;
 
 vi.mock('../../generated/graphql', async () => {
   const actual = await vi.importActual<
@@ -47,7 +47,7 @@ vi.mock('../../generated/graphql', async () => {
 
 vi.mock('../../hooks/useChapterNarrationSubscription', () => ({
   useChapterNarrationSubscription: () => ({
-    percent: subscriptionPercent,
+    stage: subscriptionStage,
   }),
 }));
 
@@ -70,7 +70,7 @@ const baseChapter = {
 describe('ChapterContent', () => {
   beforeEach(() => {
     mutate.mockReset();
-    subscriptionPercent = null;
+    subscriptionStage = null;
   });
 
   it('renders a single generate/regenerate audio button, not two', () => {
@@ -143,30 +143,35 @@ describe('ChapterContent', () => {
     expect(links.length).toBe(0);
   });
 
-  it('renders subscription-driven progress percent while processing', () => {
+  it.each([
+    ['queued', 'Queued...'],
+    ['generating', 'Generating...'],
+    ['uploading', 'Uploading...'],
+  ])(
+    'renders the subscription-driven stage label for "%s"',
+    (stage, expectedLabel) => {
+      // Arrange
+      subscriptionStage = stage;
+
+      // Act
+      renderChapterContent({
+        chapter: {
+          ...baseChapter,
+          narrationStatus: NarrationStatus.Processing,
+        },
+        hasPrevious: false,
+        hasNext: false,
+        canManageTts: true,
+      });
+
+      // Assert
+      expect(screen.getByText(expectedLabel)).toBeTruthy();
+    },
+  );
+
+  it('renders a generic label while processing when the subscription has not reported a stage yet', () => {
     // Arrange
-    subscriptionPercent = 42;
-
-    // Act
-    renderChapterContent({
-      chapter: {
-        ...baseChapter,
-        narrationStatus: NarrationStatus.Processing,
-      },
-      hasPrevious: false,
-      hasNext: false,
-      canManageTts: true,
-    });
-
-    // Assert
-    expect(
-      screen.getByText(/Generating audio\.\.\. 42%/),
-    ).toBeTruthy();
-  });
-
-  it('renders no percent suffix while processing when the subscription has not reported one yet', () => {
-    // Arrange
-    subscriptionPercent = null;
+    subscriptionStage = null;
 
     // Act
     renderChapterContent({
@@ -181,5 +186,27 @@ describe('ChapterContent', () => {
 
     // Assert
     expect(screen.getByText('Generating audio...')).toBeTruthy();
+  });
+
+  it('sizes the progress bar to the stage reached', () => {
+    // Arrange
+    subscriptionStage = 'uploading';
+
+    // Act
+    const { container } = renderChapterContent({
+      chapter: {
+        ...baseChapter,
+        narrationStatus: NarrationStatus.Processing,
+      },
+      hasPrevious: false,
+      hasNext: false,
+      canManageTts: true,
+    });
+
+    // Assert
+    const bar = container.querySelector(
+      '.bg-blue-600',
+    ) as HTMLElement;
+    expect(bar.style.width).toBe('100%');
   });
 });

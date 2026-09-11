@@ -218,10 +218,10 @@ describe('Chapter Audio Narration', () => {
         'be.visible',
       );
 
-      // The subscription-driven percent eventually renders alongside the
-      // spinner text (Step 2.2/3b) — CPU-only local synthesis can take a
-      // while to report its first "generating"/"uploading" event.
-      cy.contains(/Generating audio\.\.\. \d+%/, {
+      // The subscription-driven stage label eventually replaces the generic
+      // spinner text (Step 2.2/3b/5) — CPU-only local synthesis can take a
+      // while to report its first "queued"/"generating"/"uploading" event.
+      cy.contains(/Queued\.\.\.|Generating\.\.\.|Uploading\.\.\./, {
         timeout: 60000,
       }).should('be.visible');
 

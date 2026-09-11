@@ -5,6 +5,18 @@ import { MarkdownRenderer } from '../../components/MarkdownRenderer';
 import { Chapter, NarrationStatus } from '../../generated/graphql';
 import { useChapterNarrationSubscription } from '../../hooks/useChapterNarrationSubscription';
 
+/** @description Beatrice's in-progress stages, in order — used to size the progress bar. */
+const NARRATION_STAGES = [
+  'queued',
+  'generating',
+  'uploading',
+] as const;
+const NARRATION_STAGE_LABELS: Record<string, string> = {
+  queued: 'Queued',
+  generating: 'Generating',
+  uploading: 'Uploading',
+};
+
 type ChapterContentData = Pick<
   Chapter,
   | 'id'
@@ -43,11 +55,20 @@ export function ChapterContent({
 
   // Subscribe to real-time narration updates when processing
   // The subscription updates the TanStack Query cache directly
-  const { percent } = useChapterNarrationSubscription({
+  const { stage } = useChapterNarrationSubscription({
     chapterId: chapter.id,
     novelId: chapter.novelId,
     enabled: isProcessing,
   });
+  const stageIndex = stage
+    ? NARRATION_STAGES.indexOf(
+        stage as (typeof NARRATION_STAGES)[number],
+      )
+    : -1;
+  const stageProgressPercent =
+    stageIndex >= 0
+      ? ((stageIndex + 1) / NARRATION_STAGES.length) * 100
+      : 0;
 
   return (
     <div className="space-y-6">
@@ -136,9 +157,18 @@ export function ChapterContent({
 
           {/* Generate / Regenerate Narration */}
           {isProcessing ? (
-            <div className="flex items-center gap-2 rounded bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-              <div className="h-3 w-3 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
-              Generating audio...{percent !== null && ` ${percent}%`}
+            <div className="flex min-w-[180px] flex-1 flex-col gap-1 rounded bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+              <span>
+                {stage
+                  ? `${NARRATION_STAGE_LABELS[stage] ?? stage}...`
+                  : 'Generating audio...'}
+              </span>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-blue-200 dark:bg-blue-800">
+                <div
+                  className="h-full rounded-full bg-blue-600 transition-all duration-300 dark:bg-blue-400"
+                  style={{ width: `${stageProgressPercent}%` }}
+                />
+              </div>
             </div>
           ) : (
             <GenerateTtsButton

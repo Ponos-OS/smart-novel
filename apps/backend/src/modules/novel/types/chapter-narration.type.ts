@@ -1,9 +1,4 @@
-import {
-  Field,
-  Int,
-  ObjectType,
-  registerEnumType,
-} from '@nestjs/graphql';
+import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { NarrationStatus } from '@prisma/client';
 
 registerEnumType(NarrationStatus, {
@@ -50,10 +45,10 @@ export class ChapterNarrationEvent {
   })
   error?: string;
 
-  @Field(() => Int, {
+  @Field(() => String, {
     nullable: true,
     description:
-      'Progress percentage (0-100), present while generating/uploading',
+      "Beatrice's raw stage ('queued' | 'generating' | 'uploading'), present only while status is PROCESSING",
   })
-  percent?: number;
+  stage?: string;
 }

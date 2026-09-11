@@ -30,8 +30,6 @@ import {
   CHAPTER_REPOSITORY,
   type IChapterContentRepository,
   type IChapterRepository,
-  type IJobToChapterMap,
-  JOB_TO_CHAPTER_MAP,
 } from '../interfaces';
 import { PUBSUB_TOKEN } from '../providers';
 import { ChapterNarrationResponse } from '../types';
@@ -66,8 +64,6 @@ export class ChapterNarrationService implements OnModuleInit {
     @Inject(appConfigs.KEY)
     private readonly appConfig: ConfigType<typeof appConfigs>,
     private readonly llmClient: LlmClient,
-    @Inject(JOB_TO_CHAPTER_MAP)
-    private readonly jobToChapterMap: IJobToChapterMap,
     private readonly redisService: RedisService,
   ) {}
 
@@ -80,22 +76,25 @@ export class ChapterNarrationService implements OnModuleInit {
 
   /**
    * @description
-   * Reacts to every Beatrice `statusCallbackUrl` update: looks up the chapter the job
-   * belongs to via {@link jobToChapterMap}, and both (a) on `completed`, persists the
-   * deterministic audio URL built in Step 1b (`tts-audio/<jobId>.mp3`) (Step 2.1), and
-   * (b) re-publishes the update onto the GraphQL `PubSub` so `chapterNarrationUpdated`
-   * fires with live progress (Step 2.2). Unmapped (unknown or expired) jobIds are logged
-   * and dropped, not thrown — this runs off a best-effort pub/sub channel, not a request
-   * that can report an error back to a caller.
+   * Reacts to every Beatrice `statusCallbackUrl` update: the chapter it belongs to comes
+   * straight from `clientContextId` (we always pass the chapterId as `clientContextId` on
+   * `generateAudio`, Step 5), present from the very first `queued` callback — no lookup,
+   * so no race against when the `generateAudio` mutation response happens to arrive back.
+   * On `completed`, persists the deterministic audio URL built in Step 1b
+   * (`tts-audio/<jobId>.mp3`) (Step 2.1), and re-publishes the update onto the GraphQL
+   * `PubSub` so `chapterNarrationUpdated` fires with live progress (Step 2.2). A callback
+   * missing `clientContextId` (e.g. a job queued by a pre-upgrade backend, still in-flight
+   * during a deploy) is logged and dropped, not thrown — this runs off a best-effort
+   * pub/sub channel, not a request that can report an error back to a caller.
    */
   private async handleStatusUpdate(message: string): Promise<void> {
     const update = JSON.parse(message) as TtsStatusCallbackDto;
 
-    const chapterId = await this.jobToChapterMap.get(update.jobId);
+    const chapterId = update.clientContextId;
 
     if (isNil(chapterId)) {
       this.logger.warn(
-        `Received "${update.status}" status for unknown/expired job ${update.jobId}, dropping`,
+        `Received "${update.status}" status for job ${update.jobId} with no clientContextId, dropping`,
         { context: ChapterNarrationService.name },
       );
 
@@ -126,14 +125,19 @@ export class ChapterNarrationService implements OnModuleInit {
       await this.releaseJobLock(update.jobId);
     }
 
+    const status = this.mapBeatriceStatus(update.status);
+
     await this.pubSub.publish(
       chapterNarrationUpdateSubscriptionKey(chapterId),
       {
         chapterNarrationUpdated: {
           chapterId,
-          status: this.mapBeatriceStatus(update.status),
+          status,
           narrationUrl,
-          percent: update.percent,
+          stage:
+            status === NarrationStatus.PROCESSING
+              ? update.status
+              : undefined,
           error: update.error
             ? `${update.error.code}: ${update.error.message}`
             : undefined,
@@ -278,6 +282,7 @@ export class ChapterNarrationService implements OnModuleInit {
           this.appConfig.BEATRICE_DEFAULT_VOICE,
           genUploadUrl,
           statusCallbackUrl,
+          chapterId,
         ),
       { retry: 0 },
     );
@@ -295,7 +300,6 @@ export class ChapterNarrationService implements OnModuleInit {
 
     const jobId = result.generateAudio.jobId;
 
-    await this.jobToChapterMap.set(jobId, chapterId);
     this.jobLockTokens.set(jobId, { lockKey, token });
 
     this.logger.debug(

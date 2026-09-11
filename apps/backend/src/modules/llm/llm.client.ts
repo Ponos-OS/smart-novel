@@ -33,12 +33,14 @@ const GENERATE_AUDIO_MUTATION = graphql(`
     $voice: String!
     $genUploadUrl: String!
     $statusCallbackUrl: String!
+    $clientContextId: String
   ) {
     generateAudio(
       text: $text
       voice: $voice
       genUploadUrl: $genUploadUrl
       statusCallbackUrl: $statusCallbackUrl
+      clientContextId: $clientContextId
     ) {
       jobId
     }
@@ -69,12 +71,14 @@ export class LlmClient {
     voice: string,
     genUploadUrl: string,
     statusCallbackUrl: string,
+    clientContextId: string,
   ) {
     return this.run(GENERATE_AUDIO_MUTATION, {
       text,
       voice,
       genUploadUrl,
       statusCallbackUrl,
+      clientContextId,
     });
   }
 

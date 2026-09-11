@@ -6,8 +6,12 @@ import { TtsStatusCallbackDto } from './tts-status-callback.dto';
 describe(TtsStatusCallbackDto.name, () => {
   it.each([
     { status: 'queued' },
-    { status: 'generating', percent: 40 },
-    { status: 'uploading', percent: 100 },
+    {
+      status: 'queued',
+      clientContextId: 'e8cec22d-a2c2-4f68-ac1c-6a3cdbbfef33',
+    },
+    { status: 'generating' },
+    { status: 'uploading' },
     { status: 'completed', fileSizeBytes: 128_000, attempt: 1 },
     {
       status: 'failed',
@@ -44,11 +48,11 @@ describe(TtsStatusCallbackDto.name, () => {
       },
     ],
     [
-      'percent out of range',
+      'non-string clientContextId',
       {
         jobId: '2bce49d6-6592-4ed3-b421-f913b9ecc3bd',
-        status: 'generating',
-        percent: 150,
+        status: 'queued',
+        clientContextId: 123,
       },
     ],
     [

@@ -13,7 +13,6 @@ import { RedisService } from '../../redis';
 import {
   IChapterContentRepository,
   IChapterRepository,
-  IJobToChapterMap,
 } from '../interfaces';
 import { chapterNarrationUpdateSubscriptionKey } from '../utils';
 import { ChapterNarrationService } from './chapter-narration.service';
@@ -28,7 +27,6 @@ describe(ChapterNarrationService.name, () => {
   let chapterContentRepository: IChapterContentRepository;
   let appConfig: ConfigType<typeof appConfigs>;
   let llmClient: LlmClient;
-  let jobToChapterMap: IJobToChapterMap;
   let redisService: RedisService;
   const mockChapterId = 'e8cec22d-a2c2-4f68-ac1c-6a3cdbbfef33';
   const mockJobId = '2bce49d6-6592-4ed3-b421-f913b9ecc3bd';
@@ -69,10 +67,6 @@ describe(ChapterNarrationService.name, () => {
     llmClient = {
       generateAudio: vi.fn(),
     } as any;
-    jobToChapterMap = {
-      set: vi.fn(),
-      get: vi.fn(),
-    } as any;
     redisService = {
       subscribe: vi.fn(),
     } as any;
@@ -85,7 +79,6 @@ describe(ChapterNarrationService.name, () => {
       chapterContentRepository,
       appConfig,
       llmClient,
-      jobToChapterMap,
       redisService,
     );
   });
@@ -155,7 +148,7 @@ describe(ChapterNarrationService.name, () => {
       expect(llmClient.generateAudio).not.toHaveBeenCalled();
     });
 
-    it('should queue a Beatrice job and return PROCESSING when the lock is acquired', async () => {
+    it('should queue a Beatrice job passing the chapterId as clientContextId, and return PROCESSING', async () => {
       // Arrange
       const content = '# Chapter Title\n\nChapter content';
       vi.mocked(chapterRepository.findById).mockResolvedValue({
@@ -182,9 +175,6 @@ describe(ChapterNarrationService.name, () => {
         'default',
         'http://backend:3000/beatrice-callbacks/gen-upload-url',
         'http://backend:3000/beatrice-callbacks/status',
-      );
-      expect(jobToChapterMap.set).toHaveBeenCalledWith(
-        mockJobId,
         mockChapterId,
       );
       expect(narrationLockService.release).not.toHaveBeenCalled();
@@ -219,7 +209,6 @@ describe(ChapterNarrationService.name, () => {
         expect.stringContaining('Beatrice unreachable'),
         expect.any(Object),
       );
-      expect(jobToChapterMap.set).not.toHaveBeenCalled();
     });
   });
 
@@ -236,7 +225,7 @@ describe(ChapterNarrationService.name, () => {
   });
 
   describe('regenerateAudio', () => {
-    it('should call Beatrice generateAudio with the expected callback URLs and voice, then record the jobId in the map', async () => {
+    it('should call Beatrice generateAudio with the expected callback URLs, voice, and clientContextId', async () => {
       // Arrange
       const content = '# Chapter 1\n\nSome content';
       vi.mocked(llmClient.generateAudio).mockResolvedValue({
@@ -252,14 +241,11 @@ describe(ChapterNarrationService.name, () => {
         'default',
         'http://backend:3000/beatrice-callbacks/gen-upload-url',
         'http://backend:3000/beatrice-callbacks/status',
-      );
-      expect(jobToChapterMap.set).toHaveBeenCalledWith(
-        mockJobId,
         mockChapterId,
       );
     });
 
-    it('should log and resolve (not throw) when Beatrice generateAudio fails, and not touch the map', async () => {
+    it('should log and resolve (not throw) when Beatrice generateAudio fails', async () => {
       // Arrange
       const content = '# Chapter 1\n\nSome content';
       vi.mocked(llmClient.generateAudio).mockRejectedValue(
@@ -275,7 +261,6 @@ describe(ChapterNarrationService.name, () => {
         expect.stringContaining('Beatrice unreachable'),
         expect.any(Object),
       );
-      expect(jobToChapterMap.set).not.toHaveBeenCalled();
     });
 
     it('should skip silently (not throw) when a generation is already in flight for the chapter', async () => {
@@ -312,21 +297,20 @@ describe(ChapterNarrationService.name, () => {
   });
 
   describe('handleStatusUpdate (private, via onModuleInit subscription)', () => {
-    it('should persist the audio URL and publish a READY event for a completed callback whose job is mapped to a chapter', async () => {
+    it('should persist the audio URL and publish a READY event for a completed callback carrying clientContextId', async () => {
       // Arrange
-      vi.mocked(jobToChapterMap.get).mockResolvedValue(mockChapterId);
       const message = JSON.stringify({
         jobId: mockJobId,
         status: 'completed',
         fileSizeBytes: 4,
         attempt: 1,
+        clientContextId: mockChapterId,
       });
 
       // Act
       await (uut as any).handleStatusUpdate(message);
 
       // Assert
-      expect(jobToChapterMap.get).toHaveBeenCalledWith(mockJobId);
       expect(
         chapterRepository.updateChapterNarrationUrl,
       ).toHaveBeenCalledWith(
@@ -340,7 +324,7 @@ describe(ChapterNarrationService.name, () => {
             chapterId: mockChapterId,
             status: NarrationStatus.READY,
             narrationUrl: `http://localhost:9000/smart-novel/tts-audio/${mockJobId}.mp3`,
-            percent: undefined,
+            stage: undefined,
             error: undefined,
           },
         },
@@ -354,10 +338,9 @@ describe(ChapterNarrationService.name, () => {
       'completed',
       'failed',
     ])(
-      'should log and drop a "%s" callback for an unknown/expired jobId, without publishing',
+      'should log and drop a "%s" callback with no clientContextId, without publishing',
       async (status) => {
         // Arrange
-        vi.mocked(jobToChapterMap.get).mockResolvedValue(undefined);
         const message = JSON.stringify({ jobId: mockJobId, status });
 
         // Act
@@ -375,21 +358,14 @@ describe(ChapterNarrationService.name, () => {
       },
     );
 
-    it.each([
-      ['queued', undefined],
-      ['generating', 42],
-      ['uploading', 87],
-    ])(
-      'should publish a PROCESSING event with percent for a "%s" callback, without persisting a narration URL',
-      async (status, percent) => {
+    it.each(['queued', 'generating', 'uploading'])(
+      'should publish a PROCESSING event carrying the raw stage for a "%s" callback, without persisting a narration URL',
+      async (status) => {
         // Arrange
-        vi.mocked(jobToChapterMap.get).mockResolvedValue(
-          mockChapterId,
-        );
         const message = JSON.stringify({
           jobId: mockJobId,
           status,
-          percent,
+          clientContextId: mockChapterId,
         });
 
         // Act
@@ -406,7 +382,7 @@ describe(ChapterNarrationService.name, () => {
               chapterId: mockChapterId,
               status: NarrationStatus.PROCESSING,
               narrationUrl: undefined,
-              percent,
+              stage: status,
               error: undefined,
             },
           },
@@ -416,11 +392,11 @@ describe(ChapterNarrationService.name, () => {
 
     it('should publish a FAILED event with the error flattened to a string, without persisting a narration URL', async () => {
       // Arrange
-      vi.mocked(jobToChapterMap.get).mockResolvedValue(mockChapterId);
       const message = JSON.stringify({
         jobId: mockJobId,
         status: 'failed',
         failedAt: '2026-09-10T00:00:00.000Z',
+        clientContextId: mockChapterId,
         error: {
           code: 'TTS_PROVIDER_ERROR',
           message: 'qwen-tts timed out',
@@ -441,7 +417,7 @@ describe(ChapterNarrationService.name, () => {
             chapterId: mockChapterId,
             status: NarrationStatus.FAILED,
             narrationUrl: undefined,
-            percent: undefined,
+            stage: undefined,
             error: 'TTS_PROVIDER_ERROR: qwen-tts timed out',
           },
         },
@@ -452,9 +428,6 @@ describe(ChapterNarrationService.name, () => {
       'should release the narration lock held for the job on a "%s" callback',
       async (status) => {
         // Arrange
-        vi.mocked(jobToChapterMap.get).mockResolvedValue(
-          mockChapterId,
-        );
         (uut as any).jobLockTokens.set(mockJobId, {
           lockKey: mockLockKey,
           token: mockLockToken,
@@ -465,6 +438,7 @@ describe(ChapterNarrationService.name, () => {
           fileSizeBytes: 4,
           attempt: 1,
           failedAt: '2026-09-10T00:00:00.000Z',
+          clientContextId: mockChapterId,
           error: { code: 'TTS_PROVIDER_ERROR', message: 'oops' },
         });
 
@@ -484,14 +458,15 @@ describe(ChapterNarrationService.name, () => {
       'should NOT release the narration lock on a "%s" (non-terminal) callback',
       async (status) => {
         // Arrange
-        vi.mocked(jobToChapterMap.get).mockResolvedValue(
-          mockChapterId,
-        );
         (uut as any).jobLockTokens.set(mockJobId, {
           lockKey: mockLockKey,
           token: mockLockToken,
         });
-        const message = JSON.stringify({ jobId: mockJobId, status });
+        const message = JSON.stringify({
+          jobId: mockJobId,
+          status,
+          clientContextId: mockChapterId,
+        });
 
         // Act
         await (uut as any).handleStatusUpdate(message);
@@ -503,12 +478,12 @@ describe(ChapterNarrationService.name, () => {
 
     it('should not attempt to release a lock for a job this replica never queued', async () => {
       // Arrange
-      vi.mocked(jobToChapterMap.get).mockResolvedValue(mockChapterId);
       const message = JSON.stringify({
         jobId: mockJobId,
         status: 'completed',
         fileSizeBytes: 4,
         attempt: 1,
+        clientContextId: mockChapterId,
       });
 
       // Act

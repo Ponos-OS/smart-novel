@@ -6,7 +6,6 @@ import {
   IsOptional,
   IsString,
   IsUUID,
-  Max,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -34,12 +33,17 @@ export class TtsStatusCallbackDto {
     | 'completed'
     | 'failed';
 
-  /** @description Present for `generating`/`uploading`. */
+  /**
+   * @description
+   * Opaque value we passed as `clientContextId` on `generateAudio` — we always pass
+   * the chapterId, so this is how {@link ChapterNarrationService.handleStatusUpdate}
+   * routes an update back to its chapter, with no lookup and no race against when the
+   * `generateAudio` mutation response arrives. Optional because a job queued by a
+   * pre-upgrade backend (still in-flight during a deploy) won't have one.
+   */
   @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(100)
-  percent?: number;
+  @IsString()
+  clientContextId?: string;
 
   /** @description Present for `completed`. */
   @IsOptional()

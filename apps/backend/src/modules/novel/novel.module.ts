@@ -9,10 +9,9 @@ import {
   CHAPTER_CONTENT_REPOSITORY,
   CHAPTER_REPOSITORY,
   CHAPTER_USER_STATE_REPOSITORY,
-  JOB_TO_CHAPTER_MAP,
   NOVEL_REPOSITORY,
 } from './interfaces';
-import { PubSubProvider, RedisJobToChapterMap } from './providers';
+import { PubSubProvider } from './providers';
 import {
   PrismaChapterContentRepository,
   PrismaChapterRepository,
@@ -74,10 +73,6 @@ import {
     {
       provide: CHAPTER_USER_STATE_REPOSITORY,
       useClass: PrismaChapterUserStateRepository,
-    },
-    {
-      provide: JOB_TO_CHAPTER_MAP,
-      useClass: RedisJobToChapterMap,
     },
   ],
 })
