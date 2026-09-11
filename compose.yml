@@ -348,7 +348,7 @@ services:
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     environment:
       DATABASE_URL: "postgresql://dummy"
-      # ☝️ this variable is necessary to generate the Prisma client
+    # ☝️ this variable is necessary to generate the Prisma client
     volumes:
       - .:/app
     entrypoint:
@@ -461,8 +461,7 @@ services:
       # Matches the qwen-tts shim's `_VOICES` mapping (local-setup/qwen-tts/server.py) —
       # voices are static config, not fetched from a voices-listing endpoint.
       TTS__QWEN__VOICES: default
-      # CustomVoice CPU inference is slow enough locally to exceed the 30s client default.
-      TTS__QWEN__TIMEOUT_MS: "300000"
+      TTS__QWEN__TIMEOUT_MS: "1800000" # Crazy long for testing to prevent timeouts
     depends_on:
       ollama:
         condition: service_healthy
