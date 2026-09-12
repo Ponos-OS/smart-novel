@@ -52,6 +52,20 @@ export class ChapterNarrationService implements OnModuleInit {
     { lockKey: string; token: string }
   >();
 
+  /**
+   * @description
+   * Tracks per-job ordering state so {@link handleStatusUpdate} can drop a callback that
+   * arrives out of order — Beatrice's `queued` (sent synchronously from `generateAudio`)
+   * and `generating` (sent independently by its worker) callbacks race each other over the
+   * network with no ordering guarantee. `progress` only ever means "a bigger number is
+   * later for this job," nothing else. Same in-memory durability tradeoff as
+   * `jobLockTokens` (lost on backend restart).
+   */
+  private readonly jobProgressState = new Map<
+    string,
+    { lastSeen: number; terminal: boolean }
+  >();
+
   constructor(
     private readonly logger: CustomLoggerService,
     private readonly narrationLockService: NarrationLockService,
@@ -98,6 +112,10 @@ export class ChapterNarrationService implements OnModuleInit {
         { context: ChapterNarrationService.name },
       );
 
+      return;
+    }
+
+    if (!this.shouldApplyStatusUpdate(update)) {
       return;
     }
 
@@ -151,6 +169,63 @@ export class ChapterNarrationService implements OnModuleInit {
         },
       },
     );
+  }
+
+  /**
+   * @description
+   * Enforces per-job callback ordering. Beatrice's `queued` (sent synchronously from
+   * `generateAudio`) and `generating` (sent independently by its worker) callbacks race
+   * each other over the network with no ordering guarantee, so a `progress` no higher than
+   * what's already been seen for this job is stale and must be dropped. Once a job reaches
+   * a terminal status, every later callback for it is dropped too, whatever caused it to
+   * arrive late — the terminal marker is kept in the map rather than removed (unlike
+   * `jobLockTokens`'s cleanup on the same transition): deleting it would make a late
+   * non-terminal retry look like a brand-new job and let it slip through and republish.
+   */
+  private shouldApplyStatusUpdate(
+    update: TtsStatusCallbackDto,
+  ): boolean {
+    const state = this.jobProgressState.get(update.jobId);
+
+    if (state?.terminal) {
+      this.logger.debug(
+        `Dropping "${update.status}" callback for job ${update.jobId}: already reached a terminal status`,
+        { context: ChapterNarrationService.name },
+      );
+
+      return false;
+    }
+
+    if (update.status === 'completed' || update.status === 'failed') {
+      this.jobProgressState.set(update.jobId, {
+        lastSeen: state?.lastSeen ?? 0,
+        terminal: true,
+      });
+
+      return true;
+    }
+
+    if (update.progress === undefined) {
+      return true;
+    }
+
+    const lastSeen = state?.lastSeen ?? 0;
+
+    if (update.progress <= lastSeen) {
+      this.logger.debug(
+        `Dropping stale "${update.status}" callback for job ${update.jobId}: progress ${update.progress} <= last seen ${lastSeen}`,
+        { context: ChapterNarrationService.name },
+      );
+
+      return false;
+    }
+
+    this.jobProgressState.set(update.jobId, {
+      lastSeen: update.progress,
+      terminal: false,
+    });
+
+    return true;
   }
 
   /**

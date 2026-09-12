@@ -423,6 +423,107 @@ describe('Beatrice callbacks (e2e)', () => {
       }
     }, 35_000);
   });
+
+  describe('Step 2: dropping a stale out-of-order status callback', () => {
+    // Same seed chapter as Steps 2.1/2.2 above — safe to share since these `it`s run
+    // sequentially within this file and `chapterNarrationUpdated` is scoped per chapterId,
+    // so no other spec file publishes onto this specific chapter's subscription channel.
+    const CHAPTER_TWO_ID = '4769a024-6267-4abc-a412-5ab0241a8d0e';
+
+    it('should drop a "queued" callback (progress 1) that arrives after "generating" (progress 2) for the same job, never regressing the chapterNarrationUpdated subscription', async () => {
+      const wsHost = process.env.HOST ?? 'localhost';
+      const wsPort = process.env.TRAEFIK_EXPOSED_PORT ?? '8080';
+      const client = createClient({
+        url: `ws://${wsHost}:${wsPort}/graphql`,
+        webSocketImpl: WebSocket,
+      });
+      // A synthetic jobId is enough here — this exercises the ordering guard in
+      // `ChapterNarrationService.handleStatusUpdate` directly via REST, without needing a
+      // real Beatrice job in flight.
+      const jobId = '505fa613-318c-43c4-9d5f-64927757087d';
+
+      const events: Array<{ status: string; stage: string | null }> =
+        [];
+
+      try {
+        const unsubscribe = client.subscribe(
+          {
+            query: `#graphql
+                subscription ChapterNarrationUpdated($chapterId: ID!) {
+                  chapterNarrationUpdated(chapterId: $chapterId) {
+                    status
+                    stage
+                  }
+                }
+              `,
+            variables: { chapterId: CHAPTER_TWO_ID },
+          },
+          {
+            next: (data: any) => {
+              const event = data.data?.chapterNarrationUpdated;
+
+              if (event) {
+                events.push(event);
+              }
+            },
+            error: () => {
+              // Errors surfaced via the assertions below timing out.
+            },
+            complete: () => {
+              // Should not complete before the assertions below run.
+            },
+          },
+        );
+
+        // Small delay to ensure the subscription is active before posting callbacks.
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Act: post "generating" (progress 2) first, then the stale "queued" (progress 1).
+        const generatingRes = await axios.post(
+          '/beatrice-callbacks/status',
+          {
+            jobId,
+            status: 'generating',
+            progress: 2,
+            clientContextId: CHAPTER_TWO_ID,
+          },
+        );
+        const queuedRes = await axios.post(
+          '/beatrice-callbacks/status',
+          {
+            jobId,
+            status: 'queued',
+            progress: 1,
+            clientContextId: CHAPTER_TWO_ID,
+          },
+        );
+
+        expect(generatingRes.status).toBe(204);
+        expect(queuedRes.status).toBe(204);
+
+        await waitForEventIndex(
+          events,
+          (event) =>
+            event.status === 'PROCESSING' &&
+            event.stage === 'generating',
+        );
+
+        // Assert: the stale "queued" never made it onto the subscription — the chapter's
+        // display state never regresses back to "queued" once "generating" was seen.
+        // Give the (already-processed, but async pub/sub) stale callback a moment it
+        // doesn't need in order to fail loudly if it slips through.
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        expect(
+          events.some((event) => event.stage === 'queued'),
+        ).toBeFalse();
+
+        unsubscribe();
+      } finally {
+        client.dispose();
+      }
+    }, 15_000);
+  });
 });
 
 /**

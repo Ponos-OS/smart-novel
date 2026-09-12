@@ -517,5 +517,141 @@ describe(ChapterNarrationService.name, () => {
       // Assert
       expect(narrationLockService.release).not.toHaveBeenCalled();
     });
+
+    it('should drop a stale "queued" (progress 1) callback arriving after "generating" (progress 2), never publishing it', async () => {
+      // Arrange
+      const generating = JSON.stringify({
+        jobId: mockJobId,
+        status: 'generating',
+        progress: 2,
+        clientContextId: mockChapterId,
+      });
+      const staleQueued = JSON.stringify({
+        jobId: mockJobId,
+        status: 'queued',
+        progress: 1,
+        clientContextId: mockChapterId,
+      });
+
+      // Act
+      await (uut as any).handleStatusUpdate(generating);
+      vi.mocked(pubSub.publish).mockClear();
+      await (uut as any).handleStatusUpdate(staleQueued);
+
+      // Assert
+      expect(pubSub.publish).not.toHaveBeenCalled();
+      expect(logger.debug).toHaveBeenCalledWith(
+        expect.stringContaining(mockJobId),
+        expect.any(Object),
+      );
+    });
+
+    it('should drop a duplicate callback reporting the same progress as already seen', async () => {
+      // Arrange
+      const generating = JSON.stringify({
+        jobId: mockJobId,
+        status: 'generating',
+        progress: 2,
+        clientContextId: mockChapterId,
+      });
+
+      // Act
+      await (uut as any).handleStatusUpdate(generating);
+      vi.mocked(pubSub.publish).mockClear();
+      await (uut as any).handleStatusUpdate(generating);
+
+      // Assert
+      expect(pubSub.publish).not.toHaveBeenCalled();
+    });
+
+    it('should apply the normal in-order sequence unaffected: queued, generating, uploading, then completed', async () => {
+      // Arrange
+      const stages = [
+        { status: 'queued', progress: 1 },
+        { status: 'generating', progress: 2 },
+        { status: 'uploading', progress: 3 },
+      ];
+
+      // Act
+      for (const stage of stages) {
+        await (uut as any).handleStatusUpdate(
+          JSON.stringify({
+            jobId: mockJobId,
+            ...stage,
+            clientContextId: mockChapterId,
+          }),
+        );
+      }
+      await (uut as any).handleStatusUpdate(
+        JSON.stringify({
+          jobId: mockJobId,
+          status: 'completed',
+          fileSizeBytes: 4,
+          attempt: 1,
+          clientContextId: mockChapterId,
+        }),
+      );
+
+      // Assert
+      expect(pubSub.publish).toHaveBeenCalledTimes(4);
+      expect(
+        chapterRepository.updateChapterNarrationUrl,
+      ).toHaveBeenCalledTimes(1);
+    });
+
+    it.each(['completed', 'failed'])(
+      'should drop any callback arriving after a "%s" terminal status for the same job, never publishing it',
+      async (terminalStatus) => {
+        // Arrange
+        const terminal = JSON.stringify({
+          jobId: mockJobId,
+          status: terminalStatus,
+          fileSizeBytes: 4,
+          failedAt: '2026-09-12T00:00:00.000Z',
+          clientContextId: mockChapterId,
+        });
+        const lateCallback = JSON.stringify({
+          jobId: mockJobId,
+          status: 'generating',
+          progress: 2,
+          clientContextId: mockChapterId,
+        });
+
+        // Act
+        await (uut as any).handleStatusUpdate(terminal);
+        vi.mocked(pubSub.publish).mockClear();
+        await (uut as any).handleStatusUpdate(lateCallback);
+
+        // Assert
+        expect(pubSub.publish).not.toHaveBeenCalled();
+        expect(logger.debug).toHaveBeenCalledWith(
+          expect.stringContaining(mockJobId),
+          expect.any(Object),
+        );
+      },
+    );
+
+    it.each(['completed', 'failed'])(
+      'should keep the job marked terminal in jobProgressState after a "%s" callback, unlike jobLockTokens which is deleted',
+      async (terminalStatus) => {
+        // Arrange
+        const message = JSON.stringify({
+          jobId: mockJobId,
+          status: terminalStatus,
+          fileSizeBytes: 4,
+          failedAt: '2026-09-12T00:00:00.000Z',
+          clientContextId: mockChapterId,
+        });
+
+        // Act
+        await (uut as any).handleStatusUpdate(message);
+
+        // Assert
+        expect((uut as any).jobProgressState.get(mockJobId)).toEqual({
+          lastSeen: 0,
+          terminal: true,
+        });
+      },
+    );
   });
 });
