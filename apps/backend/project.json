@@ -5,9 +5,19 @@
   "projectType": "application",
   "tags": [],
   "targets": {
+    "beatrice:fetch-schema": {
+      "executor": "nx:run-commands",
+      "description": "Download Beatrice's schema.graphql (pinned by BEATRICE_VERSION) if not already present",
+      "cache": false,
+      "options": {
+        "command": "npx ts-node --files --project tsconfig.app.json fetch-beatrice-schema.ts",
+        "cwd": "{projectRoot}"
+      }
+    },
     "beatrice:codegen": {
       "executor": "nx:run-commands",
       "description": "Regenerate Beatrice's gql.tada introspection output from schema.graphql",
+      "dependsOn": ["beatrice:fetch-schema"],
       "cache": true,
       "inputs": ["{projectRoot}/src/shared/beatrice/schema.graphql"],
       "outputs": [

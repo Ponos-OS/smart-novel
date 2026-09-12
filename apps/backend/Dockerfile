@@ -36,6 +36,8 @@ CMD ["/bin/sh", "-c", "npx nx prisma:generate backend && npx nx serve backend"]
 FROM base AS builder
 ARG DATABASE_URL
 ENV DATABASE_URL=${DATABASE_URL}
+ARG BEATRICE_VERSION
+ENV BEATRICE_VERSION=${BEATRICE_VERSION}
 COPY --from=deps /app/node_modules ./node_modules
 COPY tsconfig.base.json ./
 COPY nx.json ./

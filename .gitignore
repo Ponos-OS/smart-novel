@@ -49,6 +49,7 @@ Diffs.txt
 schema.gql
 apps/frontend/src/generated/
 apps/backend/src/shared/beatrice/graphql-env.d.ts
+apps/backend/src/shared/beatrice/schema.graphql
 
 # E2E secrets extracted from Docker volume (created by global-setup.ts)
 local-setup/pats/

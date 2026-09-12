@@ -98,7 +98,10 @@ export default [
     rules: {},
   },
   {
-    files: ['**/gen-graphql-schema.ts'],
+    files: [
+      '**/gen-graphql-schema.ts',
+      '**/fetch-beatrice-schema.ts',
+    ],
     rules: {
       'no-console': 'off',
     },

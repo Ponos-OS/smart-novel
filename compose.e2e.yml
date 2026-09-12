@@ -16,6 +16,7 @@ services:
       args:
         PORT: $BACKEND_PORT
         DATABASE_URL: ${DATABASE_URL}
+        BEATRICE_VERSION: ${BEATRICE_VERSION}
     environment:
       OLLAMA_RETRY_COUNT: 1
       # Beatrice must call back into this container (not `backend`) under the e2e profile.

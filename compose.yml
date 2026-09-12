@@ -438,7 +438,7 @@ services:
       start_period: 60s
 
   beatrice:
-    image: 9109679196/smart-novel-beatrice:4.1.0
+    image: 9109679196/smart-novel-beatrice:${BEATRICE_VERSION}
     profiles:
       - dev
       - backend-e2e
