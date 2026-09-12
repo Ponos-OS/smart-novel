@@ -12,4 +12,4 @@ export const TTS_STATUS_CHANNEL = 'tts-audio:status';
  * callback (which builds the presigned upload key) and the status-update subscriber
  * (which builds the same key to persist the final audio URL) — must stay in sync.
  */
-export const TTS_AUDIO_OBJECT_KEY_PREFIX = 'tts-audio';
+export const TTS_AUDIO_OBJECT_KEY_PREFIX = 'narrations';

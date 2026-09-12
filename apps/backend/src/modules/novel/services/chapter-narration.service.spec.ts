@@ -32,6 +32,7 @@ describe(ChapterNarrationService.name, () => {
   const mockJobId = '2bce49d6-6592-4ed3-b421-f913b9ecc3bd';
   const mockLockKey = `chapter_tts:${mockChapterId}`;
   const mockLockToken = 'lock-token-abc';
+  const mockAuthorization = 'Bearer some-jwt';
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -89,7 +90,10 @@ describe(ChapterNarrationService.name, () => {
       vi.mocked(chapterRepository.findById).mockResolvedValue(null);
 
       // Act
-      const res = uut.generateChapterAudio(mockChapterId);
+      const res = uut.generateChapterAudio(
+        mockChapterId,
+        mockAuthorization,
+      );
 
       // Assert
       await expect(res).rejects.toThrow(
@@ -112,7 +116,10 @@ describe(ChapterNarrationService.name, () => {
       });
 
       // Act
-      const res = uut.generateChapterAudio(mockChapterId);
+      const res = uut.generateChapterAudio(
+        mockChapterId,
+        mockAuthorization,
+      );
 
       // Assert
       await expect(res).rejects.toThrow(
@@ -137,7 +144,10 @@ describe(ChapterNarrationService.name, () => {
       );
 
       // Act
-      const res = uut.generateChapterAudio(mockChapterId);
+      const res = uut.generateChapterAudio(
+        mockChapterId,
+        mockAuthorization,
+      );
 
       // Assert
       await expect(res).rejects.toThrow(
@@ -166,7 +176,10 @@ describe(ChapterNarrationService.name, () => {
       });
 
       // Act
-      const result = await uut.generateChapterAudio(mockChapterId);
+      const result = await uut.generateChapterAudio(
+        mockChapterId,
+        mockAuthorization,
+      );
 
       // Assert
       expect(result).toEqual({ status: NarrationStatus.PROCESSING });
@@ -176,6 +189,7 @@ describe(ChapterNarrationService.name, () => {
         'http://backend:3000/beatrice-callbacks/gen-upload-url',
         'http://backend:3000/beatrice-callbacks/status',
         mockChapterId,
+        mockAuthorization,
       );
       expect(narrationLockService.release).not.toHaveBeenCalled();
     });
@@ -197,7 +211,10 @@ describe(ChapterNarrationService.name, () => {
       );
 
       // Act
-      const result = await uut.generateChapterAudio(mockChapterId);
+      const result = await uut.generateChapterAudio(
+        mockChapterId,
+        mockAuthorization,
+      );
 
       // Assert
       expect(result).toEqual({ status: NarrationStatus.PROCESSING });
@@ -233,7 +250,11 @@ describe(ChapterNarrationService.name, () => {
       });
 
       // Act
-      await uut.regenerateAudio(mockChapterId, content);
+      await uut.regenerateAudio(
+        mockChapterId,
+        content,
+        mockAuthorization,
+      );
 
       // Assert
       expect(llmClient.generateAudio).toHaveBeenCalledWith(
@@ -242,6 +263,7 @@ describe(ChapterNarrationService.name, () => {
         'http://backend:3000/beatrice-callbacks/gen-upload-url',
         'http://backend:3000/beatrice-callbacks/status',
         mockChapterId,
+        mockAuthorization,
       );
     });
 
@@ -253,7 +275,11 @@ describe(ChapterNarrationService.name, () => {
       );
 
       // Act
-      const result = uut.regenerateAudio(mockChapterId, content);
+      const result = uut.regenerateAudio(
+        mockChapterId,
+        content,
+        mockAuthorization,
+      );
 
       // Assert
       await expect(result).resolves.toBeUndefined();
@@ -271,7 +297,11 @@ describe(ChapterNarrationService.name, () => {
       );
 
       // Act
-      const result = uut.regenerateAudio(mockChapterId, content);
+      const result = uut.regenerateAudio(
+        mockChapterId,
+        content,
+        mockAuthorization,
+      );
 
       // Assert
       await expect(result).resolves.toBeUndefined();
@@ -315,7 +345,7 @@ describe(ChapterNarrationService.name, () => {
         chapterRepository.updateChapterNarrationUrl,
       ).toHaveBeenCalledWith(
         mockChapterId,
-        `http://localhost:9000/smart-novel/tts-audio/${mockJobId}.mp3`,
+        `http://localhost:9000/smart-novel/narrations/${mockJobId}.mp3`,
       );
       expect(pubSub.publish).toHaveBeenCalledWith(
         chapterNarrationUpdateSubscriptionKey(mockChapterId),
@@ -323,7 +353,7 @@ describe(ChapterNarrationService.name, () => {
           chapterNarrationUpdated: {
             chapterId: mockChapterId,
             status: NarrationStatus.READY,
-            narrationUrl: `http://localhost:9000/smart-novel/tts-audio/${mockJobId}.mp3`,
+            narrationUrl: `http://localhost:9000/smart-novel/narrations/${mockJobId}.mp3`,
             stage: undefined,
             error: undefined,
           },

@@ -28,6 +28,7 @@ describe(ChapterResolver.name, () => {
     it('should persist the content and trigger audio regeneration exactly once with the same chapter/content, returning the persisted chapter', async () => {
       const chapterId = '4bbc4da9-107c-4872-9809-78f6191a092d';
       const content = '# Chapter 1\n\nHooray';
+      const authorization = 'Bearer some-jwt';
       const persistedChapter = {
         id: chapterId,
         novelId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
@@ -38,7 +39,11 @@ describe(ChapterResolver.name, () => {
         persistedChapter as any,
       );
 
-      const result = await uut.updateContent(chapterId, content);
+      const result = await uut.updateContent(
+        chapterId,
+        content,
+        authorization,
+      );
 
       expect(chapterService.updateContent).toHaveBeenCalledWith(
         chapterId,
@@ -46,7 +51,11 @@ describe(ChapterResolver.name, () => {
       );
       expect(
         chapterNarrationService.regenerateAudio,
-      ).toHaveBeenCalledExactlyOnceWith(chapterId, content);
+      ).toHaveBeenCalledExactlyOnceWith(
+        chapterId,
+        content,
+        authorization,
+      );
       expect(result).toBe(persistedChapter);
     });
   });

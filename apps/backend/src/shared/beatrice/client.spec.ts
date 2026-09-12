@@ -49,6 +49,39 @@ describe(runOperation.name, () => {
     );
   });
 
+  it('should forward the authorization header when provided', async () => {
+    vi.mocked(axios.post).mockResolvedValueOnce({
+      data: { data: {} },
+    });
+
+    await runOperation(mockMutation, mockVariables, {
+      url: 'http://mock-url',
+      timeoutMs: 1000,
+      authorization: 'Bearer some-jwt',
+    });
+
+    const [, , config] = vi.mocked(axios.post).mock.calls.at(-1)!;
+    expect(
+      (config as { headers: Record<string, string> }).headers,
+    ).toMatchObject({ authorization: 'Bearer some-jwt' });
+  });
+
+  it('should omit the authorization header when not provided', async () => {
+    vi.mocked(axios.post).mockResolvedValueOnce({
+      data: { data: {} },
+    });
+
+    await runOperation(mockMutation, mockVariables, {
+      url: 'http://mock-url',
+      timeoutMs: 1000,
+    });
+
+    const [, , config] = vi.mocked(axios.post).mock.calls.at(-1)!;
+    expect(
+      (config as { headers: Record<string, string> }).headers,
+    ).not.toHaveProperty('authorization');
+  });
+
   it('should throw BeatriceRequestError when the request returns errors', async () => {
     vi.mocked(axios.post).mockResolvedValueOnce({
       data: {

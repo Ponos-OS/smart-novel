@@ -18,18 +18,18 @@ describe(PresignedUploadUrlService.name, () => {
 
   it('should return the signed URL scoped to the given bucket, key, content type, and TTL', async () => {
     vi.mocked(getSignedUrl).mockResolvedValue(
-      'https://s3.example.com/beatrice-local/tts-audio/job-1.mp3?X-Amz-Signature=abc123',
+      'https://s3.example.com/beatrice-local/narrations/job-1.mp3?X-Amz-Signature=abc123',
     );
 
     const url = await uut.generate(
       'beatrice-local',
-      'tts-audio/job-1.mp3',
+      'narrations/job-1.mp3',
       'audio/mpeg',
       300,
     );
 
     expect(url).toBe(
-      'https://s3.example.com/beatrice-local/tts-audio/job-1.mp3?X-Amz-Signature=abc123',
+      'https://s3.example.com/beatrice-local/narrations/job-1.mp3?X-Amz-Signature=abc123',
     );
     expect(getSignedUrl).toHaveBeenCalledWith(
       s3Client,
@@ -41,7 +41,7 @@ describe(PresignedUploadUrlService.name, () => {
       .calls[0][1] as PutObjectCommand;
     expect(command.input).toEqual({
       Bucket: 'beatrice-local',
-      Key: 'tts-audio/job-1.mp3',
+      Key: 'narrations/job-1.mp3',
       ContentType: 'audio/mpeg',
     });
   });

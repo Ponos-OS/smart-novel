@@ -28,7 +28,7 @@ describe('Beatrice callbacks (e2e)', () => {
       expect(res.status).toBe(201);
       expect(res.data).toEqual({ url: expect.any(String) });
       expect(res.data.url).toContain(
-        'tts-audio/2bce49d6-6592-4ed3-b421-f913b9ecc3bd.mp3',
+        'narrations/2bce49d6-6592-4ed3-b421-f913b9ecc3bd.mp3',
       );
       expect(res.data.url).toContain('X-Amz-Expires=300');
     });
@@ -249,7 +249,7 @@ describe('Beatrice callbacks (e2e)', () => {
       await expectNarrationUrlToContain(
         NOVEL_ID,
         CHAPTER_TWO_ID,
-        `tts-audio/${jobId}.mp3`,
+        `narrations/${jobId}.mp3`,
       );
     }, 35_000);
   });
@@ -410,7 +410,7 @@ describe('Beatrice callbacks (e2e)', () => {
           (event) =>
             event.status === 'READY' &&
             Boolean(
-              event.narrationUrl?.includes(`tts-audio/${jobId}.mp3`),
+              event.narrationUrl?.includes(`narrations/${jobId}.mp3`),
             ),
         );
 

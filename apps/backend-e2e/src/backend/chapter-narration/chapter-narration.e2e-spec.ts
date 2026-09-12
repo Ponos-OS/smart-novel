@@ -181,7 +181,7 @@ describe('Chapter Narration (e2e)', () => {
 
     // Assert
     expect(narrationUrl).toBeTruthy();
-    expect(narrationUrl).toContain('tts-audio/');
+    expect(narrationUrl).toContain('narrations/');
     expect(narrationUrl).toContain('.mp3');
   }, 200_000);
 
@@ -265,7 +265,7 @@ describe('Chapter Narration (e2e)', () => {
 
       // Assert
       expect(event.narrationUrl).toBeTruthy();
-      expect(event.narrationUrl).toContain('tts-audio/');
+      expect(event.narrationUrl).toContain('narrations/');
       expect(event.narrationUrl).toContain('.mp3');
     } finally {
       client.dispose();

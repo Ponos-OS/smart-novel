@@ -7,7 +7,7 @@ import {
 } from '@nestjs/graphql';
 
 import { ParseUuidPipe } from '../../../shared';
-import { CheckPolicy, Public } from '../../auth';
+import { AuthHeader, CheckPolicy, Public } from '../../auth';
 import { ChapterNarrationService } from '../services';
 import {
   ChapterNarrationEvent,
@@ -35,8 +35,12 @@ export class ChapterNarrationResolver {
       ParseUuidPipe,
     )
     chapterId: string,
+    @AuthHeader() authorization: string,
   ): Promise<ChapterNarrationResponse> {
-    return this.narrationService.generateChapterAudio(chapterId);
+    return this.narrationService.generateChapterAudio(
+      chapterId,
+      authorization,
+    );
   }
 
   /**

@@ -95,7 +95,7 @@ export class ChapterNarrationService implements OnModuleInit {
    * `generateAudio`, Step 5), present from the very first `queued` callback — no lookup,
    * so no race against when the `generateAudio` mutation response happens to arrive back.
    * On `completed`, persists the deterministic audio URL built in Step 1b
-   * (`tts-audio/<jobId>.mp3`) (Step 2.1), and re-publishes the update onto the GraphQL
+   * (`narrations/<jobId>.mp3`) (Step 2.1), and re-publishes the update onto the GraphQL
    * `PubSub` so `chapterNarrationUpdated` fires with live progress (Step 2.2). A callback
    * missing `clientContextId` (e.g. a job queued by a pre-upgrade backend, still in-flight
    * during a deploy) is logged and dropped, not thrown — this runs off a best-effort
@@ -260,6 +260,7 @@ export class ChapterNarrationService implements OnModuleInit {
   async regenerateAudio(
     chapterId: string,
     content: string,
+    authorization: string,
   ): Promise<void> {
     const lockKey = this.narrationLockService.getLockKey(chapterId);
     const token = await this.narrationLockService.tryAcquire(
@@ -276,7 +277,13 @@ export class ChapterNarrationService implements OnModuleInit {
       return;
     }
 
-    await this.queueBeatriceJob(chapterId, content, lockKey, token);
+    await this.queueBeatriceJob(
+      chapterId,
+      content,
+      lockKey,
+      token,
+      authorization,
+    );
   }
 
   /**
@@ -289,6 +296,7 @@ export class ChapterNarrationService implements OnModuleInit {
    */
   async generateChapterAudio(
     chapterId: string,
+    authorization: string,
   ): Promise<ChapterNarrationResponse> {
     const chapter = await this.chapterRepository.findById(chapterId);
 
@@ -322,6 +330,7 @@ export class ChapterNarrationService implements OnModuleInit {
       chapterContent.content,
       lockKey,
       token,
+      authorization,
     );
 
     return { status: NarrationStatus.PROCESSING };
@@ -345,6 +354,7 @@ export class ChapterNarrationService implements OnModuleInit {
     content: string,
     lockKey: string,
     token: string,
+    authorization: string,
   ): Promise<void> {
     const genUploadUrl = urlBuilder(
       this.appConfig.BACKEND_INTERNAL_URL,
@@ -365,6 +375,7 @@ export class ChapterNarrationService implements OnModuleInit {
           genUploadUrl,
           statusCallbackUrl,
           chapterId,
+          authorization,
         ),
       { retry: 0 },
     );

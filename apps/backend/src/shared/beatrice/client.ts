@@ -32,6 +32,10 @@ export interface RunOperationOptions {
   url: string;
   /** Hard deadline in milliseconds. */
   timeoutMs: number;
+  /**
+   * Raw `Authorization` header value (e.g. `Bearer <token>`) to forward to Beatrice.
+   */
+  authorization?: string;
 }
 
 /**
@@ -40,7 +44,7 @@ export interface RunOperationOptions {
 export async function runOperation<TResult, TVariables>(
   document: TadaDocumentNode<TResult, TVariables>,
   variables: TVariables,
-  { url, timeoutMs }: RunOperationOptions,
+  { url, timeoutMs, authorization }: RunOperationOptions,
 ): Promise<TResult> {
   const { data: envelope } = await axios.post<
     BeatriceEnvelope<TResult>
@@ -55,6 +59,7 @@ export async function runOperation<TResult, TVariables>(
       headers: {
         'content-type': 'application/json',
         accept: 'application/graphql-response+json, application/json',
+        ...(authorization ? { authorization } : {}),
       },
     },
   );

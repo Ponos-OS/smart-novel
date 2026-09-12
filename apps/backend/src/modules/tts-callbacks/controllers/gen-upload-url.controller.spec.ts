@@ -32,7 +32,7 @@ describe(GenUploadUrlController.name, () => {
   it.each([
     'not-a-uuid',
     '../../narrations/chapter-1',
-    'tts-audio/../../narrations/chapter-1',
+    'narrations/../../narrations/chapter-1',
     '2bce49d6-6592-4ed3-b421-f913b9ecc3bd.mp3/../../narrations/chapter-1',
   ])(
     'should throw BadRequestException for a non-UUID Idempotency-Key (%s)',
@@ -49,17 +49,17 @@ describe(GenUploadUrlController.name, () => {
   it('should return the presigned URL for a deterministic, jobId-scoped object key', async () => {
     const jobId = '2bce49d6-6592-4ed3-b421-f913b9ecc3bd';
     vi.mocked(presignedUploadUrlService.generate).mockResolvedValue(
-      'https://s3.example.com/beatrice-local/tts-audio/2bce49d6-6592-4ed3-b421-f913b9ecc3bd.mp3?X-Amz-Signature=abc',
+      'https://s3.example.com/beatrice-local/narrations/2bce49d6-6592-4ed3-b421-f913b9ecc3bd.mp3?X-Amz-Signature=abc',
     );
 
     const result = await uut.genUploadUrl(jobId);
 
     expect(result).toEqual({
-      url: 'https://s3.example.com/beatrice-local/tts-audio/2bce49d6-6592-4ed3-b421-f913b9ecc3bd.mp3?X-Amz-Signature=abc',
+      url: 'https://s3.example.com/beatrice-local/narrations/2bce49d6-6592-4ed3-b421-f913b9ecc3bd.mp3?X-Amz-Signature=abc',
     });
     expect(presignedUploadUrlService.generate).toHaveBeenCalledWith(
       'beatrice-local',
-      'tts-audio/2bce49d6-6592-4ed3-b421-f913b9ecc3bd.mp3',
+      'narrations/2bce49d6-6592-4ed3-b421-f913b9ecc3bd.mp3',
       'audio/mpeg',
       5 * 60,
     );

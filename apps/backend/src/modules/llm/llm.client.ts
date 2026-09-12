@@ -66,29 +66,41 @@ export class LlmClient {
     return this.run(NORMALIZE_TEXT_FOR_TTS_MUTATION, { text });
   }
 
+  /**
+   * @description `authorization` is forwarded to Beatrice's `/graphql` request so it can
+   * relay it on its `genUploadUrl`/`statusCallbackUrl` callbacks — those are guarded on
+   * our end and need a bearer token to pass.
+   */
   generateAudio(
     text: string,
     voice: string,
     genUploadUrl: string,
     statusCallbackUrl: string,
     clientContextId: string,
+    authorization: string,
   ) {
-    return this.run(GENERATE_AUDIO_MUTATION, {
-      text,
-      voice,
-      genUploadUrl,
-      statusCallbackUrl,
-      clientContextId,
-    });
+    return this.run(
+      GENERATE_AUDIO_MUTATION,
+      {
+        text,
+        voice,
+        genUploadUrl,
+        statusCallbackUrl,
+        clientContextId,
+      },
+      authorization,
+    );
   }
 
   private async run<TResult, TVariables>(
     document: TadaDocumentNode<TResult, TVariables>,
     variables: TVariables,
+    authorization?: string,
   ): Promise<TResult> {
     return await runOperation(document, variables, {
       url: this.appConfig.BEATRICE_URL,
       timeoutMs: ms(this.appConfig.BEATRICE_TIMEOUT),
+      authorization,
     }).catch((error) => {
       this.logger.error('Beatrice GraphQL call failed', {
         context: LlmClient.name,

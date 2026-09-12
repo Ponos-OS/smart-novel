@@ -1,7 +1,7 @@
 import { Args, ID, Mutation, Resolver } from '@nestjs/graphql';
 
 import { ParseUuidPipe, RequiredStringPipe } from '../../../shared';
-import { CheckPolicy } from '../../auth';
+import { AuthHeader, CheckPolicy } from '../../auth';
 import { ChapterNarrationService, ChapterService } from '../services';
 import { Chapter } from '../types';
 
@@ -36,6 +36,7 @@ export class ChapterResolver {
       RequiredStringPipe,
     )
     content: string,
+    @AuthHeader() authorization: string,
   ) {
     const chapter = await this.chapterService.updateContent(
       chapterId,
@@ -45,6 +46,7 @@ export class ChapterResolver {
     await this.chapterNarrationService.regenerateAudio(
       chapterId,
       content,
+      authorization,
     );
 
     return chapter;

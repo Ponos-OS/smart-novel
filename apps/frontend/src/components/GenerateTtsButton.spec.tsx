@@ -103,7 +103,8 @@ describe('GenerateTtsButton', () => {
   it('shows the regenerate-confirmation modal instead of calling the mutation immediately when narration already exists', () => {
     // Arrange
     renderButton({
-      narrationUrl: 'https://storage.example.com/tts-audio/job-1.mp3',
+      narrationUrl:
+        'https://storage.example.com/narrations/job-1.mp3',
     });
 
     // Act
@@ -121,7 +122,8 @@ describe('GenerateTtsButton', () => {
   it('calls the mutation once the regenerate confirmation is accepted', () => {
     // Arrange
     renderButton({
-      narrationUrl: 'https://storage.example.com/tts-audio/job-1.mp3',
+      narrationUrl:
+        'https://storage.example.com/narrations/job-1.mp3',
     });
     fireEvent.click(
       screen.getByRole('button', { name: '🔄 Regenerate Audio' }),
@@ -247,7 +249,7 @@ describe('GenerateTtsButton', () => {
         chapterNarrationUpdated: {
           status: NarrationStatus.Ready,
           narrationUrl:
-            'https://storage.example.com/tts-audio/job-1.mp3',
+            'https://storage.example.com/narrations/job-1.mp3',
         },
       });
     });
