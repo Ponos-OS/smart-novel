@@ -438,7 +438,7 @@ services:
       start_period: 60s
 
   beatrice:
-    image: 9109679196/smart-novel-beatrice:4.0.0
+    image: 9109679196/smart-novel-beatrice:4.1.0
     profiles:
       - dev
       - backend-e2e
@@ -458,6 +458,9 @@ services:
       RABBITMQ__CONNECTION_STRING: amqp://guest:guest@rabbitmq:5672/
       GENERATE_AUDIO__CALLBACK__ALLOWED_HOSTS: backend,backend-e2e
       TTS__QWEN__BASE_URL: http://qwen-tts:8001
+      # The local qwen-tts shim (local-setup/qwen-tts/server.py) doesn't check this;
+      # Beatrice just requires the default provider's API key to be non-empty.
+      TTS__QWEN__API_KEY: local-dev-key
       # Matches the qwen-tts shim's `_VOICES` mapping (local-setup/qwen-tts/server.py) —
       # voices are static config, not fetched from a voices-listing endpoint.
       TTS__QWEN__VOICES: default

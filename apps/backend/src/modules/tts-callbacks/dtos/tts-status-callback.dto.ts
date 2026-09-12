@@ -1,6 +1,5 @@
 import { Type } from 'class-transformer';
 import {
-  IsIn,
   IsInt,
   IsISO8601,
   IsOptional,
@@ -25,13 +24,25 @@ export class TtsStatusCallbackDto {
   @IsUUID()
   jobId!: string;
 
-  @IsIn(['queued', 'generating', 'uploading', 'completed', 'failed'])
+  /** @description Union documents what Beatrice currently sends; not validated against it. */
+  @IsString()
   status!:
     | 'queued'
     | 'generating'
     | 'uploading'
     | 'completed'
     | 'failed';
+
+  /**
+   * @description
+   * Present on `queued`/`generating`/`uploading`, absent on `completed`/`failed`. A
+   * bigger number means later for this job, nothing else — values carry no meaning
+   * beyond ordering and aren't guaranteed stable across a Beatrice release.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  progress?: number;
 
   /**
    * @description
