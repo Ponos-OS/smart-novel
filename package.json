@@ -33,9 +33,9 @@
     "name": "Kasir Barati"
   },
   "bugs": {
-    "url": "https://github.com/kasir-barati/smart-novel/issues"
+    "url": "https://github.com/Ponos-OS/smart-novel/issues"
   },
-  "homepage": "https://github.com/kasir-barati/smart-novel",
+  "homepage": "https://github.com/Ponos-OS/smart-novel",
   "devEngines": {
     "runtime": {
       "name": "node",
