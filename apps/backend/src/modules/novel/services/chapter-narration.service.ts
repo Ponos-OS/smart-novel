@@ -21,6 +21,10 @@ import { appConfigs } from '../../../app/configs/app.config';
 import { LlmClient } from '../../llm';
 import { RedisService } from '../../redis';
 import {
+  isBeatriceTerminal,
+  isBeatriceTerminalFailure,
+  isBeatriceTerminalSuccess,
+  isKnownBeatriceStatus,
   TTS_AUDIO_OBJECT_KEY_PREFIX,
   TTS_STATUS_CHANNEL,
   TtsStatusCallbackDto,
@@ -103,7 +107,6 @@ export class ChapterNarrationService implements OnModuleInit {
    */
   private async handleStatusUpdate(message: string): Promise<void> {
     const update = JSON.parse(message) as TtsStatusCallbackDto;
-
     const chapterId = update.clientContextId;
 
     if (isNil(chapterId)) {
@@ -119,9 +122,16 @@ export class ChapterNarrationService implements OnModuleInit {
       return;
     }
 
+    if (!isKnownBeatriceStatus(update.status)) {
+      this.logger.warn(
+        `Received unrecognized Beatrice status "${update.status}" for job ${update.jobId} — treating as in-progress; Beatrice's status vocabulary may have changed`,
+        { context: ChapterNarrationService.name },
+      );
+    }
+
     let narrationUrl: string | undefined;
 
-    if (update.status === 'completed') {
+    if (isBeatriceTerminalSuccess(update.status)) {
       narrationUrl = urlBuilder(
         this.appConfig.OBJECT_STORAGE_PUBLIC_URL,
         this.appConfig.OBJECT_STORAGE_BUCKET,
@@ -139,14 +149,14 @@ export class ChapterNarrationService implements OnModuleInit {
       );
     }
 
-    if (update.status === 'failed') {
+    if (isBeatriceTerminalFailure(update.status)) {
       this.logger.error(
         `Beatrice reported job ${update.jobId} for chapter ${chapterId} as failed: ${update.error?.code ?? 'UNKNOWN'}: ${update.error?.message ?? 'no error details'}`,
         { context: ChapterNarrationService.name },
       );
     }
 
-    if (update.status === 'completed' || update.status === 'failed') {
+    if (isBeatriceTerminal(update.status)) {
       await this.releaseJobLock(update.jobId);
     }
 
@@ -196,7 +206,7 @@ export class ChapterNarrationService implements OnModuleInit {
       return false;
     }
 
-    if (update.status === 'completed' || update.status === 'failed') {
+    if (isBeatriceTerminal(update.status)) {
       this.jobProgressState.set(update.jobId, {
         lastSeen: state?.lastSeen ?? 0,
         terminal: true,
@@ -229,20 +239,23 @@ export class ChapterNarrationService implements OnModuleInit {
   }
 
   /**
-   * @description Maps Beatrice's own status vocabulary onto the GraphQL-facing
-   * `NarrationStatus` enum: `queued`/`generating`/`uploading` are all in-progress.
+   * @description
+   * The anti-corruption layer's other half: collapses Beatrice's open-ended status string
+   * onto the backend's own, strongly-typed `NarrationStatus` — anything that isn't a
+   * recognized terminal status (including a stage Beatrice hasn't invented yet) falls
+   * through to PROCESSING, so an unrecognized status degrades gracefully instead of
+   * throwing. See `.github/docs/anti-corruption-layer-beatrice-tts.md`.
    */
-  private mapBeatriceStatus(
-    status: TtsStatusCallbackDto['status'],
-  ): NarrationStatus {
-    switch (status) {
-      case 'completed':
-        return NarrationStatus.READY;
-      case 'failed':
-        return NarrationStatus.FAILED;
-      default:
-        return NarrationStatus.PROCESSING;
+  private mapBeatriceStatus(status: string): NarrationStatus {
+    if (isBeatriceTerminalSuccess(status)) {
+      return NarrationStatus.READY;
     }
+
+    if (isBeatriceTerminalFailure(status)) {
+      return NarrationStatus.FAILED;
+    }
+
+    return NarrationStatus.PROCESSING;
   }
 
   /**

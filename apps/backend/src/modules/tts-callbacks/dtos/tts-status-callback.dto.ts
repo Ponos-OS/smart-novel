@@ -24,14 +24,18 @@ export class TtsStatusCallbackDto {
   @IsUUID()
   jobId!: string;
 
-  /** @description Union documents what Beatrice currently sends; not validated against it. */
+  /**
+   * @description
+   * Beatrice's own status vocabulary, deliberately left as an opaque string rather than a literal union.
+   *
+   * Beatrice hasn't promised to maintain the value of this , so we cannot have a validator in front of it.
+   *
+   * The only two spellings smart-novel acts on are "completed" and "failed".
+   *
+   * And for those two we have an ACL (Anti-corruption layer).
+   */
   @IsString()
-  status!:
-    | 'queued'
-    | 'generating'
-    | 'uploading'
-    | 'completed'
-    | 'failed';
+  status!: string;
 
   /**
    * @description

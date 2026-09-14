@@ -420,6 +420,36 @@ describe(ChapterNarrationService.name, () => {
       },
     );
 
+    it('should warn and still publish a PROCESSING event for a status Beatrice never documented', async () => {
+      // Arrange
+      const message = JSON.stringify({
+        jobId: mockJobId,
+        status: 'transcoding',
+        clientContextId: mockChapterId,
+      });
+
+      // Act
+      await (uut as any).handleStatusUpdate(message);
+
+      // Assert
+      expect(logger.warn).toHaveBeenCalledWith(
+        `Received unrecognized Beatrice status "transcoding" for job ${mockJobId} — treating as in-progress; Beatrice's status vocabulary may have changed`,
+        { context: ChapterNarrationService.name },
+      );
+      expect(pubSub.publish).toHaveBeenCalledWith(
+        chapterNarrationUpdateSubscriptionKey(mockChapterId),
+        {
+          chapterNarrationUpdated: {
+            chapterId: mockChapterId,
+            status: NarrationStatus.PROCESSING,
+            narrationUrl: undefined,
+            stage: 'transcoding',
+            error: undefined,
+          },
+        },
+      );
+    });
+
     it('should publish a FAILED event with the error flattened to a string, without persisting a narration URL', async () => {
       // Arrange
       const message = JSON.stringify({
