@@ -83,7 +83,7 @@ describe('Chapter Narration (e2e)', () => {
     expect(res.data.data.generateChapterAudio).toEqual({
       status: 'PROCESSING',
     });
-  }, 220_000);
+  }, 320_000);
 
   it('should reject a second generateChapterAudio call while one is already in flight for the same chapter', async () => {
     const authorizationHeader =
@@ -106,14 +106,17 @@ describe('Chapter Narration (e2e)', () => {
       // lock ourselves at the end — otherwise this chapter stays locked (up to the
       // 1h TTL) until the real, unmocked Beatrice job happens to finish on its own,
       // which would leak into (and likely time out) any later test on this chapter.
+      // Real CPU-based TTS synthesis (qwen-tts) has been observed taking 200s+ per
+      // job, and Beatrice serializes jobs through one worker — a prior test's job
+      // still processing can delay this one's "queued" message well past 30s.
       const queued = new Promise<{ jobId: string }>(
         (resolve, reject) => {
           const timeout = setTimeout(
             () =>
               reject(
-                new Error('No "queued" message received in 30s'),
+                new Error('No "queued" message received in 250s'),
               ),
-            30_000,
+            250_000,
           );
 
           redisSubscriber.on('message', (channel, message) => {
@@ -169,7 +172,7 @@ describe('Chapter Narration (e2e)', () => {
     } finally {
       await redisSubscriber.quit();
     }
-  }, 60_000);
+  }, 260_000);
 
   it('should return the narration URL', async () => {
     // Arrange & Act
@@ -183,7 +186,7 @@ describe('Chapter Narration (e2e)', () => {
     expect(narrationUrl).toBeTruthy();
     expect(narrationUrl).toContain('narrations/');
     expect(narrationUrl).toContain('.mp3');
-  }, 200_000);
+  }, 320_000);
 
   it('should return error for non-existent chapter', async () => {
     const authorizationHeader =
@@ -270,5 +273,5 @@ describe('Chapter Narration (e2e)', () => {
     } finally {
       client.dispose();
     }
-  }, 280_000);
+  }, 320_000);
 });

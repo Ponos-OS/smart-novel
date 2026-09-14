@@ -195,11 +195,14 @@ describe('Beatrice callbacks (e2e)', () => {
       // in this file (a direct, synchronous POST /status call).
       // Filter for "queued" specifically — other tests' real Beatrice jobs share this
       // channel too, and a "generating"/"failed" message from one of those arriving in
-      // the same window would otherwise be mistaken for ours.
+      // the same window would otherwise be mistaken for ours. The budget here is generous
+      // because Beatrice serializes jobs through one worker and real CPU-based TTS
+      // synthesis (qwen-tts) has been observed taking 200s+ per job, which can delay
+      // this one's "queued" message if a prior job is still processing.
       const queued = waitForMessage(
         redisSubscriber,
         TTS_STATUS_CHANNEL,
-        30_000,
+        250_000,
         (message) => JSON.parse(message).status === 'queued',
       );
       await redisSubscriber.subscribe(TTS_STATUS_CHANNEL);
@@ -251,7 +254,7 @@ describe('Beatrice callbacks (e2e)', () => {
         CHAPTER_TWO_ID,
         `narrations/${jobId}.mp3`,
       );
-    }, 35_000);
+    }, 260_000);
   });
 
   describe('Step 2.2: chapterNarrationUpdated live progress', () => {
@@ -327,10 +330,13 @@ describe('Beatrice callbacks (e2e)', () => {
         // Arrange: subscribe to the raw channel too, to learn the real jobId
         // Beatrice assigns — chapterNarrationUpdated events don't expose jobId
         // by design, so this is the only way to correlate.
+        // Real CPU-based TTS synthesis (qwen-tts) has been observed taking 200s+ per
+        // job, and Beatrice serializes jobs through one worker — a prior test's job
+        // still processing can delay this one's "queued" message well past 30s.
         const queued = waitForMessage(
           redisSubscriber,
           TTS_STATUS_CHANNEL,
-          30_000,
+          250_000,
         );
         await redisSubscriber.subscribe(TTS_STATUS_CHANNEL);
 
@@ -421,7 +427,7 @@ describe('Beatrice callbacks (e2e)', () => {
       } finally {
         client.dispose();
       }
-    }, 35_000);
+    }, 260_000);
   });
 
   describe('Step 2: dropping a stale out-of-order status callback', () => {
