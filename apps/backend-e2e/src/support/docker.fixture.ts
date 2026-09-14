@@ -11,7 +11,7 @@ type ServiceName =
   | 'zitadel'
   | 'init-postgres'
   | 'setup-zitadel'
-  | 'tts'
+  | 'qwen-tts'
   | 'beatrice';
 /** @description the profile name comes from the compose file */
 type ProfileName = 'backend-e2e' | 'frontend-e2e' | 'dev';

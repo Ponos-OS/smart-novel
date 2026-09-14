@@ -57,7 +57,7 @@ export default async function setup() {
     );
     DockerFixture.persistLogs(
       workspaceRoot,
-      'tts',
+      'qwen-tts',
       'local-setup/logs/tts.log',
     );
     DockerFixture.stopCompose(workspaceRoot);
