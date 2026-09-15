@@ -15,6 +15,7 @@ interface ChapterListProps {
   onChapterClick: (chapterId: string) => void;
   currentChapterId: string | null;
   canManageTts?: boolean;
+  canEditContent?: boolean;
   novelId?: string;
 }
 
@@ -23,6 +24,7 @@ export function ChapterList({
   onChapterClick,
   currentChapterId,
   canManageTts,
+  canEditContent,
   novelId,
 }: ChapterListProps) {
   const { isRead } = useReadChapters();
@@ -81,6 +83,15 @@ export function ChapterList({
                   narrationStatus={chapter.narrationStatus}
                   narrationUrl={chapter.narrationUrl}
                 />
+              )}
+              {canEditContent && (
+                <button
+                  onClick={() => onChapterClick(chapter.id)}
+                  className="cursor-pointer rounded bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-800 transition-colors hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:hover:bg-blue-800"
+                  title="Edit chapter title/content"
+                >
+                  Edit
+                </button>
               )}
             </div>
           </div>

@@ -68,6 +68,28 @@ mutation UpdateContent($id: ID!, $content: String!) {
   }
 }
 
+mutation UpdateChapter($id: ID!, $input: UpdateChapterInput!) {
+  updateChapter(id: $id, input: $input) {
+    id
+    title
+  }
+}
+
+mutation UpdateChapterAndContent(
+  $id: ID!
+  $content: String!
+  $input: UpdateChapterInput!
+) {
+  updateContent(id: $id, content: $content) {
+    id
+    content
+  }
+  updateChapter(id: $id, input: $input) {
+    id
+    title
+  }
+}
+
 mutation GenerateChapterAudio($id: ID!) {
   generateChapterAudio(id: $id) {
     status
