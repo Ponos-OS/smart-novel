@@ -20,7 +20,7 @@ describe(ChapterService.name, () => {
       updateNarrationStatus: vi.fn(),
       updateChapterNarrationUrl: vi.fn(),
       updateChapterNarrationComplete: vi.fn(),
-    };
+    } as any;
 
     chapterContentRepository = {
       findByIds: vi.fn(),

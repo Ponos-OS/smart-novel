@@ -22,7 +22,7 @@ ENV VITE_SERVICE_NAME=$VITE_SERVICE_NAME
 ARG VITE_SERVICE_VERSION
 ENV VITE_SERVICE_VERSION=$VITE_SERVICE_VERSION
 EXPOSE $FRONTEND_PORT
-COPY package*.json nx.json tsconfig*.json ./
+COPY package*.json nx.json tsconfig*.json eslint.config.mjs ./
 
 FROM base AS development
 ENV NODE_ENV=development

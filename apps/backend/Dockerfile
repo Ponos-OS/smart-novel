@@ -9,7 +9,7 @@ WORKDIR /app
 ARG PORT
 ENV PORT=${PORT}
 EXPOSE $PORT
-COPY package*.json nx.json tsconfig*.json ./
+COPY package*.json nx.json tsconfig*.json eslint.config.mjs ./
 
 # ---- deps ---------------------------------------------------------------
 # Full install (incl. devDeps). Cached across builds via BuildKit's `--mount=type=cache` on the npm cache directory.
