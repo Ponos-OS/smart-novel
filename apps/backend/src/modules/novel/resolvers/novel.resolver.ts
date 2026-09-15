@@ -103,7 +103,7 @@ export class NovelResolver {
     const isAdmin = user.roles.includes(Role.admin);
 
     if (isOwner || isAdmin) {
-      return [NovelAction.MANAGE_TTS];
+      return [NovelAction.MANAGE_TTS, NovelAction.EDIT_CONTENT];
     }
 
     return [];

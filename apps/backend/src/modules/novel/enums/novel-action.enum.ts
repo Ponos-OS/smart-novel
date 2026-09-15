@@ -1,6 +1,7 @@
 import { registerEnumType } from '@nestjs/graphql';
 
 export enum NovelAction {
+  EDIT_CONTENT = 'EDIT_CONTENT',
   MANAGE_TTS = 'MANAGE_TTS',
 }
 

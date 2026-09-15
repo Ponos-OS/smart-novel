@@ -69,6 +69,11 @@ const writerUserId = readFileSync(
   join(localSetupDir, 'user-ids', 'writer'),
   'utf-8',
 );
+Logger.log('Reading second writer user ID from config file...');
+const writer2UserId = readFileSync(
+  join(localSetupDir, 'user-ids', 'writer2'),
+  'utf-8',
+);
 Logger.log('Reading integration test bot key from config file...');
 const integrationTestBotKeyRaw = readFileSync(
   join(localSetupDir, 'pats', 'bot-key.json'),
@@ -95,6 +100,7 @@ export const config = {
     user: userUserId,
     admin: adminUserId,
     writer: writerUserId,
+    writer2: writer2UserId,
   },
   integrationTest: {
     scopes,
@@ -174,6 +180,10 @@ export function extractZitadelConfigFromDocker() {
     {
       containerPath: join(userIdsDir, 'writer'),
       hostFilePath: 'local-setup/user-ids/writer',
+    },
+    {
+      containerPath: join(userIdsDir, 'writer2'),
+      hostFilePath: 'local-setup/user-ids/writer2',
     },
     {
       containerPath: join(zitadelDir, 'project-id'),

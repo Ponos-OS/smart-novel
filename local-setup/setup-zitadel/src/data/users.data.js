@@ -32,6 +32,16 @@ export const users = [
   },
   {
     userInfo: {
+      email: 'writer2@test.com',
+      firstName: 'Writer',
+      lastName: 'Two',
+      password: 'Writer123!',
+    },
+    role: 'writer',
+    userIdFile: join(userIdsDir, 'writer2'),
+  },
+  {
+    userInfo: {
       email: 'user@test.com',
       firstName: 'Regular',
       lastName: 'User',

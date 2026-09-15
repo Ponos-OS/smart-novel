@@ -145,6 +145,11 @@ describe('Chapter (e2e)', () => {
       getAuthorizationHeader:
         AuthorizationFixture.getUserAuthorizationHeader,
     },
+    {
+      role: 'writer who does not own the novel',
+      getAuthorizationHeader:
+        AuthorizationFixture.getSecondWriterAuthorizationHeader,
+    },
   ])(
     'should NOT allow unauthorized errors when $role tries to update content',
     async ({ getAuthorizationHeader }) => {
