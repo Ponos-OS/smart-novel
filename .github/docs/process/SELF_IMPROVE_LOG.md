@@ -1,5 +1,10 @@
 # Self-Improvement Log
 
+## 2026-09-15 — "Edit Chapter Content" feature, Step 3 (chapter edit UI)
+
+- REQUIREMENTS.md's prose said Save must fire "two top-level mutation fields in a single GraphQL request" when both title and content changed, but the `### Test` subsection only listed mocking `useUpdateContentMutation`/`useUpdateChapterMutation`/`useGetChapterQuery` — no third hook. Resolved by adding a genuine third generated mutation/hook (`UpdateChapterAndContent`, aliasing both fields in one document) for the both-changed case, since two separate `mutate()` calls would be two HTTP requests and contradict the explicit "single request" requirement; the Test subsection's mock list reads as illustrative rather than a closed contract. No process change needed — this is a one-off content ambiguity, not a recurring pattern.
+- Clean run otherwise: codegen against the already-merged Step 2 backend schema worked first try, `nx test`/`typecheck`/`lint` all passed after two straightforward fixes (prettier formatting via `eslint --fix`, and dropping an emoji from a new button that tripped `jsx-a11y/accessible-emoji` — existing emoji buttons elsewhere didn't trigger it, likely due to the specific character/variant-selector used, so plain text was simpler than chasing it). No e2e for this step (per REQUIREMENTS.md's own scope decision), so none of the flake classes logged for Steps 1-2 applied here.
+
 ## 2026-09-15 — "Edit Chapter Content" feature, Step 2 (`updateChapter` mutation)
 
 - Removing the dead `updateChapter`/`createChapter` stub comments made `CreateChapterInput` (only ever referenced by those stubs) fully unused — deleted it too, per "follow the compiler" scope: the cascade wasn't in the AC bullets but followed directly from the AC's own instruction to delete the stubs.
