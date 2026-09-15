@@ -56,3 +56,5 @@ local-setup/pats/
 local-setup/logs/
 local-setup/client/
 local-setup/user-ids/
+
+storybook-static
