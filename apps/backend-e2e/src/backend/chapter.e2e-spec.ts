@@ -10,6 +10,30 @@ describe('Chapter (e2e)', () => {
   // race chapter-narration.e2e-spec.ts's own generateChapterAudio tests on that same chapter.
   const CHAPTER_FIVE_ID = '6d908673-b125-4729-9da9-4fb907afe2a1'; // chapter5 from seed data
 
+  async function getContentUpdatedAt(
+    chapterId: string,
+    authorizationHeader: string,
+  ): Promise<string> {
+    const { data } = await axios.post(
+      '/graphql',
+      {
+        query: `#graphql
+          query GetChapterContentUpdatedAt($novelId: ID!, $chapterId: ID!) {
+            novel(id: $novelId) {
+              chapter(id: $chapterId) {
+                contentUpdatedAt
+              }
+            }
+          }
+        `,
+        variables: { novelId: NOVEL_ID, chapterId },
+      },
+      { headers: { Authorization: authorizationHeader } },
+    );
+
+    return data.data.novel.chapter.contentUpdatedAt;
+  }
+
   it('should return the selected chapter', async () => {
     const res = await axios.post('/graphql', {
       query: `#graphql
@@ -106,13 +130,17 @@ describe('Chapter (e2e)', () => {
     'should ONLY allow $role to update content',
     async ({ getAuthorizationHeader }) => {
       const authorizationHeader = await getAuthorizationHeader();
+      const expectedContentUpdatedAt = await getContentUpdatedAt(
+        CHAPTER_FIVE_ID,
+        authorizationHeader,
+      );
 
       const { status, data } = await axios.post(
         '/graphql',
         {
           query: `#graphql
-            mutation UpdateContent($id: ID!, $content: String!) {
-              updateContent(id: $id, content: $content) {
+            mutation UpdateContent($id: ID!, $content: String!, $expectedContentUpdatedAt: String!) {
+              updateContent(id: $id, content: $content, expectedContentUpdatedAt: $expectedContentUpdatedAt) {
                 id
                 content
                 updatedAt
@@ -122,6 +150,7 @@ describe('Chapter (e2e)', () => {
           variables: {
             id: CHAPTER_FIVE_ID,
             content: '# Chapter 5\n\nUpdated content',
+            expectedContentUpdatedAt,
           },
         },
         { headers: { Authorization: authorizationHeader } },
@@ -154,13 +183,17 @@ describe('Chapter (e2e)', () => {
     'should NOT allow unauthorized errors when $role tries to update content',
     async ({ getAuthorizationHeader }) => {
       const authorizationHeader = await getAuthorizationHeader();
+      const expectedContentUpdatedAt = await getContentUpdatedAt(
+        CHAPTER_FIVE_ID,
+        authorizationHeader,
+      );
 
       const { status, data } = await axios.post(
         '/graphql',
         {
           query: `#graphql
-          mutation UpdateContent($id: ID!, $content: String!) {
-            updateContent(id: $id, content: $content) {
+          mutation UpdateContent($id: ID!, $content: String!, $expectedContentUpdatedAt: String!) {
+            updateContent(id: $id, content: $content, expectedContentUpdatedAt: $expectedContentUpdatedAt) {
               id
               content
               updatedAt
@@ -170,6 +203,7 @@ describe('Chapter (e2e)', () => {
           variables: {
             id: CHAPTER_FIVE_ID,
             content: '# Chapter 5\n\nUpdated content',
+            expectedContentUpdatedAt,
           },
         },
         { headers: { Authorization: authorizationHeader } },
@@ -342,5 +376,75 @@ describe('Chapter (e2e)', () => {
       content,
       narrationStatus,
     });
+  });
+
+  it('should reject a second content save that reuses a now-stale expectedContentUpdatedAt, keeping only the first save', async () => {
+    const authorizationHeader =
+      await AuthorizationFixture.getWriterAuthorizationHeader();
+    const originalContentUpdatedAt = await getContentUpdatedAt(
+      CHAPTER_FIVE_ID,
+      authorizationHeader,
+    );
+    const mutation = `#graphql
+      mutation UpdateContent($id: ID!, $content: String!, $expectedContentUpdatedAt: String!) {
+        updateContent(id: $id, content: $content, expectedContentUpdatedAt: $expectedContentUpdatedAt) {
+          content
+        }
+      }
+    `;
+
+    const firstSave = await axios.post(
+      '/graphql',
+      {
+        query: mutation,
+        variables: {
+          id: CHAPTER_FIVE_ID,
+          content: '# Chapter 5\n\nFirst concurrent save',
+          expectedContentUpdatedAt: originalContentUpdatedAt,
+        },
+      },
+      { headers: { Authorization: authorizationHeader } },
+    );
+
+    expect(firstSave.data.errors).toBeUndefined();
+    expect(firstSave.data.data.updateContent.content).toBe(
+      '# Chapter 5\n\nFirst concurrent save',
+    );
+
+    const secondSave = await axios.post(
+      '/graphql',
+      {
+        query: mutation,
+        variables: {
+          id: CHAPTER_FIVE_ID,
+          content:
+            '# Chapter 5\n\nSecond concurrent save, should be rejected',
+          expectedContentUpdatedAt: originalContentUpdatedAt,
+        },
+      },
+      { headers: { Authorization: authorizationHeader } },
+    );
+
+    expect(secondSave.data.errors).toBeArray();
+    expect(secondSave.data.errors[0].message).toContain(
+      'updated by someone else',
+    );
+
+    const { data } = await axios.post('/graphql', {
+      query: `#graphql
+        query GetChapter($novelId: ID!, $chapterId: ID!) {
+          novel(id: $novelId) {
+            chapter(id: $chapterId) {
+              content
+            }
+          }
+        }
+      `,
+      variables: { novelId: NOVEL_ID, chapterId: CHAPTER_FIVE_ID },
+    });
+
+    expect(data.data.novel.chapter.content).toBe(
+      '# Chapter 5\n\nFirst concurrent save',
+    );
   });
 });

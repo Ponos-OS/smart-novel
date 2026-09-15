@@ -76,6 +76,7 @@ export class PrismaChapterContentRepository implements IChapterContentRepository
       content: record.content,
       contentHash: record.contentHash,
       ttsHash: record.ttsHash ?? undefined,
+      updatedAt: record.updatedAt.toISOString(),
     };
   }
 }

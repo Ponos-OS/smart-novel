@@ -29,6 +29,7 @@ describe(ChapterResolver.name, () => {
     it('should persist the content and trigger audio regeneration exactly once with the same chapter/content, returning the persisted chapter', async () => {
       const chapterId = '4bbc4da9-107c-4872-9809-78f6191a092d';
       const content = '# Chapter 1\n\nHooray';
+      const expectedContentUpdatedAt = '2026-09-15T10:00:00.000Z';
       const authorization = 'Bearer some-jwt';
       const persistedChapter = {
         id: chapterId,
@@ -43,12 +44,14 @@ describe(ChapterResolver.name, () => {
       const result = await uut.updateContent(
         chapterId,
         content,
+        expectedContentUpdatedAt,
         authorization,
       );
 
       expect(chapterService.updateContent).toHaveBeenCalledWith(
         chapterId,
         content,
+        expectedContentUpdatedAt,
       );
       expect(
         chapterNarrationService.regenerateAudio,
@@ -58,6 +61,29 @@ describe(ChapterResolver.name, () => {
         authorization,
       );
       expect(result).toBe(persistedChapter);
+    });
+
+    it('should not trigger audio regeneration when the service rejects a stale content version', async () => {
+      const chapterId = '4bbc4da9-107c-4872-9809-78f6191a092d';
+      const content = '# Chapter 1\n\nHooray';
+      const expectedContentUpdatedAt = '2026-09-15T10:00:00.000Z';
+      const authorization = 'Bearer some-jwt';
+      const conflictError = new Error('conflict');
+      vi.mocked(chapterService.updateContent).mockRejectedValue(
+        conflictError,
+      );
+
+      const result = uut.updateContent(
+        chapterId,
+        content,
+        expectedContentUpdatedAt,
+        authorization,
+      );
+
+      await expect(result).rejects.toThrow(conflictError);
+      expect(
+        chapterNarrationService.regenerateAudio,
+      ).not.toHaveBeenCalled();
     });
   });
 

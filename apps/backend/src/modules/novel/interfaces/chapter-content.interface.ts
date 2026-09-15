@@ -3,4 +3,5 @@ export interface IChapterContent {
   content: string;
   contentHash: string;
   ttsHash?: string;
+  updatedAt: string;
 }

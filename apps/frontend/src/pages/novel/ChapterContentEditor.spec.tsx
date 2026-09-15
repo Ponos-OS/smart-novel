@@ -71,6 +71,7 @@ const baseChapter = {
   title: 'A Chapter',
   content: 'Chapter body text.',
   updatedAt: '2026-01-01T00:00:00.000Z',
+  contentUpdatedAt: '2026-01-01T00:00:00.000Z',
 };
 
 describe('ChapterContentEditor', () => {
@@ -137,7 +138,11 @@ describe('ChapterContentEditor', () => {
 
     // Assert
     expect(updateContentMutate).toHaveBeenCalledWith(
-      { id: baseChapter.id, content: 'New body.' },
+      {
+        id: baseChapter.id,
+        content: 'New body.',
+        expectedContentUpdatedAt: baseChapter.contentUpdatedAt,
+      },
       expect.any(Object),
     );
     expect(updateChapterMutate).not.toHaveBeenCalled();
@@ -163,6 +168,7 @@ describe('ChapterContentEditor', () => {
       {
         id: baseChapter.id,
         content: 'New body.',
+        expectedContentUpdatedAt: baseChapter.contentUpdatedAt,
         input: { title: 'New Title' },
       },
       expect.any(Object),

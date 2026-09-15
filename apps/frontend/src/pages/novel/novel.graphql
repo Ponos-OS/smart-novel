@@ -49,6 +49,7 @@ query GetChapter($novelId: ID!, $chapterId: ID!) {
       content
       createdAt
       updatedAt
+      contentUpdatedAt
       narrationStatus
       narrationUrl
       next {
@@ -61,8 +62,16 @@ query GetChapter($novelId: ID!, $chapterId: ID!) {
   }
 }
 
-mutation UpdateContent($id: ID!, $content: String!) {
-  updateContent(id: $id, content: $content) {
+mutation UpdateContent(
+  $id: ID!
+  $content: String!
+  $expectedContentUpdatedAt: String!
+) {
+  updateContent(
+    id: $id
+    content: $content
+    expectedContentUpdatedAt: $expectedContentUpdatedAt
+  ) {
     id
     content
   }
@@ -78,9 +87,14 @@ mutation UpdateChapter($id: ID!, $input: UpdateChapterInput!) {
 mutation UpdateChapterAndContent(
   $id: ID!
   $content: String!
+  $expectedContentUpdatedAt: String!
   $input: UpdateChapterInput!
 ) {
-  updateContent(id: $id, content: $content) {
+  updateContent(
+    id: $id
+    content: $content
+    expectedContentUpdatedAt: $expectedContentUpdatedAt
+  ) {
     id
     content
   }
