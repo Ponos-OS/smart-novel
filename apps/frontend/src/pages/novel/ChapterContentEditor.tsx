@@ -21,6 +21,7 @@ type ChapterContentEditorData = Pick<
   | 'title'
   | 'content'
   | 'updatedAt'
+  | 'contentUpdatedAt'
   | 'narrationStatus'
   | 'narrationUrl'
 >;
@@ -115,7 +116,12 @@ export function ChapterContentEditor({
 
     if (titleChanged && contentChanged) {
       updateChapterAndContentMutation.mutate(
-        { id: chapter.id, content, input: { title } },
+        {
+          id: chapter.id,
+          content,
+          expectedContentUpdatedAt: chapter.contentUpdatedAt,
+          input: { title },
+        },
         {
           onSuccess: () => handleSaved({ title, content }),
           onError: showApiError,
@@ -126,7 +132,11 @@ export function ChapterContentEditor({
 
     if (contentChanged) {
       updateContentMutation.mutate(
-        { id: chapter.id, content },
+        {
+          id: chapter.id,
+          content,
+          expectedContentUpdatedAt: chapter.contentUpdatedAt,
+        },
         {
           onSuccess: () => handleSaved({ content }),
           onError: showApiError,

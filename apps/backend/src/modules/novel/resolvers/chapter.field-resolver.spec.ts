@@ -44,6 +44,7 @@ describe(ChapterFieldResolver.name, () => {
         id: '456c3e4a-b353-4938-aa5b-900b685b134f',
         content: '# Chapter 1\n\nSome content',
         contentHash: 'hash-1',
+        updatedAt: '2026-09-15T10:00:00.000Z',
       };
       vi.mocked(chapterContentDataLoader.load).mockResolvedValue(
         chapterContent,
@@ -64,6 +65,41 @@ describe(ChapterFieldResolver.name, () => {
       );
 
       await expect(uut.content(chapter)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('contentUpdatedAt', () => {
+    it("should return the chapter content's updatedAt", async () => {
+      const chapter = {
+        contentId: '456c3e4a-b353-4938-aa5b-900b685b134f',
+      } as Chapter;
+      const chapterContent: IChapterContent = {
+        id: '456c3e4a-b353-4938-aa5b-900b685b134f',
+        content: '# Chapter 1\n\nSome content',
+        contentHash: 'hash-1',
+        updatedAt: '2026-09-15T10:00:00.000Z',
+      };
+      vi.mocked(chapterContentDataLoader.load).mockResolvedValue(
+        chapterContent,
+      );
+
+      const result = await uut.contentUpdatedAt(chapter);
+
+      expect(result).toBe('2026-09-15T10:00:00.000Z');
+      expect(chapterContentDataLoader.load).toHaveBeenCalledWith(
+        '456c3e4a-b353-4938-aa5b-900b685b134f',
+      );
+    });
+
+    it('should throw BadRequestException when chapter content is not found', async () => {
+      const chapter = { contentId: 'non-existent-uuid' } as Chapter;
+      vi.mocked(chapterContentDataLoader.load).mockResolvedValue(
+        null,
+      );
+
+      await expect(uut.contentUpdatedAt(chapter)).rejects.toThrow(
         BadRequestException,
       );
     });

@@ -36,6 +36,24 @@ export class ChapterFieldResolver {
     return chapterContent.content;
   }
 
+  @ResolveField(() => String, {
+    description:
+      'ISO 8601 timestamp of when the chapter content was last updated. Pass this back as expectedContentUpdatedAt on updateContent to detect concurrent edits.',
+  })
+  async contentUpdatedAt(
+    @Parent() chapter: Chapter,
+  ): Promise<string> {
+    const chapterContent = await this.chapterContentDataLoader.load(
+      chapter.contentId,
+    );
+
+    if (!chapterContent) {
+      throw new BadRequestException('Chapter content not found');
+    }
+
+    return chapterContent.updatedAt;
+  }
+
   @ResolveField(() => Chapter, {
     nullable: true,
     description: 'The next chapter',

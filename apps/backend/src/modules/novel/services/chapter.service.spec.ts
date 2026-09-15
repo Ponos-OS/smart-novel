@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 
 import type {
   IChapterContentRepository,
@@ -85,7 +85,7 @@ describe(ChapterService.name, () => {
   });
 
   describe('updateContent', () => {
-    it("should update the chapter's content via content repository", async () => {
+    it("should update the chapter's content via content repository when the expected version matches", async () => {
       vi.mocked(chapterRepository.findById).mockResolvedValue({
         id: '4bbc4da9-107c-4872-9809-78f6191a092d',
         novelId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
@@ -95,16 +95,26 @@ describe(ChapterService.name, () => {
         updatedAt: new Date().toISOString(),
       });
       vi.mocked(
+        chapterContentRepository.findByChapterId,
+      ).mockResolvedValue({
+        id: 'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
+        content: '# Chapter 1',
+        contentHash: 'hash',
+        updatedAt: '2026-09-15T10:00:00.000Z',
+      });
+      vi.mocked(
         chapterContentRepository.upsertByChapterId,
       ).mockResolvedValue({
         id: 'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
         content: '# Chapter 1\n\nHooray',
         contentHash: 'hash',
+        updatedAt: '2026-09-15T10:05:00.000Z',
       });
 
       const res = await uut.updateContent(
         '4bbc4da9-107c-4872-9809-78f6191a092d',
         '# Chapter 1\n\nHooray',
+        '2026-09-15T10:00:00.000Z',
       );
 
       expect(
@@ -124,9 +134,40 @@ describe(ChapterService.name, () => {
       const res = uut.updateContent(
         '761ba2ab-8d2f-46b0-8cf2-11f072be3bba',
         '# Chapter 1\n\nHello',
+        '2026-09-15T10:00:00.000Z',
       );
 
       await expect(res).rejects.toThrow(NotFoundException);
+    });
+
+    it("should raise ConflictException and NOT write when the expected version doesn't match the chapter's current content version", async () => {
+      vi.mocked(chapterRepository.findById).mockResolvedValue({
+        id: '4bbc4da9-107c-4872-9809-78f6191a092d',
+        novelId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
+        contentId: 'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
+        title: 'Chapter 1',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(
+        chapterContentRepository.findByChapterId,
+      ).mockResolvedValue({
+        id: 'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
+        content: '# Chapter 1\n\nSomeone else already edited this',
+        contentHash: 'hash',
+        updatedAt: '2026-09-15T10:05:00.000Z',
+      });
+
+      const res = uut.updateContent(
+        '4bbc4da9-107c-4872-9809-78f6191a092d',
+        '# Chapter 1\n\nHooray',
+        '2026-09-15T10:00:00.000Z',
+      );
+
+      await expect(res).rejects.toThrow(ConflictException);
+      expect(
+        chapterContentRepository.upsertByChapterId,
+      ).not.toHaveBeenCalled();
     });
   });
 });

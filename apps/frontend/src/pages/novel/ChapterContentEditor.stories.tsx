@@ -16,6 +16,7 @@ const sampleChapter = {
   content:
     '## A New Beginning\n\nThe path ahead was **uncertain**, but she walked on regardless.\n\n- Pack light\n- Trust no one\n- Keep moving',
   updatedAt: '2026-01-01T00:00:00.000Z',
+  contentUpdatedAt: '2026-01-01T00:00:00.000Z',
 };
 
 const meta: Meta<typeof ChapterContentEditor> = {

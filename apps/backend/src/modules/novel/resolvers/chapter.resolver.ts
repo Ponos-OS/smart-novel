@@ -1,6 +1,10 @@
 import { Args, ID, Mutation, Resolver } from '@nestjs/graphql';
 
-import { ParseUuidPipe, RequiredStringPipe } from '../../../shared';
+import {
+  IsoDateTimePipe,
+  ParseUuidPipe,
+  RequiredStringPipe,
+} from '../../../shared';
 import { AuthHeader, CheckPolicy } from '../../auth';
 import { UpdateChapterInput } from '../inputs';
 import { ChapterNarrationService, ChapterService } from '../services';
@@ -37,11 +41,22 @@ export class ChapterResolver {
       RequiredStringPipe,
     )
     content: string,
+    @Args(
+      'expectedContentUpdatedAt',
+      {
+        type: () => String,
+        description:
+          "ISO 8601 timestamp of the content version this edit was based on (from Chapter.contentUpdatedAt). The mutation is rejected if the chapter's content has changed since.",
+      },
+      IsoDateTimePipe,
+    )
+    expectedContentUpdatedAt: string,
     @AuthHeader() authorization: string,
   ) {
     const chapter = await this.chapterService.updateContent(
       chapterId,
       content,
+      expectedContentUpdatedAt,
     );
 
     await this.chapterNarrationService.regenerateAudio(

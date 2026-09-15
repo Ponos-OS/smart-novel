@@ -11,6 +11,7 @@ type ChapterContentData = Pick<
   | 'title'
   | 'content'
   | 'updatedAt'
+  | 'contentUpdatedAt'
   | 'narrationStatus'
   | 'narrationUrl'
 >;

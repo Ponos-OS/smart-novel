@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
@@ -43,12 +44,25 @@ export class ChapterService {
   async updateContent(
     chapterId: string,
     content: string,
+    expectedContentUpdatedAt: string,
   ): Promise<IChapter> {
     const chapter = await this.chapterRepository.findById(chapterId);
 
     if (!chapter) {
       throw new NotFoundException(
         `Chapter with id ${chapterId} not found`,
+      );
+    }
+
+    const currentContent =
+      await this.chapterContentRepository.findByChapterId(chapterId);
+
+    if (
+      new Date(currentContent.updatedAt).getTime() !==
+      new Date(expectedContentUpdatedAt).getTime()
+    ) {
+      throw new ConflictException(
+        'This chapter was updated by someone else. Reload to get the latest version before saving.',
       );
     }
 
