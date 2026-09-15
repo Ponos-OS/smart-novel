@@ -1,0 +1,7 @@
+# Self-Improvement Log
+
+## 2026-09-15 — "Edit Chapter Content" feature, Step 1 (`EDIT_CONTENT` allowed action)
+
+- The step's e2e test coverage asked for a "writer who does not own the novel" case, but the e2e user fixtures only had `admin`/`writer`/`user` — no second writer. Added one (`writer2`) across `local-setup/setup-zitadel/src/data/users.data.js`, `apps/backend-e2e/src/support/config.helper.ts`, and `AuthorizationFixture.getSecondWriterAuthorizationHeader`. Confirmed with the user first since it's a shared e2e infra change, not scoped to this step's own files. Future steps needing a non-owner-writer identity can reuse this instead of re-asking.
+- `docker compose down` alone left `beatrice`/`qwen-tts`/`rabbitmq`/`otel-collector` running (they're `backend-e2e`-profile services pulled in as dependencies of `backend` but not covered by a profile-less `down`), which blocked `nx e2e backend-e2e` from starting cleanly. Needed `docker compose --profile backend-e2e down --remove-orphans`. Added to `PROCESS.md`.
+- 3 pre-existing failures in `chapter-narration.e2e-spec.ts` during the `nx e2e backend-e2e` run (real Beatrice TTS synthesis timing out at 320s) — matches the already-documented CPU-timing flake class in `PROCESS.md`, and that file had unrelated uncommitted WIP changes present before this step started. Left out of this step's commit; not a regression from this step's diff.
