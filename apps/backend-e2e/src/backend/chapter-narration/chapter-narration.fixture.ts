@@ -4,9 +4,10 @@ import { AuthorizationFixture } from '../../support';
 
 export class ChapterNarrationFixture {
   /**
-   * @description Polls the chapter's `narrationUrl` until it's set, or throws after ~60 minutes.
+   * @description Polls the chapter's `narrationUrl` until it's set, or throws an exception.
    */
   async waitFor(novelId: string, chapterId: string): Promise<string> {
+    // 5.5 minutes
     const maxAttempts = 180;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {

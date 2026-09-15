@@ -43,6 +43,7 @@ describe(ChapterService.name, () => {
         title: 'Chapter 1',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        chapterNumber: 1,
       });
       const updatedChapter = {
         id: '4bbc4da9-107c-4872-9809-78f6191a092d',
@@ -51,6 +52,7 @@ describe(ChapterService.name, () => {
         title: 'A New Dawn',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        chapterNumber: 1,
       };
       vi.mocked(
         chapterRepository.updateChapterMetadata,

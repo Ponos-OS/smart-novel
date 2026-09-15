@@ -1,3 +1,4 @@
+import { Button } from '../../components/Button';
 import { GenerateTtsButton } from '../../components/GenerateTtsButton';
 import { NarrationStatus } from '../../generated/graphql';
 import { useReadChapters } from '../../hooks/useReadChapters';
@@ -85,13 +86,14 @@ export function ChapterList({
                 />
               )}
               {canEditContent && (
-                <button
+                <Button
+                  variant="chip"
+                  color="blue"
                   onClick={() => onChapterClick(chapter.id)}
-                  className="cursor-pointer rounded bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-800 transition-colors hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:hover:bg-blue-800"
                   title="Edit chapter title/content"
                 >
                   Edit
-                </button>
+                </Button>
               )}
             </div>
           </div>
