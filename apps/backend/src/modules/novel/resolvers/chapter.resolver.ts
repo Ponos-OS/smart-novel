@@ -2,6 +2,7 @@ import { Args, ID, Mutation, Resolver } from '@nestjs/graphql';
 
 import { ParseUuidPipe, RequiredStringPipe } from '../../../shared';
 import { AuthHeader, CheckPolicy } from '../../auth';
+import { UpdateChapterInput } from '../inputs';
 import { ChapterNarrationService, ChapterService } from '../services';
 import { Chapter } from '../types';
 
@@ -52,46 +53,26 @@ export class ChapterResolver {
     return chapter;
   }
 
-  // @Mutation(() => Chapter, { description: 'Internal mutation for writers to add new chapters.' })
-  // async createChapter(
-  //   @Args('novelId', {
-  //     type: () => ID,
-  //     description: 'Adds the new chapter to the novel'
-  //   })
-  //   novelId: string,
-  //   @Args('input', {
-  //     type: () => CreateChapterInput,
-  //     description: 'Create a new chapter for a novel'
-  //   })
-  //   input: CreateChapterInput,
-  //   @Args('makeNecessaryAdjustments', {
-  //     type: () => Boolean,
-  //     description: 'Backend will make necessary adjustments so the chapter numbers make sense even after inserting a chapter in the middle of existing chapters. The default value for this argument is false.',
-  //     defaultValue: false,
-  //   })
-  //   makeNecessaryAdjustments: boolean = false
-  // ) {
-  //   return this.chapterService.createChapter(novelId, input, makeNecessaryAdjustments)
-  // }
-
-  // @Mutation(() => Chapter, { description: 'Internal mutation for writers to update chapters.' })
-  // async updateChapter(
-  //   @Args('id', {
-  //     type: () => ID,
-  //     description: 'The ID of the chapter to update',
-  //   })
-  //   chapterId: string,
-  //   @Args('input', {
-  //     type: () => UpdateChapterInput
-  //   })
-  //   input: UpdateChapterInput,
-  //   @Args('makeNecessaryAdjustments', {
-  //     type: () => Boolean,
-  //     description: 'Backend will make necessary adjustments so the chapter numbers make sense even after inserting a chapter in the middle of existing chapters. The default value for this argument is false.',
-  //     defaultValue: false,
-  //   })
-  //   makeNecessaryAdjustments: boolean = false
-  // ) {
-  //   return this.chapterService.updateChapter(chapterId, input, makeNecessaryAdjustments)
-  // }
+  @CheckPolicy('chapter', 'update')
+  @Mutation(() => Chapter, {
+    description: "Update a chapter's metadata, e.g. its title.",
+  })
+  async updateChapter(
+    @Args(
+      'id',
+      {
+        type: () => ID,
+        description: 'Chapter ID',
+      },
+      ParseUuidPipe,
+    )
+    chapterId: string,
+    @Args('input', {
+      type: () => UpdateChapterInput,
+      description: 'Chapter metadata fields to update',
+    })
+    input: UpdateChapterInput,
+  ) {
+    return this.chapterService.updateChapter(chapterId, input);
+  }
 }

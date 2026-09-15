@@ -1,8 +1,16 @@
-import { InputType, PartialType } from '@nestjs/graphql';
-
-import { CreateChapterInput } from './create-chapter.input';
+import { Field, InputType } from '@nestjs/graphql';
+import { Transform } from 'class-transformer';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 @InputType()
-export class UpdateChapterInput extends PartialType(
-  CreateChapterInput,
-) {}
+export class UpdateChapterInput {
+  @Field(() => String, {
+    nullable: true,
+    description: 'Chapter title',
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @Transform(({ value }) => value?.trim())
+  title?: string;
+}

@@ -35,6 +35,10 @@ export interface IChapterRepository {
   findManyByNovelAndChapterNumbers(
     keys: ChapterNovelKey[],
   ): Promise<IChapter[]>;
+  updateChapterMetadata(
+    id: string,
+    data: { title?: string },
+  ): Promise<IChapter>;
   updateChapterNarrationUrl(id: string, url: string): Promise<void>;
   updateNarrationStatus(
     id: string,

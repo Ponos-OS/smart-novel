@@ -13,6 +13,7 @@ describe(ChapterResolver.name, () => {
   beforeEach(() => {
     chapterService = {
       updateContent: vi.fn(),
+      updateChapter: vi.fn(),
     } as any;
     chapterNarrationService = {
       regenerateAudio: vi.fn(),
@@ -56,6 +57,32 @@ describe(ChapterResolver.name, () => {
         content,
         authorization,
       );
+      expect(result).toBe(persistedChapter);
+    });
+  });
+
+  describe('updateChapter', () => {
+    it('should update chapter metadata and not trigger audio regeneration', async () => {
+      const chapterId = '4bbc4da9-107c-4872-9809-78f6191a092d';
+      const input = { title: 'A New Dawn' };
+      const persistedChapter = {
+        id: chapterId,
+        novelId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
+        contentId: 'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
+        title: 'A New Dawn',
+      };
+      vi.mocked(chapterService.updateChapter).mockResolvedValue(
+        persistedChapter as any,
+      );
+
+      const result = await uut.updateChapter(chapterId, input);
+
+      expect(
+        chapterService.updateChapter,
+      ).toHaveBeenCalledExactlyOnceWith(chapterId, input);
+      expect(
+        chapterNarrationService.regenerateAudio,
+      ).not.toHaveBeenCalled();
       expect(result).toBe(persistedChapter);
     });
   });

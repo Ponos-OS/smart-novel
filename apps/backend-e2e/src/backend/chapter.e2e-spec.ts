@@ -182,4 +182,165 @@ describe('Chapter (e2e)', () => {
       );
     },
   );
+
+  it.each([
+    {
+      role: 'admin',
+      getAuthorizationHeader:
+        AuthorizationFixture.getAdminAuthorizationHeader,
+    },
+    {
+      role: 'writer',
+      getAuthorizationHeader:
+        AuthorizationFixture.getWriterAuthorizationHeader,
+    },
+  ])(
+    'should ONLY allow $role to update chapter metadata',
+    async ({ getAuthorizationHeader }) => {
+      const authorizationHeader = await getAuthorizationHeader();
+
+      const { status, data } = await axios.post(
+        '/graphql',
+        {
+          query: `#graphql
+            mutation UpdateChapter($id: ID!, $input: UpdateChapterInput!) {
+              updateChapter(id: $id, input: $input) {
+                id
+                title
+                updatedAt
+              }
+            }
+          `,
+          variables: {
+            id: CHAPTER_FIVE_ID,
+            input: { title: 'Updated Chapter 5 Title' },
+          },
+        },
+        { headers: { Authorization: authorizationHeader } },
+      );
+
+      expect(status).toBe(200);
+      expect(data.errors).toBeUndefined();
+      expect(data.data.updateChapter).toStrictEqual(
+        expect.objectContaining({
+          id: CHAPTER_FIVE_ID,
+          title: 'Updated Chapter 5 Title',
+        }),
+      );
+      expect(data.data.updateChapter.updatedAt).toBeDateString();
+    },
+  );
+
+  it.each([
+    {
+      role: 'user',
+      getAuthorizationHeader:
+        AuthorizationFixture.getUserAuthorizationHeader,
+    },
+    {
+      role: 'writer who does not own the novel',
+      getAuthorizationHeader:
+        AuthorizationFixture.getSecondWriterAuthorizationHeader,
+    },
+  ])(
+    'should NOT allow unauthorized errors when $role tries to update chapter metadata',
+    async ({ getAuthorizationHeader }) => {
+      const authorizationHeader = await getAuthorizationHeader();
+
+      const { status, data } = await axios.post(
+        '/graphql',
+        {
+          query: `#graphql
+            mutation UpdateChapter($id: ID!, $input: UpdateChapterInput!) {
+              updateChapter(id: $id, input: $input) {
+                id
+                title
+                updatedAt
+              }
+            }
+          `,
+          variables: {
+            id: CHAPTER_FIVE_ID,
+            input: { title: 'Updated Chapter 5 Title' },
+          },
+        },
+        { headers: { Authorization: authorizationHeader } },
+      );
+
+      expect(status).toBe(200);
+      expect(data.errors).toBeArray();
+      expect(data.errors[0].message).toContain(
+        'You do not have permission to update this chapter',
+      );
+    },
+  );
+
+  it('should leave content and narrationStatus unchanged after a title-only update', async () => {
+    const authorizationHeader =
+      await AuthorizationFixture.getWriterAuthorizationHeader();
+    const beforeRes = await axios.post(
+      '/graphql',
+      {
+        query: `#graphql
+          query GetChapter($novelId: ID!, $chapterId: ID!) {
+            novel(id: $novelId) {
+              chapter(id: $chapterId) {
+                content
+                narrationStatus
+              }
+            }
+          }
+        `,
+        variables: { novelId: NOVEL_ID, chapterId: CHAPTER_FIVE_ID },
+      },
+      { headers: { Authorization: authorizationHeader } },
+    );
+    const { content, narrationStatus } =
+      beforeRes.data.data.novel.chapter;
+
+    const { data } = await axios.post(
+      '/graphql',
+      {
+        query: `#graphql
+          mutation UpdateChapter($id: ID!, $input: UpdateChapterInput!) {
+            updateChapter(id: $id, input: $input) {
+              id
+              title
+            }
+          }
+        `,
+        variables: {
+          id: CHAPTER_FIVE_ID,
+          input: { title: 'Title-Only Update' },
+        },
+      },
+      { headers: { Authorization: authorizationHeader } },
+    );
+
+    expect(data.errors).toBeUndefined();
+    expect(data.data.updateChapter.title).toBe('Title-Only Update');
+
+    const afterRes = await axios.post(
+      '/graphql',
+      {
+        query: `#graphql
+          query GetChapter($novelId: ID!, $chapterId: ID!) {
+            novel(id: $novelId) {
+              chapter(id: $chapterId) {
+                content
+                narrationStatus
+              }
+            }
+          }
+        `,
+        variables: { novelId: NOVEL_ID, chapterId: CHAPTER_FIVE_ID },
+      },
+      { headers: { Authorization: authorizationHeader } },
+    );
+
+    expect(afterRes.data.data.novel.chapter).toStrictEqual({
+      content,
+      narrationStatus,
+    });
+  });
 });

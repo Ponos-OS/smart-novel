@@ -242,6 +242,27 @@ describe(PrismaChapterRepository.name, () => {
     });
   });
 
+  describe('updateChapterMetadata', () => {
+    it('should update only the given fields and return the mapped chapter', async () => {
+      const { novel1Chapter1 } = getMockedData();
+      vi.mocked(prismaService.chapter.update).mockResolvedValue({
+        ...novel1Chapter1,
+        title: 'A New Dawn',
+      } as any);
+
+      const result = await uut.updateChapterMetadata(
+        novel1Chapter1.id,
+        { title: 'A New Dawn' },
+      );
+
+      expect(prismaService.chapter.update).toHaveBeenCalledWith({
+        where: { id: novel1Chapter1.id },
+        data: { title: 'A New Dawn' },
+      });
+      expect(result.title).toBe('A New Dawn');
+    });
+  });
+
   describe('updateChapterNarrationUrl', () => {
     it('should update chapter narration url', async () => {
       const { novel1Chapter1 } = getMockedData();

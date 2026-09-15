@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
+import { UpdateChapterInput } from '../inputs';
 import {
   CHAPTER_CONTENT_REPOSITORY,
   CHAPTER_REPOSITORY,
@@ -21,23 +22,23 @@ export class ChapterService {
     private readonly chapterContentRepository: IChapterContentRepository,
   ) {}
 
-  // TODO:
-  // createChapter(novelId: string, input: CreateChapterInput, makeNecessaryAdjustments: boolean) {
-  //   // 1. Check if we have a chapter with that novel:
-  //   //    1.1. If it does exists throw an error.
-  //   //         - Backend should ignore this if they provide a makeNecessaryAdjustments
-  //   //    1.2. If it does not exists check if is the next free number for the novel!
-  //   // 2. If makeNecessaryAdjustments is present then make sure the novel's chapter number make sense even after chapter creation.
-  // }
+  async updateChapter(
+    chapterId: string,
+    input: UpdateChapterInput,
+  ): Promise<IChapter> {
+    const chapter = await this.chapterRepository.findById(chapterId);
 
-  // TODO:
-  // updateChapter(chapterId: string, input: UpdateChapterInput, makeNecessaryAdjustments: boolean) {
-  //   // 1. Check if we have a chapter with that novel:
-  //   //    1.1. If it does exists throw an error.
-  //   //         - Backend should ignore this if they provide a makeNecessaryAdjustments
-  //   //    1.2. If it does not exists check if is the next free number for the novel!
-  //   // 2. If makeNecessaryAdjustments is present then make sure the novel's chapter number make sense even after chapter creation.
-  // }
+    if (!chapter) {
+      throw new NotFoundException(
+        `Chapter with id ${chapterId} not found`,
+      );
+    }
+
+    return this.chapterRepository.updateChapterMetadata(
+      chapterId,
+      input,
+    );
+  }
 
   async updateContent(
     chapterId: string,
