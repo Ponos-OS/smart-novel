@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 
-import { GenerateTtsButton } from '../../components/GenerateTtsButton';
+import { Button } from '../../components/Button';
 import { Chapter } from '../../generated/graphql';
 import { ChapterContentEditor } from './ChapterContentEditor';
 
@@ -43,22 +43,25 @@ export function ChapterContent({
     <div className="space-y-6">
       {/* Navigation Buttons - Top */}
       <div className="flex justify-between">
-        <button
+        <Button
+          variant="solid"
+          color="gray"
           onClick={onPrevious}
           disabled={!hasPrevious}
-          className="cursor-pointer rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
         >
           ← Previous
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="solid"
+          color="gray"
           onClick={onNext}
           disabled={!hasNext}
-          className="cursor-pointer rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
         >
           Next →
-        </button>
+        </Button>
       </div>
 
+      {/* TODO: This looks spooky, I am not sure why it removed the Updated: ... */}
       {/* Audio Narration Section */}
       {hasNarrationUrl && (
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
@@ -92,60 +95,31 @@ export function ChapterContent({
         </div>
       )}
 
-      {/* Writer Controls: Generate TTS / Generate Audio */}
-      {canManageTts && (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
-          <div className="flex items-center gap-2">
-            <svg
-              className="h-5 w-5 text-amber-600 dark:text-amber-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z"
-              />
-            </svg>
-            <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
-              Writer Tools
-            </span>
-          </div>
-
-          {/* Generate / Regenerate Narration */}
-          <GenerateTtsButton
-            novelId={chapter.novelId}
-            chapterId={chapter.id}
-            narrationStatus={chapter.narrationStatus}
-            narrationUrl={chapter.narrationUrl}
-          />
-        </div>
-      )}
-
-      {/* Chapter Title & Content */}
+      {/* Chapter Title & Content, incl. Writer Tools: Edit / Generate TTS */}
       <ChapterContentEditor
         chapter={chapter}
         canEdit={!!canEditContent}
+        canManageTts={canManageTts}
       />
 
       {/* Navigation Buttons - Bottom */}
       <div className="flex justify-between border-t border-gray-200 pt-6 dark:border-gray-700">
-        <button
+        <Button
+          variant="solid"
+          color="gray"
           onClick={onPrevious}
           disabled={!hasPrevious}
-          className="cursor-pointer rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
         >
           ← Previous
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="solid"
+          color="gray"
           onClick={onNext}
           disabled={!hasNext}
-          className="cursor-pointer rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
         >
           Next →
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ import {
   useGetChapterQuery,
 } from '../generated/graphql';
 import { useGraphQLSubscription } from '../hooks/useGraphQLSubscription';
+import { Button } from './Button';
 
 /** @description Maps Beatrice's raw in-progress stage to user-friendly text. */
 const STAGE_LABELS: Record<string, string> = {
@@ -136,10 +137,11 @@ export function GenerateTtsButton({
           <span>{stageLabel}</span>
         </div>
       ) : (
-        <button
+        <Button
+          variant="chip"
+          color="green"
           onClick={handleClick}
           disabled={generateAudioMutation.isPending}
-          className="cursor-pointer rounded bg-green-100 px-3 py-1.5 text-xs font-medium text-green-800 transition-colors hover:bg-green-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-green-900 dark:text-green-200 dark:hover:bg-green-800"
           title={
             hasNarrationUrl
               ? 'Regenerate audio narration (will replace the existing one)'
@@ -149,7 +151,7 @@ export function GenerateTtsButton({
           {hasNarrationUrl
             ? '🔄 Regenerate Audio'
             : '🔊 Generate Audio'}
-        </button>
+        </Button>
       )}
 
       {failed && !isProcessing && (
@@ -170,18 +172,16 @@ export function GenerateTtsButton({
               file with a new one. This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
-              <button
+              <Button
+                variant="outline"
+                color="gray"
                 onClick={() => setShowRegenerateConfirm(false)}
-                className="cursor-pointer rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
               >
                 Cancel
-              </button>
-              <button
-                onClick={generate}
-                className="cursor-pointer rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
-              >
+              </Button>
+              <Button variant="solid" color="red" onClick={generate}>
                 Yes, Regenerate
-              </button>
+              </Button>
             </div>
           </div>
         </div>
