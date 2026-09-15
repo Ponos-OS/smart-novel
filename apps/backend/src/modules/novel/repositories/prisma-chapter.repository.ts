@@ -204,6 +204,18 @@ export class PrismaChapterRepository implements IChapterRepository {
     return chapters.map((ch) => this.toChapter(ch));
   }
 
+  async updateChapterMetadata(
+    id: string,
+    data: { title?: string },
+  ): Promise<IChapter> {
+    const chapter = await this.prisma.chapter.update({
+      where: { id },
+      data,
+    });
+
+    return this.toChapter(chapter);
+  }
+
   async updateChapterNarrationUrl(
     id: string,
     url: string,
