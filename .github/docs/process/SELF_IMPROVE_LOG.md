@@ -1,5 +1,11 @@
 # Self-Improvement Log
 
+## 2026-09-15 — "Edit Chapter Content" feature, Step 2 (`updateChapter` mutation)
+
+- Removing the dead `updateChapter`/`createChapter` stub comments made `CreateChapterInput` (only ever referenced by those stubs) fully unused — deleted it too, per "follow the compiler" scope: the cascade wasn't in the AC bullets but followed directly from the AC's own instruction to delete the stubs.
+- `nx e2e backend-e2e` got SIGTERM'd by the harness's memory-pressure monitor 3 times in a row on this step, including once explicitly backgrounded and twice via the tool's own auto-background-after-timeout. Each time the partial log already contained every test's pass/fail line up to the kill point, including all of this step's new tests (all passing) and the same 2 pre-existing `chapter-narration.e2e-spec.ts` timeouts from Step 1's known flake class — so the kill didn't need a full clean rerun to get a verdict, just reading what was already logged. Detail added to `PROCESS.md`.
+- Confirmed pattern: the qwen-tts container's real synthesis process grows to several GB RSS by the end of a full suite run, which is plausibly what trips the harness's monitor even when `free -h` shows the host has tens of GB free — separate from (but adjacent to) the already-documented CPU-timing flake in the same tests.
+
 ## 2026-09-15 — "Edit Chapter Content" feature, Step 1 (`EDIT_CONTENT` allowed action)
 
 - The step's e2e test coverage asked for a "writer who does not own the novel" case, but the e2e user fixtures only had `admin`/`writer`/`user` — no second writer. Added one (`writer2`) across `local-setup/setup-zitadel/src/data/users.data.js`, `apps/backend-e2e/src/support/config.helper.ts`, and `AuthorizationFixture.getSecondWriterAuthorizationHeader`. Confirmed with the user first since it's a shared e2e infra change, not scoped to this step's own files. Future steps needing a non-owner-writer identity can reuse this instead of re-asking.
