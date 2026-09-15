@@ -125,6 +125,8 @@ export function NovelPage() {
 
   const canManageTts =
     novel.allowedActions?.includes(NovelAction.ManageTts) ?? false;
+  const canEditContent =
+    novel.allowedActions?.includes(NovelAction.EditContent) ?? false;
   const chapters = novel.chaptersConnection.edges.map(
     (edge) => edge.node,
   );
@@ -224,6 +226,7 @@ export function NovelPage() {
                 onChapterClick={handleChapterClick}
                 currentChapterId={requestedChapterId}
                 canManageTts={canManageTts}
+                canEditContent={canEditContent}
                 novelId={id}
               />
             </div>
@@ -259,6 +262,7 @@ export function NovelPage() {
                   hasPrevious={!!currentChapter.previous}
                   hasNext={!!currentChapter.next}
                   canManageTts={canManageTts}
+                  canEditContent={canEditContent}
                 />
               )}
             </div>

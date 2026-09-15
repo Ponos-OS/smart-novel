@@ -1,8 +1,8 @@
 import { useRef } from 'react';
 
 import { GenerateTtsButton } from '../../components/GenerateTtsButton';
-import { MarkdownRenderer } from '../../components/MarkdownRenderer';
 import { Chapter } from '../../generated/graphql';
+import { ChapterContentEditor } from './ChapterContentEditor';
 
 type ChapterContentData = Pick<
   Chapter,
@@ -22,6 +22,7 @@ interface ChapterContentProps {
   hasPrevious: boolean;
   hasNext: boolean;
   canManageTts?: boolean;
+  canEditContent?: boolean;
 }
 
 export function ChapterContent({
@@ -31,6 +32,7 @@ export function ChapterContent({
   hasPrevious,
   hasNext,
   canManageTts,
+  canEditContent,
 }: ChapterContentProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -55,16 +57,6 @@ export function ChapterContent({
         >
           Next →
         </button>
-      </div>
-
-      {/* Chapter Title */}
-      <div className="border-b border-gray-200 pb-4 dark:border-gray-700">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {chapter.title || `Chapter ${chapter.id}`}
-        </h2>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Updated: {new Date(chapter.updatedAt).toLocaleDateString()}
-        </p>
       </div>
 
       {/* Audio Narration Section */}
@@ -132,10 +124,11 @@ export function ChapterContent({
         </div>
       )}
 
-      {/* Chapter Content */}
-      <div className="prose-container">
-        <MarkdownRenderer content={chapter.content} />
-      </div>
+      {/* Chapter Title & Content */}
+      <ChapterContentEditor
+        chapter={chapter}
+        canEdit={!!canEditContent}
+      />
 
       {/* Navigation Buttons - Bottom */}
       <div className="flex justify-between border-t border-gray-200 pt-6 dark:border-gray-700">
