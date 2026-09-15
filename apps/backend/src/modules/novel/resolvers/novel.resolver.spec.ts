@@ -133,7 +133,7 @@ describe(NovelResolver.name, () => {
 
   describe('allowedActions', () => {
     it.each([Role.admin, Role.writer])(
-      'should return MANAGE_TTS for a $role user',
+      'should return MANAGE_TTS and EDIT_CONTENT for a $role user',
       (role) => {
         const user: IAuthUser = {
           sub: '240311094522198754',
@@ -148,7 +148,10 @@ describe(NovelResolver.name, () => {
 
         const result = uut.allowedActions(novel, user);
 
-        expect(result).toEqual([NovelAction.MANAGE_TTS]);
+        expect(result).toEqual([
+          NovelAction.MANAGE_TTS,
+          NovelAction.EDIT_CONTENT,
+        ]);
       },
     );
 

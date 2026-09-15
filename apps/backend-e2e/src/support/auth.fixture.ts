@@ -38,6 +38,17 @@ export class AuthorizationFixture {
     return `Bearer ${accessToken}`;
   }
 
+  static async getSecondWriterAuthorizationHeader() {
+    const actorToken =
+      await AuthorizationFixture.getActorAccessToken();
+    const accessToken = await AuthorizationFixture.impersonate(
+      actorToken,
+      config.userIds.writer2,
+    );
+
+    return `Bearer ${accessToken}`;
+  }
+
   private static async getActorAccessToken() {
     const { keyId, key, userId } =
       config.integrationTest.userBotKey.decodedKeyContent;
