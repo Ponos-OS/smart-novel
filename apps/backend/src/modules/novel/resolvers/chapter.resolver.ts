@@ -10,6 +10,12 @@ import { CreateChapterInput, UpdateChapterInput } from '../inputs';
 import { ChapterNarrationService, ChapterService } from '../services';
 import { Chapter } from '../types';
 
+/**
+ * @description Shared between `@Args(...)` and `@CheckPolicy`'s extractor below so the
+ * mutation's GraphQL arg name and the policy's lookup key can't drift independently.
+ */
+const NOVEL_ID_ARG = 'novelId';
+
 @Resolver(() => Chapter)
 export class ChapterResolver {
   constructor(
@@ -17,14 +23,20 @@ export class ChapterResolver {
     private readonly chapterNarrationService: ChapterNarrationService,
   ) {}
 
-  @CheckPolicy('chapter', 'create')
+  @CheckPolicy(
+    'chapter',
+    'create',
+    (args: Record<typeof NOVEL_ID_ARG, string>) => ({
+      novelId: args[NOVEL_ID_ARG],
+    }),
+  )
   @Mutation(() => Chapter, {
     description:
       "Create a new chapter for a novel. The chapter number is auto-assigned as the next number after the novel's current last chapter. Saving will kick off audio narration generation.",
   })
   async createChapter(
     @Args(
-      'novelId',
+      NOVEL_ID_ARG,
       { type: () => ID, description: 'Novel ID' },
       ParseUuidPipe,
     )
