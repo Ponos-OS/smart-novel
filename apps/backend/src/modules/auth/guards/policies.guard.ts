@@ -27,8 +27,10 @@ import {
  *
  * Expects the `JwtAuthGuard` to have already run and attached the `IAuthUser` to `request.user`.
  *
- * - `resourceId` is resolved from a GQL arg literally named `id`.
- * - `resourceAttributes` is whatever `@CheckPolicy()`'s `extractResourceAttributes` pulls from the args.
+ * `resourceId` is resolved from a GQL arg literally named `id`. That's all this guard can
+ * check generically — anything that needs a specific field's value (e.g. ownership of a
+ * parent resource on `create`) is checked explicitly in the resolver body instead, using its
+ * own typed arguments. See `ChapterResolver.createChapter`/`ChapterPolicy.canCreateInNovel`.
  */
 @Injectable()
 export class PoliciesGuard implements CanActivate {
@@ -73,15 +75,12 @@ export class PoliciesGuard implements CanActivate {
 
     const args = context.getArgs() as RequestArgs;
     const resourceId = args.id ?? 'unknown';
-    const resourceAttributes =
-      policyMeta.extractResourceAttributes?.(args) ?? {};
 
     const allowed = await this.authzProvider.isAllowed({
       principal: user,
       resource: policyMeta.resource,
       resourceId,
       action: policyMeta.action,
-      resourceAttributes,
     });
 
     if (!allowed) {

@@ -1,5 +1,6 @@
 export * from './auth.module';
 export * from './auth.module-definition';
+export * from './casl';
 export * from './decorators';
 export * from './enums';
 export * from './guards';

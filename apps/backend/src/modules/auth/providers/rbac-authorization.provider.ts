@@ -40,13 +40,7 @@ export class RbacAuthorizationProvider implements IAuthorizationProvider {
   }
 
   async isAllowed(params: AuthzCheckParams): Promise<boolean> {
-    const {
-      principal,
-      resource,
-      resourceId,
-      action,
-      resourceAttributes,
-    } = params;
+    const { principal, resource, resourceId, action } = params;
     const policy = this.policiesByResource.get(resource);
 
     if (!policy) {
@@ -61,7 +55,6 @@ export class RbacAuthorizationProvider implements IAuthorizationProvider {
       userRoles: principal.roles,
       resourceId,
       action,
-      resourceAttributes,
     });
 
     this.logger.debug(

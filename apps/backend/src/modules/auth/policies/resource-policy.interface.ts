@@ -10,12 +10,6 @@ export interface ResourcePolicyCheckParams {
    */
   resourceId: string;
   action: string;
-  /**
-   * @description Extra attributes the policy needs but that aren't the resource's own id,
-   * e.g. the parent novel's id for `chapter:create`. Populated by `@CheckPolicy()`'s
-   * `extractResourceAttributes` for the mutation being guarded.
-   */
-  resourceAttributes?: Record<string, string>;
 }
 
 /**

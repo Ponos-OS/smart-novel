@@ -43,7 +43,6 @@ describe(RbacAuthorizationProvider.name, () => {
       resource: 'novel',
       resourceId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
       action: 'update',
-      resourceAttributes: { some: 'attribute' },
     });
 
     expect(result).toBeTrue();
@@ -52,7 +51,6 @@ describe(RbacAuthorizationProvider.name, () => {
       userRoles: ['writer'],
       resourceId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
       action: 'update',
-      resourceAttributes: { some: 'attribute' },
     });
     expect(chapterPolicy.isAllowed).not.toHaveBeenCalled();
   });
@@ -63,9 +61,6 @@ describe(RbacAuthorizationProvider.name, () => {
       resource: 'chapter',
       resourceId: 'unknown',
       action: 'create',
-      resourceAttributes: {
-        novelId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
-      },
     });
 
     expect(result).toBeTrue();
@@ -74,9 +69,6 @@ describe(RbacAuthorizationProvider.name, () => {
       userRoles: ['writer'],
       resourceId: 'unknown',
       action: 'create',
-      resourceAttributes: {
-        novelId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
-      },
     });
     expect(novelPolicy.isAllowed).not.toHaveBeenCalled();
   });

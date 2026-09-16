@@ -1,6 +1,7 @@
 import { CustomLoggerService } from 'nestjs-backend-common';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { CaslAbilityFactory } from '../casl';
 import { NovelPolicy } from './novel.policy';
 
 describe(NovelPolicy.name, () => {
@@ -14,7 +15,7 @@ describe(NovelPolicy.name, () => {
     } as any;
     logger = { warn: vi.fn() } as any;
 
-    uut = new NovelPolicy(prisma, logger);
+    uut = new NovelPolicy(prisma, new CaslAbilityFactory(), logger);
   });
 
   describe('read', () => {
