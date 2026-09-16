@@ -12,6 +12,7 @@ describe(ChapterResolver.name, () => {
 
   beforeEach(() => {
     chapterService = {
+      createChapter: vi.fn(),
       updateContent: vi.fn(),
       updateChapter: vi.fn(),
     } as any;
@@ -23,6 +24,41 @@ describe(ChapterResolver.name, () => {
       chapterService,
       chapterNarrationService,
     );
+  });
+
+  describe('createChapter', () => {
+    it('should delegate to the service with the novel id, input, and caller authorization header', async () => {
+      const novelId = '4754496a-ccb4-4a6b-805d-809a6cea97c8';
+      const input = {
+        title: 'Chapter 1: The Beginning',
+        content: '# Chapter 1\n\nIt was a dark and stormy night.',
+      };
+      const authorization = 'Bearer some-jwt';
+      const createdChapter = {
+        id: '4bbc4da9-107c-4872-9809-78f6191a092d',
+        novelId,
+        contentId: 'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
+        title: input.title,
+        chapterNumber: 1,
+      };
+      vi.mocked(chapterService.createChapter).mockResolvedValue(
+        createdChapter as any,
+      );
+
+      const result = await uut.createChapter(
+        novelId,
+        input,
+        authorization,
+      );
+
+      expect(
+        chapterService.createChapter,
+      ).toHaveBeenCalledExactlyOnceWith(
+        { novelId, title: input.title, content: input.content },
+        authorization,
+      );
+      expect(result).toBe(createdChapter);
+    });
   });
 
   describe('updateContent', () => {

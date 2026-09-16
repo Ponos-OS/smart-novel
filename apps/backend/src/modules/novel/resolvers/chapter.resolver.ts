@@ -6,7 +6,7 @@ import {
   RequiredStringPipe,
 } from '../../../shared';
 import { AuthHeader, CheckPolicy } from '../../auth';
-import { UpdateChapterInput } from '../inputs';
+import { CreateChapterInput, UpdateChapterInput } from '../inputs';
 import { ChapterNarrationService, ChapterService } from '../services';
 import { Chapter } from '../types';
 
@@ -16,6 +16,31 @@ export class ChapterResolver {
     private readonly chapterService: ChapterService,
     private readonly chapterNarrationService: ChapterNarrationService,
   ) {}
+
+  @CheckPolicy('chapter', 'create')
+  @Mutation(() => Chapter, {
+    description:
+      "Create a new chapter for a novel. The chapter number is auto-assigned as the next number after the novel's current last chapter. Saving will kick off audio narration generation.",
+  })
+  async createChapter(
+    @Args(
+      'novelId',
+      { type: () => ID, description: 'Novel ID' },
+      ParseUuidPipe,
+    )
+    novelId: string,
+    @Args('input', {
+      type: () => CreateChapterInput,
+      description: 'New chapter title and content',
+    })
+    input: CreateChapterInput,
+    @AuthHeader() authorization: string,
+  ) {
+    return this.chapterService.createChapter(
+      { novelId, title: input.title, content: input.content },
+      authorization,
+    );
+  }
 
   @CheckPolicy('chapter', 'update')
   @Mutation(() => Chapter, {
