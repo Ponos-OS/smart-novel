@@ -72,8 +72,15 @@ describe('Novel Page', () => {
   });
 });
 
+/**
+ * Routing-only smoke test: URL shape, refresh, and browser back/forward are the one
+ * thing here that neither Storybook (component isolation) nor unit tests (jsdom, no real
+ * browser navigation) can verify. Component-level behavior (edit-mode entry, the discard
+ * confirmation, the 403 view, save/cancel flows) lives in `ChapterContentEditor.stories.tsx`
+ * and the `.spec.tsx` unit tests instead.
+ */
 describe('Novel Page routing', () => {
-  it('uses path segments for chapter read/edit URLs and supports back/forward navigation', () => {
+  it('uses path segments for chapter read/edit URLs and supports refresh and back/forward navigation', () => {
     cy.intercept('POST', '**/graphql').as('graphql');
 
     cy.visit('/');
@@ -112,55 +119,5 @@ describe('Novel Page routing', () => {
     cy.get('.prose-container', { timeout: 10000 }).should(
       'be.visible',
     );
-  });
-
-  it('shows a forbidden view visiting the edit URL directly as a viewer without edit permission', () => {
-    cy.intercept('POST', '**/graphql').as('graphql');
-
-    cy.visit('/');
-    cy.wait('@graphql');
-
-    cy.get('a[href^="/novel/"]', { timeout: 10000 }).first().click();
-    cy.contains('button', /chapter\s+\d+/i, { timeout: 10000 })
-      .first()
-      .click();
-    cy.wait('@graphql');
-    cy.url().should('match', /\/novel\/[^/]+\/chapters\/[^/]+$/);
-
-    cy.url().then((readUrl) => {
-      cy.visit(`${readUrl}/edit`);
-      cy.wait('@graphql');
-      cy.contains(/don't have permission to edit/i, {
-        timeout: 10000,
-      }).should('be.visible');
-      cy.get('input[placeholder="Chapter title"]').should(
-        'not.exist',
-      );
-    });
-  });
-
-  it('navigates a writer straight to the editor from the chapter list, and cancel returns to the read URL', () => {
-    cy.login();
-    cy.intercept('POST', '**/graphql').as('graphql');
-
-    cy.visit('/');
-    cy.wait('@graphql');
-
-    cy.get('a[href^="/novel/"]', { timeout: 10000 }).first().click();
-    cy.wait('@graphql');
-
-    cy.contains('button', 'Edit', { timeout: 10000 }).first().click();
-    cy.wait('@graphql');
-    cy.url().should(
-      'match',
-      /\/novel\/[^/]+\/chapters\/[^/]+\/edit$/,
-    );
-    cy.get('input[placeholder="Chapter title"]', {
-      timeout: 10000,
-    }).should('be.visible');
-
-    cy.contains('button', 'Cancel').click();
-    cy.url().should('match', /\/novel\/[^/]+\/chapters\/[^/]+$/);
-    cy.url().should('not.match', /\/edit$/);
   });
 });

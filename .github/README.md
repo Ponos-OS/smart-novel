@@ -61,3 +61,12 @@ smart-novel/
 - **Testing**: Vitest (unit/integration), Cypress (E2E)
 - **Monorepo**: Nx
 - **CI/CD**: Docker, Docker Compose
+
+### Local Development
+
+```bash
+npm ci
+nx storybook frontend # starts storybook
+nx e2e backend-e2e # starts e2e tests for backend apps, we have similar thing for frontend
+npm run start:dev # starts the whole app in dev env
+```
