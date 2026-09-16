@@ -2,10 +2,10 @@ describe('Chapter Audio Narration', () => {
   const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829';
   const CHAPTER_ID = '4dd92f16-4743-47b9-960c-6529678e9bc5';
   const NOVEL_URL = `/novel/${NOVEL_ID}`;
-  const CHAPTER_URL = `${NOVEL_URL}?chapter=${CHAPTER_ID}`;
+  const CHAPTER_URL = `${NOVEL_URL}/chapters/${CHAPTER_ID}`;
 
   /**
-   * Navigate directly to a chapter page as an authenticated writer. The `?chapter=` query param causes the page to load the chapter content directly (no chapter list).
+   * Navigate directly to a chapter page as an authenticated writer. The path segment causes the page to load the chapter content directly (no chapter list).
    */
   function visitChapterAsWriter() {
     cy.login();
@@ -41,7 +41,7 @@ describe('Chapter Audio Narration', () => {
     cy.visit(CHAPTER_URL);
     cy.wait('@graphqlMocked');
 
-    // Chapter content loads automatically via `?chapter=` param
+    // Chapter content loads automatically via the chapter path segment
     cy.get('.prose-container', { timeout: 15000 }).should(
       'be.visible',
     );

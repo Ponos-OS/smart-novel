@@ -4,7 +4,10 @@ import { Toaster } from 'sonner';
 import { ThemeProvider } from '../hooks/useTheme';
 import { CallbackPage } from '../pages/auth/CallbackPage';
 import { HomePage } from '../pages/home/HomePage';
-import { NovelPage } from '../pages/novel/NovelPage';
+import { ChapterEditPage } from '../pages/novel/ChapterEditPage';
+import { ChapterListPage } from '../pages/novel/ChapterListPage';
+import { ChapterReadPage } from '../pages/novel/ChapterReadPage';
+import { NovelLayout } from '../pages/novel/NovelLayout';
 import { SearchPage } from '../pages/search/SearchPage';
 import { SettingsPage } from '../pages/settings/SettingsPage';
 import { Layout } from './layout/Layout';
@@ -44,8 +47,18 @@ export function App() {
           {/* Auth callback route */}
           <Route path="/auth/callback" element={<CallbackPage />} />
 
-          {/* Novel page without Layout (has its own theme toggle) */}
-          <Route path="/novel/:id" element={<NovelPage />} />
+          {/* Novel pages without Layout (have their own theme toggle) */}
+          <Route path="/novel/:id" element={<NovelLayout />}>
+            <Route index element={<ChapterListPage />} />
+            <Route
+              path="chapters/:chapterId"
+              element={<ChapterReadPage />}
+            />
+            <Route
+              path="chapters/:chapterId/edit"
+              element={<ChapterEditPage />}
+            />
+          </Route>
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

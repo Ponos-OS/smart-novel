@@ -30,6 +30,12 @@ interface ChapterContentEditorProps {
   chapter: ChapterContentEditorData;
   canEdit: boolean;
   canManageTts?: boolean;
+  /** Start directly in edit mode, e.g. when rendered on a dedicated edit route. */
+  startInEditMode?: boolean;
+  /** Show a "discard unsaved changes?" confirmation before cancelling when there are unsaved edits. */
+  confirmDiscardOnCancel?: boolean;
+  onCancel?: () => void;
+  onSaved?: () => void;
 }
 
 type Mode = 'idle' | 'editing' | 'previewing';
@@ -38,11 +44,18 @@ export function ChapterContentEditor({
   chapter,
   canEdit,
   canManageTts,
+  startInEditMode,
+  confirmDiscardOnCancel,
+  onCancel,
+  onSaved,
 }: ChapterContentEditorProps) {
   const queryClient = useQueryClient();
-  const [mode, setMode] = useState<Mode>('idle');
+  const [mode, setMode] = useState<Mode>(
+    startInEditMode ? 'editing' : 'idle',
+  );
   const [title, setTitle] = useState(chapter.title ?? '');
   const [content, setContent] = useState(chapter.content);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   const updateContentMutation = useUpdateContentMutation();
   const updateChapterMutation = useUpdateChapterMutation();
@@ -99,6 +112,20 @@ export function ChapterContentEditor({
     setTitle(chapter.title ?? '');
     setContent(chapter.content);
     setMode('idle');
+    onCancel?.();
+  };
+
+  const requestCancel = () => {
+    if (confirmDiscardOnCancel && (titleChanged || contentChanged)) {
+      setShowDiscardConfirm(true);
+      return;
+    }
+    cancelEdit();
+  };
+
+  const confirmDiscardAndCancel = () => {
+    setShowDiscardConfirm(false);
+    cancelEdit();
   };
 
   const handleSaved = (
@@ -107,6 +134,7 @@ export function ChapterContentEditor({
     patchCache({ ...patch, updatedAt: new Date().toISOString() });
     showSuccess('Chapter updated.');
     setMode('idle');
+    onSaved?.();
   };
 
   const handleSave = () => {
@@ -235,7 +263,7 @@ export function ChapterContentEditor({
                 <Button
                   variant="outline"
                   color="gray"
-                  onClick={cancelEdit}
+                  onClick={requestCancel}
                   disabled={isSaving}
                 >
                   Cancel
@@ -266,6 +294,36 @@ export function ChapterContentEditor({
           <MarkdownRenderer content={chapter.content} />
         )}
       </div>
+
+      {showDiscardConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="mx-4 max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
+            <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+              Discard unsaved changes?
+            </h3>
+            <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+              You have unsaved title/content edits. Leaving now will
+              discard them. This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                color="gray"
+                onClick={() => setShowDiscardConfirm(false)}
+              >
+                Keep Editing
+              </Button>
+              <Button
+                variant="solid"
+                color="red"
+                onClick={confirmDiscardAndCancel}
+              >
+                Discard Changes
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
