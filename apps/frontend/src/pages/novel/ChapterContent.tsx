@@ -64,7 +64,6 @@ export function ChapterContent({
         </Button>
       </div>
 
-      {/* TODO: This looks spooky, I am not sure why it removed the Updated: ... */}
       {/* Audio Narration Section */}
       {hasNarrationUrl && (
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">

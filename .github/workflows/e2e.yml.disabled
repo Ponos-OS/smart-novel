@@ -3,6 +3,12 @@
 # 2. Ollama: in the CI pipeline we need to download the model on every run unless we cache it.
 # 3. I am still NOT sure how can I have a Trunk-based Development flow whilst having this, I mean developer has already pushed their changes, the best it is doing it preventing it from being deployed probably! But other devs will be blocked if they start branching off of main and developing a new feature.
 
+# Keep build pipeline separate from e2e for these reasons:
+#
+# - Speed of signal: build/lint/unit-tests/Sonar can finish in a few minutes. Your own note in e2e.yml.disabled says the full Postgres+Zitadel+MinIO+Ollama+backend+frontend stack is slow on GitHub-hosted runners. Bundling them would make every PR wait on the slow path even for a one-line lint fix.
+# - Different failure domains: a red build/lint/unit-test run means "your code is broken." A red e2e run more often means "the environment/stack flaked" (containers, network, timing) — worth triaging differently, and conflating them in one pipeline makes it harder to tell which kind of failure you're looking at from the GitHub checks list alone.
+# - Independent triggers later: you'll likely want e2e gated more selectively (e.g. skip on doc-only changes, or run only on apps/** changes as it's already scoped) versus build/lint/unit-tests which you probably want on almost everything, including the Sonar config itself.
+
 name: E2E
 
 on:

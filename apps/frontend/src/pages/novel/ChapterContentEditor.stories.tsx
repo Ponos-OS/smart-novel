@@ -26,9 +26,8 @@ const sampleChapter = {
 };
 
 /**
- * `ChapterContentEditor` uses `useBlocker` (to prompt before leaving a dirty edit
- * session), which only works inside a data router — wraps every story in one, with a
- * second `/elsewhere` route to land on after a confirmed navigation.
+ * `ChapterContentEditor` uses `useBlocker` (to prompt before leaving a dirty edit session), which only works inside a data router.
+ * Wraps every story in one, with a second `/elsewhere` route to land on after a confirmed navigation.
  */
 function RouterDecorator(Story: ComponentType) {
   const router = createMemoryRouter([

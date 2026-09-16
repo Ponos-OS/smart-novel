@@ -30,14 +30,6 @@ function getAbsolutePath(value: string): string {
   );
 }
 
-/**
- * `ChapterContentEditor` calls the generated GraphQL mutation hooks directly,
- * so its story swaps only *that file's* import of the generated module for a
- * static mock (no live network calls, per this step's AC) — scoped to that
- * one importer so other modules pulled into the story (e.g. `MarkdownRenderer`,
- * which also imports the generated module for unrelated hooks/types) still
- * resolve the real thing.
- */
 function mockChapterContentEditorGraphql(): Plugin {
   const chapterContentEditorPath = resolve(
     dirnamePath,
