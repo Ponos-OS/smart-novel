@@ -5,7 +5,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { GraphQLModule } from '@nestjs/graphql';
 import depthLimit from 'graphql-depth-limit';
-import { LoggerModule } from 'nestjs-backend-common';
+import {
+  CustomLoggerService,
+  LoggerModule,
+} from 'nestjs-backend-common';
 import { ClsModule } from 'nestjs-cls';
 import { OpenTelemetryModule } from 'nestjs-otel';
 
@@ -20,6 +23,7 @@ import {
   TtsCallbacksModule,
 } from '../modules';
 import {
+  createGraphqlErrorFormatter,
   graphqlSpanRenamePlugin,
   TraceIdInterceptor,
 } from '../shared';
@@ -65,18 +69,22 @@ import {
     PrismaModule,
     OpenTelemetryModule.forRoot(),
     BackgroundRunnerModule,
-    GraphQLModule.forRoot<ApolloDriverConfig>({
+    GraphQLModule.forRootAsync<ApolloDriverConfig>({
       driver: ApolloDriver,
-      autoSchemaFile: true,
-      playground: false,
-      plugins: [
-        ApolloServerPluginLandingPageLocalDefault(),
-        graphqlSpanRenamePlugin(),
-      ],
-      validationRules: [depthLimit(7)],
-      subscriptions: {
-        'graphql-ws': true,
-      },
+      inject: [CustomLoggerService],
+      useFactory: (logger: CustomLoggerService) => ({
+        autoSchemaFile: true,
+        playground: false,
+        plugins: [
+          ApolloServerPluginLandingPageLocalDefault(),
+          graphqlSpanRenamePlugin(),
+        ],
+        validationRules: [depthLimit(7)],
+        subscriptions: {
+          'graphql-ws': true,
+        },
+        formatError: createGraphqlErrorFormatter(logger),
+      }),
     }),
     NovelModule,
     LlmModule,

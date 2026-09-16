@@ -1,4 +1,24 @@
 /**
+ * @description Thrown by {@link graphqlFetcher} for a GraphQL-level error response
+ */
+export class GraphqlRequestError extends Error {
+  readonly extensions?: Record<string, unknown>;
+
+  constructor(message: string, extensions?: Record<string, unknown>) {
+    super(message);
+    this.name = 'GraphqlRequestError';
+    this.extensions = extensions;
+  }
+}
+
+export function isConflictError(error: unknown): boolean {
+  return (
+    error instanceof GraphqlRequestError &&
+    error.extensions?.code === 'CONFLICT'
+  );
+}
+
+/**
  * @description
  * Custom fetcher used by the generated React Query hooks.
  *
@@ -50,9 +70,12 @@ export function graphqlFetcher<TResult, TVariables>(
     const json = await response.json();
 
     if (json.errors) {
-      const message =
-        json.errors[0]?.message ?? 'Unknown GraphQL error';
-      throw new Error(message);
+      const [firstError] = json.errors;
+
+      throw new GraphqlRequestError(
+        firstError?.message ?? 'Unknown GraphQL error',
+        firstError?.extensions,
+      );
     }
 
     return json.data;
