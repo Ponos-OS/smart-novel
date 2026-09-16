@@ -1,5 +1,11 @@
 # Self-Improvement Log
 
+## 2026-09-16 — "Chapter Edit Optimistic Concurrency" feature, Step 2 (`updateChapter` version check)
+
+- Clean run, no new process gaps: mirrored Step 1's pattern exactly (required `expectedUpdatedAt` arg + `IsoDateTimePipe` + `ConflictException`, frontend `.graphql`/`ChapterContentEditor` plumbing pulled into the same step, scoped e2e run via direct `vitest run` after `source .env`, dev stack via `docker compose --profile dev up --build -d`) and all of it worked first try — confirms those Step 1 fixes were the right ones to promote into `PROCESS.md` rather than one-offs.
+- `graphql-api-tester` confirmed the two-independent-tokens design actually holds against the live DB: a content-only save does not bump `Chapter.updatedAt`, and a title-only save does not bump `ChapterContent.updatedAt` (separate Prisma models, each with their own `@updatedAt`), so a pending title-save token survives an unrelated concurrent content edit and vice versa — this was the main design risk called out in `REQUIREMENTS.md`'s intro bullets, now verified rather than assumed.
+- No `PROCESS.md` edit needed this pass — nothing new surfaced beyond what Step 1 already documented.
+
 ## 2026-09-16 — "Chapter Edit Optimistic Concurrency" feature, Step 1 (`updateContent` version check)
 
 - Making `updateContent`'s new arg required broke `init-codegen`/`docker compose up` for the whole branch, not just the mutation's own runtime behavior — `frontend:codegen`'s document validation fails hard when an existing frontend `.graphql` document doesn't supply a newly-required arg. Asked the user rather than assuming; they chose pulling minimal plumbing (declare + pass the new variable in `novel.graphql`, thread a real value through `ChapterContentEditor`) into this same step, with the actual conflict-detection UX still deferred to Step 3. Added to `PROCESS.md`.
