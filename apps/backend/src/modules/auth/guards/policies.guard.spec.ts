@@ -9,6 +9,7 @@ import type {
 } from '../interfaces';
 
 import { CHECK_POLICY_KEY, IS_PUBLIC_KEY } from '../decorators';
+import { Role } from '../enums';
 import { PoliciesGuard } from './policies.guard';
 
 vi.mock('@nestjs/graphql', () => ({
@@ -42,29 +43,6 @@ describe(PoliciesGuard.name, () => {
       }
       return undefined;
     }) as typeof reflector.getAllAndOverride);
-  }
-
-  function mockGqlContext(
-    args: Record<string, unknown>,
-    user?: IAuthUser,
-  ) {
-    vi.mocked(GqlExecutionContext.create).mockReturnValue({
-      getContext: () => ({ req: { user } }),
-      getArgs: () => args,
-    } as any);
-  }
-
-  function buildUser(overrides: Partial<IAuthUser> = {}): IAuthUser {
-    return {
-      sub: 'user-123',
-      name: 'Test User',
-      preferredUsername: 'testuser',
-      email: 'test@example.com',
-      emailVerified: true,
-      roles: ['writer'],
-      metadata: {},
-      ...overrides,
-    };
   }
 
   beforeEach(() => {
@@ -124,7 +102,9 @@ describe(PoliciesGuard.name, () => {
     await uut.canActivate(mockExecutionContext);
 
     expect(authzProvider.isAllowed).toHaveBeenCalledExactlyOnceWith({
-      principal: expect.objectContaining({ sub: 'user-123' }),
+      principal: expect.objectContaining({
+        sub: '234980127461293841',
+      }),
       resource: 'chapter',
       resourceId: 'chapter-1',
       action: 'update',
@@ -200,3 +180,26 @@ describe(PoliciesGuard.name, () => {
     expect(result).toBe(true);
   });
 });
+
+function buildUser(overrides: Partial<IAuthUser> = {}): IAuthUser {
+  return {
+    sub: '234980127461293841',
+    name: 'Test User',
+    preferredUsername: 'testuser',
+    email: 'test@example.com',
+    emailVerified: true,
+    roles: [Role.writer],
+    metadata: {},
+    ...overrides,
+  };
+}
+
+function mockGqlContext(
+  args: Record<string, unknown>,
+  user?: IAuthUser,
+) {
+  vi.mocked(GqlExecutionContext.create).mockReturnValue({
+    getContext: () => ({ req: { user } }),
+    getArgs: () => args,
+  } as any);
+}
