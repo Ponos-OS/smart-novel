@@ -35,7 +35,13 @@ export class RbacAuthorizationProvider implements IAuthorizationProvider {
   }
 
   async isAllowed(params: AuthzCheckParams): Promise<boolean> {
-    const { principal, resource, resourceId, action } = params;
+    const {
+      principal,
+      resource,
+      resourceId,
+      action,
+      resourceAttributes,
+    } = params;
 
     let allowed = false;
 
@@ -55,6 +61,7 @@ export class RbacAuthorizationProvider implements IAuthorizationProvider {
           principal.roles,
           resourceId,
           action,
+          resourceAttributes,
         );
         break;
       default:
@@ -123,10 +130,35 @@ export class RbacAuthorizationProvider implements IAuthorizationProvider {
     userRoles: string[],
     chapterId: string,
     action: string,
+    resourceAttributes?: Record<string, string>,
   ): Promise<boolean> {
     switch (action) {
       case 'read':
         return hasMinimumRole(userRoles, Role.user);
+      case 'create': {
+        // Admins can do anything
+        if (isAdmin(userRoles)) {
+          return true;
+        }
+
+        // Writers can only create chapters on novels they own. There is no
+        // chapterId yet, so ownership is resolved via the novelId the
+        // mutation was called with.
+        if (hasMinimumRole(userRoles, Role.writer)) {
+          const novelId = resourceAttributes?.novelId;
+
+          if (!novelId) {
+            this.logger.warn(
+              'Missing novelId in resourceAttributes for chapter:create check',
+            );
+            return false;
+          }
+
+          return this.isNovelOwner(userId, novelId);
+        }
+
+        return false;
+      }
       case 'update':
         // Admins can do anything
         if (isAdmin(userRoles)) {
