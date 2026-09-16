@@ -38,3 +38,28 @@ permission-boundary AC only needs the mutation to succeed/fail correctly, not
 for narration to finish) — worth remembering as the default scope for future
 steps too: run/write only the tests for the code that changed, not the full
 suite, unless a step's own AC needs broader regression coverage.
+
+## Step 3 (Create Chapter — frontend create page) — 2026-09-16
+
+Added `ChapterCreatePage`, the `CreateChapter` mutation/codegen, routing, and
+the "New Chapter" button. Two things worth remembering:
+
+1. REQUIREMENTS.md's own Step 3 prose specified route `/novels/:novelId/chapters/new`,
+   but the app's real convention (checked `app.tsx`) is singular —
+   `/novel/:id/...`. Followed the real router, not the doc's literal path.
+   Logged as a gotcha: a requirements doc's URL scheme is a guess written
+   before the step exists, not a source of truth to match literally.
+2. No browser tool was available to visually verify the new Storybook
+   interaction stories. Used the layered-proxy approach from an earlier
+   gotcha (`nx build-storybook` succeeding + `index.json` listing the
+   stories + a temporary `composeStories` Vitest spec), deleted after. Had
+   to `vi.mock` `generated/graphql` in that temp spec pointing at the same
+   mock module the story decorators mutate, since this repo's Storybook
+   mocks are swapped in by a custom Vite plugin (importer-path-keyed) that
+   only runs inside Storybook's own build, not under plain vitest — a
+   naive composeStories run without that vi.mock would exercise the real
+   (unmocked) hook instead of the story's intended mutation state.
+
+No process change to `PROCESS.md` — both findings are code/tooling gotchas,
+already logged in `.github/docs/gotchas.md` per `SELF_IMPROVE.md`'s routing
+rule.
