@@ -30,11 +30,6 @@ describe(PrismaChapterContentRepository.name, () => {
           content: 'Hello',
           contentHash:
             '185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969',
-          ttsHash: null,
-          wordCount: null,
-          charCount: null,
-          language: null,
-          format: null,
           createdAt: new Date(),
           updatedAt: new Date('2026-09-15T10:00:00.000Z'),
         },
@@ -43,11 +38,6 @@ describe(PrismaChapterContentRepository.name, () => {
           content: 'World',
           contentHash:
             '78ae647dc5544d227130a0682a51e30bc7777fbb6d8a8f17007463a3ecd1d524',
-          ttsHash: 'tts-hash-b',
-          wordCount: null,
-          charCount: null,
-          language: null,
-          format: null,
           createdAt: new Date(),
           updatedAt: new Date('2026-09-15T11:00:00.000Z'),
         },
@@ -69,7 +59,6 @@ describe(PrismaChapterContentRepository.name, () => {
         content: 'Hello',
         contentHash:
           '185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969',
-        ttsHash: undefined,
         updatedAt: '2026-09-15T10:00:00.000Z',
       });
       expect(
@@ -79,7 +68,6 @@ describe(PrismaChapterContentRepository.name, () => {
         content: 'World',
         contentHash:
           '78ae647dc5544d227130a0682a51e30bc7777fbb6d8a8f17007463a3ecd1d524',
-        ttsHash: 'tts-hash-b',
         updatedAt: '2026-09-15T11:00:00.000Z',
       });
     });
@@ -103,7 +91,6 @@ describe(PrismaChapterContentRepository.name, () => {
           content: '# Chapter text',
           contentHash:
             'b5a8193c78d9bc46c31904d8cf75c99d06ff824830a408e1f451bc3ae3dc1a37',
-          ttsHash: null,
           updatedAt: new Date('2026-09-15T10:00:00.000Z'),
         },
       } as any);
@@ -117,7 +104,6 @@ describe(PrismaChapterContentRepository.name, () => {
         content: '# Chapter text',
         contentHash:
           'b5a8193c78d9bc46c31904d8cf75c99d06ff824830a408e1f451bc3ae3dc1a37',
-        ttsHash: undefined,
         updatedAt: '2026-09-15T10:00:00.000Z',
       });
       expect(prismaService.chapter.findUnique).toHaveBeenCalledWith({
@@ -155,7 +141,6 @@ describe(PrismaChapterContentRepository.name, () => {
           id: '0be4fe14-8fa6-48b5-b894-3b4fdca60943',
           content: contentText,
           contentHash: expectedHash,
-          ttsHash: null,
           updatedAt: new Date('2026-09-15T10:00:00.000Z'),
         },
       } as any);
@@ -169,7 +154,6 @@ describe(PrismaChapterContentRepository.name, () => {
         id: '0be4fe14-8fa6-48b5-b894-3b4fdca60943',
         content: contentText,
         contentHash: expectedHash,
-        ttsHash: undefined,
         updatedAt: '2026-09-15T10:00:00.000Z',
       });
       expect(prismaService.chapter.update).toHaveBeenCalledWith({
@@ -201,7 +185,6 @@ describe(PrismaChapterContentRepository.name, () => {
               content: 'tx content',
               contentHash:
                 'd5bf5cb7cea90a4a42394a89ca5c06f9bbb27ae7bd87d1cb35cd1b65f73317c7',
-              ttsHash: null,
               updatedAt: new Date('2026-09-15T10:00:00.000Z'),
             },
           }),

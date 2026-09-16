@@ -67,12 +67,8 @@ model ChapterContent {
 
   // optional full-text search/materialized info
   contentTsv  Unsupported("tsvector")? @map("content_tsv")
+  // change-detection for narration regen; distinct from updatedAt so a no-op save doesn't retrigger TTS
   contentHash String                   @map("content_hash")
-  ttsHash     String?                  @map("tts_hash")
-  wordCount   Int?                     @map("word_count")
-  charCount   Int?                     @map("char_count")
-  language    String?                  @map("lang")
-  format      String?                  @map("format")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
@@ -82,7 +78,6 @@ model ChapterContent {
 
   @@index([contentTsv], type: Gin)
   @@index([contentHash])
-  @@index([language])
   @@map("chapter_contents")
 }
 
