@@ -10,6 +10,7 @@ import {
 import { AuthResolver } from './auth.resolver';
 import { JwtAuthGuard, PoliciesGuard, RolesGuard } from './guards';
 import { AUTH_PROVIDER, AUTHORIZATION_PROVIDER } from './interfaces';
+import { ChapterPolicy, NovelPolicy } from './policies';
 import {
   RbacAuthorizationProvider,
   ZitadelAuthProvider,
@@ -81,7 +82,9 @@ export class AuthModule extends ConfigurableModuleClass {
         provide: AUTH_PROVIDER,
         useClass: ZitadelAuthProvider,
       },
-      // Authorization provider (RBAC)
+      // Authorization provider (RBAC) — per-resource policies registered by the provider itself
+      NovelPolicy,
+      ChapterPolicy,
       RbacAuthorizationProvider,
       {
         provide: AUTHORIZATION_PROVIDER,

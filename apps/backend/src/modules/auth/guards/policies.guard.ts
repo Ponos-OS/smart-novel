@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
-import { isString } from 'class-validator';
 import { CustomLoggerService } from 'nestjs-backend-common';
 
 import {
@@ -28,9 +27,9 @@ import {
  *
  * Expects the `JwtAuthGuard` to have already run and attached the `IAuthUser` to `request.user`.
  *
- * Resource attributes are resolved from GQL args:
- * - `id` → resourceId
- * - Any other args are passed as resourceAttributes
+ * `resourceId` is resolved from a GQL arg literally named `id`. `resourceAttributes` is
+ * whatever `@CheckPolicy()`'s `extractResourceAttributes` pulls from the args — nothing is
+ * collected implicitly.
  */
 @Injectable()
 export class PoliciesGuard implements CanActivate {
@@ -75,13 +74,8 @@ export class PoliciesGuard implements CanActivate {
 
     const args = context.getArgs() as RequestArgs;
     const resourceId = args.id ?? 'unknown';
-    const resourceAttributes: Record<string, string> = {};
-
-    for (const [key, value] of Object.entries(args)) {
-      if (isNotId(key) && isString(value)) {
-        resourceAttributes[key] = value;
-      }
-    }
+    const resourceAttributes =
+      policyMeta.extractResourceAttributes?.(args) ?? {};
 
     const allowed = await this.authzProvider.isAllowed({
       principal: user,
@@ -103,10 +97,6 @@ export class PoliciesGuard implements CanActivate {
 
     return true;
   }
-}
-
-function isNotId(key: string): boolean {
-  return key !== 'id';
 }
 
 interface RequestArgs {
