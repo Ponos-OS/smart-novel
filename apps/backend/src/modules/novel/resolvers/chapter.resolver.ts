@@ -20,7 +20,7 @@ export class ChapterResolver {
   @CheckPolicy('chapter', 'update')
   @Mutation(() => Chapter, {
     description:
-      "Update a chapter's content. Saving will regenerate the chapter's audio narration once that feature ships — there is no draft support here; use a VCS if you want to draft before saving.",
+      "Update a chapter's content. Saving will regenerate the chapter's audio narration once that feature ships — there is no draft support here; use a VCS if you want to draft before saving. This is a no-op, if the content is byte-identical to what's already stored.",
   })
   async updateContent(
     @Args(
@@ -53,17 +53,20 @@ export class ChapterResolver {
     expectedContentUpdatedAt: string,
     @AuthHeader() authorization: string,
   ) {
-    const chapter = await this.chapterService.updateContent(
-      chapterId,
-      content,
-      expectedContentUpdatedAt,
-    );
+    const { chapter, contentChanged } =
+      await this.chapterService.updateContent(
+        chapterId,
+        content,
+        expectedContentUpdatedAt,
+      );
 
-    await this.chapterNarrationService.regenerateAudio(
-      chapterId,
-      content,
-      authorization,
-    );
+    if (contentChanged) {
+      await this.chapterNarrationService.regenerateAudio(
+        chapterId,
+        content,
+        authorization,
+      );
+    }
 
     return chapter;
   }

@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { ChapterContent as PrismaChapterContent } from '@prisma/client';
-import { createHash } from 'crypto';
 import { isNil } from 'nestjs-backend-common';
 
 import { PrismaService, PrismaTransactionClient } from '../../prisma';
@@ -8,6 +7,7 @@ import {
   IChapterContent,
   IChapterContentRepository,
 } from '../interfaces';
+import { computeContentHash } from '../utils';
 
 @Injectable()
 export class PrismaChapterContentRepository implements IChapterContentRepository {
@@ -48,9 +48,7 @@ export class PrismaChapterContentRepository implements IChapterContentRepository
     tx?: PrismaTransactionClient,
   ): Promise<IChapterContent> {
     const client = tx ?? this.prisma;
-    const contentHash = createHash('sha256')
-      .update(content)
-      .digest('hex');
+    const contentHash = computeContentHash(content);
 
     const chapter = await client.chapter.update({
       where: { id: chapterId },

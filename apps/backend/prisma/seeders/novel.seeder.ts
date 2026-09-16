@@ -1,9 +1,9 @@
 import { PrismaClient } from '@prisma/client';
-import { createHash } from 'crypto';
 import { readdir, readFile } from 'fs/promises';
 import matter from 'gray-matter';
 import { join } from 'path';
 
+import { computeContentHash } from '../../src/modules/novel/utils';
 import { PrismaTransactionClient } from '../../src/modules/prisma';
 
 interface NovelDetails {
@@ -77,10 +77,6 @@ async function loadChapters(
   chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
 
   return chapters;
-}
-
-function computeContentHash(content: string): string {
-  return createHash('sha256').update(content).digest('hex');
 }
 
 async function batchInsertChapters(

@@ -175,9 +175,44 @@ describe(ChapterService.name, () => {
         '4bbc4da9-107c-4872-9809-78f6191a092d',
         '# Chapter 1\n\nHooray',
       );
-      expect(res.contentId).toBe(
+      expect(res.chapter.contentId).toBe(
         'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
       );
+      expect(res.contentChanged).toBeTrue();
+    });
+
+    it('should skip the write entirely and report contentChanged as false when the saved content hashes the same as what is already stored (no-op save)', async () => {
+      const chapter = {
+        id: '4bbc4da9-107c-4872-9809-78f6191a092d',
+        novelId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
+        contentId: 'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
+        title: 'Chapter 1',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      vi.mocked(chapterRepository.findById).mockResolvedValue(
+        chapter,
+      );
+      vi.mocked(
+        chapterContentRepository.findByChapterId,
+      ).mockResolvedValue({
+        id: 'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
+        content: '# Chapter 1',
+        contentHash:
+          'ead29642732d3e89a6e19f945510260754c140f8e21a5b30699a37239dca9bb5',
+        updatedAt: '2026-09-15T10:00:00.000Z',
+      });
+
+      const res = await uut.updateContent(
+        '4bbc4da9-107c-4872-9809-78f6191a092d',
+        '# Chapter 1',
+        '2026-09-15T10:00:00.000Z',
+      );
+
+      expect(res).toEqual({ chapter, contentChanged: false });
+      expect(
+        chapterContentRepository.upsertByChapterId,
+      ).not.toHaveBeenCalled();
     });
 
     it('should raise an exception if chapter does NOT exist', async () => {
