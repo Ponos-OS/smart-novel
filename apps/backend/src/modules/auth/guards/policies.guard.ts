@@ -27,9 +27,8 @@ import {
  *
  * Expects the `JwtAuthGuard` to have already run and attached the `IAuthUser` to `request.user`.
  *
- * `resourceId` is resolved from a GQL arg literally named `id`. `resourceAttributes` is
- * whatever `@CheckPolicy()`'s `extractResourceAttributes` pulls from the args — nothing is
- * collected implicitly.
+ * - `resourceId` is resolved from a GQL arg literally named `id`.
+ * - `resourceAttributes` is whatever `@CheckPolicy()`'s `extractResourceAttributes` pulls from the args.
  */
 @Injectable()
 export class PoliciesGuard implements CanActivate {

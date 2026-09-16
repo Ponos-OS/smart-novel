@@ -21,7 +21,7 @@ describe(ChapterPolicy.name, () => {
   describe('read', () => {
     it('should allow any user role', async () => {
       const result = await uut.isAllowed({
-        userId: 'user-1',
+        userId: '234980127461293847',
         userRoles: ['user'],
         resourceId: 'unknown',
         action: 'read',
@@ -34,7 +34,7 @@ describe(ChapterPolicy.name, () => {
   describe('create', () => {
     it('should allow an admin without checking novel ownership', async () => {
       const result = await uut.isAllowed({
-        userId: 'user-1',
+        userId: '234980127461293847',
         userRoles: ['admin'],
         resourceId: 'unknown',
         action: 'create',
@@ -49,11 +49,11 @@ describe(ChapterPolicy.name, () => {
 
     it('should allow a writer who owns the parent novel', async () => {
       vi.mocked(prisma.novel.findUnique).mockResolvedValue({
-        ownerId: 'user-1',
+        ownerId: '234980127461293847',
       } as any);
 
       const result = await uut.isAllowed({
-        userId: 'user-1',
+        userId: '234980127461293847',
         userRoles: ['writer'],
         resourceId: 'unknown',
         action: 'create',
@@ -71,11 +71,11 @@ describe(ChapterPolicy.name, () => {
 
     it('should deny a writer who does not own the parent novel', async () => {
       vi.mocked(prisma.novel.findUnique).mockResolvedValue({
-        ownerId: 'someone-else',
+        ownerId: '268103642598401',
       } as any);
 
       const result = await uut.isAllowed({
-        userId: 'user-1',
+        userId: '234980127461293847',
         userRoles: ['writer'],
         resourceId: 'unknown',
         action: 'create',
@@ -89,7 +89,7 @@ describe(ChapterPolicy.name, () => {
 
     it('should deny a plain user regardless of resourceAttributes', async () => {
       const result = await uut.isAllowed({
-        userId: 'user-1',
+        userId: '234980127461293847',
         userRoles: ['user'],
         resourceId: 'unknown',
         action: 'create',
@@ -104,7 +104,7 @@ describe(ChapterPolicy.name, () => {
 
     it('should deny and log when resourceAttributes.novelId is missing', async () => {
       const result = await uut.isAllowed({
-        userId: 'user-1',
+        userId: '234980127461293847',
         userRoles: ['writer'],
         resourceId: 'unknown',
         action: 'create',
@@ -119,7 +119,7 @@ describe(ChapterPolicy.name, () => {
 
     it('should deny and log when resourceAttributes itself is missing', async () => {
       const result = await uut.isAllowed({
-        userId: 'user-1',
+        userId: '234980127461293847',
         userRoles: ['writer'],
         resourceId: 'unknown',
         action: 'create',
@@ -135,7 +135,7 @@ describe(ChapterPolicy.name, () => {
   describe('update', () => {
     it('should allow an admin without checking ownership', async () => {
       const result = await uut.isAllowed({
-        userId: 'user-1',
+        userId: '234980127461293847',
         userRoles: ['admin'],
         resourceId: '4bbc4da9-107c-4872-9809-78f6191a092d',
         action: 'update',
@@ -147,11 +147,11 @@ describe(ChapterPolicy.name, () => {
 
     it('should allow a writer who owns the chapter’s parent novel', async () => {
       vi.mocked(prisma.chapter.findUnique).mockResolvedValue({
-        novel: { ownerId: 'user-1' },
+        novel: { ownerId: '234980127461293847' },
       } as any);
 
       const result = await uut.isAllowed({
-        userId: 'user-1',
+        userId: '234980127461293847',
         userRoles: ['writer'],
         resourceId: '4bbc4da9-107c-4872-9809-78f6191a092d',
         action: 'update',
@@ -166,11 +166,11 @@ describe(ChapterPolicy.name, () => {
 
     it('should deny a writer who does not own the chapter’s parent novel', async () => {
       vi.mocked(prisma.chapter.findUnique).mockResolvedValue({
-        novel: { ownerId: 'someone-else' },
+        novel: { ownerId: '268103642598401' },
       } as any);
 
       const result = await uut.isAllowed({
-        userId: 'user-1',
+        userId: '234980127461293847',
         userRoles: ['writer'],
         resourceId: '4bbc4da9-107c-4872-9809-78f6191a092d',
         action: 'update',
@@ -181,7 +181,7 @@ describe(ChapterPolicy.name, () => {
 
     it('should deny a plain user regardless of ownership', async () => {
       const result = await uut.isAllowed({
-        userId: 'user-1',
+        userId: '234980127461293847',
         userRoles: ['user'],
         resourceId: '4bbc4da9-107c-4872-9809-78f6191a092d',
         action: 'update',
@@ -195,7 +195,7 @@ describe(ChapterPolicy.name, () => {
       vi.mocked(prisma.chapter.findUnique).mockResolvedValue(null);
 
       const result = await uut.isAllowed({
-        userId: 'user-1',
+        userId: '234980127461293847',
         userRoles: ['writer'],
         resourceId: 'non-existent-chapter',
         action: 'update',
@@ -211,7 +211,7 @@ describe(ChapterPolicy.name, () => {
   describe('unknown action', () => {
     it('should deny and log', async () => {
       const result = await uut.isAllowed({
-        userId: 'user-1',
+        userId: '234980127461293847',
         userRoles: ['admin'],
         resourceId: 'unknown',
         action: 'archive',

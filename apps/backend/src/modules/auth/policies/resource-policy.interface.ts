@@ -1,4 +1,7 @@
 export interface ResourcePolicyCheckParams {
+  /**
+   * @example "234180127461293847"
+   */
   userId: string;
   userRoles: string[];
   /**
