@@ -37,9 +37,10 @@ describe(ChapterResolver.name, () => {
         contentId: 'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
         title: 'Chapter 1',
       };
-      vi.mocked(chapterService.updateContent).mockResolvedValue(
-        persistedChapter as any,
-      );
+      vi.mocked(chapterService.updateContent).mockResolvedValue({
+        chapter: persistedChapter as any,
+        contentChanged: true,
+      });
 
       const result = await uut.updateContent(
         chapterId,
@@ -60,6 +61,35 @@ describe(ChapterResolver.name, () => {
         content,
         authorization,
       );
+      expect(result).toBe(persistedChapter);
+    });
+
+    it('should not trigger audio regeneration when the saved content is unchanged (no-op save)', async () => {
+      const chapterId = '4bbc4da9-107c-4872-9809-78f6191a092d';
+      const content = '# Chapter 1\n\nHooray';
+      const expectedContentUpdatedAt = '2026-09-15T10:00:00.000Z';
+      const authorization = 'Bearer some-jwt';
+      const persistedChapter = {
+        id: chapterId,
+        novelId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
+        contentId: 'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
+        title: 'Chapter 1',
+      };
+      vi.mocked(chapterService.updateContent).mockResolvedValue({
+        chapter: persistedChapter as any,
+        contentChanged: false,
+      });
+
+      const result = await uut.updateContent(
+        chapterId,
+        content,
+        expectedContentUpdatedAt,
+        authorization,
+      );
+
+      expect(
+        chapterNarrationService.regenerateAudio,
+      ).not.toHaveBeenCalled();
       expect(result).toBe(persistedChapter);
     });
 

@@ -13,6 +13,7 @@ import {
   type IChapterContentRepository,
   type IChapterRepository,
 } from '../interfaces';
+import { computeContentHash } from '../utils';
 
 @Injectable()
 export class ChapterService {
@@ -55,7 +56,7 @@ export class ChapterService {
     chapterId: string,
     content: string,
     expectedContentUpdatedAt: string,
-  ): Promise<IChapter> {
+  ): Promise<{ chapter: IChapter; contentChanged: boolean }> {
     const chapter = await this.chapterRepository.findById(chapterId);
 
     if (!chapter) {
@@ -76,11 +77,19 @@ export class ChapterService {
       );
     }
 
+    const newContentHash = computeContentHash(content);
+    const contentChanged =
+      newContentHash !== currentContent.contentHash;
+
+    if (!contentChanged) {
+      return { chapter, contentChanged };
+    }
+
     await this.chapterContentRepository.upsertByChapterId(
       chapterId,
       content,
     );
 
-    return chapter;
+    return { chapter, contentChanged };
   }
 }
