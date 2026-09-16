@@ -121,6 +121,7 @@ export function ChapterContentEditor({
           content,
           expectedContentUpdatedAt: chapter.contentUpdatedAt,
           input: { title },
+          expectedUpdatedAt: chapter.updatedAt,
         },
         {
           onSuccess: () => handleSaved({ title, content }),
@@ -146,7 +147,11 @@ export function ChapterContentEditor({
     }
 
     updateChapterMutation.mutate(
-      { id: chapter.id, input: { title } },
+      {
+        id: chapter.id,
+        input: { title },
+        expectedUpdatedAt: chapter.updatedAt,
+      },
       {
         onSuccess: () => handleSaved({ title }),
         onError: showApiError,

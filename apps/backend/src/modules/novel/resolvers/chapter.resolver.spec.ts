@@ -91,6 +91,7 @@ describe(ChapterResolver.name, () => {
     it('should update chapter metadata and not trigger audio regeneration', async () => {
       const chapterId = '4bbc4da9-107c-4872-9809-78f6191a092d';
       const input = { title: 'A New Dawn' };
+      const expectedUpdatedAt = '2026-09-15T10:00:00.000Z';
       const persistedChapter = {
         id: chapterId,
         novelId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
@@ -101,11 +102,19 @@ describe(ChapterResolver.name, () => {
         persistedChapter as any,
       );
 
-      const result = await uut.updateChapter(chapterId, input);
+      const result = await uut.updateChapter(
+        chapterId,
+        input,
+        expectedUpdatedAt,
+      );
 
       expect(
         chapterService.updateChapter,
-      ).toHaveBeenCalledExactlyOnceWith(chapterId, input);
+      ).toHaveBeenCalledExactlyOnceWith(
+        chapterId,
+        input,
+        expectedUpdatedAt,
+      );
       expect(
         chapterNarrationService.regenerateAudio,
       ).not.toHaveBeenCalled();

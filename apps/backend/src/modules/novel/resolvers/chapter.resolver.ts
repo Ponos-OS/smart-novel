@@ -87,7 +87,21 @@ export class ChapterResolver {
       description: 'Chapter metadata fields to update',
     })
     input: UpdateChapterInput,
+    @Args(
+      'expectedUpdatedAt',
+      {
+        type: () => String,
+        description:
+          'ISO 8601 timestamp of the chapter version this edit was based on (from Chapter.updatedAt). The mutation is rejected if the chapter has changed since.',
+      },
+      IsoDateTimePipe,
+    )
+    expectedUpdatedAt: string,
   ) {
-    return this.chapterService.updateChapter(chapterId, input);
+    return this.chapterService.updateChapter(
+      chapterId,
+      input,
+      expectedUpdatedAt,
+    );
   }
 }

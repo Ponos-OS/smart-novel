@@ -77,8 +77,16 @@ mutation UpdateContent(
   }
 }
 
-mutation UpdateChapter($id: ID!, $input: UpdateChapterInput!) {
-  updateChapter(id: $id, input: $input) {
+mutation UpdateChapter(
+  $id: ID!
+  $input: UpdateChapterInput!
+  $expectedUpdatedAt: String!
+) {
+  updateChapter(
+    id: $id
+    input: $input
+    expectedUpdatedAt: $expectedUpdatedAt
+  ) {
     id
     title
   }
@@ -89,6 +97,7 @@ mutation UpdateChapterAndContent(
   $content: String!
   $expectedContentUpdatedAt: String!
   $input: UpdateChapterInput!
+  $expectedUpdatedAt: String!
 ) {
   updateContent(
     id: $id
@@ -98,7 +107,11 @@ mutation UpdateChapterAndContent(
     id
     content
   }
-  updateChapter(id: $id, input: $input) {
+  updateChapter(
+    id: $id
+    input: $input
+    expectedUpdatedAt: $expectedUpdatedAt
+  ) {
     id
     title
   }
