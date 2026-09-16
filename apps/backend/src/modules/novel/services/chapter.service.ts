@@ -26,12 +26,22 @@ export class ChapterService {
   async updateChapter(
     chapterId: string,
     input: UpdateChapterInput,
+    expectedUpdatedAt: string,
   ): Promise<IChapter> {
     const chapter = await this.chapterRepository.findById(chapterId);
 
     if (!chapter) {
       throw new NotFoundException(
         `Chapter with id ${chapterId} not found`,
+      );
+    }
+
+    if (
+      new Date(chapter.updatedAt).getTime() !==
+      new Date(expectedUpdatedAt).getTime()
+    ) {
+      throw new ConflictException(
+        'This chapter was updated by someone else. Reload to get the latest version before saving.',
       );
     }
 

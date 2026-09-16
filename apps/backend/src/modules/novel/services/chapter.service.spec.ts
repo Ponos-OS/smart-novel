@@ -35,14 +35,14 @@ describe(ChapterService.name, () => {
   });
 
   describe('updateChapter', () => {
-    it("should update only the chapter's metadata via the repository", async () => {
+    it("should update only the chapter's metadata via the repository when the expected version matches", async () => {
       vi.mocked(chapterRepository.findById).mockResolvedValue({
         id: '4bbc4da9-107c-4872-9809-78f6191a092d',
         novelId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
         contentId: 'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
         title: 'Chapter 1',
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        updatedAt: '2026-09-15T10:00:00.000Z',
         chapterNumber: 1,
       });
       const updatedChapter = {
@@ -61,6 +61,7 @@ describe(ChapterService.name, () => {
       const res = await uut.updateChapter(
         '4bbc4da9-107c-4872-9809-78f6191a092d',
         { title: 'A New Dawn' },
+        '2026-09-15T10:00:00.000Z',
       );
 
       expect(
@@ -78,9 +79,60 @@ describe(ChapterService.name, () => {
       const res = uut.updateChapter(
         '761ba2ab-8d2f-46b0-8cf2-11f072be3bba',
         { title: 'A New Dawn' },
+        '2026-09-15T10:00:00.000Z',
       );
 
       await expect(res).rejects.toThrow(NotFoundException);
+    });
+
+    it("should raise ConflictException and NOT write when the expected version doesn't match the chapter's current version", async () => {
+      vi.mocked(chapterRepository.findById).mockResolvedValue({
+        id: '4bbc4da9-107c-4872-9809-78f6191a092d',
+        novelId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
+        contentId: 'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
+        title: 'Chapter 1',
+        createdAt: new Date().toISOString(),
+        updatedAt: '2026-09-15T10:05:00.000Z',
+        chapterNumber: 1,
+      });
+
+      const res = uut.updateChapter(
+        '4bbc4da9-107c-4872-9809-78f6191a092d',
+        { title: 'A New Dawn' },
+        '2026-09-15T10:00:00.000Z',
+      );
+
+      await expect(res).rejects.toThrow(ConflictException);
+      expect(
+        chapterRepository.updateChapterMetadata,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should succeed when saving a title after an unrelated content-only change to the same chapter (independent version tokens)', async () => {
+      vi.mocked(chapterRepository.findById).mockResolvedValue({
+        id: '4bbc4da9-107c-4872-9809-78f6191a092d',
+        novelId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
+        contentId: 'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
+        title: 'Chapter 1',
+        createdAt: new Date().toISOString(),
+        updatedAt: '2026-09-15T10:00:00.000Z',
+        chapterNumber: 1,
+      });
+      const updatedChapter = {
+        id: '4bbc4da9-107c-4872-9809-78f6191a092d',
+        title: 'A New Dawn',
+      };
+      vi.mocked(
+        chapterRepository.updateChapterMetadata,
+      ).mockResolvedValue(updatedChapter as any);
+
+      const res = await uut.updateChapter(
+        '4bbc4da9-107c-4872-9809-78f6191a092d',
+        { title: 'A New Dawn' },
+        '2026-09-15T10:00:00.000Z',
+      );
+
+      expect(res).toBe(updatedChapter);
     });
   });
 

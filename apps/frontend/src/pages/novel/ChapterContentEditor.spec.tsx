@@ -118,7 +118,11 @@ describe('ChapterContentEditor', () => {
 
     // Assert
     expect(updateChapterMutate).toHaveBeenCalledWith(
-      { id: baseChapter.id, input: { title: 'New Title' } },
+      {
+        id: baseChapter.id,
+        input: { title: 'New Title' },
+        expectedUpdatedAt: baseChapter.updatedAt,
+      },
       expect.any(Object),
     );
     expect(updateContentMutate).not.toHaveBeenCalled();
@@ -170,6 +174,7 @@ describe('ChapterContentEditor', () => {
         content: 'New body.',
         expectedContentUpdatedAt: baseChapter.contentUpdatedAt,
         input: { title: 'New Title' },
+        expectedUpdatedAt: baseChapter.updatedAt,
       },
       expect.any(Object),
     );
