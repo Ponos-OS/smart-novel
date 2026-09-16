@@ -19,7 +19,18 @@ const config: StorybookConfig = {
   },
   async viteFinal(viteConfig) {
     viteConfig.plugins ??= [];
-    viteConfig.plugins.push(mockChapterContentEditorGraphql());
+    viteConfig.plugins.push(
+      mockGeneratedGraphql([
+        {
+          importerPath: '../src/pages/novel/ChapterContentEditor.tsx',
+          mockPath: './mocks/chapter-content-editor.mock.ts',
+        },
+        {
+          importerPath: '../src/pages/novel/ChapterCreatePage.tsx',
+          mockPath: './mocks/chapter-create-page.mock.ts',
+        },
+      ]),
+    );
     return viteConfig;
   },
 };
@@ -30,25 +41,34 @@ function getAbsolutePath(value: string): string {
   );
 }
 
-function mockChapterContentEditorGraphql(): Plugin {
-  const chapterContentEditorPath = resolve(
-    dirnamePath,
-    '../src/pages/novel/ChapterContentEditor.tsx',
-  );
+/**
+ * @description Swaps `../src/generated/graphql.ts` for a hand-written mock whenever it's
+ * imported by one of the given files, so a story can drive mutation states (pending/success/
+ * error) without a real GraphQL client.
+ */
+function mockGeneratedGraphql(
+  mocks: { importerPath: string; mockPath: string }[],
+): Plugin {
   const realPath = resolve(
     dirnamePath,
     '../src/generated/graphql.ts',
   );
-  const mockPath = resolve(
-    dirnamePath,
-    './mocks/chapter-content-editor.mock.ts',
+  const mockPathByImporter = new Map(
+    mocks.map(({ importerPath, mockPath }) => [
+      resolve(dirnamePath, importerPath),
+      resolve(dirnamePath, mockPath),
+    ]),
   );
 
   return {
-    name: 'mock-chapter-content-editor-graphql',
+    name: 'mock-generated-graphql',
     enforce: 'pre',
     async resolveId(source, importer) {
-      if (importer !== chapterContentEditorPath) {
+      const mockPath = importer
+        ? mockPathByImporter.get(importer)
+        : undefined;
+
+      if (!mockPath) {
         return null;
       }
 

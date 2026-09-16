@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 
+import { Button } from '../../components/Button';
 import { ChapterList } from './ChapterList';
 import { useNovelOutletContext } from './NovelLayout';
 
@@ -10,6 +11,10 @@ export function ChapterListPage() {
 
   const goToChapter = (chapterId: string) => {
     navigate(`/novel/${novel.id}/chapters/${chapterId}`);
+  };
+
+  const goToCreateChapter = () => {
+    navigate(`/novel/${novel.id}/chapters/new`);
   };
 
   const goToEditChapter = (chapterId: string) => {
@@ -101,9 +106,20 @@ export function ChapterListPage() {
 
       {/* Chapters Tab */}
       <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-        <h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">
-          Chapters ({totalChapters})
-        </h2>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            Chapters ({totalChapters})
+          </h2>
+          {canEditContent && (
+            <Button
+              variant="solid"
+              color="blue"
+              onClick={goToCreateChapter}
+            >
+              New Chapter
+            </Button>
+          )}
+        </div>
         <ChapterList
           chapters={chaptersInfo}
           onChapterClick={goToChapter}
