@@ -5,8 +5,14 @@ import {
   ParseUuidPipe,
   RequiredStringPipe,
 } from '../../../shared';
-import { AuthHeader, CheckPolicy } from '../../auth';
-import { UpdateChapterInput } from '../inputs';
+import {
+  AuthHeader,
+  ChapterPolicy,
+  CheckPolicy,
+  CurrentUser,
+  type IAuthUser,
+} from '../../auth';
+import { CreateChapterInput, UpdateChapterInput } from '../inputs';
 import { ChapterNarrationService, ChapterService } from '../services';
 import { Chapter } from '../types';
 
@@ -15,7 +21,44 @@ export class ChapterResolver {
   constructor(
     private readonly chapterService: ChapterService,
     private readonly chapterNarrationService: ChapterNarrationService,
+    private readonly chapterPolicy: ChapterPolicy,
   ) {}
+
+  /**
+   * @description
+   * `@CheckPolicy('chapter', 'create')` only gates the coarse role check (writer or admin) —
+   * there's no chapter id yet for it to resolve a resource from. Ownership of the target novel
+   * is asserted explicitly right here instead, using `novelId` and `user` as real, already-typed
+   * values already bound by `@Args`/`@CurrentUser`, not a string key pulled out of a generic
+   * attributes bag. See `ChapterPolicy.assertCanCreateInNovel`.
+   */
+  @CheckPolicy('chapter', 'create')
+  @Mutation(() => Chapter, {
+    description:
+      "Create a new chapter for a novel. The chapter number is auto-assigned as the next number after the novel's current last chapter. Saving will kick off audio narration generation.",
+  })
+  async createChapter(
+    @Args(
+      'novelId',
+      { type: () => ID, description: 'Novel ID' },
+      ParseUuidPipe,
+    )
+    novelId: string,
+    @Args('input', {
+      type: () => CreateChapterInput,
+      description: 'New chapter title and content',
+    })
+    input: CreateChapterInput,
+    @CurrentUser() user: IAuthUser,
+    @AuthHeader() authorization: string,
+  ) {
+    await this.chapterPolicy.assertCanCreateInNovel(user, novelId);
+
+    return this.chapterService.createChapter(
+      { novelId, title: input.title, content: input.content },
+      authorization,
+    );
+  }
 
   @CheckPolicy('chapter', 'update')
   @Mutation(() => Chapter, {

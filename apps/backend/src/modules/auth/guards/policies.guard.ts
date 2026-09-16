@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
-import { isString } from 'class-validator';
 import { CustomLoggerService } from 'nestjs-backend-common';
 
 import {
@@ -28,9 +27,10 @@ import {
  *
  * Expects the `JwtAuthGuard` to have already run and attached the `IAuthUser` to `request.user`.
  *
- * Resource attributes are resolved from GQL args:
- * - `id` → resourceId
- * - Any other args are passed as resourceAttributes
+ * `resourceId` is resolved from a GQL arg literally named `id`. That's all this guard can
+ * check generically — anything that needs a specific field's value (e.g. ownership of a
+ * parent resource on `create`) is checked explicitly in the resolver body instead, using its
+ * own typed arguments. See `ChapterResolver.createChapter`/`ChapterPolicy.canCreateInNovel`.
  */
 @Injectable()
 export class PoliciesGuard implements CanActivate {
@@ -75,20 +75,12 @@ export class PoliciesGuard implements CanActivate {
 
     const args = context.getArgs() as RequestArgs;
     const resourceId = args.id ?? 'unknown';
-    const resourceAttributes: Record<string, string> = {};
-
-    for (const [key, value] of Object.entries(args)) {
-      if (isNotId(key) && isString(value)) {
-        resourceAttributes[key] = value;
-      }
-    }
 
     const allowed = await this.authzProvider.isAllowed({
       principal: user,
       resource: policyMeta.resource,
       resourceId,
       action: policyMeta.action,
-      resourceAttributes,
     });
 
     if (!allowed) {
@@ -103,10 +95,6 @@ export class PoliciesGuard implements CanActivate {
 
     return true;
   }
-}
-
-function isNotId(key: string): boolean {
-  return key !== 'id';
 }
 
 interface RequestArgs {

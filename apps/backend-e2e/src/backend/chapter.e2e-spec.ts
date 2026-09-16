@@ -148,6 +148,107 @@ describe('Chapter (e2e)', () => {
         AuthorizationFixture.getWriterAuthorizationHeader,
     },
   ])(
+    'should ONLY allow $role to create a chapter',
+    async ({ role, getAuthorizationHeader }) => {
+      const authorizationHeader = await getAuthorizationHeader();
+
+      const { status, data } = await axios.post(
+        '/graphql',
+        {
+          query: `#graphql
+            mutation CreateChapter($novelId: ID!, $input: CreateChapterInput!) {
+              createChapter(novelId: $novelId, input: $input) {
+                id
+                novelId
+                title
+                chapterNumber
+              }
+            }
+          `,
+          variables: {
+            novelId: NOVEL_ID,
+            input: {
+              title: `Chapter created by ${role}`,
+              content: '# New Chapter\n\nSome content.',
+            },
+          },
+        },
+        { headers: { Authorization: authorizationHeader } },
+      );
+
+      expect(status).toBe(200);
+      expect(data.errors).toBeUndefined();
+      expect(data.data.createChapter).toStrictEqual(
+        expect.objectContaining({
+          novelId: NOVEL_ID,
+          title: `Chapter created by ${role}`,
+          chapterNumber: expect.any(Number),
+        }),
+      );
+    },
+  );
+
+  it.each([
+    {
+      role: 'user',
+      getAuthorizationHeader:
+        AuthorizationFixture.getUserAuthorizationHeader,
+      // Rejected by the coarse @CheckPolicy('chapter', 'create') role gate.
+      expectedMessage:
+        'You do not have permission to create this chapter',
+    },
+    {
+      role: 'writer who does not own the novel',
+      getAuthorizationHeader:
+        AuthorizationFixture.getSecondWriterAuthorizationHeader,
+      // Rejected by ChapterPolicy.assertCanCreateInNovel's explicit ownership check.
+      expectedMessage:
+        'You do not have permission to create a chapter in this novel',
+    },
+  ])(
+    'should NOT allow $role to create a chapter',
+    async ({ getAuthorizationHeader, expectedMessage }) => {
+      const authorizationHeader = await getAuthorizationHeader();
+
+      const { status, data } = await axios.post(
+        '/graphql',
+        {
+          query: `#graphql
+            mutation CreateChapter($novelId: ID!, $input: CreateChapterInput!) {
+              createChapter(novelId: $novelId, input: $input) {
+                id
+              }
+            }
+          `,
+          variables: {
+            novelId: NOVEL_ID,
+            input: {
+              title: 'Should not be created',
+              content: '# Should not be created',
+            },
+          },
+        },
+        { headers: { Authorization: authorizationHeader } },
+      );
+
+      expect(status).toBe(200);
+      expect(data.errors).toBeArray();
+      expect(data.errors[0].message).toContain(expectedMessage);
+    },
+  );
+
+  it.each([
+    {
+      role: 'admin',
+      getAuthorizationHeader:
+        AuthorizationFixture.getAdminAuthorizationHeader,
+    },
+    {
+      role: 'writer',
+      getAuthorizationHeader:
+        AuthorizationFixture.getWriterAuthorizationHeader,
+    },
+  ])(
     'should ONLY allow $role to update content',
     async ({ getAuthorizationHeader }) => {
       const authorizationHeader = await getAuthorizationHeader();

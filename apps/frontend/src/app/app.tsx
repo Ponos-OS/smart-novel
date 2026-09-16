@@ -7,6 +7,7 @@ import { Toaster } from 'sonner';
 import { ThemeProvider } from '../hooks/useTheme';
 import { CallbackPage } from '../pages/auth/CallbackPage';
 import { HomePage } from '../pages/home/HomePage';
+import { ChapterCreatePage } from '../pages/novel/ChapterCreatePage';
 import { ChapterEditPage } from '../pages/novel/ChapterEditPage';
 import { ChapterListPage } from '../pages/novel/ChapterListPage';
 import { ChapterReadPage } from '../pages/novel/ChapterReadPage';
@@ -55,6 +56,7 @@ const router = createBrowserRouter([
     element: <NovelLayout />,
     children: [
       { index: true, element: <ChapterListPage /> },
+      { path: 'chapters/new', element: <ChapterCreatePage /> },
       { path: 'chapters/:chapterId', element: <ChapterReadPage /> },
       {
         path: 'chapters/:chapterId/edit',
