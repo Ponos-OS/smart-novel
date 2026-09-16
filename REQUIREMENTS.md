@@ -67,21 +67,22 @@ createChapter(novelId: ID!, input: CreateChapterInput!): Chapter!
 - Component spec for `ChapterCreatePage` (mock `useCreateChapterMutation`): submit success navigates, submit error shows toast, validation blocks empty title/content.
 - Story for `ChapterCreatePage` covering empty/filled/error states, plus an interaction story (`play` function, mocked mutation) driving fill-in → submit → navigate, so the create flow's UI logic is covered without a browser.
 
-Relies on the `.github/CONTRIBUTING.md` carve-out: Step 2's backend-e2e spec already covers the owner/non-owner permission boundary against the real API, so that part does not need Cypress too. What Storybook and backend-e2e together still can't cover — real ZITADEL login/redirect, and the chapter actually going through creation to narration `READY` against the real backend — is left to Step 4.
+Relies on the `.github/CONTRIBUTING.md` carve-out: Step 2's backend-e2e spec already covers the owner/non-owner permission boundary against the real API, so that part does not need Cypress too. What Storybook and backend-e2e together still can't cover — real ZITADEL login/redirect and the chapter actually going through creation against the real backend — is left to Step 4. Narration reaching `READY` is not asserted anywhere in this feature's automated tests (real TTS synthesis is slow; verify it manually).
 
 ## Step 4 — Frontend-e2e: create-chapter journey
 
 New Cypress spec for the parts nothing else exercises: real ZITADEL
 login/redirect as the novel owner, then create a chapter through the real UI
-and real backend, and confirm the chapter appears in the chapter list with
-narration eventually marked `READY`. Keep this spec minimal — it exists only
-for the real-auth-and-real-backend guarantee, not to re-check UI states or
-permission logic already covered in Steps 2–3.
+and real backend, and confirm the chapter appears in the chapter list. Keep
+this spec minimal — it exists only for the real-auth-and-real-backend
+guarantee, not to re-check UI states or permission logic already covered in
+Steps 2–3. Does not wait for narration to reach `READY` (real TTS synthesis
+is slow; verify manually).
 
 ### AC
 
 - An authenticated owner can log in, create a chapter through the real app,
-  and see it listed with narration reaching `READY`.
+  and see it listed.
 
 ### Test
 
