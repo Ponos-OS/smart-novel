@@ -193,15 +193,21 @@ describe('Chapter (e2e)', () => {
       role: 'user',
       getAuthorizationHeader:
         AuthorizationFixture.getUserAuthorizationHeader,
+      // Rejected by the coarse @CheckPolicy('chapter', 'create') role gate.
+      expectedMessage:
+        'You do not have permission to create this chapter',
     },
     {
       role: 'writer who does not own the novel',
       getAuthorizationHeader:
         AuthorizationFixture.getSecondWriterAuthorizationHeader,
+      // Rejected by ChapterPolicy.assertCanCreateInNovel's explicit ownership check.
+      expectedMessage:
+        'You do not have permission to create a chapter in this novel',
     },
   ])(
     'should NOT allow $role to create a chapter',
-    async ({ getAuthorizationHeader }) => {
+    async ({ getAuthorizationHeader, expectedMessage }) => {
       const authorizationHeader = await getAuthorizationHeader();
 
       const { status, data } = await axios.post(
@@ -227,9 +233,7 @@ describe('Chapter (e2e)', () => {
 
       expect(status).toBe(200);
       expect(data.errors).toBeArray();
-      expect(data.errors[0].message).toContain(
-        'You do not have permission to create this chapter',
-      );
+      expect(data.errors[0].message).toContain(expectedMessage);
     },
   );
 

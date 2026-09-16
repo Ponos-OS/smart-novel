@@ -89,7 +89,7 @@ describe(PoliciesGuard.name, () => {
     ).rejects.toThrow(ForbiddenException);
   });
 
-  it("should resolve resourceId from a GQL arg literally named 'id' and pass no resourceAttributes when there is no extractor", async () => {
+  it("should resolve resourceId from a GQL arg literally named 'id'", async () => {
     mockReflectorMetadata(CHECK_POLICY_KEY, {
       resource: 'chapter',
       action: 'update',
@@ -108,7 +108,6 @@ describe(PoliciesGuard.name, () => {
       resource: 'chapter',
       resourceId: 'chapter-1',
       action: 'update',
-      resourceAttributes: {},
     });
   });
 
@@ -123,30 +122,6 @@ describe(PoliciesGuard.name, () => {
 
     expect(authzProvider.isAllowed).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({ resourceId: 'unknown' }),
-    );
-  });
-
-  it('should populate resourceAttributes from extractResourceAttributes only, ignoring other args', async () => {
-    const extractResourceAttributes = vi.fn().mockReturnValue({
-      novelId: 'novel-1',
-    });
-    mockReflectorMetadata(CHECK_POLICY_KEY, {
-      resource: 'chapter',
-      action: 'create',
-      extractResourceAttributes,
-    });
-    const args = { novelId: 'novel-1', input: { title: 'A title' } };
-    mockGqlContext(args, buildUser());
-
-    await uut.canActivate(mockExecutionContext);
-
-    expect(extractResourceAttributes).toHaveBeenCalledExactlyOnceWith(
-      args,
-    );
-    expect(authzProvider.isAllowed).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({
-        resourceAttributes: { novelId: 'novel-1' },
-      }),
     );
   });
 
