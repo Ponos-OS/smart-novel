@@ -16,10 +16,8 @@ import { SettingsPage } from '../pages/settings/SettingsPage';
 import { Layout } from './layout/Layout';
 
 /**
- * A data router (rather than plain `<BrowserRouter>`/`<Routes>`) is required for
- * `useBlocker`, which `ChapterContentEditor` uses to prompt before navigating away from
- * an unsaved edit — that includes breadcrumb links and the browser back button, not just
- * an in-page Cancel button.
+ * @description
+ * A data router (rather than plain `<BrowserRouter>`/`<Routes>`) is required for `useBlocker`, which we use to prompt before navigating away from a page.
  */
 const router = createBrowserRouter([
   // Routes with Layout (Header + Footer)
