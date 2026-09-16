@@ -3,7 +3,7 @@ import {
   QueryClientProvider,
 } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 
 import { ChapterEditPage } from './ChapterEditPage';
 import { useNovelOutletContext } from './NovelLayout';
@@ -57,23 +57,25 @@ vi.mock('./NovelLayout', () => ({
 
 function renderEditPage() {
   const queryClient = new QueryClient();
-
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter
-        initialEntries={[
-          '/novel/93fec4bf-2f66-4e4a-9572-7aa4871f1458/chapters/e0e19c33-2e56-4f5f-9b7c-9c17e7dbd230/edit',
-        ]}
-      >
-        <Routes>
-          <Route
-            path="/novel/:id/chapters/:chapterId/edit"
-            element={<ChapterEditPage />}
-          />
-        </Routes>
-      </MemoryRouter>
-    </QueryClientProvider>,
+  const router = createMemoryRouter(
+    [
+      {
+        path: '/novel/:id/chapters/:chapterId/edit',
+        element: (
+          <QueryClientProvider client={queryClient}>
+            <ChapterEditPage />
+          </QueryClientProvider>
+        ),
+      },
+    ],
+    {
+      initialEntries: [
+        '/novel/93fec4bf-2f66-4e4a-9572-7aa4871f1458/chapters/e0e19c33-2e56-4f5f-9b7c-9c17e7dbd230/edit',
+      ],
+    },
   );
+
+  return render(<RouterProvider router={router} />);
 }
 
 describe('ChapterEditPage', () => {

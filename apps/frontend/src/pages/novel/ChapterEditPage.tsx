@@ -49,7 +49,6 @@ export function ChapterEditPage() {
           canEdit={canEditContent}
           canManageTts={canManageTts}
           startInEditMode
-          confirmDiscardOnCancel
           onCancel={backToRead}
           onSaved={backToRead}
         />

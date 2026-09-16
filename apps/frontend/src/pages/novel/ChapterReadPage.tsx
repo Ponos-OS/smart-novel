@@ -50,6 +50,14 @@ export function ChapterReadPage() {
     }
   };
 
+  const handleEditClick = () => {
+    if (currentChapter?.id) {
+      navigate(
+        `/novel/${novel.id}/chapters/${currentChapter.id}/edit`,
+      );
+    }
+  };
+
   return (
     <>
       {/* Back Button */}
@@ -80,6 +88,7 @@ export function ChapterReadPage() {
             hasNext={!!currentChapter.next}
             canManageTts={canManageTts}
             canEditContent={canEditContent}
+            onEditClick={handleEditClick}
           />
         )}
       </div>

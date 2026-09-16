@@ -24,6 +24,7 @@ interface ChapterContentProps {
   hasNext: boolean;
   canManageTts?: boolean;
   canEditContent?: boolean;
+  onEditClick?: () => void;
 }
 
 export function ChapterContent({
@@ -34,6 +35,7 @@ export function ChapterContent({
   hasNext,
   canManageTts,
   canEditContent,
+  onEditClick,
 }: ChapterContentProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -101,6 +103,7 @@ export function ChapterContent({
         chapter={chapter}
         canEdit={!!canEditContent}
         canManageTts={canManageTts}
+        onEditClick={onEditClick}
       />
 
       {/* Navigation Buttons - Bottom */}

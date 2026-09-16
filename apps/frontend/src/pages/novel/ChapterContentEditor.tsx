@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useBlocker } from 'react-router-dom';
 
 import { Button } from '../../components/Button';
 import { GenerateTtsButton } from '../../components/GenerateTtsButton';
@@ -12,6 +13,7 @@ import {
   useUpdateChapterMutation,
   useUpdateContentMutation,
 } from '../../generated/graphql';
+import { isConflictError } from '../../lib/graphql-fetcher';
 import { showApiError, showSuccess } from '../../utils/notification';
 
 type ChapterContentEditorData = Pick<
@@ -32,10 +34,10 @@ interface ChapterContentEditorProps {
   canManageTts?: boolean;
   /** Start directly in edit mode, e.g. when rendered on a dedicated edit route. */
   startInEditMode?: boolean;
-  /** Show a "discard unsaved changes?" confirmation before cancelling when there are unsaved edits. */
-  confirmDiscardOnCancel?: boolean;
   onCancel?: () => void;
   onSaved?: () => void;
+  /** Navigate to the dedicated edit route instead of editing inline — there is no inline edit mode. */
+  onEditClick?: () => void;
 }
 
 type Mode = 'idle' | 'editing' | 'previewing';
@@ -45,9 +47,9 @@ export function ChapterContentEditor({
   canEdit,
   canManageTts,
   startInEditMode,
-  confirmDiscardOnCancel,
   onCancel,
   onSaved,
+  onEditClick,
 }: ChapterContentEditorProps) {
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<Mode>(
@@ -55,7 +57,15 @@ export function ChapterContentEditor({
   );
   const [title, setTitle] = useState(chapter.title ?? '');
   const [content, setContent] = useState(chapter.content);
-  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [hasConflict, setHasConflict] = useState(false);
+  const [isReloading, setIsReloading] = useState(false);
+  /** The chapter version that conflicted, captured so we can tell the refetch triggered by "Reload latest" apart from the stale data still sitting in `chapter` right after it's kicked off. */
+  const [conflictBaseline, setConflictBaseline] = useState<{
+    updatedAt: string;
+    contentUpdatedAt: string;
+  } | null>(null);
+  /** Set on a successful save; read/written only inside effects/handlers (never during render). `onSaved` (which navigates away) fires from an effect once `setMode('idle')` has actually committed, so the blocker below sees `isEditing: false` before the navigation happens instead of racing it. */
+  const pendingOnSavedRef = useRef(false);
 
   const updateContentMutation = useUpdateContentMutation();
   const updateChapterMutation = useUpdateChapterMutation();
@@ -68,13 +78,53 @@ export function ChapterContentEditor({
     updateContentMutation.isPending ||
     updateChapterMutation.isPending ||
     updateChapterAndContentMutation.isPending;
+  const isBusy = isSaving || isReloading;
 
   const titleChanged = title !== (chapter.title ?? '');
   const contentChanged = content !== chapter.content;
+  const isDirty = titleChanged || contentChanged;
   const canSave =
     !isSaving &&
+    !hasConflict &&
+    !isReloading &&
     title.trim().length > 0 &&
-    (titleChanged || contentChanged);
+    isDirty;
+
+  /**
+   * @description Guards every attempt to navigate away while editing with unsaved changes —
+   * clicking Cancel, a breadcrumb link, or the browser back button all go through the router
+   * and get caught here uniformly, instead of only the Cancel button having its own check.
+   */
+  const blocker = useBlocker(isEditing && isDirty);
+
+  useEffect(() => {
+    if (!isEditing || !isDirty) {
+      return;
+    }
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      // Chrome requires returnValue to be set for the native prompt to show.
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () =>
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isEditing, isDirty]);
+
+  /**
+   * @description Runs only after `setMode('idle')` from a successful save has actually
+   * committed (so `isEditing` is already `false` and the blocker above has re-registered
+   * accordingly) before calling `onSaved`, which navigates away — calling it synchronously
+   * inside `handleSaved` would race the state update and get caught by our own blocker.
+   */
+  useEffect(() => {
+    if (pendingOnSavedRef.current) {
+      pendingOnSavedRef.current = false;
+      onSaved?.();
+    }
+  }, [mode, onSaved]);
 
   const patchCache = (
     patch: Partial<Pick<Chapter, 'title' | 'content' | 'updatedAt'>>,
@@ -102,40 +152,57 @@ export function ChapterContentEditor({
     });
   };
 
-  const startEdit = () => {
-    setTitle(chapter.title ?? '');
-    setContent(chapter.content);
-    setMode('editing');
-  };
-
-  const cancelEdit = () => {
-    setTitle(chapter.title ?? '');
-    setContent(chapter.content);
-    setMode('idle');
-    onCancel?.();
-  };
-
-  const requestCancel = () => {
-    if (confirmDiscardOnCancel && (titleChanged || contentChanged)) {
-      setShowDiscardConfirm(true);
-      return;
-    }
-    cancelEdit();
-  };
-
-  const confirmDiscardAndCancel = () => {
-    setShowDiscardConfirm(false);
-    cancelEdit();
-  };
-
   const handleSaved = (
     patch: Partial<Pick<Chapter, 'title' | 'content'>>,
   ) => {
     patchCache({ ...patch, updatedAt: new Date().toISOString() });
     showSuccess('Chapter updated.');
+    pendingOnSavedRef.current = true;
     setMode('idle');
-    onSaved?.();
   };
+
+  const handleSaveError = (error: unknown) => {
+    if (isConflictError(error)) {
+      setConflictBaseline({
+        updatedAt: chapter.updatedAt,
+        contentUpdatedAt: chapter.contentUpdatedAt,
+      });
+      setHasConflict(true);
+      return;
+    }
+    showApiError();
+  };
+
+  const handleReloadLatest = () => {
+    queryClient.invalidateQueries({
+      queryKey: useGetChapterQuery.getKey({
+        novelId: chapter.novelId,
+        chapterId: chapter.id,
+      }),
+    });
+    setHasConflict(false);
+    setIsReloading(true);
+  };
+
+  /**
+   * @description "Reload latest" kicks off a refetch but `chapter` is still the stale prop
+   * until it resolves. Rather than syncing via an effect (an extra render after the data
+   * lands), adjust state directly during render — React's endorsed pattern for resetting
+   * state in response to a prop change — as soon as `chapter` actually differs from the
+   * version that conflicted, so the writer stays on the edit view instead of being bounced
+   * back to read mode.
+   */
+  if (
+    isReloading &&
+    conflictBaseline &&
+    (chapter.updatedAt !== conflictBaseline.updatedAt ||
+      chapter.contentUpdatedAt !== conflictBaseline.contentUpdatedAt)
+  ) {
+    setConflictBaseline(null);
+    setIsReloading(false);
+    setTitle(chapter.title ?? '');
+    setContent(chapter.content);
+  }
 
   const handleSave = () => {
     if (!canSave) {
@@ -153,7 +220,7 @@ export function ChapterContentEditor({
         },
         {
           onSuccess: () => handleSaved({ title, content }),
-          onError: showApiError,
+          onError: handleSaveError,
         },
       );
       return;
@@ -168,7 +235,7 @@ export function ChapterContentEditor({
         },
         {
           onSuccess: () => handleSaved({ content }),
-          onError: showApiError,
+          onError: handleSaveError,
         },
       );
       return;
@@ -182,7 +249,7 @@ export function ChapterContentEditor({
       },
       {
         onSuccess: () => handleSaved({ title }),
-        onError: showApiError,
+        onError: handleSaveError,
       },
     );
   };
@@ -195,7 +262,7 @@ export function ChapterContentEditor({
             type="text"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            disabled={isSaving}
+            disabled={isBusy}
             placeholder="Chapter title"
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-2xl font-bold text-gray-900 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
           />
@@ -248,7 +315,7 @@ export function ChapterContentEditor({
                   onClick={() =>
                     setMode(isPreviewing ? 'editing' : 'previewing')
                   }
-                  disabled={isSaving}
+                  disabled={isBusy}
                 >
                   {isPreviewing ? 'Edit' : 'Preview'}
                 </Button>
@@ -263,17 +330,47 @@ export function ChapterContentEditor({
                 <Button
                   variant="outline"
                   color="gray"
-                  onClick={requestCancel}
-                  disabled={isSaving}
+                  onClick={() => onCancel?.()}
+                  disabled={isBusy}
                 >
                   Cancel
                 </Button>
               </>
             ) : (
-              <Button variant="chip" color="blue" onClick={startEdit}>
+              <Button
+                variant="chip"
+                color="blue"
+                onClick={() => onEditClick?.()}
+              >
                 Edit
               </Button>
             ))}
+        </div>
+      )}
+
+      {hasConflict && (
+        <div className="rounded-lg border border-red-300 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
+          <p className="mb-3 text-sm text-red-800 dark:text-red-200">
+            This chapter was updated by someone else. Reload to see
+            the latest version.
+          </p>
+          <Button
+            variant="solid"
+            color="red"
+            onClick={handleReloadLatest}
+          >
+            Reload latest
+          </Button>
+        </div>
+      )}
+
+      {isReloading && (
+        <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
+          <span
+            aria-hidden="true"
+            className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+          />
+          Reloading the latest version...
         </div>
       )}
 
@@ -285,7 +382,7 @@ export function ChapterContentEditor({
             <textarea
               value={content}
               onChange={(event) => setContent(event.target.value)}
-              disabled={isSaving}
+              disabled={isBusy}
               rows={20}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm text-gray-900 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
             />
@@ -295,7 +392,7 @@ export function ChapterContentEditor({
         )}
       </div>
 
-      {showDiscardConfirm && (
+      {blocker.state === 'blocked' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="mx-4 max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
             <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
@@ -309,14 +406,14 @@ export function ChapterContentEditor({
               <Button
                 variant="outline"
                 color="gray"
-                onClick={() => setShowDiscardConfirm(false)}
+                onClick={() => blocker.reset()}
               >
                 Keep Editing
               </Button>
               <Button
                 variant="solid"
                 color="red"
-                onClick={confirmDiscardAndCancel}
+                onClick={() => blocker.proceed()}
               >
                 Discard Changes
               </Button>

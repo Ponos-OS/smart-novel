@@ -4,6 +4,7 @@ import {
 } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { ComponentProps } from 'react';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 
 import { ChapterContent } from './ChapterContent';
 
@@ -11,12 +12,18 @@ function renderChapterContent(
   props: ComponentProps<typeof ChapterContent>,
 ) {
   const queryClient = new QueryClient();
+  const router = createMemoryRouter([
+    {
+      path: '/',
+      element: (
+        <QueryClientProvider client={queryClient}>
+          <ChapterContent {...props} />
+        </QueryClientProvider>
+      ),
+    },
+  ]);
 
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <ChapterContent {...props} />
-    </QueryClientProvider>,
-  );
+  return render(<RouterProvider router={router} />);
 }
 
 const mutate = vi.fn();
