@@ -16,11 +16,13 @@ import { ChapterOrderField } from '../enums';
 import {
   type ChapterConnectionFilters,
   type ChapterNovelKey,
+  type CreateChapterData,
   type FindChaptersConnectionArgs,
   type IChapter,
   type IChapterRepository,
 } from '../interfaces';
 import { Chapter } from '../types';
+import { computeContentHash } from '../utils';
 
 const ORDER_FIELD_MAP: Record<string, string> = {
   [ChapterOrderField.CHAPTER_NUMBER]: 'chapterNumber',
@@ -31,6 +33,31 @@ const ORDER_FIELD_MAP: Record<string, string> = {
 @Injectable()
 export class PrismaChapterRepository implements IChapterRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  async createChapter(data: CreateChapterData): Promise<IChapter> {
+    const { novelId, title, content } = data;
+    const contentHash = computeContentHash(content);
+
+    const chapter = await this.prisma.$transaction(async (tx) => {
+      const lastChapter = await tx.chapter.findFirst({
+        where: { novelId },
+        orderBy: { chapterNumber: 'desc' },
+        select: { chapterNumber: true },
+      });
+      const chapterNumber = (lastChapter?.chapterNumber ?? 0) + 1;
+
+      return tx.chapter.create({
+        data: {
+          novel: { connect: { id: novelId } },
+          title,
+          chapterNumber,
+          content: { create: { content, contentHash } },
+        },
+      });
+    });
+
+    return this.toChapter(chapter);
+  }
 
   async findChaptersConnection(
     args: FindChaptersConnectionArgs,
