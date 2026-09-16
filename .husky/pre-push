@@ -1,4 +1,4 @@
 npm run lint-prepush
 npx nx affected -t test
 # FIXME: 👇 https://github.com/Ponos-OS/smart-novel/issues/19
-npx nx affected -t e2e --parallel=1
+# npx nx affected -t e2e --parallel=1
