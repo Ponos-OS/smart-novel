@@ -14,6 +14,7 @@ interface ChapterInfo {
 interface ChapterListProps {
   chapters: ChapterInfo[];
   onChapterClick: (chapterId: string) => void;
+  onEditClick: (chapterId: string) => void;
   currentChapterId: string | null;
   canManageTts?: boolean;
   canEditContent?: boolean;
@@ -23,6 +24,7 @@ interface ChapterListProps {
 export function ChapterList({
   chapters,
   onChapterClick,
+  onEditClick,
   currentChapterId,
   canManageTts,
   canEditContent,
@@ -89,7 +91,7 @@ export function ChapterList({
                 <Button
                   variant="chip"
                   color="blue"
-                  onClick={() => onChapterClick(chapter.id)}
+                  onClick={() => onEditClick(chapter.id)}
                   title="Edit chapter title/content"
                 >
                   Edit

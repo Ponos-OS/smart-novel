@@ -227,6 +227,51 @@ describe('ChapterContentEditor', () => {
     );
   });
 
+  it('shows a discard-confirmation dialog instead of cancelling immediately when confirmDiscardOnCancel is set and there are unsaved changes', () => {
+    // Arrange
+    renderEditor({
+      chapter: baseChapter,
+      canEdit: true,
+      confirmDiscardOnCancel: true,
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.change(screen.getByPlaceholderText('Chapter title'), {
+      target: { value: 'New Title' },
+    });
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    // Assert
+    expect(screen.getByText('Discard unsaved changes?')).toBeTruthy();
+    expect(screen.getByDisplayValue('New Title')).toBeTruthy();
+
+    // Act: confirm the discard
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Discard Changes' }),
+    );
+
+    // Assert
+    expect(screen.getByText('A Chapter')).toBeTruthy();
+  });
+
+  it('cancels immediately without a confirmation dialog when confirmDiscardOnCancel is set but nothing changed', () => {
+    // Arrange
+    renderEditor({
+      chapter: baseChapter,
+      canEdit: true,
+      confirmDiscardOnCancel: true,
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    // Assert
+    expect(screen.queryByText('Discard unsaved changes?')).toBeNull();
+    expect(screen.getByText('A Chapter')).toBeTruthy();
+  });
+
   it('preview renders the unsaved content as markdown without calling any mutation', () => {
     // Arrange
     renderEditor({ chapter: baseChapter, canEdit: true });

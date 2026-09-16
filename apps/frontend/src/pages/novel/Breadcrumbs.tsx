@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom';
 
 interface BreadcrumbsProps {
+  novelId: string;
   novelName: string;
   chapterTitle?: string | null;
 }
 
 export function Breadcrumbs({
+  novelId,
   novelName,
   chapterTitle,
 }: BreadcrumbsProps) {
@@ -18,9 +20,12 @@ export function Breadcrumbs({
         Home
       </Link>
       <span>/</span>
-      <span className="font-medium text-gray-900 dark:text-white">
+      <Link
+        to={`/novel/${novelId}`}
+        className="font-medium text-gray-900 transition-colors hover:text-blue-600 dark:text-white dark:hover:text-blue-400"
+      >
         {novelName}
-      </span>
+      </Link>
       {chapterTitle && (
         <>
           <span>/</span>
