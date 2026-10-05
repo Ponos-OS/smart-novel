@@ -23,8 +23,4 @@ export interface AuthzCheckParams {
    * @example `read` or `create`, `update`, `delete`
    */
   action: string;
-  /**
-   * @description Arbitrary resource attributes for ABAC decisions
-   */
-  resourceAttributes?: Record<string, string>;
 }

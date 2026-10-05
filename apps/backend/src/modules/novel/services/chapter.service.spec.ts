@@ -4,6 +4,7 @@ import type {
   IChapterContentRepository,
   IChapterRepository,
 } from '../interfaces';
+import type { ChapterNarrationService } from './chapter-narration.service';
 
 import { ChapterService } from './chapter.service';
 
@@ -11,9 +12,11 @@ describe(ChapterService.name, () => {
   let uut: ChapterService;
   let chapterRepository: IChapterRepository;
   let chapterContentRepository: IChapterContentRepository;
+  let chapterNarrationService: ChapterNarrationService;
 
   beforeEach(() => {
     chapterRepository = {
+      createChapter: vi.fn(),
       findById: vi.fn(),
       getChapter: vi.fn(),
       updateChapterMetadata: vi.fn(),
@@ -28,10 +31,57 @@ describe(ChapterService.name, () => {
       upsertByChapterId: vi.fn(),
     };
 
+    chapterNarrationService = {
+      regenerateAudio: vi.fn(),
+    } as any;
+
     uut = new ChapterService(
       chapterRepository,
       chapterContentRepository,
+      chapterNarrationService,
     );
+  });
+
+  describe('createChapter', () => {
+    it('should create the chapter via the repository and trigger audio narration', async () => {
+      const createdChapter = {
+        id: '4bbc4da9-107c-4872-9809-78f6191a092d',
+        novelId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
+        contentId: 'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
+        title: 'Chapter 1: The Beginning',
+        chapterNumber: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      vi.mocked(chapterRepository.createChapter).mockResolvedValue(
+        createdChapter,
+      );
+
+      const res = await uut.createChapter(
+        {
+          novelId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
+          title: 'Chapter 1: The Beginning',
+          content: '# Chapter 1\n\nIt was a dark and stormy night.',
+        },
+        'Bearer some-jwt',
+      );
+
+      expect(
+        chapterRepository.createChapter,
+      ).toHaveBeenCalledExactlyOnceWith({
+        novelId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
+        title: 'Chapter 1: The Beginning',
+        content: '# Chapter 1\n\nIt was a dark and stormy night.',
+      });
+      expect(
+        chapterNarrationService.regenerateAudio,
+      ).toHaveBeenCalledExactlyOnceWith(
+        createdChapter.id,
+        '# Chapter 1\n\nIt was a dark and stormy night.',
+        'Bearer some-jwt',
+      );
+      expect(res).toBe(createdChapter);
+    });
   });
 
   describe('updateChapter', () => {

@@ -25,9 +25,113 @@ describe(PrismaChapterRepository.name, () => {
       category: {
         findMany: vi.fn(),
       },
+      $transaction: vi.fn(),
     } as any;
 
     uut = new PrismaChapterRepository(prismaService);
+  });
+
+  describe('createChapter', () => {
+    it('should assign the next chapter number and create the chapter with its content in a transaction', async () => {
+      const createdChapter = {
+        id: 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
+        novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
+        contentId: 'ccc63ad5-1ac4-46c2-a25f-6f62d245f44c',
+        title: 'Chapter 2: The Journey',
+        chapterNumber: 2,
+        createdAt: new Date('2024-01-01T00:00:00Z'),
+        updatedAt: new Date('2024-01-01T00:00:00Z'),
+        narrationStatus: null,
+        narrationUrl: null,
+      };
+      const tx = {
+        chapter: {
+          findFirst: vi.fn().mockResolvedValue({ chapterNumber: 1 }),
+          create: vi.fn().mockResolvedValue(createdChapter),
+        },
+      };
+      vi.mocked(prismaService.$transaction).mockImplementation(
+        (cb: any) => cb(tx),
+      );
+
+      const result = await uut.createChapter({
+        novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
+        title: 'Chapter 2: The Journey',
+        content: '# Chapter 2\n\nThe journey continues.',
+      });
+
+      expect(tx.chapter.findFirst).toHaveBeenCalledWith({
+        where: { novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec' },
+        orderBy: { chapterNumber: 'desc' },
+        select: { chapterNumber: true },
+      });
+      expect(tx.chapter.create).toHaveBeenCalledWith({
+        data: {
+          novel: {
+            connect: { id: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec' },
+          },
+          title: 'Chapter 2: The Journey',
+          chapterNumber: 2,
+          content: {
+            create: {
+              content: '# Chapter 2\n\nThe journey continues.',
+              contentHash: expect.any(String),
+            },
+          },
+        },
+      });
+      expect(result.chapterNumber).toBe(2);
+      expect(result.id).toBe(createdChapter.id);
+    });
+
+    it('should assign chapter number 1 when the novel has no chapters yet', async () => {
+      const createdChapter = {
+        id: 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
+        novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
+        contentId: 'ccc63ad5-1ac4-46c2-a25f-6f62d245f44c',
+        title: 'Chapter 1: The Beginning',
+        chapterNumber: 1,
+        createdAt: new Date('2024-01-01T00:00:00Z'),
+        updatedAt: new Date('2024-01-01T00:00:00Z'),
+        narrationStatus: null,
+        narrationUrl: null,
+      };
+      const tx = {
+        chapter: {
+          findFirst: vi.fn().mockResolvedValue(null),
+          create: vi.fn().mockResolvedValue(createdChapter),
+        },
+      };
+      vi.mocked(prismaService.$transaction).mockImplementation(
+        (cb: any) => cb(tx),
+      );
+
+      const result = await uut.createChapter({
+        novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
+        title: 'Chapter 1: The Beginning',
+        content: '# Chapter 1\n\nIt was a dark and stormy night.',
+      });
+
+      expect(tx.chapter.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ chapterNumber: 1 }),
+        }),
+      );
+      expect(result.chapterNumber).toBe(1);
+    });
+
+    it('should throw when the transaction fails', async () => {
+      const error = new Error('Database error');
+      vi.mocked(prismaService.$transaction).mockRejectedValue(error);
+
+      const result = uut.createChapter({
+        novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
+        title: 'Chapter 1: The Beginning',
+        content: '# Chapter 1\n\nIt was a dark and stormy night.',
+      });
+
+      await expect(result).rejects.toThrowError(error);
+    });
   });
 
   describe('findManyByNovelAndChapterNumbers', () => {

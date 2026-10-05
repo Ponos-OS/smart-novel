@@ -62,6 +62,12 @@ query GetChapter($novelId: ID!, $chapterId: ID!) {
   }
 }
 
+mutation CreateChapter($novelId: ID!, $input: CreateChapterInput!) {
+  createChapter(novelId: $novelId, input: $input) {
+    id
+  }
+}
+
 mutation UpdateContent(
   $id: ID!
   $content: String!

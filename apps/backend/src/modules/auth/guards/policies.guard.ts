@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
-import { isString } from 'class-validator';
 import { CustomLoggerService } from 'nestjs-backend-common';
 
 import {
@@ -27,10 +26,6 @@ import {
  * Reads `@CheckPolicy()` metadata and calls the injected `IAuthorizationProvider` to make attribute-based access decisions.
  *
  * Expects the `JwtAuthGuard` to have already run and attached the `IAuthUser` to `request.user`.
- *
- * Resource attributes are resolved from GQL args:
- * - `id` → resourceId
- * - Any other args are passed as resourceAttributes
  */
 @Injectable()
 export class PoliciesGuard implements CanActivate {
@@ -74,21 +69,24 @@ export class PoliciesGuard implements CanActivate {
     }
 
     const args = context.getArgs() as RequestArgs;
-    const resourceId = args.id ?? 'unknown';
-    const resourceAttributes: Record<string, string> = {};
+    const rawResourceId = args[policyMeta.idArg];
 
-    for (const [key, value] of Object.entries(args)) {
-      if (isNotId(key) && isString(value)) {
-        resourceAttributes[key] = value;
-      }
+    // A missing explicit idArg is a decorator/resolver mismatch, not an expected case, so it throws instead of silently checking against 'unknown'.
+    if (rawResourceId === undefined && policyMeta.idArg !== 'id') {
+      throw new Error(
+        `@CheckPolicy('${policyMeta.resource}', '${policyMeta.action}', '${policyMeta.idArg}') misconfigured: no GraphQL arg named "${policyMeta.idArg}" was found.`,
+      );
     }
 
+    /**
+     * @description the value is resolved from the GraphQL argument named by `@CheckPolicy`'s `idArg` (default `'id'`). A missing default `id` arg (e.g. on a `create`) falls back to `'unknown'`, since many actions never need an id at all.
+     */
+    const resourceId = String(rawResourceId ?? 'unknown');
     const allowed = await this.authzProvider.isAllowed({
       principal: user,
       resource: policyMeta.resource,
       resourceId,
       action: policyMeta.action,
-      resourceAttributes,
     });
 
     if (!allowed) {
@@ -105,11 +103,6 @@ export class PoliciesGuard implements CanActivate {
   }
 }
 
-function isNotId(key: string): boolean {
-  return key !== 'id';
-}
-
 interface RequestArgs {
-  id?: string;
   [key: string]: unknown;
 }

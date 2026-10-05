@@ -1,4 +1,4 @@
-import { DynamicModule, Module } from '@nestjs/common';
+import { DynamicModule, Global, Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 
 import {
@@ -8,8 +8,10 @@ import {
   MODULE_OPTIONS_TOKEN,
 } from './auth.module-definition';
 import { AuthResolver } from './auth.resolver';
+import { CaslAbilityFactory } from './casl';
 import { JwtAuthGuard, PoliciesGuard, RolesGuard } from './guards';
 import { AUTH_PROVIDER, AUTHORIZATION_PROVIDER } from './interfaces';
+import { ChapterPolicy, NovelPolicy } from './policies';
 import {
   RbacAuthorizationProvider,
   ZitadelAuthProvider,
@@ -25,7 +27,11 @@ import {
  * 3. `RolesGuard` — **Authorization (role gate)**: reads `@RequireRole()` metadata and checks the user's highest role against the minimum required level.
  *
  * Use `@Public()` to bypass all guards on specific resolvers.
+ *
+ * Authorization rules are declared as CASL abilities in `CaslAbilityFactory` — see
+ * `NovelPolicy`/`ChapterPolicy` for how each resource's rules are checked.
  */
+@Global()
 @Module({})
 export class AuthModule extends ConfigurableModuleClass {
   static override register(
@@ -45,6 +51,9 @@ export class AuthModule extends ConfigurableModuleClass {
         AUTH_PROVIDER,
         PoliciesGuard,
         MODULE_OPTIONS_TOKEN,
+        CaslAbilityFactory,
+        NovelPolicy,
+        ChapterPolicy,
       ],
     };
   }
@@ -66,6 +75,9 @@ export class AuthModule extends ConfigurableModuleClass {
         AUTH_PROVIDER,
         PoliciesGuard,
         MODULE_OPTIONS_TOKEN,
+        CaslAbilityFactory,
+        NovelPolicy,
+        ChapterPolicy,
       ],
     };
   }
@@ -81,7 +93,10 @@ export class AuthModule extends ConfigurableModuleClass {
         provide: AUTH_PROVIDER,
         useClass: ZitadelAuthProvider,
       },
-      // Authorization provider (RBAC)
+      // Authorization provider (RBAC) — per-resource policies registered by the provider itself
+      CaslAbilityFactory,
+      NovelPolicy,
+      ChapterPolicy,
       RbacAuthorizationProvider,
       {
         provide: AUTHORIZATION_PROVIDER,

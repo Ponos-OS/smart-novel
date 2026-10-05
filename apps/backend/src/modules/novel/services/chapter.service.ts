@@ -9,11 +9,13 @@ import { UpdateChapterInput } from '../inputs';
 import {
   CHAPTER_CONTENT_REPOSITORY,
   CHAPTER_REPOSITORY,
+  type CreateChapterData,
   IChapter,
   type IChapterContentRepository,
   type IChapterRepository,
 } from '../interfaces';
 import { computeContentHash } from '../utils';
+import { ChapterNarrationService } from './chapter-narration.service';
 
 @Injectable()
 export class ChapterService {
@@ -22,7 +24,23 @@ export class ChapterService {
     private readonly chapterRepository: IChapterRepository,
     @Inject(CHAPTER_CONTENT_REPOSITORY)
     private readonly chapterContentRepository: IChapterContentRepository,
+    private readonly chapterNarrationService: ChapterNarrationService,
   ) {}
+
+  async createChapter(
+    data: CreateChapterData,
+    authorization: string,
+  ): Promise<IChapter> {
+    const chapter = await this.chapterRepository.createChapter(data);
+
+    await this.chapterNarrationService.regenerateAudio(
+      chapter.id,
+      data.content,
+      authorization,
+    );
+
+    return chapter;
+  }
 
   async updateChapter(
     chapterId: string,

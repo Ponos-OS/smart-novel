@@ -25,7 +25,14 @@ export interface ChapterNovelKey {
   chapterNumber: number;
 }
 
+export interface CreateChapterData {
+  novelId: string;
+  title: string;
+  content: string;
+}
+
 export interface IChapterRepository {
+  createChapter(data: CreateChapterData): Promise<IChapter>;
   getChapter(
     novelId: string,
     chapterId: string,
