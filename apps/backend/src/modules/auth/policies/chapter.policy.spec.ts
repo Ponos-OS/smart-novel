@@ -1,4 +1,3 @@
-import { ForbiddenException } from '@nestjs/common';
 import { CustomLoggerService } from 'nestjs-backend-common';
 
 import { PrismaService } from '../../prisma/prisma.service';
@@ -34,90 +33,78 @@ describe(ChapterPolicy.name, () => {
   });
 
   describe('create', () => {
-    it('should allow a writer via the coarse role gate (ownership is checked separately via assertCanCreateInNovel)', async () => {
-      const result = await uut.isAllowed({
-        userId: '234980127461293847',
-        userRoles: ['writer'],
-        resourceId: 'unknown',
-        action: 'create',
-      });
-
-      expect(result).toBeTrue();
-    });
-
-    it('should allow an admin', async () => {
+    it('should allow an admin without checking novel ownership', async () => {
       const result = await uut.isAllowed({
         userId: '234980127461293847',
         userRoles: ['admin'],
-        resourceId: 'unknown',
+        resourceId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
         action: 'create',
       });
 
       expect(result).toBeTrue();
-    });
-
-    it('should deny a plain user', async () => {
-      const result = await uut.isAllowed({
-        userId: '234980127461293847',
-        userRoles: ['user'],
-        resourceId: 'unknown',
-        action: 'create',
-      });
-
-      expect(result).toBeFalse();
-    });
-  });
-
-  describe('assertCanCreateInNovel', () => {
-    it('should resolve for an admin without checking novel ownership', async () => {
-      const result = uut.assertCanCreateInNovel(
-        { sub: '234980127461293847', roles: ['admin'] },
-        '4754496a-ccb4-4a6b-805d-809a6cea97c8',
-      );
-
-      await expect(result).resolves.toBeUndefined();
       expect(prisma.novel.findUnique).not.toHaveBeenCalled();
     });
 
-    it('should resolve for a writer who owns the novel', async () => {
+    it('should allow a writer who owns the target novel', async () => {
       vi.mocked(prisma.novel.findUnique).mockResolvedValue({
         ownerId: '234980127461293847',
       } as any);
 
-      const result = uut.assertCanCreateInNovel(
-        { sub: '234980127461293847', roles: ['writer'] },
-        '4754496a-ccb4-4a6b-805d-809a6cea97c8',
-      );
+      const result = await uut.isAllowed({
+        userId: '234980127461293847',
+        userRoles: ['writer'],
+        resourceId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
+        action: 'create',
+      });
 
-      await expect(result).resolves.toBeUndefined();
+      expect(result).toBeTrue();
       expect(prisma.novel.findUnique).toHaveBeenCalledWith({
         where: { id: '4754496a-ccb4-4a6b-805d-809a6cea97c8' },
         select: { ownerId: true },
       });
     });
 
-    it('should throw ForbiddenException for a writer who does not own the novel — regression test: an unconditional CASL create rule would silently let this through', async () => {
+    it('should deny a writer who does not own the target novel — regression test: an unconditional CASL create rule would silently let this through', async () => {
       vi.mocked(prisma.novel.findUnique).mockResolvedValue({
         ownerId: '268103642598401',
       } as any);
 
-      const result = uut.assertCanCreateInNovel(
-        { sub: '234980127461293847', roles: ['writer'] },
-        '4754496a-ccb4-4a6b-805d-809a6cea97c8',
-      );
+      const result = await uut.isAllowed({
+        userId: '234980127461293847',
+        userRoles: ['writer'],
+        resourceId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
+        action: 'create',
+      });
 
-      await expect(result).rejects.toThrow(ForbiddenException);
+      expect(result).toBeFalse();
     });
 
-    it('should throw ForbiddenException when the novel does not exist', async () => {
+    it('should deny a plain user regardless of ownership', async () => {
+      const result = await uut.isAllowed({
+        userId: '234980127461293847',
+        userRoles: ['user'],
+        resourceId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
+        action: 'create',
+      });
+
+      expect(result).toBeFalse();
+      expect(prisma.novel.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('should deny and log when the target novel does not exist', async () => {
       vi.mocked(prisma.novel.findUnique).mockResolvedValue(null);
 
-      const result = uut.assertCanCreateInNovel(
-        { sub: '234980127461293847', roles: ['writer'] },
-        'non-existent-novel',
-      );
+      const result = await uut.isAllowed({
+        userId: '234980127461293847',
+        userRoles: ['writer'],
+        resourceId: 'non-existent-novel',
+        action: 'create',
+      });
 
-      await expect(result).rejects.toThrow(ForbiddenException);
+      expect(result).toBeFalse();
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('non-existent-novel'),
+      );
     });
   });
 

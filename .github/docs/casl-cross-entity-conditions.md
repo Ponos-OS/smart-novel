@@ -28,20 +28,15 @@ a SQL `INNER JOIN`, which CASL's core condition matcher (originally `sift`, now
 `@ucast/mongo2js`) has no concept of. It only matches conditions against a JS object tree
 that's already in memory.
 
-This is exactly our situation: a `Chapter`'s permissions depend on its **parent `Novel`'s**
-`ownerId` — a field that doesn't exist on `Chapter` at all.
+This is exactly our situation: a `Chapter`'s permissions depend on its **parent `Novel`'s** `ownerId`, a field that doesn't exist on `Chapter` at all. At create time it's worse still: there's no `Chapter` row to hang a condition on in the first place.
 
 ## Why this bites less in MongoDB
 
-The issue's title context (postgres/sequelize support) matters: MongoDB documents are commonly
-denormalized — a `Post` document often already embeds `{ author: { id, email } }` as a
-subdocument. Checking `'author.email'` against a _loaded_ document needs no join; the field is
-just... there, nested, on the same document. The pain in the issue is specific to relational
-databases and to CASL's `accessibleBy`/`rulesToQuery`-style APIs (fetching _all_ records a user
-can act on), which do need real SQL joins to convert a cross-entity rule into a `WHERE` clause.
-Years after this issue, CASL grew `@ucast/sql` and ORM-specific packages (`@casl/prisma`, etc.)
-that add auto-join support for exactly that query-building use case — see the issue thread's
-later comments for that history.
+MongoDB documents are commonly denormalized, a `Post` document often already embeds `{ author: { id, email } }` as a subdocument.
+
+Checking `'author.email'` against a _loaded_ document needs no join; the field is just... there, nested, on the same document. The pain in the issue is specific to relational databases and to CASL's `accessibleBy`/`rulesToQuery` APIs (fetching _all_ records a user can act on), which do need real SQL joins to convert a cross-entity rule into a `WHERE` clause. CASL later grew `@ucast/sql` and ORM-specific packages (`@casl/prisma`, etc.) that add auto-join support for exactly that query-building use case.
+
+See [`casl-accessibleby-layering.md`](./casl-accessibleby-layering.md) for why we still don't reach for those here.
 
 ## Our solution for Postgres
 
@@ -53,27 +48,32 @@ already-flattened stand-in object tagged with [`subject()`](https://casl.js.org/
 
 **Rule declaration** — conditions matched against `Novel.ownerId` (a real, direct field, no
 join needed) and a synthetic `novelOwnerId` field for `Chapter` (which has no `ownerId` of its
-own):
-[`casl-ability.factory.ts#L37-L49`](https://github.com/Ponos-OS/smart-novel/blob/4d7fc33bd5be01b020435f5e027874875fdd8480/apps/backend/src/modules/auth/casl/casl-ability.factory.ts#L37-L49)
+own): `casl-ability.factory.ts` (`createForUser`, the `writer`-role block).
 
 **Contrast case — same-entity condition, no join required.** `Novel.ownerId` lives directly on
 the row being checked, so this is the "all should be good" case from the maintainer's reply —
-fetch the row, hand it straight to `ability.can()`:
-[`novel.policy.ts#L45-L71`](https://github.com/Ponos-OS/smart-novel/blob/4d7fc33bd5be01b020435f5e027874875fdd8480/apps/backend/src/modules/auth/policies/novel.policy.ts#L45-L71)
+fetch the row, hand it straight to `ability.can()`: `novel.policy.ts`, `isAllowed`'s `update`/`delete` case.
 
 **Cross-entity case — manual join, then a stand-in object.** A chapter update needs its
 _parent novel's_ owner. We do the join ourselves with a plain Prisma relation `select`
 (`chapter.novel.ownerId`), then tag a small object with `subject('Chapter', { novelOwnerId })`
 so CASL checks the already-resolved field instead of trying to traverse a relation it knows
-nothing about:
-[`chapter.policy.ts#L52-L78`](https://github.com/Ponos-OS/smart-novel/blob/4d7fc33bd5be01b020435f5e027874875fdd8480/apps/backend/src/modules/auth/policies/chapter.policy.ts#L52-L78)
+nothing about: `chapter.policy.ts`, `isAllowed`'s `update` case.
 
 **Cross-entity case at create time — no chapter row exists yet.** Same idea, but the "join" is
 just fetching the target `Novel` directly (there's no chapter to join from), and the stand-in
-object is built from that fetch. This uses CASL's own
-[`ForbiddenError.from(ability).throwUnlessCan(...)`](https://casl.js.org/v6/en/api/casl-ability#forbiddenerror)
-instead of a hand-rolled `if (!allowed) throw`:
-[`chapter.policy.ts#L96-L124`](https://github.com/Ponos-OS/smart-novel/blob/4d7fc33bd5be01b020435f5e027874875fdd8480/apps/backend/src/modules/auth/policies/chapter.policy.ts#L96-L124)
+object is built from that fetch: `chapter.policy.ts`, `isAllowed`'s `create` case.
+
+## How the guard gets the right id to join on
+
+The two cross-entity cases above need different ids to start the join from, a chapter's own id for `update`, but the _target novel's_ id for `create` (no chapter exists yet). That id comes from `@CheckPolicy`'s third argument, `idArg` (see `check-policy.decorator.ts`):
+
+```ts
+@CheckPolicy('chapter', 'update')                 // idArg defaults to 'id' — the chapter's own id
+@CheckPolicy('chapter', 'create', 'novelId')       // idArg is 'novelId' — no chapter id exists yet
+```
+
+`PoliciesGuard` reads whichever GraphQL arg `idArg` names and passes it to `IResourcePolicy.isAllowed` as `resourceId`, the guard itself never knows or cares what that id _means_; only the resource's own policy (`ChapterPolicy.isAllowed`'s `switch (action)`) interprets it as "my own id" or "my parent's id" per action. `ChapterPolicy.isAllowed`'s `create` case now fetch-and-check.
 
 ## Why this matches the suggested resolution
 
@@ -85,10 +85,3 @@ actually built for: match a set of declared conditions against a plain object. W
 `@ucast/sql`, `@casl/prisma`'s query helpers, or any auto-join machinery, because we never ask
 CASL to generate a _list_ query — only ever "is this one specific action, on this one specific
 (already-loaded-or-fetched) thing, allowed."
-
-> [!NOTE]
-> The GitHub permalinks above pin to commit `4d7fc33` on `feat/create-chapter`, which is **not
-> pushed yet** — they'll 404 until that branch (or its merge commit) reaches `origin`. Once
-> pushed, permalinks pinned to a commit SHA stay valid even if the branch is later
-> rebased/squashed; if the file moves or the commit becomes unreachable after a squash, re-pin
-> to the new merge commit's SHA instead.

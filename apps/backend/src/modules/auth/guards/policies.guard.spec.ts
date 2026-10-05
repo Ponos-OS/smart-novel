@@ -81,6 +81,7 @@ describe(PoliciesGuard.name, () => {
     mockReflectorMetadata(CHECK_POLICY_KEY, {
       resource: 'chapter',
       action: 'update',
+      idArg: 'id',
     });
     mockGqlContext({ id: 'chapter-1' }, undefined);
 
@@ -93,6 +94,7 @@ describe(PoliciesGuard.name, () => {
     mockReflectorMetadata(CHECK_POLICY_KEY, {
       resource: 'chapter',
       action: 'update',
+      idArg: 'id',
     });
     mockGqlContext(
       { id: 'chapter-1', content: 'irrelevant' },
@@ -111,10 +113,11 @@ describe(PoliciesGuard.name, () => {
     });
   });
 
-  it("should default resourceId to 'unknown' when there is no 'id' arg", async () => {
+  it("should default resourceId to 'unknown' when there is no 'id' arg and idArg was left at its default", async () => {
     mockReflectorMetadata(CHECK_POLICY_KEY, {
       resource: 'chapter',
       action: 'create',
+      idArg: 'id',
     });
     mockGqlContext({ novelId: 'novel-1' }, buildUser());
 
@@ -125,10 +128,40 @@ describe(PoliciesGuard.name, () => {
     );
   });
 
+  it('should resolve resourceId from a custom idArg', async () => {
+    mockReflectorMetadata(CHECK_POLICY_KEY, {
+      resource: 'chapter',
+      action: 'create',
+      idArg: 'novelId',
+    });
+    mockGqlContext({ novelId: 'novel-1' }, buildUser());
+
+    await uut.canActivate(mockExecutionContext);
+
+    expect(authzProvider.isAllowed).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ resourceId: 'novel-1' }),
+    );
+  });
+
+  it('should throw when a custom idArg is configured but missing from the GraphQL args — a decorator/resolver mismatch, not a normal deny', async () => {
+    mockReflectorMetadata(CHECK_POLICY_KEY, {
+      resource: 'chapter',
+      action: 'create',
+      idArg: 'novelId',
+    });
+    mockGqlContext({ input: 'irrelevant' }, buildUser());
+
+    await expect(
+      uut.canActivate(mockExecutionContext),
+    ).rejects.toThrow(/misconfigured/);
+    expect(authzProvider.isAllowed).not.toHaveBeenCalled();
+  });
+
   it('should throw ForbiddenException with a descriptive message when the provider denies access', async () => {
     mockReflectorMetadata(CHECK_POLICY_KEY, {
       resource: 'chapter',
       action: 'create',
+      idArg: 'id',
     });
     mockGqlContext({ novelId: 'novel-1' }, buildUser());
     vi.mocked(authzProvider.isAllowed).mockResolvedValue(false);
@@ -147,6 +180,7 @@ describe(PoliciesGuard.name, () => {
     mockReflectorMetadata(CHECK_POLICY_KEY, {
       resource: 'chapter',
       action: 'create',
+      idArg: 'id',
     });
     mockGqlContext({ novelId: 'novel-1' }, buildUser());
 

@@ -28,11 +28,6 @@ import {
  *
  * Use `@Public()` to bypass all guards on specific resolvers.
  *
- * `@Global()` so other feature modules (e.g. `NovelModule`) can inject exported policy classes
- * like `ChapterPolicy` directly — needed for resource-specific checks (e.g. novel ownership on
- * `createChapter`) that a resolver must call explicitly rather than route through
- * `@CheckPolicy()`'s generic mechanism. See `ChapterPolicy.assertCanCreateInNovel`.
- *
  * Authorization rules are declared as CASL abilities in `CaslAbilityFactory` — see
  * `NovelPolicy`/`ChapterPolicy` for how each resource's rules are checked.
  */

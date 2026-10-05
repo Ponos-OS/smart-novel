@@ -26,11 +26,6 @@ import {
  * Reads `@CheckPolicy()` metadata and calls the injected `IAuthorizationProvider` to make attribute-based access decisions.
  *
  * Expects the `JwtAuthGuard` to have already run and attached the `IAuthUser` to `request.user`.
- *
- * `resourceId` is resolved from a GQL arg literally named `id`. That's all this guard can
- * check generically — anything that needs a specific field's value (e.g. ownership of a
- * parent resource on `create`) is checked explicitly in the resolver body instead, using its
- * own typed arguments. See `ChapterResolver.createChapter`/`ChapterPolicy.canCreateInNovel`.
  */
 @Injectable()
 export class PoliciesGuard implements CanActivate {
@@ -74,8 +69,19 @@ export class PoliciesGuard implements CanActivate {
     }
 
     const args = context.getArgs() as RequestArgs;
-    const resourceId = args.id ?? 'unknown';
+    const rawResourceId = args[policyMeta.idArg];
 
+    // A missing explicit idArg is a decorator/resolver mismatch, not an expected case, so it throws instead of silently checking against 'unknown'.
+    if (rawResourceId === undefined && policyMeta.idArg !== 'id') {
+      throw new Error(
+        `@CheckPolicy('${policyMeta.resource}', '${policyMeta.action}', '${policyMeta.idArg}') misconfigured: no GraphQL arg named "${policyMeta.idArg}" was found.`,
+      );
+    }
+
+    /**
+     * @description the value is resolved from the GraphQL argument named by `@CheckPolicy`'s `idArg` (default `'id'`). A missing default `id` arg (e.g. on a `create`) falls back to `'unknown'`, since many actions never need an id at all.
+     */
+    const resourceId = String(rawResourceId ?? 'unknown');
     const allowed = await this.authzProvider.isAllowed({
       principal: user,
       resource: policyMeta.resource,
@@ -98,6 +104,5 @@ export class PoliciesGuard implements CanActivate {
 }
 
 interface RequestArgs {
-  id?: string;
   [key: string]: unknown;
 }

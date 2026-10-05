@@ -1,6 +1,3 @@
-import { ForbiddenException } from '@nestjs/common';
-
-import type { ChapterPolicy } from '../../auth';
 import type {
   ChapterNarrationService,
   ChapterService,
@@ -12,7 +9,6 @@ describe(ChapterResolver.name, () => {
   let uut: ChapterResolver;
   let chapterService: ChapterService;
   let chapterNarrationService: ChapterNarrationService;
-  let chapterPolicy: ChapterPolicy;
 
   beforeEach(() => {
     chapterService = {
@@ -23,29 +19,15 @@ describe(ChapterResolver.name, () => {
     chapterNarrationService = {
       regenerateAudio: vi.fn(),
     } as any;
-    chapterPolicy = {
-      assertCanCreateInNovel: vi.fn().mockResolvedValue(undefined),
-    } as any;
 
     uut = new ChapterResolver(
       chapterService,
       chapterNarrationService,
-      chapterPolicy,
     );
   });
 
   describe('createChapter', () => {
-    const user = {
-      sub: '234980127461293847',
-      name: 'Test Writer',
-      preferredUsername: 'testwriter',
-      email: 'writer@example.com',
-      emailVerified: true,
-      roles: ['writer'],
-      metadata: {},
-    } as any;
-
-    it('should check novel ownership, then delegate to the service with the novel id, input, and caller authorization header', async () => {
+    it('should delegate to the service with the novel id, input, and caller authorization header', async () => {
       const novelId = '4754496a-ccb4-4a6b-805d-809a6cea97c8';
       const input = {
         title: 'Chapter 1: The Beginning',
@@ -66,13 +48,9 @@ describe(ChapterResolver.name, () => {
       const result = await uut.createChapter(
         novelId,
         input,
-        user,
         authorization,
       );
 
-      expect(
-        chapterPolicy.assertCanCreateInNovel,
-      ).toHaveBeenCalledExactlyOnceWith(user, novelId);
       expect(
         chapterService.createChapter,
       ).toHaveBeenCalledExactlyOnceWith(
@@ -80,24 +58,6 @@ describe(ChapterResolver.name, () => {
         authorization,
       );
       expect(result).toBe(createdChapter);
-    });
-
-    it('should throw ForbiddenException and not call the service when the user does not own the novel', async () => {
-      const novelId = '4754496a-ccb4-4a6b-805d-809a6cea97c8';
-      const input = { title: 'Chapter 1', content: 'Some content.' };
-      vi.mocked(
-        chapterPolicy.assertCanCreateInNovel,
-      ).mockRejectedValue(new ForbiddenException('denied'));
-
-      const result = uut.createChapter(
-        novelId,
-        input,
-        user,
-        'Bearer some-jwt',
-      );
-
-      await expect(result).rejects.toThrow(ForbiddenException);
-      expect(chapterService.createChapter).not.toHaveBeenCalled();
     });
   });
 
