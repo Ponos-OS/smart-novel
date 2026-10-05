@@ -5,8 +5,11 @@ export interface ResourcePolicyCheckParams {
   userId: string;
   userRoles: string[];
   /**
-   * @description The resource's own id, e.g. a chapter id for `chapter:update`.
-   * `'unknown'` when the action has no existing resource to identify (e.g. `create`).
+   * @summary
+   * CheckPolicy resolves the ID of the resource using this argument.
+   * @description
+   * Usually the resource's own id (e.g. a chapter id for `chapter:update`), but a `create` with no id of its own yet may configure `idArg` to a parent's id instead (e.g. a novel id for `chapter:create`).
+   * Each policy's `isAllowed` documents what it expects per action. `'unknown'` when the default `id` arg wasn't present.
    */
   resourceId: string;
   action: string;

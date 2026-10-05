@@ -40,7 +40,7 @@ export class CaslAbilityFactory {
       can(Action.Update, 'Novel', { ownerId: user.sub });
       can(Action.Delete, 'Novel', { ownerId: user.sub });
       // Conditional: creating/updating a chapter requires owning its parent novel. This
-      // condition is what `assertCanCreateInNovel`/`isAllowed`'s 'update' case actually enforce
+      // condition is what `ChapterPolicy.isAllowed`'s 'create'/'update' cases actually enforce
       // against the real fetched `novelOwnerId` — an unconditional `can(Create, 'Chapter')`
       // here would make that enforcement a no-op, since an unconditional rule matches every
       // object of that subject type regardless of its fields.
