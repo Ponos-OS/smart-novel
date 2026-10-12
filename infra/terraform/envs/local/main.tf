@@ -25,16 +25,19 @@ resource "kind_cluster" "this" {
       extra_port_mappings {
         container_port = 80
         host_port      = var.host_port
+        listen_address = "127.0.0.1"
       }
 
       extra_port_mappings {
         container_port = local.s3_api_node_port
         host_port      = var.s3_port
+        listen_address = "127.0.0.1"
       }
 
       extra_port_mappings {
         container_port = local.s3_console_node_port
         host_port      = var.s3_console_port
+        listen_address = "127.0.0.1"
       }
 
       extra_mounts {
@@ -69,7 +72,8 @@ module "app" {
 
   labels          = var.tags
   dev_source_path = local.node_apps
-  images          = var.third_party_images
+  images          = merge(var.third_party_images, { setup_zitadel = "smart-novel-setup-zitadel:dev" })
+  external_port   = var.host_port
 
   object_storage_api_node_port     = local.s3_api_node_port
   object_storage_console_node_port = local.s3_console_node_port

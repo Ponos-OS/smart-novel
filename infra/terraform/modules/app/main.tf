@@ -39,3 +39,38 @@ module "minio" {
   persistent_volumes      = var.persistent_volumes
   storage_class_name      = var.storage_class_name
 }
+
+module "zitadel" {
+  source = "../zitadel"
+
+  namespace     = module.namespace.name
+  labels        = var.labels
+  image         = var.images["zitadel"]
+  login_image   = var.images["zitadel_login"]
+  busybox_image = var.images["busybox"]
+  external_port = var.external_port
+
+  depends_on = [module.postgres]
+}
+
+module "ingress" {
+  source = "../ingress"
+
+  namespace   = module.namespace.name
+  labels      = var.labels
+  image       = var.images["traefik"]
+  routes      = module.zitadel.routes
+  middlewares = module.zitadel.middlewares
+}
+
+module "zitadel_setup" {
+  source = "../zitadel_setup"
+
+  namespace   = module.namespace.name
+  labels      = var.labels
+  image       = var.images["setup_zitadel"]
+  zitadel_url = module.ingress.internal_url
+  credentials = module.zitadel.credentials
+
+  depends_on = [module.zitadel, module.ingress]
+}

@@ -66,3 +66,4 @@ infra/terraform/**/.terraform.tfstate.lock.info
 infra/terraform/envs/local/*-config
 *.auto.tfvars
 terraform.tfvars
+infra/terraform/modules/*/.terraform.lock.hcl
