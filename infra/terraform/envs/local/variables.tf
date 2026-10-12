@@ -17,9 +17,26 @@ variable "images" {
 }
 
 variable "third_party_images" {
-  description = "Images pulled once on the host if missing and loaded into the kind node, so they never download through the cluster"
-  type        = list(string)
-  default     = []
+  description = "Images of the third-party components, pulled once on the host if missing and loaded into the kind node, so they never download through the cluster"
+  type        = map(string)
+  default = {
+    postgres = "postgres:18.2-bookworm"
+    redis    = "redis:8.6-alpine3.23"
+    minio    = "quay.io/minio/minio:RELEASE.2025-04-08T15-41-24Z"
+    minio_mc = "quay.io/minio/mc:RELEASE.2025-04-08T15-39-49Z"
+  }
+}
+
+variable "s3_port" {
+  description = "Port on the host that reaches the S3 API; the covers' public URL in .env expects 9000"
+  type        = number
+  default     = 9000
+}
+
+variable "s3_console_port" {
+  description = "Port on the host that reaches the MinIO console"
+  type        = number
+  default     = 9001
 }
 
 variable "tags" {
