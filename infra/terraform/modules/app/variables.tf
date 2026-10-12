@@ -17,7 +17,7 @@ variable "dev_source_path" {
 }
 
 variable "images" {
-  description = "Container images of the third-party components: postgres, redis, minio and minio_mc"
+  description = "Container images: postgres, redis, minio, minio_mc, traefik, zitadel, zitadel_login, busybox and setup_zitadel"
   type        = map(string)
 }
 
@@ -63,4 +63,10 @@ variable "object_storage_console_node_port" {
   description = "Node port that exposes the MinIO console to the host; null keeps it cluster-internal"
   type        = number
   default     = null
+}
+
+variable "external_port" {
+  description = "Port the application is reached on from the browser; ZITADEL's external port and redirect URIs are built from it"
+  type        = number
+  default     = 8080
 }

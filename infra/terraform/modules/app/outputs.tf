@@ -19,3 +19,8 @@ output "object_storage_endpoint" {
   description = "Endpoint of the S3 API"
   value       = module.minio.endpoint
 }
+
+output "zitadel_credentials" {
+  description = "Where ZITADEL's generated credentials live, available once the setup finished"
+  value       = module.zitadel_setup.credentials
+}

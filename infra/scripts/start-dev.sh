@@ -20,6 +20,7 @@ docker build -f "$repo_root/apps/backend/Dockerfile" \
 docker build -f "$repo_root/apps/frontend/Dockerfile" \
        --target development \
        -t smart-novel-frontend:dev "$repo_root"
+docker build -t smart-novel-setup-zitadel:dev "$repo_root/local-setup/setup-zitadel"
 
 terraform -chdir="$env_dir" init
 terraform -chdir="$env_dir" apply -auto-approve
