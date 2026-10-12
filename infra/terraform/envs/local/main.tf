@@ -1,6 +1,9 @@
 locals {
   repo_root = abspath("${path.module}/../../../..")
   node_apps = "/workspace/apps"
+
+  s3_api_node_port     = 30900
+  s3_console_node_port = 30901
 }
 
 resource "kind_cluster" "this" {
@@ -24,6 +27,16 @@ resource "kind_cluster" "this" {
         host_port      = var.host_port
       }
 
+      extra_port_mappings {
+        container_port = local.s3_api_node_port
+        host_port      = var.s3_port
+      }
+
+      extra_port_mappings {
+        container_port = local.s3_console_node_port
+        host_port      = var.s3_console_port
+      }
+
       extra_mounts {
         host_path      = "${local.repo_root}/apps"
         container_path = local.node_apps
@@ -42,7 +55,7 @@ resource "terraform_data" "load_images" {
       platform="$(docker version --format '{{.Server.Os}}/{{.Server.Arch}}')"
       archive_dir="$(mktemp -d)"
       trap 'rm -rf "$archive_dir"' EXIT
-      for image in ${join(" ", var.third_party_images)}; do
+      for image in ${join(" ", values(var.third_party_images))}; do
         docker image inspect "$image" > /dev/null 2>&1 || docker pull "$image" || exit 1
         docker save --platform "$platform" "$image" -o "$archive_dir/image.tar" || exit 1
         kind load image-archive "$archive_dir/image.tar" --name ${var.cluster_name} || exit 1
@@ -56,6 +69,10 @@ module "app" {
 
   labels          = var.tags
   dev_source_path = local.node_apps
+  images          = var.third_party_images
+
+  object_storage_api_node_port     = local.s3_api_node_port
+  object_storage_console_node_port = local.s3_console_node_port
 
   depends_on = [terraform_data.load_images]
 }

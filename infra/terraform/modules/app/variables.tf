@@ -15,3 +15,52 @@ variable "dev_source_path" {
   type        = string
   default     = null
 }
+
+variable "images" {
+  description = "Container images of the third-party components: postgres, redis, minio and minio_mc"
+  type        = map(string)
+}
+
+variable "persistent_volumes" {
+  description = "Keep data on persistent volumes instead of throwaway storage"
+  type        = bool
+  default     = false
+}
+
+variable "storage_class_name" {
+  description = "Storage class of the persistent volumes; null uses the cluster default"
+  type        = string
+  default     = null
+}
+
+variable "database_url" {
+  description = "URL of an external PostgreSQL; when set, PostgreSQL is not deployed"
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
+variable "redis_url" {
+  description = "URL of an external Redis; when set, Redis is not deployed"
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
+variable "object_storage_endpoint" {
+  description = "Endpoint of an external S3-compatible storage; when set, MinIO is not deployed"
+  type        = string
+  default     = null
+}
+
+variable "object_storage_api_node_port" {
+  description = "Node port that exposes the S3 API to the host; null keeps it cluster-internal"
+  type        = number
+  default     = null
+}
+
+variable "object_storage_console_node_port" {
+  description = "Node port that exposes the MinIO console to the host; null keeps it cluster-internal"
+  type        = number
+  default     = null
+}

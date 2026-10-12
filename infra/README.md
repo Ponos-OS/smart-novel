@@ -8,7 +8,10 @@ infra/
 └── terraform/
     ├── modules/
     │   ├── app/        Composes the component modules; knows nothing about which cluster it runs on
-    │   └── namespace/  The namespace every component deploys into
+    │   ├── namespace/  The namespace every component deploys into
+    │   ├── postgres/   PostgreSQL with the application and zitadel databases
+    │   ├── redis/      Redis
+    │   └── minio/      MinIO plus a Job that creates the bucket and uploads the seed covers
     └── envs/
         └── local/      kind cluster, image loading, and one call to module "app"
 ```
@@ -31,6 +34,12 @@ kubectl --kubeconfig infra/terraform/envs/local/smart-novel-config -n smart-nove
 ```
 
 Code changes need no rebuild: `envs/local` mounts `apps/` into the kind node and passes its path to `module "app"` as `dev_source_path`. Rebuild only when dependencies change, by running `start:dev` again.
+
+## Data Components
+
+Postgres, Redis and MinIO are deployed in the cluster under the Service names `postgres`, `redis` and `s3`, which the application settings in `.env` already use. Setting `database_url`, `redis_url` or `object_storage_endpoint` on `module "app"` skips the matching component. Data is throwaway unless `persistent_volumes` is `true`.
+
+MinIO is reachable from the host on `localhost:9000` (S3 API) and `localhost:9001` (console), through node ports mapped by `envs/local`. The seed covers in `apps/backend/data` are uploaded only when `dev_source_path` is set, because they reach the Job through the node mount; without it only the bucket and its policy are created.
 
 ## Where to Change Things
 
