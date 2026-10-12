@@ -53,8 +53,8 @@
     "node": "v24.13.0"
   },
   "scripts": {
-    "start:dev": "docker compose --profile dev up --build -d",
-    "stop:dev": "docker compose --profile dev down -v",
+    "start:dev": "sh infra/scripts/start-dev.sh",
+    "stop:dev": "sh infra/scripts/stop-dev.sh",
     "prepare": "husky || true",
     "format": "prettier . -w -u && nx prisma:format backend",
     "lint": "nx run-many -t lint --fix --skip-nx-cache",

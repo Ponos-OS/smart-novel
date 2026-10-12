@@ -58,3 +58,11 @@ local-setup/client/
 local-setup/user-ids/
 
 storybook-static
+
+# Terraform
+**/.terraform/
+infra/terraform/**/terraform.tfstate*
+infra/terraform/**/.terraform.tfstate.lock.info
+infra/terraform/envs/local/*-config
+*.auto.tfvars
+terraform.tfvars
