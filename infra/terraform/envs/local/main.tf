@@ -29,7 +29,9 @@ locals {
     },
   )
 
-  # Hot reload: the development images run against the sources mounted from the node.
+  # Hot reload (dev): the development images run against the sources mounted from the node. e2e runs the production images instead; only the init Job still needs the sources, to push the schema and seed.
+  hot_reload = var.mode == "dev"
+
   apps_volume = { name = "apps", mount_path = "/app/apps", host_path = local.node_apps }
   data_volume = { name = "data", mount_path = "/data", host_path = "${local.node_apps}/backend/data" }
   credentials_volume = {
@@ -39,28 +41,48 @@ locals {
     zitadel_credentials = true
   }
 
-  pre_deploy_jobs = [
-    {
-      name                    = "backend-init"
-      image                   = local.backend_image
-      command                 = ["/bin/sh", "-lc", "npx nx run backend:prisma:db:push && npx nx prisma:generate backend && npx nx run backend:prisma:seed"]
-      use_backend_environment = true
-      volumes                 = [local.apps_volume, local.data_volume, local.credentials_volume]
-    },
-    {
-      name  = "frontend-codegen"
-      image = local.backend_image
-      # Prisma generates into the image's node_modules, so this runs as root; the files written into the mounted sources are handed back to the host user afterwards.
-      command     = ["/bin/sh", "-c", "npx nx codegen frontend; status=$?; chown -R ${var.run_as_user} /app/apps; exit $status"]
-      environment = { DATABASE_URL = "postgresql://dummy", BEATRICE_VERSION = local.dotenv["BEATRICE_VERSION"], NX_DAEMON = "false" }
-      volumes     = [local.apps_volume]
-    },
-  ]
+  tooling_image  = "smart-novel-backend:dev"
+  backend_image  = local.hot_reload ? local.tooling_image : "smart-novel-backend:e2e"
+  frontend_image = local.hot_reload ? "smart-novel-frontend:dev" : "smart-novel-frontend:e2e"
 
-  backend_image  = "smart-novel-backend:dev"
-  frontend_image = "smart-novel-frontend:dev"
+  pre_deploy_jobs = concat(
+    [
+      {
+        name                    = "backend-init"
+        image                   = local.tooling_image
+        command                 = ["/bin/sh", "-lc", "npx nx run backend:prisma:db:push && npx nx prisma:generate backend && npx nx run backend:prisma:seed"]
+        use_backend_environment = true
+        volumes                 = [local.apps_volume, local.data_volume, local.credentials_volume]
+      },
+    ],
+    local.hot_reload ? [
+      {
+        name  = "frontend-codegen"
+        image = local.tooling_image
+        # Prisma generates into the image's node_modules, so this runs as root; the files written into the mounted sources are handed back to the host user afterwards.
+        command     = ["/bin/sh", "-c", "npx nx codegen frontend; status=$?; chown -R ${var.run_as_user} /app/apps; exit $status"]
+        environment = { DATABASE_URL = "postgresql://dummy", BEATRICE_VERSION = local.dotenv["BEATRICE_VERSION"], NX_DAEMON = "false" }
+        volumes     = [local.apps_volume]
+      },
+    ] : [],
+  )
 
-  built_images = concat(var.images, var.enable_ai ? values(var.ai_images) : [])
+  backend_environment_by_mode = local.hot_reload ? local.backend_environment : merge(local.backend_environment, { OLLAMA_RETRY_COUNT = "1" })
+  backend_volumes             = local.hot_reload ? [local.apps_volume, local.data_volume] : []
+
+  frontend_script = local.hot_reload ? "start-frontend-dev.sh" : "start-frontend-e2e.sh"
+  frontend_port   = local.hot_reload ? tonumber(local.dotenv["FRONTEND_PORT"]) : 80
+  frontend_volumes = local.hot_reload ? [
+    { name = "sources", mount_path = "/app/apps/frontend", host_path = "${local.node_apps}/frontend" },
+    local.credentials_volume,
+  ] : [local.credentials_volume]
+  frontend_environment_by_mode = local.hot_reload ? local.frontend_environment : { ZITADEL_CLIENT_ID_FILE = local.dotenv["ZITADEL_CLIENT_ID_FILE"] }
+
+  built_images = concat(
+    [local.tooling_image, "smart-novel-setup-zitadel:dev"],
+    local.hot_reload ? [local.frontend_image] : [local.backend_image, local.frontend_image],
+    var.enable_ai ? values(var.ai_images) : [],
+  )
   third_party_images = merge(var.third_party_images, var.enable_devtools ? var.devtools_images : {}, {
     beatrice = "9109679196/smart-novel-beatrice:${local.dotenv["BEATRICE_VERSION"]}"
   })
@@ -68,9 +90,9 @@ locals {
   redis_insight_node_port = 30540
   pgadmin_node_port       = 30050
   open_webui_node_port    = 30090
-
-  s3_api_node_port     = 30900
-  s3_console_node_port = 30901
+  redis_node_port         = 30379
+  s3_api_node_port        = 30900
+  s3_console_node_port    = 30901
 }
 
 resource "kind_cluster" "this" {
@@ -92,6 +114,12 @@ resource "kind_cluster" "this" {
       extra_port_mappings {
         container_port = 80
         host_port      = var.host_port
+        listen_address = "127.0.0.1"
+      }
+
+      extra_port_mappings {
+        container_port = local.redis_node_port
+        host_port      = var.redis_port
         listen_address = "127.0.0.1"
       }
 
@@ -167,18 +195,15 @@ module "app" {
   tts_base_url = var.tts_base_url
 
   backend_port               = tonumber(local.dotenv["BACKEND_PORT"])
-  backend_environment        = local.backend_environment
+  backend_environment        = local.backend_environment_by_mode
   backend_secret_environment = local.backend_secret_environment
-  backend_volumes            = [local.apps_volume, local.data_volume]
+  backend_volumes            = local.backend_volumes
 
-  frontend_port        = tonumber(local.dotenv["FRONTEND_PORT"])
-  frontend_environment = local.frontend_environment
-  frontend_command     = ["/bin/sh", "/scripts/start-frontend-dev.sh"]
-  frontend_files       = { "/scripts/start-frontend-dev.sh" = file("${path.module}/files/start-frontend-dev.sh") }
-  frontend_volumes = [
-    { name = "sources", mount_path = "/app/apps/frontend", host_path = "${local.node_apps}/frontend" },
-    local.credentials_volume,
-  ]
+  frontend_port        = local.frontend_port
+  frontend_environment = local.frontend_environment_by_mode
+  frontend_command     = ["/bin/sh", "/scripts/${local.frontend_script}"]
+  frontend_files       = { "/scripts/${local.frontend_script}" = file("${path.module}/files/${local.frontend_script}") }
+  frontend_volumes     = local.frontend_volumes
 
   enable_devtools = var.enable_devtools
   devtools_node_ports = {
@@ -191,6 +216,7 @@ module "app" {
   minio_seed_volume = { host_path = "${local.node_apps}/backend/data" }
   external_port     = var.host_port
 
+  redis_node_port                  = local.redis_node_port
   object_storage_api_node_port     = local.s3_api_node_port
   object_storage_console_node_port = local.s3_console_node_port
 

@@ -5,21 +5,23 @@ import path from 'node:path';
 
 import { Logger } from './logger';
 
-/** @description the service name comes from the compose file */
-type ServiceName =
-  | 'backend-e2e'
-  | 'zitadel'
-  | 'init-postgres'
-  | 'setup-zitadel'
-  | 'qwen-tts'
-  | 'beatrice';
-/** @description the profile name comes from the compose file */
-type ProfileName = 'backend-e2e' | 'frontend-e2e' | 'dev';
+/** @description the workload name comes from infra/terraform/modules */
+type Workload =
+  | 'deploy/backend'
+  | 'deploy/zitadel'
+  | 'deploy/beatrice'
+  | 'deploy/qwen-tts'
+  | 'job/backend-init'
+  | 'job/zitadel-setup';
 
-export class DockerFixture {
+const namespace = 'smart-novel';
+const kubeconfig = 'infra/terraform/envs/local/smart-novel-config';
+const kubectl = `kubectl --kubeconfig ${kubeconfig} -n ${namespace}`;
+
+export class ClusterFixture {
   /**
    * @description
-   * Extract a file from the shared `zitadel-pat` Docker volume via the `backend-e2e` container (which mounts it read-only).
+   * Extract a file from the shared ZITADEL credentials volume via the `backend` pod (which mounts it read-only).
    */
   static extractFile(
     cwd: string,
@@ -28,7 +30,7 @@ export class DockerFixture {
   ): void {
     try {
       const fileContent = execSync(
-        `docker compose -f compose.e2e.yml --profile backend-e2e exec -T backend-e2e cat ${containerPath}`,
+        `${kubectl} exec deploy/backend -- cat ${containerPath}`,
         {
           cwd,
           encoding: 'utf-8',
@@ -57,43 +59,34 @@ export class DockerFixture {
 
   static persistLogs(
     cwd: string,
-    serviceName: ServiceName,
+    workload: Workload,
     hostPath: string,
   ): void {
-    execSync(
-      `docker compose -f compose.e2e.yml --profile backend-e2e logs ${serviceName} > ${hostPath} 2>&1`,
-      {
+    try {
+      execSync(`${kubectl} logs ${workload} > ${hostPath} 2>&1`, {
         cwd,
         stdio: 'inherit',
-      },
-    );
+      });
+    } catch (error) {
+      Logger.warn(
+        `Could not persist the logs of ${workload}: ${error}`,
+      );
+    }
   }
 
-  static startCompose(cwd: string, serviceName: ServiceName): void {
-    execSync(
-      `docker compose -f compose.e2e.yml --profile backend-e2e up -d --build --wait ${serviceName}`,
-      {
-        cwd,
-        stdio: 'inherit',
-      },
-    );
-  }
-
-  static stopCompose(cwd: string): void {
-    execSync(
-      `docker compose -f compose.e2e.yml --profile backend-e2e down -v`,
-      {
-        cwd,
-        stdio: 'inherit',
-      },
-    );
-  }
-
-  static cleanup() {
-    execSync(`docker system prune -f`, {
+  /**
+   * @description Builds the production images, creates the cluster and waits for everything to be ready.
+   */
+  static start(cwd: string): void {
+    execSync('sh infra/scripts/start-dev.sh e2e', {
+      cwd,
       stdio: 'inherit',
     });
-    execSync('docker builder prune -f', {
+  }
+
+  static stop(cwd: string): void {
+    execSync('sh infra/scripts/stop-dev.sh', {
+      cwd,
       stdio: 'inherit',
     });
   }
@@ -121,7 +114,7 @@ export class DockerFixture {
 
     try {
       execSync(
-        `docker compose -f compose.e2e.yml --profile backend-e2e exec -T backend-e2e curl -sS --max-time 300 -H 'content-type: application/json' -d @- http://beatrice:3000/graphql`,
+        `${kubectl} exec -i deploy/backend -- curl -sS --max-time 300 -H 'content-type: application/json' -d @- http://beatrice:3000/graphql`,
         {
           cwd,
           input: body,

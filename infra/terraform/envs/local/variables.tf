@@ -10,10 +10,15 @@ variable "host_port" {
   default     = 8080
 }
 
-variable "images" {
-  description = "Images built by infra/scripts/start-dev.sh and loaded into the kind node"
-  type        = list(string)
-  default     = ["smart-novel-backend:dev", "smart-novel-frontend:dev", "smart-novel-setup-zitadel:dev"]
+variable "mode" {
+  description = "dev runs the development images against the mounted sources, for hot reload. e2e runs the production images, as the end-to-end suites need; infra/scripts/start-dev.sh e2e builds them"
+  type        = string
+  default     = "dev"
+
+  validation {
+    condition     = contains(["dev", "e2e"], var.mode)
+    error_message = "mode must be dev or e2e"
+  }
 }
 
 variable "third_party_images" {
@@ -117,4 +122,10 @@ variable "open_webui_port" {
   description = "Port on the host that reaches Open WebUI"
   type        = number
   default     = 8090
+}
+
+variable "redis_port" {
+  description = "Port on the host that reaches Redis; the backend-e2e suites subscribe to it directly"
+  type        = number
+  default     = 6379
 }

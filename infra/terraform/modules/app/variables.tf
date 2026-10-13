@@ -47,6 +47,12 @@ variable "object_storage_endpoint" {
   default     = null
 }
 
+variable "redis_node_port" {
+  description = "Node port that exposes Redis to the host; null keeps it cluster-internal"
+  type        = number
+  default     = null
+}
+
 variable "object_storage_api_node_port" {
   description = "Node port that exposes the S3 API to the host; null keeps it cluster-internal"
   type        = number

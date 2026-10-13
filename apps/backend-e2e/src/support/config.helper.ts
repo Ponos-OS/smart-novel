@@ -3,12 +3,12 @@ import { urlBuilder } from 'nestjs-backend-common';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-import { DockerFixture } from './docker.fixture';
+import { ClusterFixture } from './cluster.fixture';
 import { Logger } from './logger';
 
 /**
  * @description Zitadel's issuer URL (for JWT audience) must match `ZITADEL_EXTERNALDOMAIN:TRAEFIK_EXPOSED_PORT`
- * FIXME: If we dockerize our integration tests, then there is a chance that I have to override or modify the URL in the backend.
+ * FIXME: If we containerize our integration tests, then there is a chance that I have to override or modify the URL in the backend.
  */
 const zitadelIssuer =
   process.env.ZITADEL_ISSUER_URL ?? 'http://localhost:8080';
@@ -25,7 +25,7 @@ const workspaceRoot = resolve(__dirname, '../../../../');
 const localSetupDir = resolve(workspaceRoot, 'local-setup');
 const apiUrl = urlBuilder(zitadelIssuer, 'api');
 /**
- * @description Internal URLs for making actual HTTP requests from within Docker network
+ * @description URLs for making actual HTTP requests to ZITADEL through the ingress
  */
 const tokenEndpoint = urlBuilder(
   zitadelIssuer,
@@ -143,10 +143,12 @@ interface DecodedKeyContent {
 }
 
 /**
- * @description Extract credentials produced by `setup-zitadel` from the shared Docker volume onto the host.
+ * @description Extract credentials produced by the ZITADEL setup Job from the cluster's credentials volume onto the host.
  */
-export function extractZitadelConfigFromDocker() {
-  Logger.section('Extracting Config Files From Docker Volume');
+export function extractZitadelConfigFromCluster() {
+  Logger.section(
+    'Extracting Config Files From The Credentials Volume',
+  );
 
   const hostDirectories = ['pats', 'client', 'user-ids'];
 
@@ -196,7 +198,7 @@ export function extractZitadelConfigFromDocker() {
   ];
 
   for (const { containerPath, hostFilePath } of files) {
-    DockerFixture.extractFile(
+    ClusterFixture.extractFile(
       workspaceRoot,
       containerPath,
       hostFilePath,

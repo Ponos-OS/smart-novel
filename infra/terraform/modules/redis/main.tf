@@ -96,11 +96,13 @@ resource "kubernetes_service_v1" "redis" {
   }
 
   spec {
+    type     = var.node_port == null ? "ClusterIP" : "NodePort"
     selector = { app = "redis" }
 
     port {
       port        = 6379
       target_port = "redis"
+      node_port   = var.node_port
     }
   }
 }

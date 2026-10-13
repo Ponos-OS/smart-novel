@@ -44,3 +44,25 @@ run "with_redis_url_skips_redis" {
     error_message = "Redis must not be deployed when an external redis_url is given"
   }
 }
+
+run "node_port_exposes_redis_outside_the_cluster" {
+  command = plan
+
+  variables {
+    node_port = 30379
+  }
+
+  assert {
+    condition     = kubernetes_service_v1.redis[0].spec[0].type == "NodePort"
+    error_message = "a node port must expose the service"
+  }
+}
+
+run "without_node_port_redis_stays_cluster_internal" {
+  command = plan
+
+  assert {
+    condition     = kubernetes_service_v1.redis[0].spec[0].type == "ClusterIP"
+    error_message = "Redis must stay cluster-internal by default"
+  }
+}

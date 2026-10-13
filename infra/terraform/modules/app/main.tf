@@ -23,6 +23,7 @@ module "redis" {
   labels    = var.labels
   image     = var.images["redis"]
   redis_url = var.redis_url
+  node_port = var.redis_node_port
 }
 
 module "minio" {

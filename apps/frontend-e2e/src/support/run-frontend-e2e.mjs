@@ -19,34 +19,27 @@ if (!projectRoot) {
   process.exit(2);
 }
 
+const clusterAlreadyExists = 3;
+
 let exitCode = 0;
+let started = false;
 
 try {
-  exitCode = run('nx codegen frontend');
-
-  if (exitCode !== 0) {
-    console.error('Failed to generate code for frontend.');
-    process.exit(exitCode);
-  }
-
-  exitCode = run(
-    'docker compose -f compose.e2e.yml --profile frontend-e2e up -d --build --wait',
-  );
+  exitCode = run('sh infra/scripts/start-dev.sh e2e');
+  // Tearing down would destroy the environment that is already running.
+  started = exitCode !== clusterAlreadyExists;
 
   if (exitCode === 0) {
     exitCode = run(`npx cypress run --project ${projectRoot}`);
   }
 } finally {
-  const downCode = run(
-    'docker compose -f compose.e2e.yml --profile frontend-e2e down -v',
-  );
+  if (started) {
+    const downCode = run('sh infra/scripts/stop-dev.sh');
 
-  if (exitCode === 0 && downCode !== 0) {
-    exitCode = downCode;
+    if (exitCode === 0 && downCode !== 0) {
+      exitCode = downCode;
+    }
   }
-
-  run('docker system prune -f');
-  run('docker builder prune -f');
 }
 
 process.exit(exitCode);
