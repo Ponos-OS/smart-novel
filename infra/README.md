@@ -17,6 +17,9 @@ infra/
     │   ├── ollama/     Ollama with the model baked into the image
     │   ├── qwen_tts/   Qwen-TTS server with the model baked into the image
     │   ├── beatrice/   Beatrice, the audio generation service
+    │   ├── backend/    NestJS API
+    │   ├── frontend/   Vite SPA
+    │   ├── job/        A one-shot Job
     │   ├── observability/  OpenTelemetry Collector and Jaeger
     │   ├── zitadel/    ZITADEL (init Job, server, login UI) and its credentials volume
     │   └── zitadel_setup/  Job that runs local-setup/setup-zitadel: project, roles, users, OIDC apps
@@ -41,13 +44,13 @@ Both are safe to run twice. The app is served on `http://localhost:8080`. The ku
 kubectl --kubeconfig infra/terraform/envs/local/smart-novel-config -n smart-novel get all
 ```
 
-Code changes need no rebuild: `envs/local` mounts `apps/` into the kind node and passes its path to `module "app"` as `dev_source_path`. Rebuild only when dependencies change, by running `start:dev` again.
+Code changes need no rebuild: `envs/local` mounts `apps/` into the kind node and feeds it to `module "app"` as volumes (see Backend and Frontend). Rebuild only when dependencies change, by running `start:dev` again.
 
 ## Data Components
 
 Postgres, Redis and MinIO are deployed in the cluster under the Service names `postgres`, `redis` and `s3`, which the application settings in `.env` already use. Setting `database_url`, `redis_url` or `object_storage_endpoint` on `module "app"` skips the matching component. Data is throwaway unless `persistent_volumes` is `true`.
 
-MinIO is reachable from the host on `localhost:9000` (S3 API) and `localhost:9001` (console), through node ports mapped by `envs/local`. The seed covers in `apps/backend/data` are uploaded only when `dev_source_path` is set, because they reach the Job through the node mount; without it only the bucket and its policy are created.
+MinIO is reachable from the host on `localhost:9000` (S3 API) and `localhost:9001` (console), through node ports mapped by `envs/local`. The seed covers in `apps/backend/data` are uploaded only when `minio_seed_volume` is set (a host path or a claim); without it only the bucket and its policy are created.
 
 ## Ingress and ZITADEL
 
@@ -66,6 +69,14 @@ The OpenTelemetry Collector (tail sampling config in `modules/observability`) re
 Beatrice consumes audio jobs from RabbitMQ, normalizes text with an LLM (Ollama) and synthesizes speech with Qwen-TTS. `local-setup/ollama` and `local-setup/qwen-tts` stay where they are; `start-dev.sh` builds them (models are baked in, so the first build is large and slow) and `envs/local` loads them into kind. Beatrice does not reconnect if RabbitMQ is down when it starts, so `modules/app` makes it wait for RabbitMQ and the AI components.
 
 `enable_ai = false` (in `envs/local/terraform.tfvars`) skips building and deploying Ollama and Qwen-TTS. Beatrice and RabbitMQ then run only if `llm_base_url` and `tts_base_url` point at other services, for example the host or a cloud provider; otherwise they are skipped too. `broker_url` skips RabbitMQ. Beatrice has no health endpoint, so its readiness probe checks that the port is open.
+
+## Backend and Frontend
+
+`envs/local` reads `.env` and hands it to `module "app"` as `backend_environment`, `backend_secret_environment` (keys matching `PASSWORD|SECRET|MASTERKEY|ACCESS_KEY`, stored in a Secret) and `frontend_environment` (the `VITE_` keys). Values that depend on the deployed components (database and Redis URLs, object storage endpoint, Beatrice URL, tracing) are filled in by `modules/app` and win over `.env`, so an external `database_url` or a disabled component needs no `.env` edit.
+
+The modules know nothing about development. `backend` and `frontend` take an image, a port, environment, `volumes` (host path or claim), and the frontend also an optional `command` and `files`. Anything that has to run first, such as applying the database schema, is a `pre_deploy_jobs` entry (`modules/job`): the backend and the frontend start only after all of them completed, and `use_backend_environment` gives a Job the backend's environment, including what `modules/app` fills in.
+
+Everything specific to hot reload lives in `envs/local/main.tf`: the development images, the `hostPath` volumes that mount `apps/` from the node, the frontend start script (`envs/local/files/`, reads the generated OIDC client ID from the credentials volume), and two pre-deploy Jobs: `backend-init` (`prisma db push`, `generate`, `seed`) and `frontend-codegen` (`nx codegen frontend`, then `chown` of `apps/` to `run_as_user`; `start-dev.sh` passes `id -u`). A deployed environment passes production images, no volumes and its own migration Job. The `zitadel_credentials = true` flag on a volume means ZITADEL's credentials claim, which only `modules/app` knows the name of.
 
 ## Where to Change Things
 

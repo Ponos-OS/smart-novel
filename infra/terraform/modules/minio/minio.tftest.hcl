@@ -34,11 +34,11 @@ run "with_node_ports_exposes_the_service_to_the_host" {
   }
 }
 
-run "with_seed_data_path_mounts_the_covers_into_the_init_job" {
+run "with_seed_volume_mounts_the_covers_into_the_init_job" {
   command = plan
 
   variables {
-    seed_data_path = "/workspace/apps/backend/data"
+    seed_volume = { host_path = "/workspace/apps/backend/data" }
   }
 
   assert {
@@ -47,7 +47,7 @@ run "with_seed_data_path_mounts_the_covers_into_the_init_job" {
   }
 }
 
-run "without_seed_data_path_mounts_only_the_policy" {
+run "without_seed_volume_mounts_only_the_policy" {
   command = plan
 
   assert {

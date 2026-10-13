@@ -38,10 +38,13 @@ variable "bucket" {
   default     = "smart-novel"
 }
 
-variable "seed_data_path" {
-  description = "Path inside the cluster node holding the seed data; its PNG files are uploaded as covers. Null uploads nothing"
-  type        = string
-  default     = null
+variable "seed_volume" {
+  description = "Where the seed data lives, from a host path or a persistent volume claim; its PNG files are uploaded as covers. Null uploads nothing"
+  type = object({
+    host_path  = optional(string)
+    claim_name = optional(string)
+  })
+  default = null
 }
 
 variable "api_node_port" {

@@ -16,6 +16,8 @@ variables {
     beatrice       = "9109679196/smart-novel-beatrice:4.1.0"
     ollama         = "smart-novel-ollama:dev"
     qwen_tts       = "smart-novel-qwen-tts:dev"
+    backend        = "smart-novel-backend:1.4.0"
+    frontend       = "smart-novel-frontend:1.4.0"
     otel_collector = "otel/opentelemetry-collector-contrib:0.110.0"
     jaeger         = "jaegertracing/all-in-one:1.62.0"
     setup_zitadel  = "smart-novel-setup-zitadel:dev"
@@ -118,5 +120,62 @@ run "broker_url_skips_rabbitmq_only" {
   assert {
     condition     = output.beatrice_url != null
     error_message = "Beatrice must still be deployed with an external broker"
+  }
+}
+
+run "the_frontend_serves_on_port_80_by_default" {
+  command = plan
+
+  assert {
+    condition     = alltrue([for r in module.frontend.routes : endswith(r.service, ":80")])
+    error_message = "the frontend routes must target port 80 by default"
+  }
+}
+
+run "the_frontend_port_is_configurable" {
+  command = plan
+
+  variables {
+    frontend_port = 4300
+  }
+
+  assert {
+    condition     = alltrue([for r in module.frontend.routes : endswith(r.service, ":4300")]) && module.backend.internal_url == "http://backend:3000"
+    error_message = "the frontend routes must target the given port and the backend must be reachable by its service name"
+  }
+}
+
+run "no_pre_deploy_jobs_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(module.pre_deploy_job) == 0
+    error_message = "nothing runs before the deployments unless asked to"
+  }
+}
+
+run "pre_deploy_jobs_are_created_from_their_specs" {
+  command = plan
+
+  variables {
+    pre_deploy_jobs = [
+      {
+        name                    = "backend-init"
+        image                   = "smart-novel-backend:dev"
+        command                 = ["/bin/sh", "-c", "npx nx run backend:prisma:db:push"]
+        use_backend_environment = true
+        volumes                 = [{ name = "credentials", mount_path = "/zitadel-pat", zitadel_credentials = true }]
+      },
+      {
+        name    = "frontend-codegen"
+        image   = "smart-novel-backend:dev"
+        command = ["/bin/sh", "-c", "npx nx codegen frontend"]
+      },
+    ]
+  }
+
+  assert {
+    condition     = toset(keys(module.pre_deploy_job)) == toset(["backend-init", "frontend-codegen"])
+    error_message = "each spec must become a Job"
   }
 }

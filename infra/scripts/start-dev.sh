@@ -33,5 +33,8 @@ if ! grep -qs '^[[:space:]]*enable_ai[[:space:]]*=[[:space:]]*false' "$env_dir/t
          -t smart-novel-qwen-tts:dev "$repo_root/local-setup/qwen-tts"
 fi
 
+TF_VAR_run_as_user="$(id -u)"
+export TF_VAR_run_as_user
+
 terraform -chdir="$env_dir" init
 terraform -chdir="$env_dir" apply -auto-approve

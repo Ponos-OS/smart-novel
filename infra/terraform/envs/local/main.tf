@@ -4,8 +4,61 @@ locals {
 
   dotenv_path = "${local.repo_root}/.env"
   dotenv = fileexists(local.dotenv_path) ? {
-    for match in regexall("(?m)^([A-Z][A-Z0-9_]*)=(\\S*)", file(local.dotenv_path)) : match[0] => match[1]
+    for match in regexall("(?m)^([A-Z][A-Z0-9_]*)=(.*)$", file(local.dotenv_path)) :
+    match[0] => trim(trimspace(replace(match[1], "/\\s+#.*$/", "")), "'\"")
   } : {}
+
+  secret_key_pattern = "PASSWORD|SECRET|MASTERKEY|ACCESS_KEY"
+  backend_environment = {
+    for key, value in local.dotenv : key => value
+    if !startswith(key, "VITE_") && !can(regex(local.secret_key_pattern, key))
+  }
+  backend_secret_environment = {
+    for key, value in local.dotenv : key => value
+    if !startswith(key, "VITE_") && can(regex(local.secret_key_pattern, key))
+  }
+  frontend_environment = merge(
+    { for key, value in local.dotenv : key => value if startswith(key, "VITE_") },
+    {
+      VITE_EXPLAIN_CONTEXT_CHAR_SIZE     = local.dotenv["EXPLAIN_CONTEXT_CHAR_SIZE"]
+      VITE_EXPLAIN_RATE_CAPACITY         = "12"
+      VITE_EXPLAIN_CACHE_MAX_ENTRIES     = "12"
+      VITE_EXPLAIN_RATE_REFILL_PER_SEC   = "1.5"
+      VITE_EXPLAIN_SELECTION_DEBOUNCE_MS = "500"
+      ZITADEL_CLIENT_ID_FILE             = local.dotenv["ZITADEL_CLIENT_ID_FILE"]
+    },
+  )
+
+  # Hot reload: the development images run against the sources mounted from the node.
+  apps_volume = { name = "apps", mount_path = "/app/apps", host_path = local.node_apps }
+  data_volume = { name = "data", mount_path = "/data", host_path = "${local.node_apps}/backend/data" }
+  credentials_volume = {
+    name                = "credentials"
+    mount_path          = "/zitadel-pat"
+    read_only           = true
+    zitadel_credentials = true
+  }
+
+  pre_deploy_jobs = [
+    {
+      name                    = "backend-init"
+      image                   = local.backend_image
+      command                 = ["/bin/sh", "-lc", "npx nx run backend:prisma:db:push && npx nx prisma:generate backend && npx nx run backend:prisma:seed"]
+      use_backend_environment = true
+      volumes                 = [local.apps_volume, local.data_volume, local.credentials_volume]
+    },
+    {
+      name  = "frontend-codegen"
+      image = local.backend_image
+      # Prisma generates into the image's node_modules, so this runs as root; the files written into the mounted sources are handed back to the host user afterwards.
+      command     = ["/bin/sh", "-c", "npx nx codegen frontend; status=$?; chown -R ${var.run_as_user} /app/apps; exit $status"]
+      environment = { DATABASE_URL = "postgresql://dummy", BEATRICE_VERSION = local.dotenv["BEATRICE_VERSION"], NX_DAEMON = "false" }
+      volumes     = [local.apps_volume]
+    },
+  ]
+
+  backend_image  = "smart-novel-backend:dev"
+  frontend_image = "smart-novel-frontend:dev"
 
   built_images = concat(var.images, var.enable_ai ? values(var.ai_images) : [])
   third_party_images = merge(var.third_party_images, {
@@ -80,14 +133,34 @@ resource "terraform_data" "load_images" {
 module "app" {
   source = "../../modules/app"
 
-  labels          = var.tags
-  dev_source_path = local.node_apps
-  images          = merge(local.third_party_images, var.ai_images, { setup_zitadel = "smart-novel-setup-zitadel:dev" })
-  enable_ai       = var.enable_ai
-  llm_base_url    = var.llm_base_url
-  llm_model       = lookup(local.dotenv, "OLLAMA_MODEL", "llama3.2:1b")
-  tts_base_url    = var.tts_base_url
-  external_port   = var.host_port
+  labels = var.tags
+  images = merge(local.third_party_images, var.ai_images, {
+    setup_zitadel = "smart-novel-setup-zitadel:dev"
+    backend       = local.backend_image
+    frontend      = local.frontend_image
+  })
+  enable_ai    = var.enable_ai
+  llm_base_url = var.llm_base_url
+  llm_model    = lookup(local.dotenv, "OLLAMA_MODEL", "llama3.2:1b")
+  tts_base_url = var.tts_base_url
+
+  backend_port               = tonumber(local.dotenv["BACKEND_PORT"])
+  backend_environment        = local.backend_environment
+  backend_secret_environment = local.backend_secret_environment
+  backend_volumes            = [local.apps_volume, local.data_volume]
+
+  frontend_port        = tonumber(local.dotenv["FRONTEND_PORT"])
+  frontend_environment = local.frontend_environment
+  frontend_command     = ["/bin/sh", "/scripts/start-frontend-dev.sh"]
+  frontend_files       = { "/scripts/start-frontend-dev.sh" = file("${path.module}/files/start-frontend-dev.sh") }
+  frontend_volumes = [
+    { name = "sources", mount_path = "/app/apps/frontend", host_path = "${local.node_apps}/frontend" },
+    local.credentials_volume,
+  ]
+
+  pre_deploy_jobs   = local.pre_deploy_jobs
+  minio_seed_volume = { host_path = "${local.node_apps}/backend/data" }
+  external_port     = var.host_port
 
   object_storage_api_node_port     = local.s3_api_node_port
   object_storage_console_node_port = local.s3_console_node_port

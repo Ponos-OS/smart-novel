@@ -10,14 +10,8 @@ variable "labels" {
   default     = {}
 }
 
-variable "dev_source_path" {
-  description = "Path of the application sources inside the cluster node. When set, backend and frontend run the development image with these sources mounted for hot reload; null means the production image"
-  type        = string
-  default     = null
-}
-
 variable "images" {
-  description = "Container images: postgres, redis, minio, minio_mc, traefik, zitadel, zitadel_login, busybox, otel_collector, jaeger, rabbitmq, beatrice, ollama, qwen_tts and setup_zitadel"
+  description = "Container images: postgres, redis, minio, minio_mc, traefik, zitadel, zitadel_login, busybox, otel_collector, jaeger, rabbitmq, beatrice, ollama, qwen_tts, setup_zitadel, backend and frontend"
   type        = map(string)
 }
 
@@ -112,4 +106,102 @@ variable "broker_url" {
   type        = string
   default     = null
   sensitive   = true
+}
+
+variable "backend_port" {
+  description = "Port the backend listens on"
+  type        = number
+  default     = 3000
+}
+
+variable "frontend_port" {
+  description = "Port the frontend container listens on"
+  type        = number
+  default     = 80
+}
+
+variable "backend_environment" {
+  description = "Application settings of the backend. Values that depend on the deployed components (object storage endpoint, Beatrice URL, tracing) are filled in by this module and win over these"
+  type        = map(string)
+  default     = {}
+}
+
+variable "backend_secret_environment" {
+  description = "Application settings of the backend that hold secrets. DATABASE_URL and REDIS_URL are filled in by this module"
+  type        = map(string)
+  default     = {}
+  sensitive   = true
+}
+
+variable "frontend_environment" {
+  description = "The VITE_ settings of the frontend"
+  type        = map(string)
+  default     = {}
+}
+
+variable "backend_volumes" {
+  description = "Extra volumes of the backend, from a host path or a persistent volume claim. zitadel_credentials = true uses ZITADEL's credentials claim; the backend always mounts it at its own path"
+  type = list(object({
+    name                = string
+    mount_path          = string
+    read_only           = optional(bool, false)
+    host_path           = optional(string)
+    claim_name          = optional(string)
+    zitadel_credentials = optional(bool, false)
+  }))
+  default = []
+}
+
+variable "frontend_volumes" {
+  description = "Volumes of the frontend; same shape as backend_volumes"
+  type = list(object({
+    name                = string
+    mount_path          = string
+    read_only           = optional(bool, false)
+    host_path           = optional(string)
+    claim_name          = optional(string)
+    zitadel_credentials = optional(bool, false)
+  }))
+  default = []
+}
+
+variable "frontend_command" {
+  description = "Overrides the frontend image's command; null keeps it"
+  type        = list(string)
+  default     = null
+}
+
+variable "frontend_files" {
+  description = "Files to place in the frontend container, by absolute path"
+  type        = map(string)
+  default     = {}
+}
+
+variable "minio_seed_volume" {
+  description = "Where the seed covers live, from a host path or a persistent volume claim; null uploads none"
+  type = object({
+    host_path  = optional(string)
+    claim_name = optional(string)
+  })
+  default = null
+}
+
+variable "pre_deploy_jobs" {
+  description = "One-shot Jobs that must complete before the backend and the frontend start, for example applying the database schema. use_backend_environment gives a Job the backend's environment, including what this module fills in"
+  type = list(object({
+    name                    = string
+    image                   = string
+    command                 = list(string)
+    environment             = optional(map(string), {})
+    use_backend_environment = optional(bool, false)
+    volumes = optional(list(object({
+      name                = string
+      mount_path          = string
+      read_only           = optional(bool, false)
+      host_path           = optional(string)
+      claim_name          = optional(string)
+      zitadel_credentials = optional(bool, false)
+    })), [])
+  }))
+  default = []
 }

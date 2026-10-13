@@ -78,3 +78,9 @@ variable "tts_base_url" {
   type        = string
   default     = null
 }
+
+variable "run_as_user" {
+  description = "User ID that owns the files the codegen Job generates into apps/; use the output of `id -u`"
+  type        = number
+  default     = 1000
+}
