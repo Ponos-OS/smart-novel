@@ -4,15 +4,17 @@ variables {
   namespace = "smart-novel"
   labels    = { Project = "smart-novel" }
   images = {
-    postgres      = "postgres:18.2-bookworm"
-    redis         = "redis:8.6-alpine3.23"
-    minio         = "quay.io/minio/minio:RELEASE.2025-04-08T15-41-24Z"
-    minio_mc      = "quay.io/minio/mc:RELEASE.2025-04-08T15-39-49Z"
-    traefik       = "traefik:v3.6.8"
-    zitadel       = "ghcr.io/zitadel/zitadel:v4.12.3"
-    zitadel_login = "ghcr.io/zitadel/zitadel-login:v4.12.3"
-    busybox       = "busybox:1.37"
-    setup_zitadel = "smart-novel-setup-zitadel:dev"
+    postgres       = "postgres:18.2-bookworm"
+    redis          = "redis:8.6-alpine3.23"
+    minio          = "quay.io/minio/minio:RELEASE.2025-04-08T15-41-24Z"
+    minio_mc       = "quay.io/minio/mc:RELEASE.2025-04-08T15-39-49Z"
+    traefik        = "traefik:v3.6.8"
+    zitadel        = "ghcr.io/zitadel/zitadel:v4.12.3"
+    zitadel_login  = "ghcr.io/zitadel/zitadel-login:v4.12.3"
+    busybox        = "busybox:1.37"
+    otel_collector = "otel/opentelemetry-collector-contrib:0.110.0"
+    jaeger         = "jaegertracing/all-in-one:1.62.0"
+    setup_zitadel  = "smart-novel-setup-zitadel:dev"
   }
 }
 
@@ -40,5 +42,27 @@ run "routes_the_zitadel_endpoints_through_the_ingress" {
   assert {
     condition     = strcontains(module.ingress.internal_url, "traefik") && length(module.zitadel.routes) == 2
     error_message = "the ingress must be wired with the routes the zitadel module contributes"
+  }
+}
+
+run "deploys_observability_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(module.observability) == 1 && output.otlp_http_endpoint == "http://otel-collector:4318"
+    error_message = "the collector and Jaeger must be deployed by default"
+  }
+}
+
+run "disabling_observability_deploys_neither" {
+  command = plan
+
+  variables {
+    enable_observability = false
+  }
+
+  assert {
+    condition     = length(module.observability) == 0 && output.otlp_http_endpoint == null
+    error_message = "nothing observability related must remain when it is disabled"
   }
 }
