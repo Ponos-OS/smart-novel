@@ -17,7 +17,7 @@ variable "dev_source_path" {
 }
 
 variable "images" {
-  description = "Container images: postgres, redis, minio, minio_mc, traefik, zitadel, zitadel_login, busybox and setup_zitadel"
+  description = "Container images: postgres, redis, minio, minio_mc, traefik, zitadel, zitadel_login, busybox, otel_collector, jaeger and setup_zitadel"
   type        = map(string)
 }
 
@@ -69,4 +69,16 @@ variable "external_port" {
   description = "Port the application is reached on from the browser; ZITADEL's external port and redirect URIs are built from it"
   type        = number
   default     = 8080
+}
+
+variable "enable_observability" {
+  description = "Deploy the OpenTelemetry Collector and Jaeger"
+  type        = bool
+  default     = true
+}
+
+variable "trace_sampling_ratio" {
+  description = "Share of the non-noisy traces that are kept, between 0 and 1"
+  type        = number
+  default     = 1.0
 }

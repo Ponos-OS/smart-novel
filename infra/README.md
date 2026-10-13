@@ -13,6 +13,7 @@ infra/
     │   ├── redis/      Redis
     │   ├── minio/      MinIO plus a Job that creates the bucket and uploads the seed covers
     │   ├── ingress/    Traefik; serves the routes the other modules contribute
+    │   ├── observability/  OpenTelemetry Collector and Jaeger
     │   ├── zitadel/    ZITADEL (init Job, server, login UI) and its credentials volume
     │   └── zitadel_setup/  Job that runs local-setup/setup-zitadel: project, roles, users, OIDC apps
     └── envs/
@@ -51,6 +52,10 @@ Traefik listens on node port 80, which kind maps to `localhost:8080`. It uses it
 ZITADEL's generated credentials (the bot PAT, the login-client PAT, the project ID, the OIDC client ID and the user IDs written by the setup script) live on one PersistentVolumeClaim, `zitadel-credentials`, mounted at `/zitadel-pat` by ZITADEL, the login UI and the setup Job. Consumers get the claim name and file paths from the `zitadel_credentials` output of `modules/app` (available only after the setup Job finished) and never refer to the volume directly.
 
 To read the files from the host, for example for the e2e suites, copy them out of a pod that mounts the claim. Step 8 of `REQUIREMENTS.md` does this into the git-ignored `local-setup/{pats,client,user-ids}` directories the suites already read.
+
+## Observability
+
+The OpenTelemetry Collector (tail sampling config in `modules/observability`) receives OTLP on `otel-collector:4318` (HTTP) and `:4317` (gRPC) and forwards to Jaeger. Browsers export to the same origin at `http://localhost:8080/v1/traces`, which the module routes through the ingress. The Jaeger UI is on `http://localhost:8080/jaeger`: UIs sit behind the ingress path, not behind port-forwards. `enable_observability = false` skips both; `trace_sampling_ratio` (1.0 locally) sets the share of non-noisy traces kept, errors are always kept. Readiness probes on both replace the compose health-check container.
 
 ## Where to Change Things
 

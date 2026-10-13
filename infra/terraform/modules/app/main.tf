@@ -53,13 +53,24 @@ module "zitadel" {
   depends_on = [module.postgres]
 }
 
+module "observability" {
+  source = "../observability"
+  count  = var.enable_observability ? 1 : 0
+
+  namespace       = module.namespace.name
+  labels          = var.labels
+  collector_image = var.images["otel_collector"]
+  jaeger_image    = var.images["jaeger"]
+  sampling_ratio  = var.trace_sampling_ratio
+}
+
 module "ingress" {
   source = "../ingress"
 
   namespace   = module.namespace.name
   labels      = var.labels
   image       = var.images["traefik"]
-  routes      = module.zitadel.routes
+  routes      = concat(module.zitadel.routes, flatten(module.observability[*].routes))
   middlewares = module.zitadel.middlewares
 }
 

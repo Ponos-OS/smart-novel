@@ -1,0 +1,71 @@
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 512
+    send_batch_max_size: 2048
+
+  # Tail sampling — drop noisy operations, always keep error traces, probabilistically sample the rest.
+  #
+  # How tail_sampling decides: each policy votes independently; if ANY policy says "sample", the trace is kept. So to *drop* noisy operations we cannot just add a "drop" policy — we must ensure no policy votes "sample" for them. We achieve that by:
+  #
+  # 1. We wrap the probabilistic sampler in an "and" condition so it ONLY applies to non-noisy GraphQL operations (i.e. NOT health checks, introspection, etc). The `invert_match: true` basically means "NOT IN this list". So: only normal operations are allowed to be sampled.
+  # 2. The "keep-errors" rule stays unchanged, meaning: if a trace has an error, we ALWAYS keep it — even if it comes from a noisy operation like a health check.
+  #
+  # `graphql.operation.name` is set by the backend's `graphqlSpanRenamePlugin` on the root HTTP span. Add to the values list when new noise emerges (e.g. liveness probes, schema-polling clients).
+  tail_sampling:
+    decision_wait: 10s
+    num_traces: 50000
+    expected_new_traces_per_sec: 100
+    policies:
+      - name: keep-errors
+        type: status_code
+        status_code:
+          status_codes: [ERROR]
+      - name: probabilistic-sample-non-noisy
+        type: and
+        and:
+          and_sub_policy:
+            - name: exclude-noisy-graphql-ops
+              type: string_attribute
+              string_attribute:
+                key: graphql.operation.name
+                values: [health, IntrospectionQuery, __schema]
+                invert_match: true
+            - name: probabilistic
+              type: probabilistic
+              probabilistic:
+                sampling_percentage: ${sampling_percentage}
+
+  # Truncate over-long span attributes to keep storage in check.
+  attributes:
+    actions:
+      - key: db.statement
+        action: hash
+
+exporters:
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+  debug:
+    verbosity: basic
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [tail_sampling, attributes, batch]
+      exporters: [otlp/jaeger]

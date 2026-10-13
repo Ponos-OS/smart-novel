@@ -20,14 +20,16 @@ variable "third_party_images" {
   description = "Images of the third-party components, pulled once on the host if missing and loaded into the kind node, so they never download through the cluster"
   type        = map(string)
   default = {
-    postgres      = "postgres:18.2-bookworm"
-    redis         = "redis:8.6-alpine3.23"
-    minio         = "quay.io/minio/minio:RELEASE.2025-04-08T15-41-24Z"
-    minio_mc      = "quay.io/minio/mc:RELEASE.2025-04-08T15-39-49Z"
-    traefik       = "traefik:v3.6.8"
-    zitadel       = "ghcr.io/zitadel/zitadel:v4.12.3"
-    zitadel_login = "ghcr.io/zitadel/zitadel-login:v4.12.3"
-    busybox       = "busybox:1.37"
+    postgres       = "postgres:18.2-bookworm"
+    redis          = "redis:8.6-alpine3.23"
+    minio          = "quay.io/minio/minio:RELEASE.2025-04-08T15-41-24Z"
+    minio_mc       = "quay.io/minio/mc:RELEASE.2025-04-08T15-39-49Z"
+    traefik        = "traefik:v3.6.8"
+    zitadel        = "ghcr.io/zitadel/zitadel:v4.12.3"
+    zitadel_login  = "ghcr.io/zitadel/zitadel-login:v4.12.3"
+    busybox        = "busybox:1.37"
+    otel_collector = "otel/opentelemetry-collector-contrib:0.110.0"
+    jaeger         = "jaegertracing/all-in-one:1.62.0"
   }
 }
 
