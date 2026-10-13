@@ -17,7 +17,7 @@ variable "dev_source_path" {
 }
 
 variable "images" {
-  description = "Container images: postgres, redis, minio, minio_mc, traefik, zitadel, zitadel_login, busybox, otel_collector, jaeger and setup_zitadel"
+  description = "Container images: postgres, redis, minio, minio_mc, traefik, zitadel, zitadel_login, busybox, otel_collector, jaeger, rabbitmq, beatrice, ollama, qwen_tts and setup_zitadel"
   type        = map(string)
 }
 
@@ -81,4 +81,35 @@ variable "trace_sampling_ratio" {
   description = "Share of the non-noisy traces that are kept, between 0 and 1"
   type        = number
   default     = 1.0
+}
+
+variable "enable_ai" {
+  description = "Deploy Ollama and Qwen-TTS, the heavy models Beatrice uses. When false, Beatrice is deployed only if llm_base_url and tts_base_url point at other services"
+  type        = bool
+  default     = true
+}
+
+variable "llm_base_url" {
+  description = "OpenAI-compatible base URL of an external LLM; used when enable_ai is false"
+  type        = string
+  default     = null
+}
+
+variable "llm_model" {
+  description = "LLM model name Beatrice asks for; with enable_ai it is the model baked into the Ollama image"
+  type        = string
+  default     = "llama3.2:1b"
+}
+
+variable "tts_base_url" {
+  description = "Base URL of an external Qwen-compatible text-to-speech server; used when enable_ai is false"
+  type        = string
+  default     = null
+}
+
+variable "broker_url" {
+  description = "AMQP URL of an external broker; when set, RabbitMQ is not deployed"
+  type        = string
+  default     = null
+  sensitive   = true
 }
