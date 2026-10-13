@@ -6,7 +6,7 @@ Not part of the compose-to-kind feature. Revisit after it ships.
 
 `modules/zitadel` runs ZITADEL itself. `modules/zitadel_setup` runs `local-setup/setup-zitadel` (JavaScript) as a Kubernetes Job. The script creates the project, roles, OIDC applications, test users, the self-registration action and impersonation, and writes the PATs, client IDs and user IDs to files on the `zitadel-credentials` volume.
 
-`local-setup/setup-zitadel/Dockerfile` exists only to package that script as an image, because a Job cannot bind-mount the folder the way Docker Compose did.
+`local-setup/setup-zitadel/Dockerfile` exists only to package that script as an image, because a Job cannot bind-mount the folder.
 
 ## Idea
 

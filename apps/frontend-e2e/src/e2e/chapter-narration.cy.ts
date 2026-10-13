@@ -226,7 +226,7 @@ describe('Chapter Audio Narration', () => {
       }).should('be.visible');
 
       // Wait for the audio player to appear once generation completes.
-      // Matches Beatrice's own TTS__QWEN__TIMEOUT_MS (compose.yml) — CPU-only
+      // Matches Beatrice's own TTS__QWEN__TIMEOUT_MS (`infra/terraform/modules/beatrice`) — CPU-only
       // local Qwen3-TTS synthesis can take a while, especially under
       // concurrent test-suite load.
       cy.contains('Audio Narration', { timeout: 300000 }).should(

@@ -38,10 +38,11 @@ smart-novel/
 │   │       ├── pages/            # Route pages (home, novel, search, auth)
 │   │       └── utils/            # Utilities (token-bucket, notifications)
 │   └── frontend-e2e/             # Frontend E2E tests (Cypress)
-├── local-setup/                  # Docker & local dev utilities
+├── infra/                        # Terraform modules and scripts for the local kind cluster (see infra/README.md)
+├── local-setup/                  # Images the cluster builds
 │   ├── ollama/                   # Ollama Dockerfile & healthcheck
+│   ├── qwen-tts/                 # Qwen-TTS server Dockerfile & healthcheck
 │   └── setup-zitadel/            # Zitadel provisioning scripts
-├── compose.yml                   # Docker Compose configuration
 ├── .env.example                  # Environment variables template
 ├── nx.json                       # Nx configuration
 └── tsconfig.base.json            # TypeScript base configuration
@@ -60,7 +61,7 @@ smart-novel/
 - **Reverse Proxy**: Traefik
 - **Testing**: Vitest (unit/integration), Cypress (E2E)
 - **Monorepo**: Nx
-- **CI/CD**: Docker, Docker Compose
+- **Infrastructure**: Docker, kind, Terraform
 
 ### Local Development
 

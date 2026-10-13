@@ -11,14 +11,30 @@ Then open:
 - GraphQL API: http://localhost:8080/graphql
 - ZITADEL console: http://localhost:8080/ui/console/
 
-BTW if you need DevTools such as Redis Insight, or PgAdmin you have to use the `compose.devtools.yml`:
+`npm run stop:dev` removes the environment. Prerequisites are Docker, Terraform and the [`kind` CLI](https://kind.sigs.k8s.io/docs/user/quick-start). The environment is a kind cluster described by Terraform modules under `infra/`; `infra/README.md` explains how it is put together.
 
-```shell
-docker compose -f compose.devtools.yml --profile dev up --build -d
+Jaeger (traces) is at http://localhost:8080/jaeger. MinIO is at http://localhost:9001 (console) and http://localhost:9000 (S3 API).
+
+If you need DevTools such as RedisInsight, pgAdmin or Open WebUI, put this in `infra/terraform/envs/local/terraform.tfvars` (git-ignored) and run `npm run start:dev` again:
+
+```hcl
+enable_devtools = true
 ```
 
-- Open WebUI: http://localhost:8080/
+- Open WebUI: http://localhost:8090/
 - RedisInsight: http://localhost:5540/
+- pgAdmin: http://localhost:5050/ (`admin@admin.com` / `admin`)
+
+To skip the heavy models (Ollama, Qwen-TTS, and with them Beatrice), set `enable_ai = false` the same way.
+
+## Where to Change Things (Infrastructure)
+
+- A new component (a database, a worker, a tool): add `infra/terraform/modules/<component>` with only the inputs it needs and a `.tftest.hcl`, then call it from `infra/terraform/modules/app`. A module that serves HTTP contributes its ingress routes through a `routes` output.
+- A new variable in a module: give it a default that suits local development, and set it in an environment only if that one differs.
+- A new application setting (`.env` key): add it to `.env.example`. `envs/local` hands the whole `.env` to the backend, the `VITE_` keys to the frontend, and keys that look like secrets (`PASSWORD`, `SECRET`, `MASTERKEY`, `ACCESS_KEY`) go to a Secret. Values that depend on a deployed component are filled in by `modules/app`.
+- Anything specific to one environment (hot reload, host ports, devtools, which images run): `infra/terraform/envs/<name>`, passed to `module "app"` as generic inputs. Modules must be identical in every environment, so they never mention `dev`, `local` or `kind`.
+- An external service instead of an in-cluster one: set the matching `*_url` input of `module "app"`.
+- Personal overrides: `infra/terraform/envs/local/terraform.tfvars`.
 
 ## Prisma Migration Guide
 
@@ -142,6 +158,8 @@ nx e2e backend-e2e
 #### Run E2E Tests Locally
 
 ```bash
-docker compose --profile frontend-e2e up -d --build --wait
+npm run start:dev
 npx cypress open --project apps/frontend-e2e
 ```
+
+`nx e2e backend-e2e` and `nx e2e frontend-e2e` start their own cluster with the production images (`infra/scripts/start-dev.sh e2e`) and tear it down afterwards. They cannot run next to `npm run start:dev` (both use host port 8080), so run `npm run stop:dev` first.

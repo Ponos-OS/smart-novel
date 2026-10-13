@@ -174,11 +174,11 @@ The action script is built at setup time by `buildPostRegistrationActionScript()
 >
 > - The **function name** inside the action script **must match the action name** exactly (i.e. `postSelfRegistrationToExtendUserClaims`). If they don't match, Zitadel reports `"function not found"` and silently skips the action.
 > - The action uses the **bot's PAT** (service account token) for authorization — not `ctx.v1.authToken` — because the newly registered user has no Management API permissions. The PAT is embedded in the script at setup time.
-> - The action executes **inside Zitadel's own process**, so the HTTP call targets `http://traefik:80` (the Traefik reverse proxy within the Docker network), **not** the external host URL.
+> - The action executes **inside Zitadel's own process**, so the HTTP call targets `http://traefik:80` (the Traefik reverse proxy inside the cluster), **not** the external host URL.
 
 ## Authentication Strategy
 
-ZITADEL is configured via `compose.yml` environment variables to create a machine user with a Personal Access Token (PAT) at first startup. The PAT is written to a bind-mounted directory (`/zitadel-pat/token`) that this container mounts read-only.
+ZITADEL is configured by `infra/terraform/modules/zitadel` to create a machine user with a Personal Access Token (PAT) at first startup. The PAT is written to a volume (`/zitadel-pat/token`) that this container, run as the `zitadel_setup` Job, shares with ZITADEL.
 
 The script:
 
