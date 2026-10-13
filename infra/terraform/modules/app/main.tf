@@ -184,6 +184,21 @@ module "frontend" {
   wait_for    = [for job in module.pre_deploy_job : job.name]
 }
 
+module "devtools" {
+  source = "../devtools"
+  count  = var.enable_devtools ? 1 : 0
+
+  namespace           = module.namespace.name
+  labels              = var.labels
+  redis_insight_image = var.images["redis_insight"]
+  pgadmin_image       = var.images["pgadmin"]
+  open_webui_image    = var.images["open_webui"]
+  redis               = module.redis.connection
+  postgres            = module.postgres.connection
+  ollama_base_url     = one(module.ollama[*].host_url)
+  node_ports          = var.devtools_node_ports
+}
+
 module "ingress" {
   source = "../ingress"
 

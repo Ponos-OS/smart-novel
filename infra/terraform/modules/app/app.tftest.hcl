@@ -18,6 +18,9 @@ variables {
     qwen_tts       = "smart-novel-qwen-tts:dev"
     backend        = "smart-novel-backend:1.4.0"
     frontend       = "smart-novel-frontend:1.4.0"
+    redis_insight  = "redis/redisinsight:2.70.1"
+    pgadmin        = "dpage/pgadmin4:8.4"
+    open_webui     = "ghcr.io/open-webui/open-webui:v0.8.0"
     otel_collector = "otel/opentelemetry-collector-contrib:0.110.0"
     jaeger         = "jaegertracing/all-in-one:1.62.0"
     setup_zitadel  = "smart-novel-setup-zitadel:dev"
@@ -177,5 +180,27 @@ run "pre_deploy_jobs_are_created_from_their_specs" {
   assert {
     condition     = toset(keys(module.pre_deploy_job)) == toset(["backend-init", "frontend-codegen"])
     error_message = "each spec must become a Job"
+  }
+}
+
+run "devtools_are_off_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(module.devtools) == 0
+    error_message = "devtools must not be deployed unless asked for"
+  }
+}
+
+run "devtools_are_deployed_when_enabled" {
+  command = plan
+
+  variables {
+    enable_devtools = true
+  }
+
+  assert {
+    condition     = length(module.devtools) == 1
+    error_message = "enable_devtools must deploy the devtools module"
   }
 }

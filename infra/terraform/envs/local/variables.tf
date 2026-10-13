@@ -84,3 +84,37 @@ variable "run_as_user" {
   type        = number
   default     = 1000
 }
+
+variable "enable_devtools" {
+  description = "Run RedisInsight, pgAdmin and Open WebUI in the cluster, on localhost:5540, :5050 and :8090. Their images are large, so they are only pulled when this is true"
+  type        = bool
+  default     = false
+}
+
+variable "devtools_images" {
+  description = "Images of the devtools, pulled once on the host if missing and loaded into the kind node when enable_devtools is true"
+  type        = map(string)
+  default = {
+    redis_insight = "redis/redisinsight:2.70.1"
+    pgadmin       = "dpage/pgadmin4:8.4"
+    open_webui    = "ghcr.io/open-webui/open-webui:v0.8.0"
+  }
+}
+
+variable "redis_insight_port" {
+  description = "Port on the host that reaches RedisInsight"
+  type        = number
+  default     = 5540
+}
+
+variable "pgadmin_port" {
+  description = "Port on the host that reaches pgAdmin"
+  type        = number
+  default     = 5050
+}
+
+variable "open_webui_port" {
+  description = "Port on the host that reaches Open WebUI"
+  type        = number
+  default     = 8090
+}

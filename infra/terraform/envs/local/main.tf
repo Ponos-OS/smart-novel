@@ -61,9 +61,13 @@ locals {
   frontend_image = "smart-novel-frontend:dev"
 
   built_images = concat(var.images, var.enable_ai ? values(var.ai_images) : [])
-  third_party_images = merge(var.third_party_images, {
+  third_party_images = merge(var.third_party_images, var.enable_devtools ? var.devtools_images : {}, {
     beatrice = "9109679196/smart-novel-beatrice:${local.dotenv["BEATRICE_VERSION"]}"
   })
+
+  redis_insight_node_port = 30540
+  pgadmin_node_port       = 30050
+  open_webui_node_port    = 30090
 
   s3_api_node_port     = 30900
   s3_console_node_port = 30901
@@ -100,6 +104,24 @@ resource "kind_cluster" "this" {
       extra_port_mappings {
         container_port = local.s3_console_node_port
         host_port      = var.s3_console_port
+        listen_address = "127.0.0.1"
+      }
+
+      extra_port_mappings {
+        container_port = local.redis_insight_node_port
+        host_port      = var.redis_insight_port
+        listen_address = "127.0.0.1"
+      }
+
+      extra_port_mappings {
+        container_port = local.pgadmin_node_port
+        host_port      = var.pgadmin_port
+        listen_address = "127.0.0.1"
+      }
+
+      extra_port_mappings {
+        container_port = local.open_webui_node_port
+        host_port      = var.open_webui_port
         listen_address = "127.0.0.1"
       }
 
@@ -157,6 +179,13 @@ module "app" {
     { name = "sources", mount_path = "/app/apps/frontend", host_path = "${local.node_apps}/frontend" },
     local.credentials_volume,
   ]
+
+  enable_devtools = var.enable_devtools
+  devtools_node_ports = {
+    redis_insight = local.redis_insight_node_port
+    pgadmin       = local.pgadmin_node_port
+    open_webui    = local.open_webui_node_port
+  }
 
   pre_deploy_jobs   = local.pre_deploy_jobs
   minio_seed_volume = { host_path = "${local.node_apps}/backend/data" }

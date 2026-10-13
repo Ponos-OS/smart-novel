@@ -20,6 +20,7 @@ infra/
     │   ├── backend/    NestJS API
     │   ├── frontend/   Vite SPA
     │   ├── job/        A one-shot Job
+    │   ├── devtools/   RedisInsight, pgAdmin, Open WebUI; off by default
     │   ├── observability/  OpenTelemetry Collector and Jaeger
     │   ├── zitadel/    ZITADEL (init Job, server, login UI) and its credentials volume
     │   └── zitadel_setup/  Job that runs local-setup/setup-zitadel: project, roles, users, OIDC apps
@@ -77,6 +78,14 @@ Beatrice consumes audio jobs from RabbitMQ, normalizes text with an LLM (Ollama)
 The modules know nothing about development. `backend` and `frontend` take an image, a port, environment, `volumes` (host path or claim), and the frontend also an optional `command` and `files`. Anything that has to run first, such as applying the database schema, is a `pre_deploy_jobs` entry (`modules/job`): the backend and the frontend start only after all of them completed, and `use_backend_environment` gives a Job the backend's environment, including what `modules/app` fills in.
 
 Everything specific to hot reload lives in `envs/local/main.tf`: the development images, the `hostPath` volumes that mount `apps/` from the node, the frontend start script (`envs/local/files/`, reads the generated OIDC client ID from the credentials volume), and two pre-deploy Jobs: `backend-init` (`prisma db push`, `generate`, `seed`) and `frontend-codegen` (`nx codegen frontend`, then `chown` of `apps/` to `run_as_user`; `start-dev.sh` passes `id -u`). A deployed environment passes production images, no volumes and its own migration Job. The `zitadel_credentials = true` flag on a volume means ZITADEL's credentials claim, which only `modules/app` knows the name of.
+
+## Devtools
+
+`enable_devtools = true` in `envs/local/terraform.tfvars` adds RedisInsight (`localhost:5540`), pgAdmin (`localhost:5050`, `admin@admin.com` / `admin`, the database is pre-registered) and Open WebUI (`localhost:8090`, no login). Unlike Jaeger they are reached by host port, through node ports mapped by `envs/local` like MinIO's: Open WebUI cannot be served under a path prefix, and these are the addresses `CONTRIBUTING.md` documents. The port mappings exist whether or not the tools are enabled, and their large images are pulled only when it is.
+
+Each tool is deployed only when the service it inspects runs in the cluster (an external `database_url`, `redis_url` or `enable_ai = false` skips pgAdmin, RedisInsight or Open WebUI). Nothing outside `modules/devtools` refers to it, so a deployed environment leaves the module call out, or keeps `enable_devtools` false.
+
+`stop:dev` falls back to deleting the kind cluster when Terraform can no longer reach it, for example right after the cluster definition changed.
 
 ## Where to Change Things
 
