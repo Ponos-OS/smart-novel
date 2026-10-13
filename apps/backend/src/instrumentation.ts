@@ -78,7 +78,7 @@ if (!OTEL_ENABLED) {
    *
    * ⚠️ WARN: `@prisma/instrumentation` auto-creates a span for **EVERY** single SQL query. This might lead to generating large volumes of OTel data in a short period. We accept the risk for now to get full visibility, and rely on:
    * - head sampling (OTEL_TRACES_SAMPLER_ARG)
-   * - collector tail_sampling (local-setup/otel-collector-config.yaml)
+   * - collector tail_sampling (infra/terraform/modules/observability/otel-collector-config.yaml.tftpl)
    * - the BatchSpanProcessor limits above
    *
    * Revisit once we see real volume in dev/prod; consider replacing this with a manual TracingService.traceQuery(name, fn, attrs?) helper.
@@ -124,7 +124,7 @@ if (!OTEL_ENABLED) {
           /**
            * @description Suppress span creation for noisy outgoing HTTP calls we make from inside the backend.
            *
-           * Add new paths here as more internal-only HTTP noise emerges. For dynamic/user-driven noise prefer the collector's tail_sampling filter (`local-setup/otel-collector-config.yaml`).
+           * Add new paths here as more internal-only HTTP noise emerges. For dynamic/user-driven noise prefer the collector's tail_sampling filter (`infra/terraform/modules/observability/otel-collector-config.yaml.tftpl`).
            */
           ignoreOutgoingRequestHook: (options) => {
             /**

@@ -15,8 +15,7 @@ on:
   pull_request:
     paths:
       - 'apps/**'
-      - 'compose.yml'
-      - 'compose.e2e.yml'
+      - 'infra/**'
       - 'local-setup/**'
       - 'package.json'
       - 'package-lock.json'
@@ -28,8 +27,7 @@ on:
     branches: [main]
     paths:
       - 'apps/**'
-      - 'compose.yml'
-      - 'compose.e2e.yml'
+      - 'infra/**'
       - 'local-setup/**'
       - 'package.json'
       - 'package-lock.json'

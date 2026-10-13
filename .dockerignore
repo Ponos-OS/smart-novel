@@ -9,7 +9,6 @@ tmp
 .DS_Store
 Thumbs.db
 **/Dockerfile
-compose.yml
 .dockerignore
 cypress/videos
 cypress/screenshots
