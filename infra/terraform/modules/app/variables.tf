@@ -11,7 +11,7 @@ variable "labels" {
 }
 
 variable "images" {
-  description = "Container images: postgres, redis, minio, minio_mc, traefik, zitadel, zitadel_login, busybox, otel_collector, jaeger, rabbitmq, beatrice, ollama, qwen_tts, setup_zitadel, backend and frontend"
+  description = "Container images: postgres, redis, minio, minio_mc, traefik, zitadel, zitadel_login, busybox, otel_collector, jaeger, rabbitmq, beatrice, ollama, qwen_tts, setup_zitadel, backend and frontend, plus redis_insight, pgadmin and open_webui when enable_devtools is true"
   type        = map(string)
 }
 
@@ -204,4 +204,20 @@ variable "pre_deploy_jobs" {
     })), [])
   }))
   default = []
+}
+
+variable "enable_devtools" {
+  description = "Deploy RedisInsight, pgAdmin and Open WebUI for the components that run in the cluster. For development only"
+  type        = bool
+  default     = false
+}
+
+variable "devtools_node_ports" {
+  description = "Node ports that expose each devtool outside the cluster; null keeps a tool cluster-internal"
+  type = object({
+    redis_insight = optional(number)
+    pgadmin       = optional(number)
+    open_webui    = optional(number)
+  })
+  default = {}
 }
