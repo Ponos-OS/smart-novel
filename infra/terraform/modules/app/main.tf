@@ -35,7 +35,7 @@ module "minio" {
   object_storage_endpoint = var.object_storage_endpoint
   api_node_port           = var.object_storage_api_node_port
   console_node_port       = var.object_storage_console_node_port
-  seed_data_path          = var.dev_source_path == null ? null : "${var.dev_source_path}/backend/data"
+  seed_volume             = var.minio_seed_volume
   persistent_volumes      = var.persistent_volumes
   storage_class_name      = var.storage_class_name
 }
@@ -68,6 +68,19 @@ locals {
   llm_base_url    = var.enable_ai ? module.ollama[0].base_url : var.llm_base_url
   tts_base_url    = var.enable_ai ? module.qwen_tts[0].base_url : var.tts_base_url
   deploy_beatrice = local.llm_base_url != null && local.tts_base_url != null
+  otlp_endpoint   = one(module.observability[*].otlp_http_endpoint)
+  beatrice_url    = one(module.beatrice[*].graphql_url)
+
+  backend_environment = merge(
+    var.backend_environment,
+    { OBJECT_STORAGE_ENDPOINT = module.minio.endpoint },
+    local.beatrice_url == null ? {} : { BEATRICE_URL = local.beatrice_url },
+    local.otlp_endpoint == null ? { OTEL_ENABLED = "false" } : { OTEL_ENABLED = "true", OTEL_EXPORTER_OTLP_ENDPOINT = local.otlp_endpoint },
+  )
+  backend_secret_environment = merge(
+    var.backend_secret_environment,
+    { DATABASE_URL = module.postgres.database_url, REDIS_URL = module.redis.redis_url },
+  )
 }
 
 module "ollama" {
@@ -110,10 +123,65 @@ module "beatrice" {
   llm_base_url       = local.llm_base_url
   llm_model          = var.llm_model
   tts_base_url       = local.tts_base_url
-  otlp_http_endpoint = one(module.observability[*].otlp_http_endpoint)
+  otlp_http_endpoint = local.otlp_endpoint
 
   # Beatrice does not reconnect when the broker is unreachable at startup.
   depends_on = [module.rabbitmq, module.ollama, module.qwen_tts]
+}
+
+locals {
+  credentials = module.zitadel_setup.credentials
+
+  backend_volumes = concat(
+    [{ name = "credentials", mount_path = local.credentials.mount_path, read_only = true, host_path = null, claim_name = local.credentials.claim_name }],
+    [for volume in var.backend_volumes : merge(volume, { claim_name = volume.zitadel_credentials ? local.credentials.claim_name : volume.claim_name })],
+  )
+  frontend_volumes = [
+    for volume in var.frontend_volumes : merge(volume, { claim_name = volume.zitadel_credentials ? local.credentials.claim_name : volume.claim_name })
+  ]
+}
+
+module "pre_deploy_job" {
+  source   = "../job"
+  for_each = { for job in var.pre_deploy_jobs : job.name => job }
+
+  namespace          = module.namespace.name
+  labels             = var.labels
+  name               = each.value.name
+  image              = each.value.image
+  command            = each.value.command
+  environment        = merge(each.value.use_backend_environment ? local.backend_environment : {}, each.value.environment)
+  secret_environment = each.value.use_backend_environment ? local.backend_secret_environment : {}
+  volumes            = [for volume in each.value.volumes : merge(volume, { claim_name = volume.zitadel_credentials ? local.credentials.claim_name : volume.claim_name })]
+
+  depends_on = [module.postgres, module.redis, module.minio, module.beatrice, module.observability, module.zitadel_setup]
+}
+
+module "backend" {
+  source = "../backend"
+
+  namespace          = module.namespace.name
+  labels             = var.labels
+  image              = var.images["backend"]
+  port               = var.backend_port
+  environment        = local.backend_environment
+  secret_environment = local.backend_secret_environment
+  volumes            = local.backend_volumes
+  wait_for           = [for job in module.pre_deploy_job : job.name]
+}
+
+module "frontend" {
+  source = "../frontend"
+
+  namespace   = module.namespace.name
+  labels      = var.labels
+  image       = var.images["frontend"]
+  port        = var.frontend_port
+  command     = var.frontend_command
+  files       = var.frontend_files
+  environment = var.frontend_environment
+  volumes     = local.frontend_volumes
+  wait_for    = [for job in module.pre_deploy_job : job.name]
 }
 
 module "ingress" {
@@ -122,7 +190,7 @@ module "ingress" {
   namespace   = module.namespace.name
   labels      = var.labels
   image       = var.images["traefik"]
-  routes      = concat(module.zitadel.routes, flatten(module.observability[*].routes))
+  routes      = concat(module.zitadel.routes, flatten(module.observability[*].routes), module.backend.routes, module.frontend.routes)
   middlewares = module.zitadel.middlewares
 }
 

@@ -242,7 +242,7 @@ resource "kubernetes_job_v1" "init" {
           }
 
           dynamic "volume_mount" {
-            for_each = var.seed_data_path == null ? [] : [1]
+            for_each = var.seed_volume == null ? [] : [1]
             content {
               name       = "seed-data"
               mount_path = local.seed_container
@@ -260,13 +260,24 @@ resource "kubernetes_job_v1" "init" {
         }
 
         dynamic "volume" {
-          for_each = var.seed_data_path == null ? [] : [1]
+          for_each = var.seed_volume == null ? [] : [1]
           content {
             name = "seed-data"
 
-            host_path {
-              path = var.seed_data_path
-              type = "Directory"
+            dynamic "host_path" {
+              for_each = var.seed_volume.host_path == null ? [] : [var.seed_volume.host_path]
+              content {
+                path = host_path.value
+                type = "Directory"
+              }
+            }
+
+            dynamic "persistent_volume_claim" {
+              for_each = var.seed_volume.claim_name == null ? [] : [var.seed_volume.claim_name]
+              content {
+                claim_name = persistent_volume_claim.value
+                read_only  = true
+              }
             }
           }
         }
