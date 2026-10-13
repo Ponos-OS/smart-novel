@@ -2,6 +2,16 @@ locals {
   repo_root = abspath("${path.module}/../../../..")
   node_apps = "/workspace/apps"
 
+  dotenv_path = "${local.repo_root}/.env"
+  dotenv = fileexists(local.dotenv_path) ? {
+    for match in regexall("(?m)^([A-Z][A-Z0-9_]*)=(\\S*)", file(local.dotenv_path)) : match[0] => match[1]
+  } : {}
+
+  built_images = concat(var.images, var.enable_ai ? values(var.ai_images) : [])
+  third_party_images = merge(var.third_party_images, {
+    beatrice = "9109679196/smart-novel-beatrice:${local.dotenv["BEATRICE_VERSION"]}"
+  })
+
   s3_api_node_port     = 30900
   s3_console_node_port = 30901
 }
@@ -54,11 +64,11 @@ resource "terraform_data" "load_images" {
 
   provisioner "local-exec" {
     command = <<-EOT
-      kind load docker-image ${join(" ", var.images)} --name ${var.cluster_name} || exit 1
+      kind load docker-image ${join(" ", local.built_images)} --name ${var.cluster_name} || exit 1
       platform="$(docker version --format '{{.Server.Os}}/{{.Server.Arch}}')"
       archive_dir="$(mktemp -d)"
       trap 'rm -rf "$archive_dir"' EXIT
-      for image in ${join(" ", values(var.third_party_images))}; do
+      for image in ${join(" ", values(local.third_party_images))}; do
         docker image inspect "$image" > /dev/null 2>&1 || docker pull "$image" || exit 1
         docker save --platform "$platform" "$image" -o "$archive_dir/image.tar" || exit 1
         kind load image-archive "$archive_dir/image.tar" --name ${var.cluster_name} || exit 1
@@ -72,7 +82,11 @@ module "app" {
 
   labels          = var.tags
   dev_source_path = local.node_apps
-  images          = merge(var.third_party_images, { setup_zitadel = "smart-novel-setup-zitadel:dev" })
+  images          = merge(local.third_party_images, var.ai_images, { setup_zitadel = "smart-novel-setup-zitadel:dev" })
+  enable_ai       = var.enable_ai
+  llm_base_url    = var.llm_base_url
+  llm_model       = lookup(local.dotenv, "OLLAMA_MODEL", "llama3.2:1b")
+  tts_base_url    = var.tts_base_url
   external_port   = var.host_port
 
   object_storage_api_node_port     = local.s3_api_node_port

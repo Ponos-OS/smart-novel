@@ -11,7 +11,11 @@ for tool in docker terraform kind; do
   }
 done
 
-backend_port="$(sed -n 's/^BACKEND_PORT=//p' "$repo_root/.env" 2> /dev/null | head -n 1)"
+env_value() {
+  sed -n "s/^$1=\\([^# ]*\\).*/\\1/p" "$repo_root/.env" 2> /dev/null | head -n 1
+}
+
+backend_port="$(env_value BACKEND_PORT)"
 
 docker build -f "$repo_root/apps/backend/Dockerfile" \
        --target development \
@@ -21,6 +25,13 @@ docker build -f "$repo_root/apps/frontend/Dockerfile" \
        --target development \
        -t smart-novel-frontend:dev "$repo_root"
 docker build -t smart-novel-setup-zitadel:dev "$repo_root/local-setup/setup-zitadel"
+
+if ! grep -qs '^[[:space:]]*enable_ai[[:space:]]*=[[:space:]]*false' "$env_dir/terraform.tfvars"; then
+  docker build --build-arg "OLLAMA_MODEL=$(env_value OLLAMA_MODEL)" \
+         -t smart-novel-ollama:dev "$repo_root/local-setup/ollama"
+  docker build --build-arg "QWEN_TTS_MODEL=$(env_value QWEN_TTS_MODEL)" \
+         -t smart-novel-qwen-tts:dev "$repo_root/local-setup/qwen-tts"
+fi
 
 terraform -chdir="$env_dir" init
 terraform -chdir="$env_dir" apply -auto-approve

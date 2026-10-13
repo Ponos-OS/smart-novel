@@ -30,6 +30,7 @@ variable "third_party_images" {
     busybox        = "busybox:1.37"
     otel_collector = "otel/opentelemetry-collector-contrib:0.110.0"
     jaeger         = "jaegertracing/all-in-one:1.62.0"
+    rabbitmq       = "rabbitmq:3.13-management-alpine"
   }
 }
 
@@ -49,4 +50,31 @@ variable "tags" {
   description = "Labels on every Kubernetes resource, to filter them by"
   type        = map(string)
   default     = { Project = "smart-novel" }
+}
+
+variable "enable_ai" {
+  description = "Run Ollama and Qwen-TTS in the cluster. Their images bake the models in, so building and loading them is slow and large; false skips them, and with them Beatrice unless llm_base_url and tts_base_url are set"
+  type        = bool
+  default     = true
+}
+
+variable "ai_images" {
+  description = "Images built by infra/scripts/start-dev.sh from local-setup/ollama and local-setup/qwen-tts when enable_ai is true"
+  type        = map(string)
+  default = {
+    ollama   = "smart-novel-ollama:dev"
+    qwen_tts = "smart-novel-qwen-tts:dev"
+  }
+}
+
+variable "llm_base_url" {
+  description = "OpenAI-compatible base URL of an LLM outside the cluster, used when enable_ai is false"
+  type        = string
+  default     = null
+}
+
+variable "tts_base_url" {
+  description = "Base URL of a Qwen-compatible text-to-speech server outside the cluster, used when enable_ai is false"
+  type        = string
+  default     = null
 }

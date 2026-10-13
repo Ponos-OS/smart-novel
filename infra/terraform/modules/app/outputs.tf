@@ -29,3 +29,14 @@ output "otlp_http_endpoint" {
   description = "In-cluster OTLP/HTTP endpoint for traces; null when observability is disabled"
   value       = one(module.observability[*].otlp_http_endpoint)
 }
+
+output "broker_url" {
+  description = "AMQP URL of the message broker; null when Beatrice is not deployed"
+  value       = one(module.rabbitmq[*].broker_url)
+  sensitive   = true
+}
+
+output "beatrice_url" {
+  description = "In-cluster GraphQL URL of Beatrice; null when it is not deployed"
+  value       = one(module.beatrice[*].graphql_url)
+}

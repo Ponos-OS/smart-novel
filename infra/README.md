@@ -13,6 +13,10 @@ infra/
     │   ├── redis/      Redis
     │   ├── minio/      MinIO plus a Job that creates the bucket and uploads the seed covers
     │   ├── ingress/    Traefik; serves the routes the other modules contribute
+    │   ├── rabbitmq/   RabbitMQ
+    │   ├── ollama/     Ollama with the model baked into the image
+    │   ├── qwen_tts/   Qwen-TTS server with the model baked into the image
+    │   ├── beatrice/   Beatrice, the audio generation service
     │   ├── observability/  OpenTelemetry Collector and Jaeger
     │   ├── zitadel/    ZITADEL (init Job, server, login UI) and its credentials volume
     │   └── zitadel_setup/  Job that runs local-setup/setup-zitadel: project, roles, users, OIDC apps
@@ -56,6 +60,12 @@ To read the files from the host, for example for the e2e suites, copy them out o
 ## Observability
 
 The OpenTelemetry Collector (tail sampling config in `modules/observability`) receives OTLP on `otel-collector:4318` (HTTP) and `:4317` (gRPC) and forwards to Jaeger. Browsers export to the same origin at `http://localhost:8080/v1/traces`, which the module routes through the ingress. The Jaeger UI is on `http://localhost:8080/jaeger`: UIs sit behind the ingress path, not behind port-forwards. `enable_observability = false` skips both; `trace_sampling_ratio` (1.0 locally) sets the share of non-noisy traces kept, errors are always kept. Readiness probes on both replace the compose health-check container.
+
+## Messaging and AI
+
+Beatrice consumes audio jobs from RabbitMQ, normalizes text with an LLM (Ollama) and synthesizes speech with Qwen-TTS. `local-setup/ollama` and `local-setup/qwen-tts` stay where they are; `start-dev.sh` builds them (models are baked in, so the first build is large and slow) and `envs/local` loads them into kind. Beatrice does not reconnect if RabbitMQ is down when it starts, so `modules/app` makes it wait for RabbitMQ and the AI components.
+
+`enable_ai = false` (in `envs/local/terraform.tfvars`) skips building and deploying Ollama and Qwen-TTS. Beatrice and RabbitMQ then run only if `llm_base_url` and `tts_base_url` point at other services, for example the host or a cloud provider; otherwise they are skipped too. `broker_url` skips RabbitMQ. Beatrice has no health endpoint, so its readiness probe checks that the port is open.
 
 ## Where to Change Things
 

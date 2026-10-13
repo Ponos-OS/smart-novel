@@ -64,6 +64,58 @@ module "observability" {
   sampling_ratio  = var.trace_sampling_ratio
 }
 
+locals {
+  llm_base_url    = var.enable_ai ? module.ollama[0].base_url : var.llm_base_url
+  tts_base_url    = var.enable_ai ? module.qwen_tts[0].base_url : var.tts_base_url
+  deploy_beatrice = local.llm_base_url != null && local.tts_base_url != null
+}
+
+module "ollama" {
+  source = "../ollama"
+  count  = var.enable_ai ? 1 : 0
+
+  namespace = module.namespace.name
+  labels    = var.labels
+  image     = var.images["ollama"]
+  model     = var.llm_model
+}
+
+module "qwen_tts" {
+  source = "../qwen_tts"
+  count  = var.enable_ai ? 1 : 0
+
+  namespace = module.namespace.name
+  labels    = var.labels
+  image     = var.images["qwen_tts"]
+}
+
+module "rabbitmq" {
+  source = "../rabbitmq"
+  count  = local.deploy_beatrice ? 1 : 0
+
+  namespace  = module.namespace.name
+  labels     = var.labels
+  image      = var.images["rabbitmq"]
+  broker_url = var.broker_url
+}
+
+module "beatrice" {
+  source = "../beatrice"
+  count  = local.deploy_beatrice ? 1 : 0
+
+  namespace          = module.namespace.name
+  labels             = var.labels
+  image              = var.images["beatrice"]
+  broker_url         = module.rabbitmq[0].broker_url
+  llm_base_url       = local.llm_base_url
+  llm_model          = var.llm_model
+  tts_base_url       = local.tts_base_url
+  otlp_http_endpoint = one(module.observability[*].otlp_http_endpoint)
+
+  # Beatrice does not reconnect when the broker is unreachable at startup.
+  depends_on = [module.rabbitmq, module.ollama, module.qwen_tts]
+}
+
 module "ingress" {
   source = "../ingress"
 
