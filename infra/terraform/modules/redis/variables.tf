@@ -45,3 +45,9 @@ variable "redis_url" {
   default     = null
   sensitive   = true
 }
+
+variable "node_port" {
+  description = "Node port that exposes Redis to the host; null keeps it cluster-internal"
+  type        = number
+  default     = null
+}

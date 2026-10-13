@@ -1,8 +1,8 @@
 import { mkdirSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { extractZitadelConfigFromDocker } from './config.helper';
-import { DockerFixture } from './docker.fixture';
+import { ClusterFixture } from './cluster.fixture';
+import { extractZitadelConfigFromCluster } from './config.helper';
 import { Logger } from './logger';
 
 declare global {
@@ -14,54 +14,55 @@ export default async function setup() {
   Logger.section('Setting up Vitest globally');
   Logger.log('Cleaning up previous logs...');
   rmSync('local-setup/logs', { recursive: true, force: true });
-  Logger.log('Starting Docker Compose services...');
-  DockerFixture.startCompose(workspaceRoot, 'backend-e2e');
   Logger.log(
-    'Extracting Zitadel credentials from the shared Docker volume onto the host EXACTLY ONCE, before any worker imports config.helper.ts and starts reading them.',
+    'Starting the e2e cluster (builds the production images)...',
   );
-  extractZitadelConfigFromDocker();
+  ClusterFixture.start(workspaceRoot);
+  Logger.log(
+    'Extracting Zitadel credentials from the cluster credentials volume onto the host EXACTLY ONCE, before any worker imports config.helper.ts and starts reading them.',
+  );
+  extractZitadelConfigFromCluster();
   Logger.section('Warming up Beatrice/Ollama');
   Logger.log('Sending a trivial LLM request to load the model...');
-  DockerFixture.warmupBeatrice(workspaceRoot);
+  ClusterFixture.warmupBeatrice(workspaceRoot);
   globalThis.__TEARDOWN_MESSAGE__ = '\nTearing down...\n';
 
-  // Clean up logic here (e.g. stopping services, docker-compose, etc.).
+  // Clean up logic here (stopping the cluster).
   return async () => {
     mkdirSync(resolve(workspaceRoot, 'local-setup/logs'), {
       recursive: true,
     });
-    DockerFixture.persistLogs(
+    ClusterFixture.persistLogs(
       workspaceRoot,
-      'init-postgres',
+      'job/backend-init',
       'local-setup/logs/init-postgres.log',
     );
-    DockerFixture.persistLogs(
+    ClusterFixture.persistLogs(
       workspaceRoot,
-      'zitadel',
+      'deploy/zitadel',
       'local-setup/logs/zitadel.log',
     );
-    DockerFixture.persistLogs(
+    ClusterFixture.persistLogs(
       workspaceRoot,
-      'setup-zitadel',
+      'job/zitadel-setup',
       'local-setup/logs/setup-zitadel.log',
     );
-    DockerFixture.persistLogs(
+    ClusterFixture.persistLogs(
       workspaceRoot,
-      'backend-e2e',
+      'deploy/backend',
       'local-setup/logs/backend.log',
     );
-    DockerFixture.persistLogs(
+    ClusterFixture.persistLogs(
       workspaceRoot,
-      'beatrice',
+      'deploy/beatrice',
       'local-setup/logs/beatrice.log',
     );
-    DockerFixture.persistLogs(
+    ClusterFixture.persistLogs(
       workspaceRoot,
-      'qwen-tts',
+      'deploy/qwen-tts',
       'local-setup/logs/tts.log',
     );
-    DockerFixture.stopCompose(workspaceRoot);
-    DockerFixture.cleanup();
+    ClusterFixture.stop(workspaceRoot);
     Logger.log(globalThis.__TEARDOWN_MESSAGE__);
   };
 }

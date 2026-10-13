@@ -87,6 +87,12 @@ Each tool is deployed only when the service it inspects runs in the cluster (an 
 
 `stop:dev` falls back to deleting the kind cluster when Terraform can no longer reach it, for example right after the cluster definition changed.
 
+## End-to-End Tests
+
+`nx e2e backend-e2e` and `nx e2e frontend-e2e` run `infra/scripts/start-dev.sh e2e`, which builds the production backend and frontend images (the init Job still uses the development image and the mounted sources), applies `envs/local` with `mode = e2e`, `enable_devtools = false` and `enable_ai = true`, and tears everything down with `stop-dev.sh` afterwards. Redis is exposed on `localhost:6379` because the backend suites subscribe to it directly. The suites copy the credentials ZITADEL generated out of the cluster into the git-ignored `local-setup/{pats,client,user-ids}`, with `kubectl exec` into the backend pod.
+
+The dev and e2e environments both use the cluster name `smart-novel` and host port 8080, so they cannot run together: `start-dev.sh e2e` exits with code 3 and an instruction to run `npm run stop:dev` first when the cluster exists, and the callers then skip their teardown instead of destroying the environment that is running.
+
 ## Where to Change Things
 
 - A new component: add `modules/<component>` and call it from `modules/app`.
