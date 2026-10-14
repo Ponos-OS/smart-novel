@@ -71,3 +71,19 @@ nx storybook frontend # starts storybook
 nx e2e backend-e2e # starts e2e tests for backend apps, we have similar thing for frontend
 npm run start:dev # starts the whole app in dev env
 ```
+
+#### Logging in to the frontend
+
+Open http://localhost:8080 and sign in through ZITADEL with one of the seeded test users (created by `local-setup/setup-zitadel`):
+
+| Login name        | Password     | Role   |
+| ----------------- | ------------ | ------ |
+| `admin@test.com`  | `Admin123!`  | admin  |
+| `writer@test.com` | `Writer123!` | writer |
+| `user@test.com`   | `User123!`   | user   |
+
+Use `writer@test.com` to create novels and chapters. The ZITADEL console (http://localhost:8080/ui/console/) takes the instance admin from `.env` (`ZITADEL_ADMIN_USERNAME` / `ZITADEL_ADMIN_PASSWORD`, `admin` / `Admin123!` by default).
+
+#### Accessing Jaeger
+
+Jaeger is at http://localhost:8080/jaeger. It has no login, anyone who can reach the port can open it.
