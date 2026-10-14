@@ -74,13 +74,7 @@ npm run start:dev # starts the whole app in dev env
 
 #### Logging in to the frontend
 
-Open http://localhost:8080 and sign in through ZITADEL with one of the seeded test users (created by `local-setup/setup-zitadel`):
-
-| Login name        | Password     | Role   |
-| ----------------- | ------------ | ------ |
-| `admin@test.com`  | `Admin123!`  | admin  |
-| `writer@test.com` | `Writer123!` | writer |
-| `user@test.com`   | `User123!`   | user   |
+Open http://localhost:8080 and sign in through ZITADEL with [one of the seeded test users](../local-setup/setup-zitadel/README.md#created-test-users) (created by `local-setup/setup-zitadel`):
 
 Use `writer@test.com` to create novels and chapters. The ZITADEL console (http://localhost:8080/ui/console/) takes the instance admin from `.env` (`ZITADEL_ADMIN_USERNAME` / `ZITADEL_ADMIN_PASSWORD`, `admin` / `Admin123!` by default).
 
