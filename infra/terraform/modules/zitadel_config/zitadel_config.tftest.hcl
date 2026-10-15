@@ -55,3 +55,67 @@ run "outputs_the_client_id" {
     error_message = "the client and project IDs must be outputs"
   }
 }
+
+run "no_users_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(zitadel_human_user.this) == 0 && length(zitadel_user_grant.this) == 0 && length(zitadel_instance_member.this) == 0
+    error_message = "production passes no users, so none may be created"
+  }
+}
+
+run "each_user_gets_its_role_and_only_admins_become_instance_members" {
+  command = plan
+
+  variables {
+    users = {
+      admin = {
+        email          = "admin@test.com"
+        first_name     = "Admin"
+        last_name      = "User"
+        password       = "Admin123!"
+        role           = "admin"
+        instance_roles = ["IAM_OWNER"]
+      }
+      writer = {
+        email      = "writer@test.com"
+        first_name = "Writer"
+        last_name  = "User"
+        password   = "Writer123!"
+        role       = "writer"
+      }
+    }
+  }
+
+  assert {
+    condition     = toset(keys(zitadel_human_user.this)) == toset(["admin", "writer"]) && zitadel_user_grant.this["writer"].role_keys == toset(["writer"])
+    error_message = "every user must be created and granted its role"
+  }
+
+  assert {
+    condition     = toset(keys(zitadel_instance_member.this)) == toset(["admin"]) && zitadel_instance_member.this["admin"].roles == toset(["IAM_OWNER"])
+    error_message = "only the user with instance roles becomes an instance member"
+  }
+}
+
+run "outputs_the_user_ids" {
+  command = apply
+
+  variables {
+    users = {
+      user = {
+        email      = "user@test.com"
+        first_name = "Regular"
+        last_name  = "User"
+        password   = "User123!"
+        role       = "user"
+      }
+    }
+  }
+
+  assert {
+    condition     = toset(keys(output.user_ids)) == toset(["user"])
+    error_message = "the user IDs must be outputs, by username"
+  }
+}

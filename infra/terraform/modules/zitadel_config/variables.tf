@@ -44,3 +44,17 @@ variable "dev_mode" {
   type        = bool
   default     = false
 }
+
+variable "users" {
+  description = "Human users to create, by username. Each one is granted its role in the project; instance_roles (for example IAM_OWNER) make a user an administrator of the whole ZITADEL instance, including its console. Empty creates none"
+  type = map(object({
+    email          = string
+    first_name     = string
+    last_name      = string
+    password       = string
+    role           = string
+    instance_roles = optional(list(string), [])
+  }))
+  default   = {}
+  sensitive = true
+}

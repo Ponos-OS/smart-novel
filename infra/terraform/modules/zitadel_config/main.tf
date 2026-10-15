@@ -41,3 +41,41 @@ resource "zitadel_application_oidc" "public" {
   id_token_role_assertion     = true
   dev_mode                    = var.dev_mode
 }
+
+locals {
+  usernames = toset(nonsensitive(keys(var.users)))
+  instance_members = toset(nonsensitive([
+    for username in local.usernames : username if length(var.users[username].instance_roles) > 0
+  ]))
+}
+
+resource "zitadel_human_user" "this" {
+  for_each = local.usernames
+
+  org_id                       = local.org_id
+  user_name                    = each.key
+  first_name                   = var.users[each.key].first_name
+  last_name                    = var.users[each.key].last_name
+  email                        = var.users[each.key].email
+  is_email_verified            = true
+  initial_password             = var.users[each.key].password
+  initial_skip_password_change = true
+}
+
+resource "zitadel_user_grant" "this" {
+  for_each = local.usernames
+
+  org_id     = local.org_id
+  project_id = zitadel_project.this.id
+  user_id    = zitadel_human_user.this[each.key].id
+  role_keys  = [var.users[each.key].role]
+
+  depends_on = [zitadel_project_role.this]
+}
+
+resource "zitadel_instance_member" "this" {
+  for_each = local.instance_members
+
+  user_id = zitadel_human_user.this[each.key].id
+  roles   = var.users[each.key].instance_roles
+}

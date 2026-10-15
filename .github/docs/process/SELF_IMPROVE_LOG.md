@@ -11,3 +11,8 @@
 - The installed provider (2.12.x) requires `org_id` on every resource; the docs Context7 returned mixed v1 and v2 resources. Check the schema with `terraform validate`/`terraform test` on a mocked provider before trusting a docs snippet.
 - The PAT lives on a volume the host cannot read, so stage 2 reads it with `kubectl exec` into the login pod (the only ZITADEL pod with a shell that mounts the claim). Not verified against a live cluster in this pass; left for the user's manual apply.
 - `stop-dev.sh` must forget stage 2's state, since destroying the cluster destroys what it configured.
+
+## Zitadel Terraform, Step 3 (2026-10-15)
+
+- A sensitive `users` map cannot feed `for_each` directly, nor can anything derived from it; the keys (usernames) are not secret, so `nonsensitive(keys(...))` and `nonsensitive([...])` around the derived set fixed it. `terraform test` caught both in seconds.
+- Usernames are the email's local part, as in the JS script, so the JS Job that still runs at stage 3 finds the existing users instead of creating duplicates.
