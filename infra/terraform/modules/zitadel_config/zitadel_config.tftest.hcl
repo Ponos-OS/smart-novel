@@ -1,4 +1,10 @@
 mock_provider "zitadel" {
+  mock_data "zitadel_machine_users" {
+    defaults = {
+      user_ids = ["2f66a1b4-0c2d-4e4a-9572"]
+    }
+  }
+
   mock_data "zitadel_orgs" {
     defaults = {
       ids = ["93fec4bf-2f66-4e4a-9572"]
@@ -149,5 +155,74 @@ run "self_registration_grants_the_user_role_and_fails_registration_when_it_fails
   assert {
     condition     = strcontains(zitadel_action.post_self_registration[0].script, "api.userGrants.push") && strcontains(zitadel_action.post_self_registration[0].script, "roles: ['user']") && !strcontains(zitadel_action.post_self_registration[0].script, "Bearer")
     error_message = "the script must grant the user role through ZITADEL's own API, with no credential in it"
+  }
+}
+
+run "impersonation_is_off_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(zitadel_default_security_settings.this) == 0 && length(zitadel_machine_user.impersonator) == 0 && length(zitadel_instance_member.existing_impersonators) == 0 && output.integration_test == null
+    error_message = "production does not allow impersonation unless asked to"
+  }
+}
+
+run "the_impersonator_is_a_confidential_app_user_with_no_project_roles" {
+  command = apply
+
+  variables {
+    impersonation = {
+      redirect_uris                    = ["http://localhost:8080/dummy/callback"]
+      existing_impersonator_user_names = ["bot"]
+    }
+  }
+
+  assert {
+    condition     = zitadel_default_security_settings.this[0].enable_impersonation && zitadel_application_oidc.integration_test[0].auth_method_type == "OIDC_AUTH_METHOD_TYPE_BASIC" && contains(zitadel_application_oidc.integration_test[0].grant_types, "OIDC_GRANT_TYPE_TOKEN_EXCHANGE")
+    error_message = "impersonation must be on and the confidential app must allow token exchange"
+  }
+
+  assert {
+    condition     = zitadel_instance_member.impersonator[0].roles == toset(["IAM_END_USER_IMPERSONATOR"]) && toset(keys(zitadel_instance_member.existing_impersonators)) == toset(["bot"])
+    error_message = "the bot and the existing machine users must be impersonators"
+  }
+
+  assert {
+    condition     = length(zitadel_user_grant.impersonator[0].role_keys) == 0
+    error_message = "the impersonator must not hold any project role"
+  }
+
+  assert {
+    condition     = nonsensitive(output.integration_test.bot_key) != "" && nonsensitive(output.integration_test.bot_token) != ""
+    error_message = "the bot's key and PAT must be outputs"
+  }
+}
+
+run "users_may_have_no_password_and_credentials_may_expire_sooner" {
+  command = plan
+
+  variables {
+    users = {
+      writer = {
+        email      = "writer@qa.example.com"
+        first_name = "Writer"
+        last_name  = "QA"
+        role       = "writer"
+      }
+    }
+    impersonation = {
+      redirect_uris              = ["https://qa.example.com/dummy/callback"]
+      credential_expiration_date = "2027-06-30T23:59:59Z"
+    }
+  }
+
+  assert {
+    condition     = zitadel_human_user.this["writer"].initial_password == null
+    error_message = "a user that is only impersonated needs no password"
+  }
+
+  assert {
+    condition     = zitadel_machine_key.impersonator[0].expiration_date == "2027-06-30T23:59:59Z" && zitadel_personal_access_token.impersonator[0].expiration_date == "2027-06-30T23:59:59Z"
+    error_message = "the bot's key and PAT must expire when asked to"
   }
 }

@@ -46,12 +46,12 @@ variable "dev_mode" {
 }
 
 variable "users" {
-  description = "Human users to create, by username. Each one is granted its role in the project; instance_roles (for example IAM_OWNER) make a user an administrator of the whole ZITADEL instance, including its console. Empty creates none"
+  description = "Human users to create, by username. Each one is granted its role in the project; instance_roles (for example IAM_OWNER) make a user an administrator of the whole ZITADEL instance, including its console. A user without a password cannot log in, which suits users that are only impersonated. Empty creates none"
   type = map(object({
     email          = string
     first_name     = string
     last_name      = string
-    password       = string
+    password       = optional(string)
     role           = string
     instance_roles = optional(list(string), [])
   }))
@@ -75,4 +75,14 @@ variable "login_default_redirect_uri" {
   description = "Where the login UI sends people who start without an application, for example from an email"
   type        = string
   default     = ""
+}
+
+variable "impersonation" {
+  description = "Lets an integration-test bot act as any user through token exchange: turns on impersonation in the security policy, and creates a confidential application and the bot, with a key, a PAT and access to the project without roles. existing_impersonator_user_names are machine users that exist already and are made impersonators too. credential_expiration_date (RFC 3339) is when the bot's key and PAT stop working. null creates none of it"
+  type = object({
+    redirect_uris                    = list(string)
+    existing_impersonator_user_names = optional(list(string), [])
+    credential_expiration_date       = optional(string, "9999-12-31T23:59:59Z")
+  })
+  default = null
 }
