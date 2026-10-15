@@ -140,6 +140,12 @@ variable "broker_url" {
   sensitive   = true
 }
 
+variable "wait_for_zitadel_credentials" {
+  description = "Hold back the workloads that need ZITADEL's generated credentials at startup (the backend, the frontend and the pre-deploy Jobs) and skip the setup that generates them. Set it while ZITADEL is configured elsewhere, then unset it to deploy them"
+  type        = bool
+  default     = false
+}
+
 variable "backend_port" {
   description = "Port the backend listens on"
   type        = number

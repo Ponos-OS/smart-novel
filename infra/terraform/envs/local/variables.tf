@@ -67,7 +67,7 @@ variable "ai_images" {
   description = "Images built by infra/scripts/start-dev.sh from local-setup/ollama and local-setup/openai-compatible-tts when enable_ai is true"
   type        = map(string)
   default = {
-    ollama   = "smart-novel-ollama:dev"
+    ollama                = "smart-novel-ollama:dev"
     openai_compatible_tts = "smart-novel-openai-compatible-tts:dev"
   }
 }
@@ -148,4 +148,10 @@ variable "redis_port" {
   description = "Port on the host that reaches Redis; the backend-e2e suites subscribe to it directly"
   type        = number
   default     = 6379
+}
+
+variable "wait_for_zitadel_credentials" {
+  description = "Hold back the backend, the frontend and the pre-deploy Jobs, which need ZITADEL's generated credentials at startup. infra/scripts/start-dev.sh applies with true first, configures ZITADEL, then applies with false"
+  type        = bool
+  default     = false
 }

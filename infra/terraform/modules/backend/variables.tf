@@ -9,6 +9,12 @@ variable "labels" {
   default     = {}
 }
 
+variable "enabled" {
+  description = "Deploy the workload; the Service stays either way, so the ingress routes are the same"
+  type        = bool
+  default     = true
+}
+
 variable "image" {
   description = "Container image the backend runs"
   type        = string

@@ -1,3 +1,8 @@
+output "enabled" {
+  description = "Whether the workload is deployed"
+  value       = var.enabled
+}
+
 output "routes" {
   description = "Routes for the ingress: the app itself, and its static assets, which must not swallow ZITADEL's /assets/v1 API"
   value = [

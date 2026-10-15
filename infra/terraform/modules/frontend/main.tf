@@ -3,7 +3,7 @@ locals {
 }
 
 resource "kubernetes_config_map_v1" "files" {
-  count = length(local.file_paths) == 0 ? 0 : 1
+  count = var.enabled && length(local.file_paths) > 0 ? 1 : 0
 
   metadata {
     name      = "frontend-files"
@@ -16,10 +16,14 @@ resource "kubernetes_config_map_v1" "files" {
 
 # Ordering goes through a value instead of a module-level depends_on, which would make the routes output wait for the Jobs and close a cycle with the ingress.
 resource "terraform_data" "wait_for" {
+  count = var.enabled ? 1 : 0
+
   input = var.wait_for
 }
 
 resource "kubernetes_deployment_v1" "frontend" {
+  count = var.enabled ? 1 : 0
+
   metadata {
     name      = "frontend"
     namespace = var.namespace

@@ -135,7 +135,7 @@ module "beatrice" {
 }
 
 locals {
-  credentials = module.zitadel_setup.credentials
+  credentials = module.zitadel.credentials
 
   backend_volumes = concat(
     [{ name = "credentials", mount_path = local.credentials.mount_path, read_only = true, host_path = null, claim_name = local.credentials.claim_name }],
@@ -148,7 +148,7 @@ locals {
 
 module "pre_deploy_job" {
   source   = "../job"
-  for_each = { for job in var.pre_deploy_jobs : job.name => job }
+  for_each = { for job in var.pre_deploy_jobs : job.name => job if !var.wait_for_zitadel_credentials }
 
   namespace          = module.namespace.name
   labels             = var.labels
@@ -167,12 +167,13 @@ module "backend" {
 
   namespace          = module.namespace.name
   labels             = var.labels
+  enabled            = !var.wait_for_zitadel_credentials
   image              = var.images["backend"]
   port               = var.backend_port
   environment        = local.backend_environment
   secret_environment = local.backend_secret_environment
   volumes            = local.backend_volumes
-  wait_for           = [for job in module.pre_deploy_job : job.name]
+  wait_for           = concat([for job in module.pre_deploy_job : job.name], module.zitadel_setup[*].credentials.mount_path)
 }
 
 module "frontend" {
@@ -180,13 +181,14 @@ module "frontend" {
 
   namespace   = module.namespace.name
   labels      = var.labels
+  enabled     = !var.wait_for_zitadel_credentials
   image       = var.images["frontend"]
   port        = var.frontend_port
   command     = var.frontend_command
   files       = var.frontend_files
   environment = var.frontend_environment
   volumes     = local.frontend_volumes
-  wait_for    = [for job in module.pre_deploy_job : job.name]
+  wait_for    = concat([for job in module.pre_deploy_job : job.name], module.zitadel_setup[*].credentials.mount_path)
 }
 
 module "devtools" {
@@ -216,6 +218,7 @@ module "ingress" {
 
 module "zitadel_setup" {
   source = "../zitadel_setup"
+  count  = var.wait_for_zitadel_credentials ? 0 : 1
 
   namespace   = module.namespace.name
   labels      = var.labels
