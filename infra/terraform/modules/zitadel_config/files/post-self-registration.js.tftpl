@@ -1,0 +1,61 @@
+const logger = require('zitadel/log');
+
+function hasRole(grantsInfo, roleKey) {
+  if (!grantsInfo || !grantsInfo.grants || grantsInfo.count <= 0) {
+    return false;
+  }
+
+  for (let i = 0; i < grantsInfo.grants.length; i++) {
+    const g = grantsInfo.grants[i];
+    if (!g || !g.roles) continue;
+
+    for (let j = 0; j < g.roles.length; j++) {
+      if (g.roles[j] === roleKey) return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * @param {object} ctx
+ * @param {object} ctx.v1
+ * @param {() => {id: string}} ctx.v1.getUser
+ * @param {object} ctx.v1.user
+ * @param {function} ctx.v1.user.grants
+ * @param {function} ctx.v1.user.getMetadata
+ * @param {object} ctx.v1.org
+ * @param {function} ctx.v1.org.getMetadata
+ * @param {object} ctx.v1.claims
+ * @param {function} ctx.v1.claims.sub
+ * @param {object} ctx.v1.application
+ * @param {function} ctx.v1.application.getClientId
+ * @param {object} api
+ * @param {object} api.userGrants
+ * @param {function} api.userGrants.push
+ * @param {object} api.v1
+ * @param {object} api.v1.user
+ * @param {function} api.v1.user.setMetadata
+ * @param {object} api.v1.claims
+ * @param {function} api.v1.claims.setClaim
+ * @param {function} api.v1.claims.appendLogIntoClaims
+ * @param {object} api.v1.userinfo
+ * @param {function} api.v1.userinfo.setClaim
+ * @param {function} api.v1.userinfo.appendLogIntoClaims
+ * @returns {void}
+ */
+function postSelfRegistrationToExtendUserClaims(ctx, api) {
+  const user = ctx.v1.getUser();
+  const grantsInfo = ctx.v1.user && ctx.v1.user.grants;
+
+  logger.log('Auto-granting user role to self-registered user: ' + user.id);
+
+  if (hasRole(grantsInfo, '${role_key}')) {
+    return;
+  }
+
+  api.userGrants.push({
+    projectID: '${project_id}',
+    roles: ['${role_key}'],
+  });
+}

@@ -16,3 +16,9 @@
 
 - A sensitive `users` map cannot feed `for_each` directly, nor can anything derived from it; the keys (usernames) are not secret, so `nonsensitive(keys(...))` and `nonsensitive([...])` around the derived set fixed it. `terraform test` caught both in seconds.
 - Usernames are the email's local part, as in the JS script, so the JS Job that still runs at stage 3 finds the existing users instead of creating duplicates.
+
+## Zitadel Terraform, Step 4 (2026-10-15)
+
+- The requirement asked which credential the action embeds. A first draft created a machine user with `ORG_USER_PERMISSION_EDITOR` and a PAT for it; the automated security review flagged a long-lived token inside the action script. ZITADEL's action runtime has `api.userGrants.push({projectID, roles})` (the docs' "Assign roles to users" example, internal authentication, post creation), so the action needs no credential at all and the machine user, org membership and PAT were removed. Lesson: when a requirement says "check which credential", first check whether the platform offers a call that needs none.
+- The JS action called the Management API and only logged a failed grant, so `allowed_to_fail = false` never blocked anything. With `userGrants.push` a failing grant now fails the registration, as the AC asks. Not exercised against a live ZITADEL in this pass.
+- The JS Job still running in stage 3 overwrites the trigger with its own action until Step 7.

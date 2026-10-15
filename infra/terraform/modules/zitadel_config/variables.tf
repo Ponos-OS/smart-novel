@@ -58,3 +58,21 @@ variable "users" {
   default   = {}
   sensitive = true
 }
+
+variable "allow_self_registration" {
+  description = "Let people register themselves in the login UI. They are granted self_registration_role_key by an action that runs after they are created, and registration fails when the action does"
+  type        = bool
+  default     = false
+}
+
+variable "self_registration_role_key" {
+  description = "Role granted to self-registered users"
+  type        = string
+  default     = "user"
+}
+
+variable "login_default_redirect_uri" {
+  description = "Where the login UI sends people who start without an application, for example from an email"
+  type        = string
+  default     = ""
+}

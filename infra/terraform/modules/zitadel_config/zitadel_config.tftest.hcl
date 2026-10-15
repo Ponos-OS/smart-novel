@@ -119,3 +119,35 @@ run "outputs_the_user_ids" {
     error_message = "the user IDs must be outputs, by username"
   }
 }
+
+run "self_registration_is_off_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(zitadel_default_login_policy.this) == 0 && length(zitadel_action.post_self_registration) == 0 && length(zitadel_trigger_actions.post_self_registration) == 0
+    error_message = "production does not open registration unless asked to"
+  }
+}
+
+run "self_registration_grants_the_user_role_and_fails_registration_when_it_fails" {
+  command = apply
+
+  variables {
+    allow_self_registration = true
+  }
+
+  assert {
+    condition     = zitadel_default_login_policy.this[0].allow_register && zitadel_action.post_self_registration[0].allowed_to_fail == false
+    error_message = "registration must be allowed, and blocked when the role cannot be granted"
+  }
+
+  assert {
+    condition     = zitadel_trigger_actions.post_self_registration[0].flow_type == "FLOW_TYPE_INTERNAL_AUTHENTICATION" && zitadel_trigger_actions.post_self_registration[0].trigger_type == "TRIGGER_TYPE_POST_CREATION"
+    error_message = "the action must run right after a user is created"
+  }
+
+  assert {
+    condition     = strcontains(zitadel_action.post_self_registration[0].script, "api.userGrants.push") && strcontains(zitadel_action.post_self_registration[0].script, "roles: ['user']") && !strcontains(zitadel_action.post_self_registration[0].script, "Bearer")
+    error_message = "the script must grant the user role through ZITADEL's own API, with no credential in it"
+  }
+}
