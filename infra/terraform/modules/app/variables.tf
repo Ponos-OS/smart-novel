@@ -11,7 +11,7 @@ variable "labels" {
 }
 
 variable "images" {
-  description = "Container images: postgres, redis, minio, minio_mc, traefik, zitadel, zitadel_login, busybox, otel_collector, jaeger, rabbitmq, beatrice, ollama, openai_compatible_tts, setup_zitadel, backend and frontend, plus redis_insight, pgadmin and open_webui when enable_devtools is true"
+  description = "Container images: postgres, redis, minio, minio_mc, traefik, zitadel, zitadel_login, busybox, otel_collector, jaeger, rabbitmq, beatrice, ollama, openai_compatible_tts, backend and frontend, plus redis_insight, pgadmin and open_webui when enable_devtools is true"
   type        = map(string)
 }
 
@@ -141,7 +141,7 @@ variable "broker_url" {
 }
 
 variable "wait_for_zitadel_credentials" {
-  description = "Hold back the workloads that need ZITADEL's generated credentials at startup (the backend, the frontend and the pre-deploy Jobs) and skip the setup that generates them. Set it while ZITADEL is configured elsewhere, then unset it to deploy them"
+  description = "Hold back the workloads that need what ZITADEL's configuration generates (the client ID, tokens, user IDs), which reach them as environment settings. Set it until those values exist, then unset it"
   type        = bool
   default     = false
 }
@@ -178,14 +178,13 @@ variable "frontend_environment" {
 }
 
 variable "backend_volumes" {
-  description = "Extra volumes of the backend, from a host path or a persistent volume claim. zitadel_credentials = true uses ZITADEL's credentials claim; the backend always mounts it at its own path"
+  description = "Volumes of the backend, from a host path or a persistent volume claim"
   type = list(object({
-    name                = string
-    mount_path          = string
-    read_only           = optional(bool, false)
-    host_path           = optional(string)
-    claim_name          = optional(string)
-    zitadel_credentials = optional(bool, false)
+    name       = string
+    mount_path = string
+    read_only  = optional(bool, false)
+    host_path  = optional(string)
+    claim_name = optional(string)
   }))
   default = []
 }
@@ -193,12 +192,11 @@ variable "backend_volumes" {
 variable "frontend_volumes" {
   description = "Volumes of the frontend; same shape as backend_volumes"
   type = list(object({
-    name                = string
-    mount_path          = string
-    read_only           = optional(bool, false)
-    host_path           = optional(string)
-    claim_name          = optional(string)
-    zitadel_credentials = optional(bool, false)
+    name       = string
+    mount_path = string
+    read_only  = optional(bool, false)
+    host_path  = optional(string)
+    claim_name = optional(string)
   }))
   default = []
 }
@@ -233,12 +231,11 @@ variable "pre_deploy_jobs" {
     environment             = optional(map(string), {})
     use_backend_environment = optional(bool, false)
     volumes = optional(list(object({
-      name                = string
-      mount_path          = string
-      read_only           = optional(bool, false)
-      host_path           = optional(string)
-      claim_name          = optional(string)
-      zitadel_credentials = optional(bool, false)
+      name       = string
+      mount_path = string
+      read_only  = optional(bool, false)
+      host_path  = optional(string)
+      claim_name = optional(string)
     })), [])
   }))
   default = []

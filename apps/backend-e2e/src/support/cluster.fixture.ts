@@ -1,7 +1,4 @@
-import { isEmpty } from 'class-validator';
 import { execSync } from 'node:child_process';
-import { renameSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
 
 import { Logger } from './logger';
 
@@ -11,52 +8,13 @@ type Workload =
   | 'deploy/zitadel'
   | 'deploy/beatrice'
   | 'deploy/openai-compatible-tts'
-  | 'job/backend-init'
-  | 'job/zitadel-setup';
+  | 'job/backend-init';
 
 const namespace = 'smart-novel';
 const kubeconfig = 'infra/terraform/envs/local/smart-novel-config';
 const kubectl = `kubectl --kubeconfig ${kubeconfig} -n ${namespace}`;
 
 export class ClusterFixture {
-  /**
-   * @description
-   * Extract a file from the shared ZITADEL credentials volume via the `backend` pod (which mounts it read-only).
-   */
-  static extractFile(
-    cwd: string,
-    containerPath: string,
-    hostFilePath: string,
-  ): void {
-    try {
-      const fileContent = execSync(
-        `${kubectl} exec deploy/backend -- cat ${containerPath}`,
-        {
-          cwd,
-          encoding: 'utf-8',
-          stdio: ['pipe', 'pipe', 'pipe'],
-        },
-      ).trim();
-
-      if (isEmpty(fileContent)) {
-        Logger.warn(`${containerPath} was empty`);
-        return;
-      }
-
-      const outPath = path.resolve(cwd, hostFilePath);
-
-      // Write atomically: any concurrent reader either sees the previous version or the new one, never a truncated/partial file. This prevents `JSON.parse` failures on `bot-key.json` if extraction ever overlaps with a read.
-      const tmpPath = `${outPath}.${process.pid}.tmp`;
-      writeFileSync(tmpPath, fileContent, 'utf-8');
-      renameSync(tmpPath, outPath);
-      Logger.log(
-        `Extracted ${containerPath} → ${hostFilePath} (${fileContent.length} chars)`,
-      );
-    } catch (error) {
-      Logger.warn(`Could not extract ${containerPath}: ${error}`);
-    }
-  }
-
   static persistLogs(
     cwd: string,
     workload: Workload,

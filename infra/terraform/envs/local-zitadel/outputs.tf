@@ -18,3 +18,9 @@ output "integration_test" {
   sensitive   = true
   value       = module.zitadel_config.integration_test
 }
+
+output "pat" {
+  description = "Personal access token of ZITADEL's first-instance machine user, the one the provider authenticates with. The backend uses it to create sessions"
+  sensitive   = true
+  value       = trimspace(data.external.bot_pat.result.token)
+}

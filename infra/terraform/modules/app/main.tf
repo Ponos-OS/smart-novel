@@ -134,18 +134,6 @@ module "beatrice" {
   depends_on = [module.rabbitmq, module.ollama, module.openai_compatible_tts]
 }
 
-locals {
-  credentials = module.zitadel.credentials
-
-  backend_volumes = concat(
-    [{ name = "credentials", mount_path = local.credentials.mount_path, read_only = true, host_path = null, claim_name = local.credentials.claim_name }],
-    [for volume in var.backend_volumes : merge(volume, { claim_name = volume.zitadel_credentials ? local.credentials.claim_name : volume.claim_name })],
-  )
-  frontend_volumes = [
-    for volume in var.frontend_volumes : merge(volume, { claim_name = volume.zitadel_credentials ? local.credentials.claim_name : volume.claim_name })
-  ]
-}
-
 module "pre_deploy_job" {
   source   = "../job"
   for_each = { for job in var.pre_deploy_jobs : job.name => job if !var.wait_for_zitadel_credentials }
@@ -157,9 +145,9 @@ module "pre_deploy_job" {
   command            = each.value.command
   environment        = merge(each.value.use_backend_environment ? local.backend_environment : {}, each.value.environment)
   secret_environment = each.value.use_backend_environment ? local.backend_secret_environment : {}
-  volumes            = [for volume in each.value.volumes : merge(volume, { claim_name = volume.zitadel_credentials ? local.credentials.claim_name : volume.claim_name })]
+  volumes            = each.value.volumes
 
-  depends_on = [module.postgres, module.redis, module.minio, module.beatrice, module.observability, module.zitadel_setup]
+  depends_on = [module.postgres, module.redis, module.minio, module.beatrice, module.observability]
 }
 
 module "backend" {
@@ -172,8 +160,8 @@ module "backend" {
   port               = var.backend_port
   environment        = local.backend_environment
   secret_environment = local.backend_secret_environment
-  volumes            = local.backend_volumes
-  wait_for           = concat([for job in module.pre_deploy_job : job.name], module.zitadel_setup[*].credentials.mount_path)
+  volumes            = var.backend_volumes
+  wait_for           = [for job in module.pre_deploy_job : job.name]
 }
 
 module "frontend" {
@@ -187,8 +175,8 @@ module "frontend" {
   command     = var.frontend_command
   files       = var.frontend_files
   environment = var.frontend_environment
-  volumes     = local.frontend_volumes
-  wait_for    = concat([for job in module.pre_deploy_job : job.name], module.zitadel_setup[*].credentials.mount_path)
+  volumes     = var.frontend_volumes
+  wait_for    = [for job in module.pre_deploy_job : job.name]
 }
 
 module "devtools" {
@@ -214,17 +202,4 @@ module "ingress" {
   image       = var.images["traefik"]
   routes      = concat(module.zitadel.routes, flatten(module.observability[*].routes), module.backend.routes, module.frontend.routes)
   middlewares = module.zitadel.middlewares
-}
-
-module "zitadel_setup" {
-  source = "../zitadel_setup"
-  count  = var.wait_for_zitadel_credentials ? 0 : 1
-
-  namespace   = module.namespace.name
-  labels      = var.labels
-  image       = var.images["setup_zitadel"]
-  zitadel_url = module.ingress.internal_url
-  credentials = module.zitadel.credentials
-
-  depends_on = [module.zitadel, module.ingress]
 }
