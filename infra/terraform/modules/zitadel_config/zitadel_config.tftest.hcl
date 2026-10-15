@@ -162,7 +162,7 @@ run "impersonation_is_off_by_default" {
   command = plan
 
   assert {
-    condition     = length(zitadel_default_security_settings.this) == 0 && length(zitadel_machine_user.impersonator) == 0 && length(zitadel_instance_member.existing_impersonators) == 0 && output.integration_test == null
+    condition     = length(zitadel_default_security_settings.this) == 0 && length(zitadel_machine_user.impersonator) == 0 && output.integration_test == null
     error_message = "production does not allow impersonation unless asked to"
   }
 }
@@ -172,8 +172,7 @@ run "the_impersonator_is_a_confidential_app_user_with_no_project_roles" {
 
   variables {
     impersonation = {
-      redirect_uris                    = ["http://localhost:8080/dummy/callback"]
-      existing_impersonator_user_names = ["bot"]
+      redirect_uris = ["http://localhost:8080/dummy/callback"]
     }
   }
 
@@ -183,8 +182,8 @@ run "the_impersonator_is_a_confidential_app_user_with_no_project_roles" {
   }
 
   assert {
-    condition     = zitadel_instance_member.impersonator[0].roles == toset(["IAM_END_USER_IMPERSONATOR"]) && toset(keys(zitadel_instance_member.existing_impersonators)) == toset(["bot"])
-    error_message = "the bot and the existing machine users must be impersonators"
+    condition     = zitadel_instance_member.impersonator[0].roles == toset(["IAM_END_USER_IMPERSONATOR"])
+    error_message = "the bot must be an impersonator"
   }
 
   assert {

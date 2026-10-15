@@ -60,7 +60,6 @@ module "zitadel_config" {
   login_default_redirect_uri = "http://localhost:${var.host_port}"
 
   impersonation = {
-    redirect_uris                    = ["http://localhost:${var.host_port}/dummy/callback"]
-    existing_impersonator_user_names = ["bot"]
+    redirect_uris = ["http://localhost:${var.host_port}/dummy/callback"]
   }
 }

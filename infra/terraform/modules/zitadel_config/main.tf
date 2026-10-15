@@ -128,8 +128,7 @@ resource "zitadel_trigger_actions" "post_self_registration" {
 }
 
 locals {
-  impersonation          = var.impersonation == null ? 0 : 1
-  existing_impersonators = var.impersonation == null ? toset([]) : toset(var.impersonation.existing_impersonator_user_names)
+  impersonation = var.impersonation == null ? 0 : 1
 }
 
 resource "zitadel_default_security_settings" "this" {
@@ -188,21 +187,6 @@ resource "zitadel_instance_member" "impersonator" {
   count = local.impersonation
 
   user_id = zitadel_machine_user.impersonator[0].id
-  roles   = ["IAM_END_USER_IMPERSONATOR"]
-}
-
-data "zitadel_machine_users" "existing_impersonators" {
-  for_each = local.existing_impersonators
-
-  org_id           = local.org_id
-  user_name        = each.key
-  user_name_method = "TEXT_QUERY_METHOD_EQUALS"
-}
-
-resource "zitadel_instance_member" "existing_impersonators" {
-  for_each = local.existing_impersonators
-
-  user_id = one(data.zitadel_machine_users.existing_impersonators[each.key].user_ids)
   roles   = ["IAM_END_USER_IMPERSONATOR"]
 }
 

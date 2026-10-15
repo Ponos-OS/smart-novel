@@ -78,11 +78,10 @@ variable "login_default_redirect_uri" {
 }
 
 variable "impersonation" {
-  description = "Lets an integration-test bot act as any user through token exchange: turns on impersonation in the security policy, and creates a confidential application and the bot, with a key, a PAT and access to the project without roles. existing_impersonator_user_names are machine users that exist already and are made impersonators too. credential_expiration_date (RFC 3339) is when the bot's key and PAT stop working. null creates none of it"
+  description = "Lets an integration-test bot act as any user through token exchange: turns on impersonation in the security policy, and creates a confidential application and the bot, with a key, a PAT and access to the project without roles. credential_expiration_date (RFC 3339) is when the bot's key and PAT stop working. null creates none of it"
   type = object({
-    redirect_uris                    = list(string)
-    existing_impersonator_user_names = optional(list(string), [])
-    credential_expiration_date       = optional(string, "9999-12-31T23:59:59Z")
+    redirect_uris              = list(string)
+    credential_expiration_date = optional(string, "9999-12-31T23:59:59Z")
   })
   default = null
 }
