@@ -85,12 +85,12 @@ nx e2e backend-e2e    # starts backend e2e tests
 
 Beatrice talks to an OpenAI-compatible LLM and an OpenAI-compatible speech endpoint.
 
-`ENABLE_AI` in `.env`, picks where the requests must go when starting the app (`npm run start:dev`) or running the tests (`nx e2e backend-e2e`).
+`RUN_LOCAL_AI_MODELS` in `.env`, picks where the requests must go when starting the app (`npm run start:dev`) or running the tests (`nx e2e backend-e2e`).
 
 Local models utilize Ollama and the bundled `local-setup/openai-compatible-tts`. Then we do not need to change anything [`terraform.tfvars`](../infra/terraform/envs/local/terraform.tfvars); set these in `.env`:
 
 ```bash
-ENABLE_AI=false
+RUN_LOCAL_AI_MODELS=false
 BEATRICE_LLM_MODEL=gpt-4o-mini
 BEATRICE_TTS_MODEL=gpt-4o-mini-tts
 BEATRICE_DEFAULT_VOICE=alloy

@@ -84,7 +84,7 @@ locals {
   built_images = concat(
     [local.tooling_image],
     local.hot_reload ? [local.frontend_image] : [local.backend_image, local.frontend_image],
-    var.enable_ai ? values(var.ai_images) : [],
+    var.run_local_ai_models ? values(var.ai_images) : [],
   )
   third_party_images = merge(var.third_party_images, var.enable_devtools ? var.devtools_images : {}, {
     beatrice = "9109679196/smart-novel-beatrice:${local.dotenv["BEATRICE_VERSION"]}"
@@ -201,7 +201,7 @@ module "app" {
     frontend = local.frontend_image
   })
   wait_for_zitadel_credentials = var.wait_for_zitadel_credentials
-  enable_ai                    = var.enable_ai
+  run_local_ai_models          = var.run_local_ai_models
   llm_base_url                 = var.llm_base_url
   llm_model                    = lookup(local.dotenv, "BEATRICE_LLM_MODEL", "llama3.2:1b")
   tts_model                    = lookup(local.dotenv, "BEATRICE_TTS_MODEL", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice")

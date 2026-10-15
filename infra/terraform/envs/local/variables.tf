@@ -57,14 +57,14 @@ variable "tags" {
   default     = { Project = "smart-novel" }
 }
 
-variable "enable_ai" {
+variable "run_local_ai_models" {
   description = "Run Ollama and OpenAI-compatible TTS in the cluster. Their images bake the models in, so building and loading them is slow and large; false skips them, and with them Beatrice unless llm_base_url and tts_base_url are set"
   type        = bool
   default     = true
 }
 
 variable "ai_images" {
-  description = "Images built by infra/scripts/start-dev.sh from local-setup/ollama and local-setup/openai-compatible-tts when enable_ai is true"
+  description = "Images built by infra/scripts/start-dev.sh from local-setup/ollama and local-setup/openai-compatible-tts when run_local_ai_models is true"
   type        = map(string)
   default = {
     ollama                = "smart-novel-ollama:dev"
@@ -73,13 +73,13 @@ variable "ai_images" {
 }
 
 variable "llm_base_url" {
-  description = "OpenAI-compatible base URL of an LLM outside the cluster, used when enable_ai is false"
+  description = "OpenAI-compatible base URL of an LLM outside the cluster, used when run_local_ai_models is false"
   type        = string
   default     = null
 }
 
 variable "tts_base_url" {
-  description = "Base URL of a OpenAI-compatible text-to-speech server outside the cluster, used when enable_ai is false"
+  description = "Base URL of a OpenAI-compatible text-to-speech server outside the cluster, used when run_local_ai_models is false"
   type        = string
   default     = null
 }

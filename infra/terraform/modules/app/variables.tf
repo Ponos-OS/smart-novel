@@ -83,26 +83,26 @@ variable "trace_sampling_ratio" {
   default     = 1.0
 }
 
-variable "enable_ai" {
+variable "run_local_ai_models" {
   description = "Deploy Ollama and OpenAI-compatible TTS, the heavy models Beatrice uses. When false, Beatrice is deployed only if llm_base_url and tts_base_url point at other services"
   type        = bool
   default     = true
 }
 
 variable "llm_base_url" {
-  description = "OpenAI-compatible base URL of an external LLM; used when enable_ai is false"
+  description = "OpenAI-compatible base URL of an external LLM; used when run_local_ai_models is false"
   type        = string
   default     = null
 }
 
 variable "llm_model" {
-  description = "LLM model name Beatrice asks for; with enable_ai it is the model baked into the Ollama image"
+  description = "LLM model name Beatrice asks for; with run_local_ai_models it is the model baked into the Ollama image"
   type        = string
   default     = "llama3.2:1b"
 }
 
 variable "tts_model" {
-  description = "Text-to-speech model name Beatrice sends in every speech request; with enable_ai it is the model baked into the OpenAI-compatible TTS image"
+  description = "Text-to-speech model name Beatrice sends in every speech request; with run_local_ai_models it is the model baked into the OpenAI-compatible TTS image"
   type        = string
   default     = "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
 }
@@ -128,7 +128,7 @@ variable "tts_voices" {
 }
 
 variable "tts_base_url" {
-  description = "Base URL of an external OpenAI-compatible text-to-speech server; used when enable_ai is false"
+  description = "Base URL of an external OpenAI-compatible text-to-speech server; used when run_local_ai_models is false"
   type        = string
   default     = null
 }

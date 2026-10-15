@@ -76,7 +76,7 @@ The OpenTelemetry Collector (tail sampling config in `modules/observability`) re
 
 Beatrice consumes audio jobs from RabbitMQ, normalizes text with an LLM (Ollama) and synthesizes speech with OpenAI-compatible TTS. `local-setup/ollama` and `local-setup/openai-compatible-tts` stay where they are; `start-dev.sh` builds them (models are baked in, so the first build is large and slow) and `envs/local` loads them into kind. Beatrice does not reconnect if RabbitMQ is down when it starts, so `modules/app` makes it wait for RabbitMQ and the AI components.
 
-`ENABLE_AI=false` (in `.env`) skips building and deploying Ollama and OpenAI-compatible TTS. Beatrice and RabbitMQ then run only if `llm_base_url` and `tts_base_url` point at other services, for example the host or a cloud provider; otherwise they are skipped too. `broker_url` skips RabbitMQ. Beatrice has no health endpoint, so its readiness probe checks that the port is open.
+`RUN_LOCAL_AI_MODELS=false` (in `.env`) skips building and deploying Ollama and OpenAI-compatible TTS. Beatrice and RabbitMQ then run only if `llm_base_url` and `tts_base_url` point at other services, for example the host or a cloud provider; otherwise they are skipped too. `broker_url` skips RabbitMQ. Beatrice has no health endpoint, so its readiness probe checks that the port is open.
 
 ## Backend and Frontend
 
@@ -90,13 +90,13 @@ Everything specific to hot reload lives in `envs/local/main.tf`: the development
 
 `enable_devtools = true` in `envs/local/terraform.tfvars` adds RedisInsight (`localhost:5540`), pgAdmin (`localhost:5050`, `admin@admin.com` / `admin`, the database is pre-registered) and Open WebUI (`localhost:8090`, no login). Unlike Jaeger they are reached by host port, through node ports mapped by `envs/local` like RustFS's: Open WebUI cannot be served under a path prefix, and these are the addresses `CONTRIBUTING.md` documents. The port mappings exist whether or not the tools are enabled, and their large images are pulled only when it is.
 
-Each tool is deployed only when the service it inspects runs in the cluster (an external `database_url`, `redis_url` or `enable_ai = false` skips pgAdmin, RedisInsight or Open WebUI). Nothing outside `modules/devtools` refers to it, so a deployed environment leaves the module call out, or keeps `enable_devtools` false.
+Each tool is deployed only when the service it inspects runs in the cluster (an external `database_url`, `redis_url` or `run_local_ai_models = false` skips pgAdmin, RedisInsight or Open WebUI). Nothing outside `modules/devtools` refers to it, so a deployed environment leaves the module call out, or keeps `enable_devtools` false.
 
 `stop:dev` falls back to deleting the kind cluster when Terraform can no longer reach it, for example right after the cluster definition changed.
 
 ## End-to-End Tests
 
-`nx e2e backend-e2e` and `nx e2e frontend-e2e` run `infra/scripts/start-dev.sh e2e`, which builds the production backend and frontend images (the init Job still uses the development image and the mounted sources), applies `envs/local` with `mode = e2e`, `enable_devtools = false` and `enable_ai` taken from `ENABLE_AI` in `.env`, and tears everything down with `stop-dev.sh` afterwards. Redis is exposed on `localhost:6379` because the backend suites subscribe to it directly. `backend-e2e` reads the project ID, the user IDs and the integration-test bot's key and client from `terraform output -json` of `envs/local-zitadel`, so nothing is copied out of the cluster or written to the host.
+`nx e2e backend-e2e` and `nx e2e frontend-e2e` run `infra/scripts/start-dev.sh e2e`, which builds the production backend and frontend images (the init Job still uses the development image and the mounted sources), applies `envs/local` with `mode = e2e`, `enable_devtools = false` and `run_local_ai_models` taken from `RUN_LOCAL_AI_MODELS` in `.env`, and tears everything down with `stop-dev.sh` afterwards. Redis is exposed on `localhost:6379` because the backend suites subscribe to it directly. `backend-e2e` reads the project ID, the user IDs and the integration-test bot's key and client from `terraform output -json` of `envs/local-zitadel`, so nothing is copied out of the cluster or written to the host.
 
 The dev and e2e environments both use the cluster name `smart-novel` and host port 8080, so they cannot run together: `start-dev.sh e2e` exits with code 3 and an instruction to run `npm run stop:dev` first when the cluster exists, and the callers then skip their teardown instead of destroying the environment that is running.
 

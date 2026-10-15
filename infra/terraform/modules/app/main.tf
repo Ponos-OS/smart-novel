@@ -66,8 +66,8 @@ module "observability" {
 }
 
 locals {
-  llm_base_url    = var.enable_ai ? module.ollama[0].base_url : var.llm_base_url
-  tts_base_url    = var.enable_ai ? module.openai_compatible_tts[0].base_url : var.tts_base_url
+  llm_base_url    = var.run_local_ai_models ? module.ollama[0].base_url : var.llm_base_url
+  tts_base_url    = var.run_local_ai_models ? module.openai_compatible_tts[0].base_url : var.tts_base_url
   deploy_beatrice = local.llm_base_url != null && local.tts_base_url != null
   otlp_endpoint   = one(module.observability[*].otlp_http_endpoint)
   beatrice_url    = one(module.beatrice[*].graphql_url)
@@ -86,7 +86,7 @@ locals {
 
 module "ollama" {
   source = "../ollama"
-  count  = var.enable_ai ? 1 : 0
+  count  = var.run_local_ai_models ? 1 : 0
 
   namespace = module.namespace.name
   labels    = var.labels
@@ -96,7 +96,7 @@ module "ollama" {
 
 module "openai_compatible_tts" {
   source = "../openai_compatible_tts"
-  count  = var.enable_ai ? 1 : 0
+  count  = var.run_local_ai_models ? 1 : 0
 
   namespace = module.namespace.name
   labels    = var.labels

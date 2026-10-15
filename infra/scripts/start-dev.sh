@@ -70,14 +70,14 @@ else
 fi
 
 set -- -var "mode=$mode"
-enable_ai="$(env_value ENABLE_AI)"
-enable_ai="${enable_ai:-true}"
-set -- "$@" -var "enable_ai=$enable_ai"
+run_local_ai_models="$(env_value RUN_LOCAL_AI_MODELS)"
+run_local_ai_models="${run_local_ai_models:-true}"
+set -- "$@" -var "run_local_ai_models=$run_local_ai_models"
 if [ "$mode" = e2e ]; then
   set -- "$@" -var enable_devtools=false
 fi
 
-if [ "$enable_ai" = true ]; then
+if [ "$run_local_ai_models" = true ]; then
   docker build --build-arg "BEATRICE_LLM_MODEL=$(env_value BEATRICE_LLM_MODEL)" \
          -t smart-novel-ollama:dev "$repo_root/local-setup/ollama"
   docker build --build-arg "BEATRICE_TTS_MODEL=$(env_value BEATRICE_TTS_MODEL)" \

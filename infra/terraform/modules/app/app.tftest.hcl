@@ -88,7 +88,7 @@ run "disabling_ai_without_endpoints_skips_beatrice_and_rabbitmq" {
   command = plan
 
   variables {
-    enable_ai = false
+    run_local_ai_models = false
   }
 
   assert {
@@ -101,9 +101,9 @@ run "disabling_ai_with_external_endpoints_keeps_beatrice" {
   command = plan
 
   variables {
-    enable_ai    = false
-    llm_base_url = "https://api.openai.com/v1"
-    tts_base_url = "https://api.openai.com/v1"
+    run_local_ai_models = false
+    llm_base_url        = "https://api.openai.com/v1"
+    tts_base_url        = "https://api.openai.com/v1"
   }
 
   assert {
