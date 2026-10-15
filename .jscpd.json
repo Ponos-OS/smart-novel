@@ -1,0 +1,19 @@
+{
+  "path": ["apps/backend/src", "apps/frontend/src"],
+  "format": ["typescript", "tsx", "javascript"],
+  "ignore": [
+    "**/generated/**",
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/*.stories.tsx",
+    "**/graphql-env.d.ts"
+  ],
+  "minLines": 10,
+  "minTokens": 70,
+  "threshold": 3,
+  "reporters": ["console"],
+  "gitignore": true,
+  "absolute": false
+}

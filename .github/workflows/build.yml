@@ -67,7 +67,10 @@ jobs:
         run: npm ci
 
       - name: Lint
-        run: npx nx run-many -t lint
+        run: npm run lint:check
+
+      - name: Check formatting
+        run: npm run format:check
 
   test:
     name: unit-tests
