@@ -79,3 +79,50 @@ resource "zitadel_instance_member" "this" {
   user_id = zitadel_human_user.this[each.key].id
   roles   = var.users[each.key].instance_roles
 }
+
+locals {
+  self_registration = var.allow_self_registration ? 1 : 0
+}
+
+resource "zitadel_default_login_policy" "this" {
+  count = local.self_registration
+
+  allow_register                = true
+  user_login                    = true
+  allow_external_idp            = false
+  force_mfa                     = false
+  force_mfa_local_only          = false
+  hide_password_reset           = false
+  ignore_unknown_usernames      = false
+  default_redirect_uri          = var.login_default_redirect_uri
+  passwordless_type             = "PASSWORDLESS_TYPE_NOT_ALLOWED"
+  password_check_lifetime       = "864000s"
+  external_login_check_lifetime = "864000s"
+  mfa_init_skip_lifetime        = "2592000s"
+  second_factor_check_lifetime  = "64800s"
+  multi_factor_check_lifetime   = "43200s"
+}
+
+resource "zitadel_action" "post_self_registration" {
+  count = local.self_registration
+
+  org_id = local.org_id
+  name   = "postSelfRegistrationToExtendUserClaims"
+  script = templatefile("${path.module}/files/post-self-registration.js.tftpl", {
+    project_id = zitadel_project.this.id
+    role_key   = var.self_registration_role_key
+  })
+  timeout         = "5s"
+  allowed_to_fail = false
+
+  depends_on = [zitadel_project_role.this]
+}
+
+resource "zitadel_trigger_actions" "post_self_registration" {
+  count = local.self_registration
+
+  org_id       = local.org_id
+  flow_type    = "FLOW_TYPE_INTERNAL_AUTHENTICATION"
+  trigger_type = "TRIGGER_TYPE_POST_CREATION"
+  action_ids   = [zitadel_action.post_self_registration[0].id]
+}

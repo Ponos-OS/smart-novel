@@ -55,4 +55,7 @@ module "zitadel_config" {
   post_logout_redirect_uris = ["http://localhost:${var.host_port}"]
   dev_mode                  = true
   users                     = local.users
+
+  allow_self_registration    = true
+  login_default_redirect_uri = "http://localhost:${var.host_port}"
 }
