@@ -4,26 +4,26 @@ variables {
   namespace = "smart-novel"
   labels    = { Project = "smart-novel" }
   images = {
-    postgres       = "postgres:18.2-bookworm"
-    redis          = "redis:8.6-alpine3.23"
-    minio          = "quay.io/minio/minio:RELEASE.2025-04-08T15-41-24Z"
-    minio_mc       = "quay.io/minio/mc:RELEASE.2025-04-08T15-39-49Z"
-    traefik        = "traefik:v3.6.8"
-    zitadel        = "ghcr.io/zitadel/zitadel:v4.12.3"
-    zitadel_login  = "ghcr.io/zitadel/zitadel-login:v4.12.3"
-    busybox        = "busybox:1.37"
-    rabbitmq       = "rabbitmq:3.13-management-alpine"
-    beatrice       = "9109679196/smart-novel-beatrice:5.0.0"
-    ollama         = "smart-novel-ollama:dev"
-    qwen_tts       = "smart-novel-qwen-tts:dev"
-    backend        = "smart-novel-backend:1.4.0"
-    frontend       = "smart-novel-frontend:1.4.0"
-    redis_insight  = "redis/redisinsight:2.70.1"
-    pgadmin        = "dpage/pgadmin4:8.4"
-    open_webui     = "ghcr.io/open-webui/open-webui:v0.8.0"
-    otel_collector = "otel/opentelemetry-collector-contrib:0.110.0"
-    jaeger         = "jaegertracing/all-in-one:1.62.0"
-    setup_zitadel  = "smart-novel-setup-zitadel:dev"
+    postgres                    = "postgres:18.2-bookworm"
+    redis                       = "redis:8.6-alpine3.23"
+    minio                       = "quay.io/minio/minio:RELEASE.2025-04-08T15-41-24Z"
+    minio_mc                    = "quay.io/minio/mc:RELEASE.2025-04-08T15-39-49Z"
+    traefik                     = "traefik:v3.6.8"
+    zitadel                     = "ghcr.io/zitadel/zitadel:v4.12.3"
+    zitadel_login               = "ghcr.io/zitadel/zitadel-login:v4.12.3"
+    busybox                     = "busybox:1.37"
+    rabbitmq                    = "rabbitmq:3.13-management-alpine"
+    beatrice                    = "9109679196/smart-novel-beatrice:5.0.0"
+    ollama                      = "smart-novel-ollama:dev"
+    openai_compatible_tts       = "smart-novel-openai-compatible-tts:dev"
+    backend                     = "smart-novel-backend:1.4.0"
+    frontend                    = "smart-novel-frontend:1.4.0"
+    redis_insight               = "redis/redisinsight:2.70.1"
+    pgadmin                     = "dpage/pgadmin4:8.4"
+    open_webui                  = "ghcr.io/open-webui/open-webui:v0.8.0"
+    otel_collector              = "otel/opentelemetry-collector-contrib:0.110.0"
+    jaeger                      = "jaegertracing/all-in-one:1.62.0"
+    setup_zitadel               = "smart-novel-setup-zitadel:dev"
   }
 }
 
@@ -80,8 +80,8 @@ run "deploys_ai_and_beatrice_by_default" {
   command = plan
 
   assert {
-    condition     = length(module.ollama) == 1 && length(module.qwen_tts) == 1 && length(module.rabbitmq) == 1 && output.beatrice_url == "http://beatrice:3000/graphql"
-    error_message = "ollama, qwen-tts, rabbitmq and beatrice must be deployed by default"
+    condition     = length(module.ollama) == 1 && length(module.openai_compatible_tts) == 1 && length(module.rabbitmq) == 1 && output.beatrice_url == "http://beatrice:3000/graphql"
+    error_message = "ollama, openai-compatible-tts, rabbitmq and beatrice must be deployed by default"
   }
 }
 
@@ -93,7 +93,7 @@ run "disabling_ai_without_endpoints_skips_beatrice_and_rabbitmq" {
   }
 
   assert {
-    condition     = length(module.ollama) == 0 && length(module.qwen_tts) == 0 && length(module.beatrice) == 0 && length(module.rabbitmq) == 0
+    condition     = length(module.ollama) == 0 && length(module.openai_compatible_tts) == 0 && length(module.beatrice) == 0 && length(module.rabbitmq) == 0
     error_message = "without the AI components or external endpoints nothing of the pipeline must remain"
   }
 }
@@ -108,7 +108,7 @@ run "disabling_ai_with_external_endpoints_keeps_beatrice" {
   }
 
   assert {
-    condition     = length(module.ollama) == 0 && length(module.qwen_tts) == 0 && length(module.beatrice) == 1 && length(module.rabbitmq) == 1
+    condition     = length(module.ollama) == 0 && length(module.openai_compatible_tts) == 0 && length(module.beatrice) == 1 && length(module.rabbitmq) == 1
     error_message = "Beatrice must run against the external endpoints"
   }
 }

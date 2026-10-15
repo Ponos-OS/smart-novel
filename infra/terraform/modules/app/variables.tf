@@ -11,7 +11,7 @@ variable "labels" {
 }
 
 variable "images" {
-  description = "Container images: postgres, redis, minio, minio_mc, traefik, zitadel, zitadel_login, busybox, otel_collector, jaeger, rabbitmq, beatrice, ollama, qwen_tts, setup_zitadel, backend and frontend, plus redis_insight, pgadmin and open_webui when enable_devtools is true"
+  description = "Container images: postgres, redis, minio, minio_mc, traefik, zitadel, zitadel_login, busybox, otel_collector, jaeger, rabbitmq, beatrice, ollama, openai_compatible_tts, setup_zitadel, backend and frontend, plus redis_insight, pgadmin and open_webui when enable_devtools is true"
   type        = map(string)
 }
 
@@ -84,7 +84,7 @@ variable "trace_sampling_ratio" {
 }
 
 variable "enable_ai" {
-  description = "Deploy Ollama and Qwen-TTS, the heavy models Beatrice uses. When false, Beatrice is deployed only if llm_base_url and tts_base_url point at other services"
+  description = "Deploy Ollama and OpenAI-compatible TTS, the heavy models Beatrice uses. When false, Beatrice is deployed only if llm_base_url and tts_base_url point at other services"
   type        = bool
   default     = true
 }
@@ -102,7 +102,7 @@ variable "llm_model" {
 }
 
 variable "tts_model" {
-  description = "Text-to-speech model name Beatrice sends in every speech request; with enable_ai it is the model baked into the Qwen-TTS image"
+  description = "Text-to-speech model name Beatrice sends in every speech request; with enable_ai it is the model baked into the OpenAI-compatible TTS image"
   type        = string
   default     = "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
 }

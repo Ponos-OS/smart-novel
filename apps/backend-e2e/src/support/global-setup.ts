@@ -59,7 +59,7 @@ export default async function setup() {
     );
     ClusterFixture.persistLogs(
       workspaceRoot,
-      'deploy/qwen-tts',
+      'deploy/openai-compatible-tts',
       'local-setup/logs/tts.log',
     );
     ClusterFixture.stop(workspaceRoot);

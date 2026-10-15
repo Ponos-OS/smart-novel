@@ -219,17 +219,7 @@ describe('Beatrice callbacks (e2e)', () => {
       const authorization =
         await AuthorizationFixture.getWriterAuthorizationHeader();
 
-      // Arrange: subscribe before triggering generation so the "queued" message
-      // (which carries the real jobId Beatrice assigned) can't be missed. Beatrice
-      // picks the job up off RabbitMQ asynchronously, so this can take a few
-      // seconds under load — well past the 5s default used by the other test
-      // in this file (a direct, synchronous POST /status call).
-      // Filter for "queued" specifically — other tests' real Beatrice jobs share this
-      // channel too, and a "generating"/"failed" message from one of those arriving in
-      // the same window would otherwise be mistaken for ours. The budget here is generous
-      // because Beatrice serializes jobs through one worker and real CPU-based TTS
-      // synthesis (qwen-tts) has been observed taking 200s+ per job, which can delay
-      // this one's "queued" message if a prior job is still processing.
+      // Arrange: subscribe before triggering generation so the "queued" message (which carries the real jobId Beatrice assigned) can't be missed. Beatrice picks the job up off RabbitMQ asynchronously, so this can take a few seconds under load — well past the 5s default used by the other test in this file (a direct, synchronous POST /status call). Filter for "queued" specifically — other tests' real Beatrice jobs share this channel too, and a "generating"/"failed" message from one of those arriving in the same window would otherwise be mistaken for ours. The budget here is generous because Beatrice serializes jobs through one worker and real CPU-based TTS synthesis (openai-compatible-tts) has been observed taking 200s+ per job, which can delay this one's "queued" message if a prior job is still processing.
       const queued = waitForMessage(
         redisSubscriber,
         TTS_STATUS_CHANNEL,
@@ -367,7 +357,7 @@ describe('Beatrice callbacks (e2e)', () => {
         // Arrange: subscribe to the raw channel too, to learn the real jobId
         // Beatrice assigns — chapterNarrationUpdated events don't expose jobId
         // by design, so this is the only way to correlate.
-        // Real CPU-based TTS synthesis (qwen-tts) has been observed taking 200s+ per
+        // Real CPU-based TTS synthesis (openai-compatible-tts) has been observed taking 200s+ per
         // job, and Beatrice serializes jobs through one worker — a prior test's job
         // still processing can delay this one's "queued" message well past 30s.
         const queued = waitForMessage(

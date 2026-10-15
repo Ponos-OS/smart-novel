@@ -58,17 +58,17 @@ variable "tags" {
 }
 
 variable "enable_ai" {
-  description = "Run Ollama and Qwen-TTS in the cluster. Their images bake the models in, so building and loading them is slow and large; false skips them, and with them Beatrice unless llm_base_url and tts_base_url are set"
+  description = "Run Ollama and OpenAI-compatible TTS in the cluster. Their images bake the models in, so building and loading them is slow and large; false skips them, and with them Beatrice unless llm_base_url and tts_base_url are set"
   type        = bool
   default     = true
 }
 
 variable "ai_images" {
-  description = "Images built by infra/scripts/start-dev.sh from local-setup/ollama and local-setup/qwen-tts when enable_ai is true"
+  description = "Images built by infra/scripts/start-dev.sh from local-setup/ollama and local-setup/openai-compatible-tts when enable_ai is true"
   type        = map(string)
   default = {
     ollama   = "smart-novel-ollama:dev"
-    qwen_tts = "smart-novel-qwen-tts:dev"
+    openai_compatible_tts = "smart-novel-openai-compatible-tts:dev"
   }
 }
 

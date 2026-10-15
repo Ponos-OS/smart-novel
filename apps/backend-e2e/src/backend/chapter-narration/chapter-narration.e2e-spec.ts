@@ -106,7 +106,7 @@ describe('Chapter Narration (e2e)', () => {
       // lock ourselves at the end — otherwise this chapter stays locked (up to the
       // 1h TTL) until the real, unmocked Beatrice job happens to finish on its own,
       // which would leak into (and likely time out) any later test on this chapter.
-      // Real CPU-based TTS synthesis (qwen-tts) has been observed taking 200s+ per
+      // Real CPU-based TTS synthesis (openai-compatible-tts) has been observed taking 200s+ per
       // job, and Beatrice serializes jobs through one worker — a prior test's job
       // still processing can delay this one's "queued" message well past 30s.
       const queued = new Promise<{ jobId: string }>(

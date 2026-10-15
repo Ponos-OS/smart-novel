@@ -41,7 +41,7 @@ smart-novel/
 ├── infra/                        # Terraform modules and scripts for the local kind cluster (see infra/README.md)
 ├── local-setup/                  # Images the cluster builds
 │   ├── ollama/                   # Ollama Dockerfile & healthcheck
-│   ├── qwen-tts/                 # Qwen-TTS server Dockerfile & healthcheck
+│   ├── openai-compatible-tts/    # OpenAI-compatible TTS server Dockerfile & healthcheck
 │   └── setup-zitadel/            # Zitadel provisioning scripts
 ├── .env.example                  # Environment variables template
 ├── nx.json                       # Nx configuration

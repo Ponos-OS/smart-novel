@@ -78,7 +78,7 @@ fi
 #   docker build --build-arg "BEATRICE_LLM_MODEL=$(env_value BEATRICE_LLM_MODEL)" \
 #          -t smart-novel-ollama:dev "$repo_root/local-setup/ollama"
 #   docker build --build-arg "BEATRICE_TTS_MODEL=$(env_value BEATRICE_TTS_MODEL)" \
-#          -t smart-novel-qwen-tts:dev "$repo_root/local-setup/qwen-tts"
+#          -t smart-novel-openai-compatible-tts:dev "$repo_root/local-setup/openai-compatible-tts"
 # fi
 
 TF_VAR_run_as_user="$(id -u)"
