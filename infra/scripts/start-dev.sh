@@ -71,15 +71,15 @@ fi
 
 set -- -var "mode=$mode"
 if [ "$mode" = e2e ]; then
-  set -- "$@" -var enable_ai=false -var enable_devtools=false
+  set -- "$@" -var enable_ai=true -var enable_devtools=false
 fi
 
-# if [ "$mode" = e2e ] || ! grep -qs '^[[:space:]]*enable_ai[[:space:]]*=[[:space:]]*false' "$env_dir/terraform.tfvars"; then
-#   docker build --build-arg "BEATRICE_LLM_MODEL=$(env_value BEATRICE_LLM_MODEL)" \
-#          -t smart-novel-ollama:dev "$repo_root/local-setup/ollama"
-#   docker build --build-arg "BEATRICE_TTS_MODEL=$(env_value BEATRICE_TTS_MODEL)" \
-#          -t smart-novel-openai-compatible-tts:dev "$repo_root/local-setup/openai-compatible-tts"
-# fi
+if [ "$mode" = e2e ] || ! grep -qs '^[[:space:]]*enable_ai[[:space:]]*=[[:space:]]*false' "$env_dir/terraform.tfvars"; then
+  docker build --build-arg "BEATRICE_LLM_MODEL=$(env_value BEATRICE_LLM_MODEL)" \
+         -t smart-novel-ollama:dev "$repo_root/local-setup/ollama"
+  docker build --build-arg "BEATRICE_TTS_MODEL=$(env_value BEATRICE_TTS_MODEL)" \
+         -t smart-novel-openai-compatible-tts:dev "$repo_root/local-setup/openai-compatible-tts"
+fi
 
 TF_VAR_run_as_user="$(id -u)"
 export TF_VAR_run_as_user
