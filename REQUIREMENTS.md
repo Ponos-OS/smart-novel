@@ -7,9 +7,9 @@ Replace `local-setup/setup-zitadel` (JavaScript, run as the `zitadel_setup` Job)
 ## Decisions
 
 - Two stages, two root modules. `infra/terraform/envs/local` deploys the cluster and ZITADEL; a new root module `infra/terraform/envs/local-zitadel` configures ZITADEL with the provider. `infra/scripts/start-dev.sh` applies them in order. The configuration resources live in a reusable module `infra/terraform/modules/zitadel_config` so a production root module can call it with other inputs (public domain, a JWT profile key instead of the bot PAT, no test users).
-- Consumers keep reading files under `/zitadel-pat` (backend, init Job, frontend, `backend-e2e`). Stage 2 delivers the generated values to the same paths, so none of them change. The e2e suites keep copying to `local-setup/{pats,client,user-ids}`.
-- Terraform runs on the host and cannot write into the credentials volume. Stage 2 stores the values in a Secret and a Job copies them onto the volume.
-- The backend, frontend and init Job need those files at startup, so they must deploy after stage 2. Stage 1 therefore skips them (generic input on `module "app"`), and a final apply of `envs/local` deploys them. Step 1 settles the exact shape.
+- No credentials volume for consumers. Stage 2 outputs what the workloads need (the client ID, the bot PAT, the user IDs, the integration-test values). `envs/local` reads those outputs with `terraform_remote_state` and passes them to `module "app"` as ordinary environment settings: `ZITADEL_CLIENT_ID` and `ZITADEL_PAT` (a Secret) for the backend, `VITE_OIDC_CLIENT_ID` for the frontend, `ZITADEL_WRITER_USER_ID` for the init Job. The backend already prefers those over its `*_FILE` settings.
+- The e2e suites read the integration-test values, user IDs and project ID from `terraform output -json` of `envs/local-zitadel` instead of copying files out of the cluster. Nothing is written to the host.
+- The backend, frontend and init Job need those values at startup, so they must deploy after stage 2. Stage 1 therefore skips them (`wait_for_zitadel_credentials` on `module "app"`), and a final apply of `envs/local` deploys them.
 - The provider is authenticated with the bot PAT that ZITADEL writes on first start (`/zitadel-pat/token`), read from the cluster. Production uses a JWT profile key.
 
 ## Steps
@@ -71,15 +71,15 @@ AC:
 
 Test: `.tftest.hcl`; `nx e2e backend-e2e`.
 
-### Step 6: Deliver outputs
+### Step 6: Pass the outputs to the workloads and the suites
 
-Stage 2 writes the Secret and the copy Job so `/zitadel-pat` holds `project-id`, `client/<app>-client-id`, `integration-test/*`, `user-ids/*`, then `envs/local` deploys the workloads. Existing paths and file contents stay the same.
+Stage 2 outputs the values; `envs/local` passes them to the workloads as environment settings and then deploys them. The seeder reads `ZITADEL_WRITER_USER_ID`, the frontend start scripts read `VITE_OIDC_CLIENT_ID`, and `backend-e2e` reads the stage 2 outputs. The JS setup Job is no longer deployed.
 
 AC:
 
 - `npm run start:dev` ends with the app working end to end, login included.
-- `nx e2e backend-e2e` and `nx e2e frontend-e2e` pass without edits to the suites.
-- Both stages are idempotent on re-run.
+- `nx e2e backend-e2e` and `nx e2e frontend-e2e` pass.
+- Both stages are idempotent on re-run, and nothing is written to the host.
 
 Test: `nx e2e backend-e2e`, `nx e2e frontend-e2e`; `npm run start:dev` and `npm run stop:dev` twice.
 

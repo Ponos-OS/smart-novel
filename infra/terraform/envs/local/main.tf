@@ -25,7 +25,6 @@ locals {
       VITE_EXPLAIN_CACHE_MAX_ENTRIES     = "12"
       VITE_EXPLAIN_RATE_REFILL_PER_SEC   = "1.5"
       VITE_EXPLAIN_SELECTION_DEBOUNCE_MS = "500"
-      ZITADEL_CLIENT_ID_FILE             = local.dotenv["ZITADEL_CLIENT_ID_FILE"]
     },
   )
 
@@ -34,12 +33,6 @@ locals {
 
   apps_volume = { name = "apps", mount_path = "/app/apps", host_path = local.node_apps }
   data_volume = { name = "data", mount_path = "/data", host_path = "${local.node_apps}/backend/data" }
-  credentials_volume = {
-    name                = "credentials"
-    mount_path          = "/zitadel-pat"
-    read_only           = true
-    zitadel_credentials = true
-  }
 
   tooling_image  = "smart-novel-backend:dev"
   backend_image  = local.hot_reload ? local.tooling_image : "smart-novel-backend:e2e"
@@ -52,7 +45,8 @@ locals {
         image                   = local.tooling_image
         command                 = ["/bin/sh", "-lc", "npx nx run backend:prisma:db:push && npx nx prisma:generate backend && npx nx run backend:prisma:seed"]
         use_backend_environment = true
-        volumes                 = [local.apps_volume, local.data_volume, local.credentials_volume]
+        environment             = local.init_job_environment
+        volumes                 = [local.apps_volume, local.data_volume]
       },
     ],
     local.hot_reload ? [
@@ -67,16 +61,25 @@ locals {
     ] : [],
   )
 
-  backend_environment_by_mode = local.hot_reload ? local.backend_environment : merge(local.backend_environment, { OLLAMA_RETRY_COUNT = "1" })
-  backend_volumes             = local.hot_reload ? [local.apps_volume, local.data_volume] : []
+  # Stage 2 configures ZITADEL and outputs what the workloads need; the workloads are held back until it has run.
+  zitadel                            = one(data.terraform_remote_state.zitadel[*].outputs)
+  zitadel_backend_environment        = local.zitadel == null ? {} : { ZITADEL_CLIENT_ID = local.zitadel.client_id }
+  zitadel_backend_secret_environment = local.zitadel == null ? {} : { ZITADEL_PAT = local.zitadel.pat }
+  zitadel_frontend_environment       = local.zitadel == null ? {} : { VITE_OIDC_CLIENT_ID = local.zitadel.client_id }
+  init_job_environment               = local.zitadel == null ? {} : { ZITADEL_WRITER_USER_ID = local.zitadel.user_ids["writer"] }
+
+  backend_environment_by_mode = merge(
+    local.hot_reload ? local.backend_environment : merge(local.backend_environment, { OLLAMA_RETRY_COUNT = "1" }),
+    local.zitadel_backend_environment,
+  )
+  backend_volumes = local.hot_reload ? [local.apps_volume, local.data_volume] : []
 
   frontend_script = local.hot_reload ? "start-frontend-dev.sh" : "start-frontend-e2e.sh"
   frontend_port   = local.hot_reload ? tonumber(local.dotenv["FRONTEND_PORT"]) : 80
   frontend_volumes = local.hot_reload ? [
     { name = "sources", mount_path = "/app/apps/frontend", host_path = "${local.node_apps}/frontend" },
-    local.credentials_volume,
-  ] : [local.credentials_volume]
-  frontend_environment_by_mode = local.hot_reload ? local.frontend_environment : { ZITADEL_CLIENT_ID_FILE = local.dotenv["ZITADEL_CLIENT_ID_FILE"] }
+  ] : []
+  frontend_environment_by_mode = merge(local.hot_reload ? local.frontend_environment : {}, local.zitadel_frontend_environment)
 
   built_images = concat(
     [local.tooling_image, "smart-novel-setup-zitadel:dev"],
@@ -93,6 +96,15 @@ locals {
   redis_node_port         = 30379
   s3_api_node_port        = 30900
   s3_console_node_port    = 30901
+}
+
+data "terraform_remote_state" "zitadel" {
+  count   = var.wait_for_zitadel_credentials ? 0 : 1
+  backend = "local"
+
+  config = {
+    path = "${path.module}/../local-zitadel/terraform.tfstate"
+  }
 }
 
 resource "kind_cluster" "this" {
@@ -201,7 +213,7 @@ module "app" {
 
   backend_port               = tonumber(local.dotenv["BACKEND_PORT"])
   backend_environment        = local.backend_environment_by_mode
-  backend_secret_environment = local.backend_secret_environment
+  backend_secret_environment = merge(local.backend_secret_environment, local.zitadel_backend_secret_environment)
   backend_volumes            = local.backend_volumes
 
   frontend_port        = local.frontend_port

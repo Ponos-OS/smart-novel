@@ -23,7 +23,6 @@ variables {
     open_webui            = "ghcr.io/open-webui/open-webui:v0.8.0"
     otel_collector        = "otel/opentelemetry-collector-contrib:0.110.0"
     jaeger                = "jaegertracing/all-in-one:1.62.0"
-    setup_zitadel         = "smart-novel-setup-zitadel:dev"
   }
 }
 
@@ -167,7 +166,7 @@ run "pre_deploy_jobs_are_created_from_their_specs" {
         image                   = "smart-novel-backend:dev"
         command                 = ["/bin/sh", "-c", "npx nx run backend:prisma:db:push"]
         use_backend_environment = true
-        volumes                 = [{ name = "credentials", mount_path = "/zitadel-pat", zitadel_credentials = true }]
+        volumes                 = [{ name = "data", mount_path = "/data", host_path = "/workspace/apps/backend/data" }]
       },
       {
         name    = "frontend-codegen"
@@ -209,8 +208,8 @@ run "workloads_are_deployed_by_default" {
   command = plan
 
   assert {
-    condition     = length(module.zitadel_setup) == 1 && module.backend.enabled && module.frontend.enabled
-    error_message = "the backend, the frontend and the setup must be deployed by default"
+    condition     = module.backend.enabled && module.frontend.enabled
+    error_message = "the backend and the frontend must be deployed by default"
   }
 }
 
@@ -229,7 +228,7 @@ run "without_workloads_only_the_infrastructure_remains" {
   }
 
   assert {
-    condition     = length(module.zitadel_setup) == 0 && !module.backend.enabled && !module.frontend.enabled && length(module.pre_deploy_job) == 0 && output.zitadel_credentials == null
+    condition     = !module.backend.enabled && !module.frontend.enabled && length(module.pre_deploy_job) == 0
     error_message = "nothing that needs the generated credentials may remain"
   }
 

@@ -2,7 +2,6 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { ClusterFixture } from './cluster.fixture';
-import { extractZitadelConfigFromCluster } from './config.helper';
 import { Logger } from './logger';
 
 declare global {
@@ -18,10 +17,6 @@ export default async function setup() {
     'Starting the e2e cluster (builds the production images)...',
   );
   ClusterFixture.start(workspaceRoot);
-  Logger.log(
-    'Extracting Zitadel credentials from the cluster credentials volume onto the host EXACTLY ONCE, before any worker imports config.helper.ts and starts reading them.',
-  );
-  extractZitadelConfigFromCluster();
   Logger.section('Warming up Beatrice/Ollama');
   Logger.log('Sending a trivial LLM request to load the model...');
   ClusterFixture.warmupBeatrice(workspaceRoot);
@@ -41,11 +36,6 @@ export default async function setup() {
       workspaceRoot,
       'deploy/zitadel',
       'local-setup/logs/zitadel.log',
-    );
-    ClusterFixture.persistLogs(
-      workspaceRoot,
-      'job/zitadel-setup',
-      'local-setup/logs/setup-zitadel.log',
     );
     ClusterFixture.persistLogs(
       workspaceRoot,

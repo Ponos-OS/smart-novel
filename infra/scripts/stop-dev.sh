@@ -11,7 +11,7 @@ forget_zitadel_state() {
 }
 
 terraform -chdir="$env_dir" init
-terraform -chdir="$env_dir" destroy -auto-approve && forget_zitadel_state && exit 0
+terraform -chdir="$env_dir" destroy -auto-approve -var wait_for_zitadel_credentials=true && forget_zitadel_state && exit 0
 
 # The environment is throwaway. When Terraform can no longer reach the cluster, for example after its definition changed in a way that replaces it, delete the cluster directly and forget the state.
 echo "terraform destroy failed, deleting the kind cluster directly." >&2

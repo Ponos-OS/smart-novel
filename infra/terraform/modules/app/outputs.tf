@@ -20,11 +20,6 @@ output "object_storage_endpoint" {
   value       = module.minio.endpoint
 }
 
-output "zitadel_credentials" {
-  description = "Where ZITADEL's generated credentials live, available once the setup finished; null when the workloads are not deployed"
-  value       = one(module.zitadel_setup[*].credentials)
-}
-
 output "otlp_http_endpoint" {
   description = "In-cluster OTLP/HTTP endpoint for traces; null when observability is disabled"
   value       = one(module.observability[*].otlp_http_endpoint)

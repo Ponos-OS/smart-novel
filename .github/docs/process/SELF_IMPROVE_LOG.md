@@ -29,3 +29,10 @@
 - A mocked data source returns empty lists by default; a `mock_data` default is needed whenever a resource consumes `one(...)` of it.
 - The empty-role `zitadel_user_grant` (`role_keys = []`) is written but unverified; the AC allows a documented fallback if ZITADEL rejects it. To be checked with `nx e2e backend-e2e`.
 - Step 5 follow-up: `users[*].password` is optional (impersonation targets need no login) and `impersonation.credential_expiration_date` is configurable, defaulting to 9999-12-31. No QA environment exists yet; only the module accepts the inputs.
+
+## Zitadel Terraform, Step 6 (2026-10-15)
+
+- First attempt: a Secret plus a writer Job (`zitadel_credentials_delivery`) to put files on the `/zitadel-pat` volume. The user questioned it on modularity grounds (a shared ReadWriteOnce claim assumes one node; a hash of secrets in the Job name), then redirected: no files, nothing on the host, pass the values to the containers as Kubernetes env settings. The module was deleted.
+- Final shape: stage 2 outputs (`client_id`, `pat`, `user_ids`, `integration_test`); `envs/local` reads them with `terraform_remote_state` (count 0 while `wait_for_zitadel_credentials` is true, since stage 2's state does not exist yet; `stop-dev.sh` destroys with it true for the same reason) and passes them as `ZITADEL_CLIENT_ID`, `ZITADEL_PAT` (Secret), `VITE_OIDC_CLIENT_ID`, `ZITADEL_WRITER_USER_ID`. The backend already preferred those over its `*_FILE` settings, so only the seeder and the frontend start scripts changed. `backend-e2e` reads `terraform output -json` and `ClusterFixture.extractFile` was deleted.
+- Lesson: I had read the consumers as needing files because the existing wiring was files. Reading `auth-module.config.ts` first (env before file) would have shown the volume was never required. Before building a delivery mechanism for an existing contract, check whether the consumer already accepts a simpler one.
+- Not run against a cluster in this pass: `start:dev`/`stop:dev` twice, `nx e2e backend-e2e`, `nx e2e frontend-e2e`.
