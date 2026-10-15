@@ -4,8 +4,8 @@
 # - The plain tag works for CPU and for NVIDIA GPUs when run with the NVIDIA Container Toolkit.
 FROM ollama/ollama:0.17.7
 
-ARG OLLAMA_MODEL=llama3.2:1b
-ENV OLLAMA_MODEL=${OLLAMA_MODEL}
+ARG BEATRICE_LLM_MODEL=llama3.2:1b
+ENV BEATRICE_LLM_MODEL=${BEATRICE_LLM_MODEL}
 # CAUTION: 0.0.0.0 means Ollama will listen on all network interfaces. This allows
 # - Internal healthchecks to succeed
 # - Our backend service to connect successfully.

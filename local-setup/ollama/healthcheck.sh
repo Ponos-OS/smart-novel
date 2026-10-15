@@ -3,7 +3,7 @@ set -eu
 
 HOST="${OLLAMA_HOST:-127.0.0.1}"
 PORT="${OLLAMA_PORT:-11434}"
-MODEL="${OLLAMA_MODEL:-llama3.2:1b}"
+MODEL="${BEATRICE_LLM_MODEL:-llama3.2:1b}"
 
 # 1) API must be up (no 404/connection error)
 if ! curl -fsS "http://${HOST}:${PORT}/api/version" >/dev/null; then

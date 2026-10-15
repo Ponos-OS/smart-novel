@@ -44,7 +44,7 @@ variable "llm_timeout_ms" {
 }
 
 variable "tts_base_url" {
-  description = "Base URL of the Qwen-compatible text-to-speech server"
+  description = "Base URL of the OpenAI-compatible text-to-speech server"
   type        = string
 }
 
@@ -53,6 +53,11 @@ variable "tts_api_key" {
   type        = string
   default     = "local-dev-key"
   sensitive   = true
+}
+
+variable "tts_model" {
+  description = "Model name sent in every speech request"
+  type        = string
 }
 
 variable "tts_voices" {

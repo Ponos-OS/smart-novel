@@ -101,8 +101,34 @@ variable "llm_model" {
   default     = "llama3.2:1b"
 }
 
+variable "tts_model" {
+  description = "Text-to-speech model name Beatrice sends in every speech request; with enable_ai it is the model baked into the Qwen-TTS image"
+  type        = string
+  default     = "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
+}
+
+variable "llm_api_key" {
+  description = "API key for the external LLM; null keeps the module default, which Ollama accepts"
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
+variable "tts_api_key" {
+  description = "API key for the external text-to-speech server; null keeps the module default, which the local shim accepts"
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
+variable "tts_voices" {
+  description = "Voices the text-to-speech server offers, comma separated; null keeps the module default"
+  type        = string
+  default     = null
+}
+
 variable "tts_base_url" {
-  description = "Base URL of an external Qwen-compatible text-to-speech server; used when enable_ai is false"
+  description = "Base URL of an external OpenAI-compatible text-to-speech server; used when enable_ai is false"
   type        = string
   default     = null
 }

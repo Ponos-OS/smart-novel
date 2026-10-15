@@ -79,7 +79,27 @@ variable "llm_base_url" {
 }
 
 variable "tts_base_url" {
-  description = "Base URL of a Qwen-compatible text-to-speech server outside the cluster, used when enable_ai is false"
+  description = "Base URL of a OpenAI-compatible text-to-speech server outside the cluster, used when enable_ai is false"
+  type        = string
+  default     = null
+}
+
+variable "llm_api_key" {
+  description = "API key for the external LLM; null keeps the module default, which Ollama accepts"
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
+variable "tts_api_key" {
+  description = "API key for the external text-to-speech server; null keeps the module default, which the local shim accepts"
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
+variable "tts_voices" {
+  description = "Voices the text-to-speech server offers, comma separated; null keeps the module default"
   type        = string
   default     = null
 }

@@ -4,7 +4,7 @@ set -eu
 # Build-time we always talk to the local daemon:
 HOST="${OLLAMA_HOST:-127.0.0.1}"
 PORT="${OLLAMA_PORT:-11434}"
-MODEL="${OLLAMA_MODEL:-llama3.2:1b}"
+MODEL="${BEATRICE_LLM_MODEL:-llama3.2:1b}"
 READY_TRIES="${OLLAMA_READY_TRIES:-60}"
 READY_SLEEP="${OLLAMA_READY_SLEEP:-1}"
 

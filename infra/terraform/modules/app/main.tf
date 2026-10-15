@@ -124,6 +124,10 @@ module "beatrice" {
   llm_base_url       = local.llm_base_url
   llm_model          = var.llm_model
   tts_base_url       = local.tts_base_url
+  tts_model          = var.tts_model
+  llm_api_key        = coalesce(var.llm_api_key, "ollama")
+  tts_api_key        = coalesce(var.tts_api_key, "local-dev-key")
+  tts_voices         = coalesce(var.tts_voices, "default")
   otlp_http_endpoint = local.otlp_endpoint
 
   # Beatrice does not reconnect when the broker is unreachable at startup.

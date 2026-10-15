@@ -12,7 +12,7 @@ resource "kubernetes_secret_v1" "beatrice" {
   data = {
     RABBITMQ__CONNECTION_STRING = var.broker_url
     LLM__API_KEY                = var.llm_api_key
-    TTS__QWEN__API_KEY          = var.tts_api_key
+    TTS__API_KEY                = var.tts_api_key
   }
 }
 
@@ -59,9 +59,10 @@ resource "kubernetes_deployment_v1" "beatrice" {
               OTEL__EXPORTER_OTLP_ENDPOINT            = local.tracing_enabled ? var.otlp_http_endpoint : ""
               OTEL__TRACES_SAMPLER                    = var.traces_sampler
               GENERATE_AUDIO__CALLBACK__ALLOWED_HOSTS = var.callback_allowed_hosts
-              TTS__QWEN__BASE_URL                     = var.tts_base_url
-              TTS__QWEN__VOICES                       = var.tts_voices
-              TTS__QWEN__TIMEOUT_MS                   = tostring(var.tts_timeout_ms)
+              TTS__BASE_URL                           = var.tts_base_url
+              TTS__MODEL                              = var.tts_model
+              TTS__VOICES                             = var.tts_voices
+              TTS__TIMEOUT_MS                         = tostring(var.tts_timeout_ms)
             }
             content {
               name  = env.key
