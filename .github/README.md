@@ -26,7 +26,7 @@ smart-novel/
 │   │       │   ├── auth/         # Zitadel OIDC auth & RBAC guards
 │   │       │   ├── llm/          # Ollama LLM word explanation
 │   │       │   ├── novel/        # Novel & chapter CRUD, narration (TTS)
-│   │       │   ├── object-storage/ # MinIO S3 file uploads
+│   │       │   ├── object-storage/ # RustFS S3 file uploads
 │   │       │   ├── prisma/       # Prisma service
 │   │       │   └── redis/        # Redis caching service
 │   │       └── utils/
@@ -56,7 +56,7 @@ smart-novel/
 - **Auth**: Zitadel (OIDC/OAuth2), RBAC
 - **LLM**: Ollama (llama3.2:1b), Open WebUI
 - **TTS**: Piper TTS REST API
-- **Object Storage**: MinIO (S3-compatible)
+- **Object Storage**: RustFS (S3-compatible)
 - **Reverse Proxy**: Traefik
 - **Testing**: Vitest (unit/integration), Cypress (E2E)
 - **Monorepo**: Nx

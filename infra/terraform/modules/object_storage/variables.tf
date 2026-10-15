@@ -10,25 +10,25 @@ variable "labels" {
 }
 
 variable "image" {
-  description = "Container image of the MinIO server"
+  description = "Container image of the the object storage server"
   type        = string
 }
 
-variable "mc_image" {
-  description = "Container image of the MinIO client that creates the bucket"
+variable "aws_cli_image" {
+  description = "Container image of the AWS CLI that creates the bucket"
   type        = string
 }
 
 variable "access_key" {
-  description = "Root user of MinIO"
+  description = "Root user of the object storage"
   type        = string
-  default     = "minioadmin"
+  default     = "rustfsadmin"
 }
 
 variable "secret_key" {
-  description = "Root password of MinIO"
+  description = "Root password of the object storage"
   type        = string
-  default     = "minioadmin"
+  default     = "rustfsadmin"
   sensitive   = true
 }
 
@@ -54,7 +54,7 @@ variable "api_node_port" {
 }
 
 variable "console_node_port" {
-  description = "Node port of the MinIO console, to reach it from the host; null keeps it cluster-internal"
+  description = "Node port of the the object storage console, to reach it from the host; null keeps it cluster-internal"
   type        = number
   default     = null
 }

@@ -27,8 +27,8 @@ variable "third_party_images" {
   default = {
     postgres       = "postgres:18.2-bookworm"
     redis          = "redis:8.6-alpine3.23"
-    minio          = "quay.io/minio/minio:RELEASE.2025-04-08T15-41-24Z"
-    minio_mc       = "quay.io/minio/mc:RELEASE.2025-04-08T15-39-49Z"
+    object_storage = "rustfs/rustfs:1.0.1"
+    aws_cli        = "amazon/aws-cli:2.38.1"
     traefik        = "traefik:v3.6.8"
     zitadel        = "ghcr.io/zitadel/zitadel:v4.12.3"
     zitadel_login  = "ghcr.io/zitadel/zitadel-login:v4.12.3"
@@ -46,7 +46,7 @@ variable "s3_port" {
 }
 
 variable "s3_console_port" {
-  description = "Port on the host that reaches the MinIO console"
+  description = "Port on the host that reaches the object storage console"
   type        = number
   default     = 9001
 }

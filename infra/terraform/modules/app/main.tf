@@ -26,17 +26,17 @@ module "redis" {
   node_port = var.redis_node_port
 }
 
-module "minio" {
-  source = "../minio"
+module "object_storage" {
+  source = "../object_storage"
 
   namespace               = module.namespace.name
   labels                  = var.labels
-  image                   = var.images["minio"]
-  mc_image                = var.images["minio_mc"]
+  image                   = var.images["object_storage"]
+  aws_cli_image           = var.images["aws_cli"]
   object_storage_endpoint = var.object_storage_endpoint
   api_node_port           = var.object_storage_api_node_port
   console_node_port       = var.object_storage_console_node_port
-  seed_volume             = var.minio_seed_volume
+  seed_volume             = var.object_storage_seed_volume
   persistent_volumes      = var.persistent_volumes
   storage_class_name      = var.storage_class_name
 }
@@ -74,7 +74,7 @@ locals {
 
   backend_environment = merge(
     var.backend_environment,
-    { OBJECT_STORAGE_ENDPOINT = module.minio.endpoint },
+    { OBJECT_STORAGE_ENDPOINT = module.object_storage.endpoint },
     local.beatrice_url == null ? {} : { BEATRICE_URL = local.beatrice_url },
     local.otlp_endpoint == null ? { OTEL_ENABLED = "false" } : { OTEL_ENABLED = "true", OTEL_EXPORTER_OTLP_ENDPOINT = local.otlp_endpoint },
   )
@@ -147,7 +147,7 @@ module "pre_deploy_job" {
   secret_environment = each.value.use_backend_environment ? local.backend_secret_environment : {}
   volumes            = each.value.volumes
 
-  depends_on = [module.postgres, module.redis, module.minio, module.beatrice, module.observability]
+  depends_on = [module.postgres, module.redis, module.object_storage, module.beatrice, module.observability]
 }
 
 module "backend" {

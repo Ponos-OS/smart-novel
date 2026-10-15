@@ -1,17 +1,17 @@
 mock_provider "kubernetes" {}
 
 variables {
-  namespace = "smart-novel"
-  image     = "quay.io/minio/minio:RELEASE.2025-04-08T15-41-24Z"
-  mc_image  = "quay.io/minio/mc:RELEASE.2025-04-08T15-39-49Z"
+  namespace     = "smart-novel"
+  image         = "object_storage/object_storage:1.0.1"
+  aws_cli_image = "amazon/aws-cli:2.38.1"
 }
 
-run "without_endpoint_deploys_minio_and_initializes_the_bucket" {
+run "without_endpoint_deploys_object_storage_and_initializes_the_bucket" {
   command = plan
 
   assert {
-    condition     = length(kubernetes_deployment_v1.minio) == 1 && length(kubernetes_job_v1.init) == 1
-    error_message = "the in-cluster MinIO and its init job must be deployed when object_storage_endpoint is null"
+    condition     = length(kubernetes_deployment_v1.object_storage) == 1 && length(kubernetes_job_v1.init) == 1
+    error_message = "the in-cluster object storage and its init job must be deployed when object_storage_endpoint is null"
   }
 
   assert {
@@ -56,7 +56,7 @@ run "without_seed_volume_mounts_only_the_policy" {
   }
 }
 
-run "with_endpoint_skips_minio" {
+run "with_endpoint_skips_object_storage" {
   command = plan
 
   variables {
@@ -64,7 +64,7 @@ run "with_endpoint_skips_minio" {
   }
 
   assert {
-    condition     = length(kubernetes_deployment_v1.minio) == 0 && length(kubernetes_job_v1.init) == 0
-    error_message = "MinIO must not be deployed when an external object_storage_endpoint is given"
+    condition     = length(kubernetes_deployment_v1.object_storage) == 0 && length(kubernetes_job_v1.init) == 0
+    error_message = "object storage must not be deployed when an external object_storage_endpoint is given"
   }
 }

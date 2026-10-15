@@ -11,7 +11,7 @@ variable "labels" {
 }
 
 variable "images" {
-  description = "Container images: postgres, redis, minio, minio_mc, traefik, zitadel, zitadel_login, busybox, otel_collector, jaeger, rabbitmq, beatrice, ollama, openai_compatible_tts, backend and frontend, plus redis_insight, pgadmin and open_webui when enable_devtools is true"
+  description = "Container images: postgres, redis, object_storage, aws_cli, traefik, zitadel, zitadel_login, busybox, otel_collector, jaeger, rabbitmq, beatrice, ollama, openai_compatible_tts, backend and frontend, plus redis_insight, pgadmin and open_webui when enable_devtools is true"
   type        = map(string)
 }
 
@@ -42,7 +42,7 @@ variable "redis_url" {
 }
 
 variable "object_storage_endpoint" {
-  description = "Endpoint of an external S3-compatible storage; when set, MinIO is not deployed"
+  description = "Endpoint of an external S3-compatible storage; when set, object storage is not deployed"
   type        = string
   default     = null
 }
@@ -60,7 +60,7 @@ variable "object_storage_api_node_port" {
 }
 
 variable "object_storage_console_node_port" {
-  description = "Node port that exposes the MinIO console to the host; null keeps it cluster-internal"
+  description = "Node port that exposes the object storage console to the host; null keeps it cluster-internal"
   type        = number
   default     = null
 }
@@ -213,7 +213,7 @@ variable "frontend_files" {
   default     = {}
 }
 
-variable "minio_seed_volume" {
+variable "object_storage_seed_volume" {
   description = "Where the seed covers live, from a host path or a persistent volume claim; null uploads none"
   type = object({
     host_path  = optional(string)

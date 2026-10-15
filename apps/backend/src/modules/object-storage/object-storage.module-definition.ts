@@ -7,11 +7,11 @@ import { CommonModuleOptions } from 'nestjs-backend-common';
 
 export interface ObjectStorageModuleOptions {
   /**
-   * @description region is required when using AWS; can be arbitrary with custom endpoints (e.g., MinIO/Localstack).
+   * @description region is required when using AWS; can be arbitrary with custom endpoints (e.g., RustFS/Localstack).
    */
   region: string;
 
-  /** @description Optional custom endpoint (e.g., http://localhost:4566 for Localstack, http://minio:9000 for MinIO). */
+  /** @description Optional custom endpoint (e.g., http://localhost:4566 for Localstack, http://s3:9000 for RustFS). */
   endpoint?: string;
 
   /** @description Preferred credential field names */

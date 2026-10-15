@@ -11,7 +11,7 @@ infra/
     │   ├── namespace/  The namespace every component deploys into
     │   ├── postgres/   PostgreSQL with the application and zitadel databases
     │   ├── redis/      Redis
-    │   ├── minio/      MinIO plus a Job that creates the bucket and uploads the seed covers
+    │   ├── object_storage/ S3-compatible storage (RustFS) plus a Job that creates the bucket and uploads the seed covers
     │   ├── ingress/    Traefik; serves the routes the other modules contribute
     │   ├── rabbitmq/   RabbitMQ
     │   ├── ollama/     Ollama with the model baked into the image
@@ -50,9 +50,9 @@ Code changes need no rebuild: `envs/local` mounts `apps/` into the kind node and
 
 ## Data Components
 
-Postgres, Redis and MinIO are deployed in the cluster under the Service names `postgres`, `redis` and `s3`, which the application settings in `.env` already use. Setting `database_url`, `redis_url` or `object_storage_endpoint` on `module "app"` skips the matching component. Data is throwaway unless `persistent_volumes` is `true`.
+Postgres, Redis and RustFS are deployed in the cluster under the Service names `postgres`, `redis` and `s3`, which the application settings in `.env` already use. Setting `database_url`, `redis_url` or `object_storage_endpoint` on `module "app"` skips the matching component. Data is throwaway unless `persistent_volumes` is `true`.
 
-MinIO is reachable from the host on `localhost:9000` (S3 API) and `localhost:9001` (console), through node ports mapped by `envs/local`. The seed covers in `apps/backend/data` are uploaded only when `minio_seed_volume` is set (a host path or a claim); without it only the bucket and its policy are created.
+RustFS is reachable from the host on `localhost:9000` (S3 API) and `localhost:9001` (console), through node ports mapped by `envs/local`. The seed covers in `apps/backend/data` are uploaded only when `object_storage_seed_volume` is set (a host path or a claim); without it only the bucket and its policy are created.
 
 ## Ingress and ZITADEL
 
@@ -88,7 +88,7 @@ Everything specific to hot reload lives in `envs/local/main.tf`: the development
 
 ## Devtools
 
-`enable_devtools = true` in `envs/local/terraform.tfvars` adds RedisInsight (`localhost:5540`), pgAdmin (`localhost:5050`, `admin@admin.com` / `admin`, the database is pre-registered) and Open WebUI (`localhost:8090`, no login). Unlike Jaeger they are reached by host port, through node ports mapped by `envs/local` like MinIO's: Open WebUI cannot be served under a path prefix, and these are the addresses `CONTRIBUTING.md` documents. The port mappings exist whether or not the tools are enabled, and their large images are pulled only when it is.
+`enable_devtools = true` in `envs/local/terraform.tfvars` adds RedisInsight (`localhost:5540`), pgAdmin (`localhost:5050`, `admin@admin.com` / `admin`, the database is pre-registered) and Open WebUI (`localhost:8090`, no login). Unlike Jaeger they are reached by host port, through node ports mapped by `envs/local` like RustFS's: Open WebUI cannot be served under a path prefix, and these are the addresses `CONTRIBUTING.md` documents. The port mappings exist whether or not the tools are enabled, and their large images are pulled only when it is.
 
 Each tool is deployed only when the service it inspects runs in the cluster (an external `database_url`, `redis_url` or `enable_ai = false` skips pgAdmin, RedisInsight or Open WebUI). Nothing outside `modules/devtools` refers to it, so a deployed environment leaves the module call out, or keeps `enable_devtools` false.
 

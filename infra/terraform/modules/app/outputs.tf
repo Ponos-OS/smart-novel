@@ -17,7 +17,7 @@ output "redis_url" {
 
 output "object_storage_endpoint" {
   description = "Endpoint of the S3 API"
-  value       = module.minio.endpoint
+  value       = module.object_storage.endpoint
 }
 
 output "otlp_http_endpoint" {

@@ -4,18 +4,18 @@ Not part of the compose-to-kind feature. Do this together with the future `envs/
 
 ## Context
 
-Locally, `modules/minio` runs a MinIO server and a Job that uses the `mc` client to create the bucket, upload the seed covers and apply the bucket policy. MinIO only exists as a local stand-in for S3. In production we use AWS S3.
+Locally, `modules/object_storage` runs a RustFS server and a Job that uses the AWS CLI to create the bucket, upload the seed covers and apply the bucket policy. RustFS only exists as a local stand-in for S3. In production we use AWS S3.
 
 ## Decision
 
-- Do **not** use the `aminueza/minio` Terraform provider. It would manage a server that never runs in production, and Terraform would need to reach MinIO from outside the cluster.
-- Do **not** point the `aws` provider at MinIO locally either; it has the same reachability problem and manages the bucket differently from production.
-- Keep `modules/minio` and its `mc` Job as the local-only implementation, used by `envs/local`.
+- Do **not** use the `aminueza/minio` Terraform provider. It would manage a server that never runs in production, and Terraform would need to reach RustFS from outside the cluster.
+- Do **not** point the `aws` provider at RustFS locally either; it has the same reachability problem and manages the bucket differently from production.
+- Keep `modules/object_storage` and its AWS CLI Job as the local-only implementation, used by `envs/local`.
 - Add `modules/aws_storage` (like Nestral's `aws_data`), used only by `envs/aws`, with the `aws` provider:
   - `aws_s3_bucket` and the public access block.
   - The bucket policy.
   - IAM permissions for the backend (and Beatrice, if it writes narrations) through the service account, as Nestral does with `service_account_annotations`.
-- `envs/aws` passes the result to `module "app"` as `object_storage_endpoint` (plus the bucket name). That input already skips MinIO, so `modules/app` does not change.
+- `envs/aws` passes the result to `module "app"` as `object_storage_endpoint` (plus the bucket name). That input already skips RustFS, so `modules/app` does not change.
 
 ## Open Questions
 

@@ -3,11 +3,11 @@ locals {
   seed_container = "/source-data"
 }
 
-resource "kubernetes_secret_v1" "minio" {
+resource "kubernetes_secret_v1" "object_storage" {
   count = local.deploy ? 1 : 0
 
   metadata {
-    name      = "minio"
+    name      = "object-storage"
     namespace = var.namespace
     labels    = var.labels
   }
@@ -22,7 +22,7 @@ resource "kubernetes_config_map_v1" "bucket_policy" {
   count = local.deploy ? 1 : 0
 
   metadata {
-    name      = "minio-bucket-policy"
+    name      = "object-storage-bucket-policy"
     namespace = var.namespace
     labels    = var.labels
   }
@@ -32,11 +32,11 @@ resource "kubernetes_config_map_v1" "bucket_policy" {
   }
 }
 
-resource "kubernetes_persistent_volume_claim_v1" "minio" {
+resource "kubernetes_persistent_volume_claim_v1" "object_storage" {
   count = local.deploy && var.persistent_volumes ? 1 : 0
 
   metadata {
-    name      = "minio-data"
+    name      = "object-storage-data"
     namespace = var.namespace
     labels    = var.labels
   }
@@ -53,11 +53,11 @@ resource "kubernetes_persistent_volume_claim_v1" "minio" {
   }
 }
 
-resource "kubernetes_deployment_v1" "minio" {
+resource "kubernetes_deployment_v1" "object_storage" {
   count = local.deploy ? 1 : 0
 
   metadata {
-    name      = "minio"
+    name      = "object-storage"
     namespace = var.namespace
     labels    = var.labels
   }
@@ -70,19 +70,18 @@ resource "kubernetes_deployment_v1" "minio" {
     }
 
     selector {
-      match_labels = { app = "minio" }
+      match_labels = { app = "object-storage" }
     }
 
     template {
       metadata {
-        labels = merge(var.labels, { app = "minio" })
+        labels = merge(var.labels, { app = "object-storage" })
       }
 
       spec {
         container {
-          name    = "minio"
-          image   = var.image
-          command = ["minio", "server", "--console-address", ":9001", "/data"]
+          name  = "object-storage"
+          image = var.image
 
           port {
             name           = "api"
@@ -95,28 +94,29 @@ resource "kubernetes_deployment_v1" "minio" {
           }
 
           env {
-            name = "MINIO_ROOT_USER"
+            name = "RUSTFS_ACCESS_KEY"
             value_from {
               secret_key_ref {
-                name = kubernetes_secret_v1.minio[0].metadata[0].name
+                name = kubernetes_secret_v1.object_storage[0].metadata[0].name
                 key  = "access_key"
               }
             }
           }
 
           env {
-            name = "MINIO_ROOT_PASSWORD"
+            name = "RUSTFS_SECRET_KEY"
             value_from {
               secret_key_ref {
-                name = kubernetes_secret_v1.minio[0].metadata[0].name
+                name = kubernetes_secret_v1.object_storage[0].metadata[0].name
                 key  = "secret_key"
               }
             }
           }
 
           readiness_probe {
-            exec {
-              command = ["mc", "ready", "local"]
+            http_get {
+              path = "/health"
+              port = "api"
             }
             period_seconds  = 5
             timeout_seconds = 5
@@ -139,7 +139,7 @@ resource "kubernetes_deployment_v1" "minio" {
           dynamic "persistent_volume_claim" {
             for_each = var.persistent_volumes ? [1] : []
             content {
-              claim_name = kubernetes_persistent_volume_claim_v1.minio[0].metadata[0].name
+              claim_name = kubernetes_persistent_volume_claim_v1.object_storage[0].metadata[0].name
             }
           }
         }
@@ -160,7 +160,7 @@ resource "kubernetes_service_v1" "s3" {
 
   spec {
     type     = var.api_node_port == null && var.console_node_port == null ? "ClusterIP" : "NodePort"
-    selector = { app = "minio" }
+    selector = { app = "object-storage" }
 
     port {
       name        = "api"
@@ -182,7 +182,7 @@ resource "kubernetes_job_v1" "init" {
   count = local.deploy ? 1 : 0
 
   metadata {
-    name      = "minio-init"
+    name      = "object-storage-init"
     namespace = var.namespace
     labels    = var.labels
   }
@@ -192,44 +192,50 @@ resource "kubernetes_job_v1" "init" {
 
     template {
       metadata {
-        labels = merge(var.labels, { app = "minio-init" })
+        labels = merge(var.labels, { app = "object-storage-init" })
       }
 
       spec {
         restart_policy = "OnFailure"
 
         container {
-          name  = "mc"
-          image = var.mc_image
+          name  = "aws-cli"
+          image = var.aws_cli_image
 
           command = [
             "/bin/sh", "-c",
             <<-EOT
-              until mc alias set my_minio http://s3:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; do sleep 2; done
-              mc mb --ignore-existing my_minio/${var.bucket}
+              until aws --endpoint-url http://s3:9000 s3api list-buckets; do sleep 2; done
+              aws --endpoint-url http://s3:9000 s3api head-bucket --bucket ${var.bucket} 2>/dev/null ||
+                aws --endpoint-url http://s3:9000 s3 mb s3://${var.bucket}
               for file in ${local.seed_container}/**/*.png ${local.seed_container}/**/**/*.png; do
-                [ -f "$file" ] && mc cp "$file" my_minio/${var.bucket}/covers/
+                [ -f "$file" ] && aws --endpoint-url http://s3:9000 s3 cp "$file" s3://${var.bucket}/covers/
               done
-              mc anonymous set-json /policy/bucket-policy.json my_minio/${var.bucket}
-              echo 'MinIO initialization complete!'
+              aws --endpoint-url http://s3:9000 s3api put-bucket-policy --bucket ${var.bucket} --policy file:///policy/bucket-policy.json
+              echo 'Object storage initialization complete!'
             EOT
           ]
 
           env {
-            name = "MINIO_ROOT_USER"
+            name  = "AWS_DEFAULT_REGION"
+            value = "us-east-1"
+          }
+
+          env {
+            name = "AWS_ACCESS_KEY_ID"
             value_from {
               secret_key_ref {
-                name = kubernetes_secret_v1.minio[0].metadata[0].name
+                name = kubernetes_secret_v1.object_storage[0].metadata[0].name
                 key  = "access_key"
               }
             }
           }
 
           env {
-            name = "MINIO_ROOT_PASSWORD"
+            name = "AWS_SECRET_ACCESS_KEY"
             value_from {
               secret_key_ref {
-                name = kubernetes_secret_v1.minio[0].metadata[0].name
+                name = kubernetes_secret_v1.object_storage[0].metadata[0].name
                 key  = "secret_key"
               }
             }
@@ -291,5 +297,5 @@ resource "kubernetes_job_v1" "init" {
     create = "5m"
   }
 
-  depends_on = [kubernetes_deployment_v1.minio]
+  depends_on = [kubernetes_deployment_v1.object_storage]
 }

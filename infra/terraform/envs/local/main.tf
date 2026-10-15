@@ -228,9 +228,9 @@ module "app" {
     open_webui    = local.open_webui_node_port
   }
 
-  pre_deploy_jobs   = local.pre_deploy_jobs
-  minio_seed_volume = { host_path = "${local.node_apps}/backend/data" }
-  external_port     = var.host_port
+  pre_deploy_jobs            = local.pre_deploy_jobs
+  object_storage_seed_volume = { host_path = "${local.node_apps}/backend/data" }
+  external_port              = var.host_port
 
   redis_node_port                  = local.redis_node_port
   object_storage_api_node_port     = local.s3_api_node_port

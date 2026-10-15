@@ -13,7 +13,7 @@ Then open:
 
 `npm run stop:dev` removes the environment. Prerequisites are Docker, Terraform and the [`kind` CLI](https://kind.sigs.k8s.io/docs/user/quick-start). The environment is a kind cluster described by Terraform modules under `infra/`; `infra/README.md` explains how it is put together.
 
-Jaeger (traces) is at http://localhost:8080/jaeger. MinIO is at http://localhost:9001 (console) and http://localhost:9000 (S3 API).
+Jaeger (traces) is at http://localhost:8080/jaeger. RustFS is at http://localhost:9001 (console) and http://localhost:9000 (S3 API).
 
 If you need DevTools such as RedisInsight, pgAdmin or Open WebUI, put this in `infra/terraform/envs/local/terraform.tfvars` (git-ignored) and run `npm run start:dev` again:
 
