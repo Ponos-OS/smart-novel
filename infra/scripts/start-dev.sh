@@ -7,6 +7,7 @@ set -eu
 mode="${1:-dev}"
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 env_dir="$repo_root/infra/terraform/envs/local"
+zitadel_env_dir="$repo_root/infra/terraform/envs/local-zitadel"
 cluster_name="smart-novel"
 
 case "$mode" in
@@ -89,7 +90,9 @@ terraform -chdir="$env_dir" init
 # Stage 1: the cluster and ZITADEL. The backend, the frontend and the Jobs need ZITADEL's generated credentials at startup, so they wait for stage 2.
 terraform -chdir="$env_dir" apply -auto-approve -var wait_for_zitadel_credentials=true "$@"
 
-# Stage 2: configure ZITADEL (placeholder until infra/terraform/envs/local-zitadel exists).
+# Stage 2: configure ZITADEL.
+terraform -chdir="$zitadel_env_dir" init
+terraform -chdir="$zitadel_env_dir" apply -auto-approve
 
 # Stage 3: deploy the workloads.
 terraform -chdir="$env_dir" apply -auto-approve -var wait_for_zitadel_credentials=false "$@"
