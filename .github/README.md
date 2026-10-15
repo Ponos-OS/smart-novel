@@ -69,10 +69,17 @@ npm ci
 npm run start:dev
 ```
 
-|        | URL                          | Info                                                            |
-| ------ | ---------------------------- | --------------------------------------------------------------- |
-| UI     | http://localhost:8080        | Username/Password: `infra/terraform/envs/local-zitadel/main.tf` |
-| Jaeger | http://localhost:8080/jaeger | No login needed for local dev.                                  |
+|                 | URL                               | Info                                                                                   |
+| --------------- | --------------------------------- | -------------------------------------------------------------------------------------- |
+| UI              | http://localhost:8080             | Username/Password: `infra/terraform/envs/local-zitadel/main.tf`                        |
+| smart-novel API | http://localhost:8080/graphql     | Apollo Sandbox. Needs a bearer token from a logged-in session.                         |
+| Beatrice API    | http://localhost:3001/graphql     | Cluster-internal; run `kubectl -n smart-novel port-forward deploy/beatrice 3001:3000`. |
+| Jaeger          | http://localhost:8080/jaeger      | No login needed for local dev.                                                         |
+| ZITADEL console | http://localhost:8080/ui/console/ | Admin login: `infra/terraform/envs/local-zitadel/main.tf`                              |
+| RustFS console  | http://localhost:9001             | S3 API on http://localhost:9000.                                                       |
+| Open WebUI      | http://localhost:8090             | Needs `enable_devtools = true`.                                                        |
+| RedisInsight    | http://localhost:5540             | Needs `enable_devtools = true`.                                                        |
+| pgAdmin         | http://localhost:5050             | Needs `enable_devtools = true`; `admin@admin.com` / `admin`.                           |
 
 ### E2E
 
