@@ -3,25 +3,25 @@ name: Build
 on:
   pull_request:
     paths:
-      - 'apps/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'nx.json'
-      - 'tsconfig.base.json'
-      - '.env.example'
-      - 'sonar-project.properties'
-      - '.github/workflows/build.yml'
+      - "apps/**"
+      - "package.json"
+      - "package-lock.json"
+      - "nx.json"
+      - "tsconfig.base.json"
+      - ".env.example"
+      - "sonar-project.properties"
+      - ".github/workflows/build.yml"
   push:
     branches: [main]
     paths:
-      - 'apps/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'nx.json'
-      - 'tsconfig.base.json'
-      - '.env.example'
-      - 'sonar-project.properties'
-      - '.github/workflows/build.yml'
+      - "apps/**"
+      - "package.json"
+      - "package-lock.json"
+      - "nx.json"
+      - "tsconfig.base.json"
+      - ".env.example"
+      - "sonar-project.properties"
+      - ".github/workflows/build.yml"
 
 concurrency:
   group: build-${{ github.workflow }}-${{ github.ref }}
