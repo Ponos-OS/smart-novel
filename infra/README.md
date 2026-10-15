@@ -23,7 +23,7 @@ infra/
     │   ├── devtools/   RedisInsight, pgAdmin, Open WebUI; off by default
     │   ├── observability/  OpenTelemetry Collector and Jaeger
     │   ├── zitadel/    ZITADEL (init Job, server, login UI) and its credentials volume
-    │   └── zitadel_setup/  Job that runs local-setup/setup-zitadel: project, roles, users, OIDC apps
+    │   └── zitadel_config/  Project, roles, users, OIDC apps, self-registration and impersonation, through the ZITADEL provider
     └── envs/
         └── local/      kind cluster, image loading, and one call to module "app"
 ```

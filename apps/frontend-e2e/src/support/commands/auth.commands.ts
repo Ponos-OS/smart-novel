@@ -29,7 +29,7 @@
 
 import { log as baseLog } from '../logger';
 
-// NOTE: Default credentials come from `local-setup/setup-zitadel/src/data/users.data.js`.
+// NOTE: Default credentials come from `infra/terraform/envs/local-zitadel/main.tf`.
 const DEFAULT_USERNAME = 'Writer';
 const DEFAULT_PASSWORD = 'Writer123!';
 
