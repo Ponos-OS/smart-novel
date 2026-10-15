@@ -224,7 +224,14 @@ describe('Beatrice callbacks (e2e)', () => {
         redisSubscriber,
         TTS_STATUS_CHANNEL,
         250_000,
-        (message) => JSON.parse(message).status === 'queued',
+        (message) => {
+          const update = JSON.parse(message);
+
+          return (
+            update.status === 'queued' &&
+            update.clientContextId === CHAPTER_TWO_ID
+          );
+        },
       );
       await redisSubscriber.subscribe(TTS_STATUS_CHANNEL);
 
@@ -364,6 +371,14 @@ describe('Beatrice callbacks (e2e)', () => {
           redisSubscriber,
           TTS_STATUS_CHANNEL,
           250_000,
+          (message) => {
+            const update = JSON.parse(message);
+
+            return (
+              update.status === 'queued' &&
+              update.clientContextId === CHAPTER_TWO_ID
+            );
+          },
         );
         await redisSubscriber.subscribe(TTS_STATUS_CHANNEL);
 

@@ -70,11 +70,14 @@ else
 fi
 
 set -- -var "mode=$mode"
+enable_ai="$(env_value ENABLE_AI)"
+enable_ai="${enable_ai:-true}"
+set -- "$@" -var "enable_ai=$enable_ai"
 if [ "$mode" = e2e ]; then
-  set -- "$@" -var enable_ai=true -var enable_devtools=false
+  set -- "$@" -var enable_devtools=false
 fi
 
-if [ "$mode" = e2e ] || ! grep -qs '^[[:space:]]*enable_ai[[:space:]]*=[[:space:]]*false' "$env_dir/terraform.tfvars"; then
+if [ "$enable_ai" = true ]; then
   docker build --build-arg "BEATRICE_LLM_MODEL=$(env_value BEATRICE_LLM_MODEL)" \
          -t smart-novel-ollama:dev "$repo_root/local-setup/ollama"
   docker build --build-arg "BEATRICE_TTS_MODEL=$(env_value BEATRICE_TTS_MODEL)" \

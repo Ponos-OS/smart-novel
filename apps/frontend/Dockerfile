@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 FROM node:24.13-alpine AS base
 RUN apk add --no-cache curl
 RUN npm install -g npm@11.6.2
@@ -35,7 +37,7 @@ CMD ["npx", "nx", "serve", "frontend", "--host=0.0.0.0"]
 FROM base AS builder
 COPY tsconfig.base.json ./
 COPY nx.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
 COPY apps/frontend ./apps/frontend
 RUN npx nx build frontend --prod
 

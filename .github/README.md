@@ -66,29 +66,39 @@ smart-novel/
 
 ```bash
 npm ci
-nx storybook frontend # starts storybook
-nx e2e backend-e2e # starts e2e tests for backend apps, we have similar thing for frontend
-npm run start:dev # starts the whole app in dev env
+npm run start:dev
 ```
 
-#### Local models vs. an external provider
+|        | URL                          | Info                                                            |
+| ------ | ---------------------------- | --------------------------------------------------------------- |
+| UI     | http://localhost:8080        | Username/Password: `infra/terraform/envs/local-zitadel/main.tf` |
+| Jaeger | http://localhost:8080/jaeger | No login needed for local dev.                                  |
 
-Beatrice (word explanations and narration) talks to an OpenAI-compatible LLM and an OpenAI-compatible speech endpoint (`POST {base_url}/audio/speech`). One switch, `enable_ai`, picks where both come from. `nx e2e` always uses the local models.
-
-**Local models (default)**: Ollama and the bundled `local-setup/openai-compatible-tts` server run in the cluster. Nothing to configure in `terraform.tfvars`; set these in `.env` (see `.env.example`):
+### E2E
 
 ```bash
-BEATRICE_LLM_MODEL=llama3.2:3b
-BEATRICE_TTS_MODEL=Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice
-BEATRICE_DEFAULT_VOICE=default
+nx storybook frontend # starts storybook
+nx e2e backend-e2e    # starts backend e2e tests
 ```
 
-The first run builds large images, and speech synthesis on a CPU can take minutes.
+#### Connect to External LLM Providers
 
-**External provider**: put this in `infra/terraform/envs/local/terraform.tfvars` (git-ignored; keys are sensitive, never commit them) and run `npm run start:dev` again:
+Beatrice talks to an OpenAI-compatible LLM and an OpenAI-compatible speech endpoint.
+
+`ENABLE_AI` in `.env`, picks where the requests must go when starting the app (`npm run start:dev`) or running the tests (`nx e2e backend-e2e`).
+
+Local models utilize Ollama and the bundled `local-setup/openai-compatible-tts`. Then we do not need to change anything [`terraform.tfvars`](../infra/terraform/envs/local/terraform.tfvars); set these in `.env`:
+
+```bash
+ENABLE_AI=false
+BEATRICE_LLM_MODEL=gpt-4o-mini
+BEATRICE_TTS_MODEL=gpt-4o-mini-tts
+BEATRICE_DEFAULT_VOICE=alloy
+```
+
+Then put the endpoints and keys in `infra/terraform/envs/local/terraform.tfvars`:
 
 ```hcl
-enable_ai    = false
 llm_base_url = "https://api.openai.com/v1"
 llm_api_key  = "sk-..."
 tts_base_url = "https://api.openai.com/v1"
@@ -96,22 +106,10 @@ tts_api_key  = "sk-..."
 tts_voices   = "alloy,nova"
 ```
 
-Then set model and voice names the provider knows in `.env`:
+`BEATRICE_DEFAULT_VOICE` must be one of `tts_voices`.
 
-```bash
-BEATRICE_LLM_MODEL=gpt-4o-mini
-BEATRICE_TTS_MODEL=gpt-4o-mini-tts
-BEATRICE_DEFAULT_VOICE=alloy
-```
+> [!IMPORTANT]
+>
+> The LLM and speech endpoints cannot be mixed (one local, one external) with the current switch.
 
-With `enable_ai = false` Ollama and the local speech server are neither built nor deployed, and Beatrice is deployed only when both URLs are set. `BEATRICE_DEFAULT_VOICE` must be one of `tts_voices`. Delete the lines from `terraform.tfvars` and restore the `.env` values to go back to local models. The LLM and speech endpoints cannot be mixed (one local, one external) with the current switch.
-
-#### Logging in to the frontend
-
-Open http://localhost:8080 and sign in through ZITADEL with [one of the seeded test users](../infra/terraform/envs/local-zitadel/main.tf) (created by `infra/terraform/envs/local-zitadel`):
-
-Use `writer@test.com` to create novels and chapters. The ZITADEL console (http://localhost:8080/ui/console/) takes the instance admin from `.env` (`ZITADEL_ADMIN_USERNAME` / `ZITADEL_ADMIN_PASSWORD`, `admin` / `Admin123!` by default).
-
-#### Accessing Jaeger
-
-Jaeger is at http://localhost:8080/jaeger. It has no login, anyone who can reach the port can open it.
+Every call to a paid provider costs money, so run only the specs that you are interested in: Narrow `include` in [`apps/backend-e2e/vitest.config.ts`](../apps/backend-e2e/vitest.config.ts) to those specs, e.g. `src/backend/beatrice-callbacks.e2e-spec.ts`. Do not commit this change though.

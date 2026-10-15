@@ -76,7 +76,7 @@ The OpenTelemetry Collector (tail sampling config in `modules/observability`) re
 
 Beatrice consumes audio jobs from RabbitMQ, normalizes text with an LLM (Ollama) and synthesizes speech with OpenAI-compatible TTS. `local-setup/ollama` and `local-setup/openai-compatible-tts` stay where they are; `start-dev.sh` builds them (models are baked in, so the first build is large and slow) and `envs/local` loads them into kind. Beatrice does not reconnect if RabbitMQ is down when it starts, so `modules/app` makes it wait for RabbitMQ and the AI components.
 
-`enable_ai = false` (in `envs/local/terraform.tfvars`) skips building and deploying Ollama and OpenAI-compatible TTS. Beatrice and RabbitMQ then run only if `llm_base_url` and `tts_base_url` point at other services, for example the host or a cloud provider; otherwise they are skipped too. `broker_url` skips RabbitMQ. Beatrice has no health endpoint, so its readiness probe checks that the port is open.
+`ENABLE_AI=false` (in `.env`) skips building and deploying Ollama and OpenAI-compatible TTS. Beatrice and RabbitMQ then run only if `llm_base_url` and `tts_base_url` point at other services, for example the host or a cloud provider; otherwise they are skipped too. `broker_url` skips RabbitMQ. Beatrice has no health endpoint, so its readiness probe checks that the port is open.
 
 ## Backend and Frontend
 
@@ -96,7 +96,7 @@ Each tool is deployed only when the service it inspects runs in the cluster (an 
 
 ## End-to-End Tests
 
-`nx e2e backend-e2e` and `nx e2e frontend-e2e` run `infra/scripts/start-dev.sh e2e`, which builds the production backend and frontend images (the init Job still uses the development image and the mounted sources), applies `envs/local` with `mode = e2e`, `enable_devtools = false` and `enable_ai = true`, and tears everything down with `stop-dev.sh` afterwards. Redis is exposed on `localhost:6379` because the backend suites subscribe to it directly. `backend-e2e` reads the project ID, the user IDs and the integration-test bot's key and client from `terraform output -json` of `envs/local-zitadel`, so nothing is copied out of the cluster or written to the host.
+`nx e2e backend-e2e` and `nx e2e frontend-e2e` run `infra/scripts/start-dev.sh e2e`, which builds the production backend and frontend images (the init Job still uses the development image and the mounted sources), applies `envs/local` with `mode = e2e`, `enable_devtools = false` and `enable_ai` taken from `ENABLE_AI` in `.env`, and tears everything down with `stop-dev.sh` afterwards. Redis is exposed on `localhost:6379` because the backend suites subscribe to it directly. `backend-e2e` reads the project ID, the user IDs and the integration-test bot's key and client from `terraform output -json` of `envs/local-zitadel`, so nothing is copied out of the cluster or written to the host.
 
 The dev and e2e environments both use the cluster name `smart-novel` and host port 8080, so they cannot run together: `start-dev.sh e2e` exits with code 3 and an instruction to run `npm run stop:dev` first when the cluster exists, and the callers then skip their teardown instead of destroying the environment that is running.
 

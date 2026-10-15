@@ -28,6 +28,9 @@ export default defineConfig({
       reportsDirectory: '../../coverage/apps/backend-e2e',
     },
 
+    // The spec files share one Redis status channel and the same chapters
+    fileParallelism: false,
+
     // Test file patterns
     include: ['src/backend/**/*.e2e-spec.ts'],
   },
