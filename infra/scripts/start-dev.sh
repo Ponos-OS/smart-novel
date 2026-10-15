@@ -43,7 +43,6 @@ docker build -f "$repo_root/apps/backend/Dockerfile" \
        --target development \
        --build-arg "PORT=${backend_port:-3000}" \
        -t smart-novel-backend:dev "$repo_root"
-docker build -t smart-novel-setup-zitadel:dev "$repo_root/local-setup/setup-zitadel"
 
 if [ "$mode" = dev ]; then
   docker build -f "$repo_root/apps/frontend/Dockerfile" \

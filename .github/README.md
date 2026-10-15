@@ -41,8 +41,7 @@ smart-novel/
 ├── infra/                        # Terraform modules and scripts for the local kind cluster (see infra/README.md)
 ├── local-setup/                  # Images the cluster builds
 │   ├── ollama/                   # Ollama Dockerfile & healthcheck
-│   ├── openai-compatible-tts/    # OpenAI-compatible TTS server Dockerfile & healthcheck
-│   └── setup-zitadel/            # Zitadel provisioning scripts
+│   └── openai-compatible-tts/    # OpenAI-compatible TTS server Dockerfile & healthcheck
 ├── .env.example                  # Environment variables template
 ├── nx.json                       # Nx configuration
 └── tsconfig.base.json            # TypeScript base configuration
@@ -109,7 +108,7 @@ With `enable_ai = false` Ollama and the local speech server are neither built no
 
 #### Logging in to the frontend
 
-Open http://localhost:8080 and sign in through ZITADEL with [one of the seeded test users](../local-setup/setup-zitadel/README.md#created-test-users) (created by `local-setup/setup-zitadel`):
+Open http://localhost:8080 and sign in through ZITADEL with [one of the seeded test users](../infra/terraform/envs/local-zitadel/main.tf) (created by `infra/terraform/envs/local-zitadel`):
 
 Use `writer@test.com` to create novels and chapters. The ZITADEL console (http://localhost:8080/ui/console/) takes the instance admin from `.env` (`ZITADEL_ADMIN_USERNAME` / `ZITADEL_ADMIN_PASSWORD`, `admin` / `Admin123!` by default).
 

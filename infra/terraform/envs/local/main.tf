@@ -82,7 +82,7 @@ locals {
   frontend_environment_by_mode = merge(local.hot_reload ? local.frontend_environment : {}, local.zitadel_frontend_environment)
 
   built_images = concat(
-    [local.tooling_image, "smart-novel-setup-zitadel:dev"],
+    [local.tooling_image],
     local.hot_reload ? [local.frontend_image] : [local.backend_image, local.frontend_image],
     var.enable_ai ? values(var.ai_images) : [],
   )
@@ -197,9 +197,8 @@ module "app" {
 
   labels = var.tags
   images = merge(local.third_party_images, var.ai_images, {
-    setup_zitadel = "smart-novel-setup-zitadel:dev"
-    backend       = local.backend_image
-    frontend      = local.frontend_image
+    backend  = local.backend_image
+    frontend = local.frontend_image
   })
   wait_for_zitadel_credentials = var.wait_for_zitadel_credentials
   enable_ai                    = var.enable_ai
