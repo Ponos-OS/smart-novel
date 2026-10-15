@@ -22,3 +22,10 @@
 - The requirement asked which credential the action embeds. A first draft created a machine user with `ORG_USER_PERMISSION_EDITOR` and a PAT for it; the automated security review flagged a long-lived token inside the action script. ZITADEL's action runtime has `api.userGrants.push({projectID, roles})` (the docs' "Assign roles to users" example, internal authentication, post creation), so the action needs no credential at all and the machine user, org membership and PAT were removed. Lesson: when a requirement says "check which credential", first check whether the platform offers a call that needs none.
 - The JS action called the Management API and only logged a failed grant, so `allowed_to_fail = false` never blocked anything. With `userGrants.push` a failing grant now fails the registration, as the AC asks. Not exercised against a live ZITADEL in this pass.
 - The JS Job still running in stage 3 overwrites the trigger with its own action until Step 7.
+
+## Zitadel Terraform, Step 5 (2026-10-15)
+
+- Impersonation is `zitadel_default_security_settings`; the bot's key is `zitadel_machine_key` (JSON), its PAT `zitadel_personal_access_token`; the first-instance `bot` is found with the `zitadel_machine_users` data source. All sit behind one nullable `impersonation` input, so production gets none of it.
+- A mocked data source returns empty lists by default; a `mock_data` default is needed whenever a resource consumes `one(...)` of it.
+- The empty-role `zitadel_user_grant` (`role_keys = []`) is written but unverified; the AC allows a documented fallback if ZITADEL rejects it. To be checked with `nx e2e backend-e2e`.
+- Step 5 follow-up: `users[*].password` is optional (impersonation targets need no login) and `impersonation.credential_expiration_date` is configurable, defaulting to 9999-12-31. No QA environment exists yet; only the module accepts the inputs.

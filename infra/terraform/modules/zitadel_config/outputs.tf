@@ -12,3 +12,14 @@ output "user_ids" {
   description = "IDs of the created users, by username"
   value       = { for username, user in zitadel_human_user.this : username => user.id }
 }
+
+output "integration_test" {
+  description = "What the integration tests need to impersonate users; null when impersonation is not configured. The key is the JSON key file of the bot"
+  sensitive   = true
+  value = local.impersonation == 0 ? null : {
+    client_id     = zitadel_application_oidc.integration_test[0].client_id
+    client_secret = zitadel_application_oidc.integration_test[0].client_secret
+    bot_key       = zitadel_machine_key.impersonator[0].key_details
+    bot_token     = zitadel_personal_access_token.impersonator[0].token
+  }
+}

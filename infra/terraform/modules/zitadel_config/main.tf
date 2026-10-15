@@ -126,3 +126,92 @@ resource "zitadel_trigger_actions" "post_self_registration" {
   trigger_type = "TRIGGER_TYPE_POST_CREATION"
   action_ids   = [zitadel_action.post_self_registration[0].id]
 }
+
+locals {
+  impersonation          = var.impersonation == null ? 0 : 1
+  existing_impersonators = var.impersonation == null ? toset([]) : toset(var.impersonation.existing_impersonator_user_names)
+}
+
+resource "zitadel_default_security_settings" "this" {
+  count = local.impersonation
+
+  enable_impersonation = true
+}
+
+resource "zitadel_application_oidc" "integration_test" {
+  count = local.impersonation
+
+  org_id     = local.org_id
+  project_id = zitadel_project.this.id
+  name       = "${var.application_name}-integration-test"
+
+  redirect_uris    = var.impersonation.redirect_uris
+  response_types   = ["OIDC_RESPONSE_TYPE_CODE"]
+  grant_types      = ["OIDC_GRANT_TYPE_REFRESH_TOKEN", "OIDC_GRANT_TYPE_TOKEN_EXCHANGE", "OIDC_GRANT_TYPE_AUTHORIZATION_CODE"]
+  app_type         = "OIDC_APP_TYPE_WEB"
+  auth_method_type = "OIDC_AUTH_METHOD_TYPE_BASIC"
+  version          = "OIDC_VERSION_1_0"
+
+  access_token_type           = "OIDC_TOKEN_TYPE_JWT"
+  access_token_role_assertion = true
+  id_token_role_assertion     = true
+  dev_mode                    = var.dev_mode
+}
+
+resource "zitadel_machine_user" "impersonator" {
+  count = local.impersonation
+
+  org_id      = local.org_id
+  user_name   = "integration-test-impersonator-bot"
+  name        = "Integration Test Impersonation Bot"
+  description = "Machine user for integration test token exchange"
+}
+
+resource "zitadel_machine_key" "impersonator" {
+  count = local.impersonation
+
+  org_id          = local.org_id
+  user_id         = zitadel_machine_user.impersonator[0].id
+  key_type        = "KEY_TYPE_JSON"
+  expiration_date = var.impersonation.credential_expiration_date
+}
+
+resource "zitadel_personal_access_token" "impersonator" {
+  count = local.impersonation
+
+  org_id          = local.org_id
+  user_id         = zitadel_machine_user.impersonator[0].id
+  expiration_date = var.impersonation.credential_expiration_date
+}
+
+resource "zitadel_instance_member" "impersonator" {
+  count = local.impersonation
+
+  user_id = zitadel_machine_user.impersonator[0].id
+  roles   = ["IAM_END_USER_IMPERSONATOR"]
+}
+
+data "zitadel_machine_users" "existing_impersonators" {
+  for_each = local.existing_impersonators
+
+  org_id           = local.org_id
+  user_name        = each.key
+  user_name_method = "TEXT_QUERY_METHOD_EQUALS"
+}
+
+resource "zitadel_instance_member" "existing_impersonators" {
+  for_each = local.existing_impersonators
+
+  user_id = one(data.zitadel_machine_users.existing_impersonators[each.key].user_ids)
+  roles   = ["IAM_END_USER_IMPERSONATOR"]
+}
+
+# The impersonator must be able to reach the project but must not hold any of its roles, or the impersonated user's roles would mix with the bot's.
+resource "zitadel_user_grant" "impersonator" {
+  count = local.impersonation
+
+  org_id     = local.org_id
+  project_id = zitadel_project.this.id
+  user_id    = zitadel_machine_user.impersonator[0].id
+  role_keys  = []
+}

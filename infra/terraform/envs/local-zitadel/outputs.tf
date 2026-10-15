@@ -12,3 +12,9 @@ output "user_ids" {
   description = "IDs of the test users, by username"
   value       = module.zitadel_config.user_ids
 }
+
+output "integration_test" {
+  description = "Client ID and secret of the confidential application, and the key and PAT of the impersonator bot"
+  sensitive   = true
+  value       = module.zitadel_config.integration_test
+}
