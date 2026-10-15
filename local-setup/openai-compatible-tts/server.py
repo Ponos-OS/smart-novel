@@ -1,5 +1,5 @@
 """
-OpenAI-compatible TTS server backed by Qwen3-TTS, matching the `POST /audio/speech`
+OpenAI-compatible TTS server, locally backed by Qwen3-TTS, matching the `POST /audio/speech`
 contract `OpenAiSpeechProvider` (`src/modules/audio/openai_provider.py`) expects:
 
 - `POST /v1/audio/speech`
@@ -25,8 +25,8 @@ from qwen_tts import Qwen3TTSModel
 
 
 MODEL_ID = os.environ.get("BEATRICE_TTS_MODEL", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice")
-DEVICE = os.environ.get("QWEN_TTS_DEVICE", "cpu")
-PORT = int(os.environ.get("QWEN_TTS_PORT", "8001"))
+DEVICE = os.environ.get("TTS_DEVICE", "cpu")
+PORT = int(os.environ.get("TTS_PORT", "8001"))
 
 _VOICES = {"default": "Ryan"}
 _LANGUAGE = "English"

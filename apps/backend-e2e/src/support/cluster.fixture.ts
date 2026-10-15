@@ -10,7 +10,7 @@ type Workload =
   | 'deploy/backend'
   | 'deploy/zitadel'
   | 'deploy/beatrice'
-  | 'deploy/qwen-tts'
+  | 'deploy/openai-compatible-tts'
   | 'job/backend-init'
   | 'job/zitadel-setup';
 

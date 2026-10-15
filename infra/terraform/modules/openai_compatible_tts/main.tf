@@ -1,6 +1,6 @@
-resource "kubernetes_deployment_v1" "qwen_tts" {
+resource "kubernetes_deployment_v1" "openai_compatible_tts" {
   metadata {
-    name      = "qwen-tts"
+    name      = "openai-compatible-tts"
     namespace = var.namespace
     labels    = var.labels
   }
@@ -9,12 +9,12 @@ resource "kubernetes_deployment_v1" "qwen_tts" {
     replicas = 1
 
     selector {
-      match_labels = { app = "qwen-tts" }
+      match_labels = { app = "openai-compatible-tts" }
     }
 
     template {
       metadata {
-        labels = merge(var.labels, { app = "qwen-tts" })
+        labels = merge(var.labels, { app = "openai-compatible-tts" })
       }
 
       spec {
@@ -22,7 +22,7 @@ resource "kubernetes_deployment_v1" "qwen_tts" {
         enable_service_links = false
 
         container {
-          name  = "qwen-tts"
+          name  = "openai-compatible-tts"
           image = var.image
 
           port {
@@ -45,15 +45,15 @@ resource "kubernetes_deployment_v1" "qwen_tts" {
   }
 }
 
-resource "kubernetes_service_v1" "qwen_tts" {
+resource "kubernetes_service_v1" "openai_compatible_tts" {
   metadata {
-    name      = "qwen-tts"
+    name      = "openai-compatible-tts"
     namespace = var.namespace
     labels    = var.labels
   }
 
   spec {
-    selector = { app = "qwen-tts" }
+    selector = { app = "openai-compatible-tts" }
 
     port {
       port        = 8001

@@ -25,7 +25,7 @@ enable_devtools = true
 - RedisInsight: http://localhost:5540/
 - pgAdmin: http://localhost:5050/ (`admin@admin.com` / `admin`)
 
-To skip the heavy models (Ollama, Qwen-TTS, and with them Beatrice), set `enable_ai = false` the same way.
+To skip the heavy models (Ollama, OpenAI-compatible TTS, and with them Beatrice), set `enable_ai = false` the same way.
 
 ## Where to Change Things (Infrastructure)
 

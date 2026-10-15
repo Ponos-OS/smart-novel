@@ -4,8 +4,8 @@ FROM python:3.11-slim
 
 ARG BEATRICE_TTS_MODEL=Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice
 ENV BEATRICE_TTS_MODEL=${BEATRICE_TTS_MODEL}
-ENV QWEN_TTS_DEVICE=cpu
-ENV QWEN_TTS_PORT=8001
+ENV TTS_DEVICE=cpu
+ENV TTS_PORT=8001
 # Cache HF downloads in the image layer instead of re-fetching them into a throwaway container home dir.
 ENV HF_HOME=/root/.cache/huggingface
 
@@ -33,7 +33,7 @@ COPY --chmod=755 healthcheck.sh /usr/local/bin/healthcheck.sh
 COPY server.py /app/server.py
 WORKDIR /app
 
-EXPOSE ${QWEN_TTS_PORT}
+EXPOSE ${TTS_PORT}
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=5 --start-period=60s CMD ["/usr/local/bin/healthcheck.sh"]
 

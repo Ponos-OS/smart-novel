@@ -55,9 +55,7 @@ describe('Chapter Audio Narration', () => {
         'be.visible',
       );
 
-      // Exactly one generate/regenerate button — Step 3b collapses the old
-      // "Generate TTS" (review-page navigation) and "Generate Audio" buttons
-      // into a single action.
+      // Exactly one generate/regenerate button — Step 3b collapses the old "Generate TTS" (review-page navigation) and "Generate Audio" buttons into a single action.
       cy.get('body').should(($body) => {
         const text = $body.text();
         const hasGenerate = text.includes('Generate Audio');
@@ -175,9 +173,7 @@ describe('Chapter Audio Narration', () => {
 
   describe('Full flow: generate audio → live progress → audio player', () => {
     /**
-     * Slow integration test against the real backend services (RabbitMQ,
-     * Beatrice, the local Qwen3-TTS shim, S3). Timeouts are generous to
-     * account for CPU-only local TTS synthesis.
+     * Slow integration test against the real backend services (RabbitMQ, Beatrice, the local TTS shim, S3). Timeouts are generous to account for CPU-only local TTS synthesis.
      */
     it('should generate audio directly (no TTS-review detour) and reflect live progress via the subscription', () => {
       cy.login();
@@ -193,8 +189,7 @@ describe('Chapter Audio Narration', () => {
         'be.visible',
       );
 
-      // The single button is always "Generate Audio" or "Regenerate Audio" —
-      // no TTS-review detour exists anymore.
+      // The single button is always "Generate Audio" or "Regenerate Audio" — no TTS-review detour exists anymore.
       cy.get('body').then(($body) => {
         const hasExistingNarration = $body
           .text()
@@ -218,17 +213,12 @@ describe('Chapter Audio Narration', () => {
         'be.visible',
       );
 
-      // The subscription-driven stage label eventually replaces the generic
-      // spinner text (Step 2.2/3b/5) — CPU-only local synthesis can take a
-      // while to report its first "queued"/"generating"/"uploading" event.
+      // The subscription-driven stage label eventually replaces the generic spinner text (Step 2.2/3b/5) — CPU-only local synthesis can take a while to report its first "queued"/"generating"/"uploading" event.
       cy.contains(/Queued\.\.\.|Generating\.\.\.|Uploading\.\.\./, {
         timeout: 60000,
       }).should('be.visible');
 
-      // Wait for the audio player to appear once generation completes.
-      // Matches Beatrice's own TTS__TIMEOUT_MS (`infra/terraform/modules/beatrice`) — CPU-only
-      // local Qwen3-TTS synthesis can take a while, especially under
-      // concurrent test-suite load.
+      // Wait for the audio player to appear once generation completes. Matches Beatrice's own TTS__TIMEOUT_MS (`infra/terraform/modules/beatrice`) — CPU-only local TTS synthesis can take a while, especially under concurrent test-suite load.
       cy.contains('Audio Narration', { timeout: 300000 }).should(
         'be.visible',
       );

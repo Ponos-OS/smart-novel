@@ -10,6 +10,6 @@ variable "labels" {
 }
 
 variable "image" {
-  description = "Image built from local-setup/qwen-tts, with the model already pulled"
+  description = "Image built from local-setup/openai-compatible-tts, with the model already pulled"
   type        = string
 }

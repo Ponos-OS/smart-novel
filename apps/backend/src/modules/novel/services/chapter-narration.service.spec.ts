@@ -459,7 +459,7 @@ describe(ChapterNarrationService.name, () => {
         clientContextId: mockChapterId,
         error: {
           code: 'TTS_PROVIDER_ERROR',
-          message: 'qwen-tts timed out',
+          message: 'openai-compatible-tts timed out',
         },
       });
 
@@ -478,7 +478,8 @@ describe(ChapterNarrationService.name, () => {
             status: NarrationStatus.FAILED,
             narrationUrl: undefined,
             stage: undefined,
-            error: 'TTS_PROVIDER_ERROR: qwen-tts timed out',
+            error:
+              'TTS_PROVIDER_ERROR: openai-compatible-tts timed out',
           },
         },
       );
@@ -493,7 +494,7 @@ describe(ChapterNarrationService.name, () => {
         clientContextId: mockChapterId,
         error: {
           code: 'TTS_PROVIDER_ERROR',
-          message: 'qwen-tts timed out',
+          message: 'openai-compatible-tts timed out',
         },
       });
 
@@ -503,7 +504,7 @@ describe(ChapterNarrationService.name, () => {
       // Assert
       expect(logger.error).toHaveBeenCalledWith(
         expect.stringContaining(
-          `job ${mockJobId} for chapter ${mockChapterId} as failed: TTS_PROVIDER_ERROR: qwen-tts timed out`,
+          `job ${mockJobId} for chapter ${mockChapterId} as failed: TTS_PROVIDER_ERROR: openai-compatible-tts timed out`,
         ),
         expect.any(Object),
       );

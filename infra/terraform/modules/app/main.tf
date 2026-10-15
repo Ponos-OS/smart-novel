@@ -67,7 +67,7 @@ module "observability" {
 
 locals {
   llm_base_url    = var.enable_ai ? module.ollama[0].base_url : var.llm_base_url
-  tts_base_url    = var.enable_ai ? module.qwen_tts[0].base_url : var.tts_base_url
+  tts_base_url    = var.enable_ai ? module.openai_compatible_tts[0].base_url : var.tts_base_url
   deploy_beatrice = local.llm_base_url != null && local.tts_base_url != null
   otlp_endpoint   = one(module.observability[*].otlp_http_endpoint)
   beatrice_url    = one(module.beatrice[*].graphql_url)
@@ -94,13 +94,13 @@ module "ollama" {
   model     = var.llm_model
 }
 
-module "qwen_tts" {
-  source = "../qwen_tts"
+module "openai_compatible_tts" {
+  source = "../openai_compatible_tts"
   count  = var.enable_ai ? 1 : 0
 
   namespace = module.namespace.name
   labels    = var.labels
-  image     = var.images["qwen_tts"]
+  image     = var.images["openai_compatible_tts"]
 }
 
 module "rabbitmq" {
@@ -131,7 +131,7 @@ module "beatrice" {
   otlp_http_endpoint = local.otlp_endpoint
 
   # Beatrice does not reconnect when the broker is unreachable at startup.
-  depends_on = [module.rabbitmq, module.ollama, module.qwen_tts]
+  depends_on = [module.rabbitmq, module.ollama, module.openai_compatible_tts]
 }
 
 locals {
