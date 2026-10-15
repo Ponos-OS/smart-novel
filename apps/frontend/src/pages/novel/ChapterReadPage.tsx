@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
+import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { useGetChapterQuery } from '../../generated/graphql';
 import { useReadChapters } from '../../hooks/useReadChapters';
 import { ChapterContent } from './ChapterContent';
@@ -71,14 +72,7 @@ export function ChapterReadPage() {
       {/* Chapter Content */}
       <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         {chapterLoading || !currentChapter ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-              <p className="text-gray-600 dark:text-gray-400">
-                Loading chapter...
-              </p>
-            </div>
-          </div>
+          <LoadingSpinner label="Loading chapter..." />
         ) : (
           <ChapterContent
             chapter={currentChapter}
