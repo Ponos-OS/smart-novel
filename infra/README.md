@@ -22,21 +22,22 @@ infra/
     │   ├── job/        A one-shot Job
     │   ├── devtools/   RedisInsight, pgAdmin, Open WebUI; off by default
     │   ├── observability/  OpenTelemetry Collector and Jaeger
-    │   ├── zitadel/    ZITADEL (init Job, server, login UI) and its credentials volume
+    │   ├── zitadel/    ZITADEL (init Job, server, login UI); it writes its first-instance PATs to a volume
     │   └── zitadel_config/  Project, roles, users, OIDC apps, self-registration and impersonation, through the ZITADEL provider
     └── envs/
-        └── local/      kind cluster, image loading, and one call to module "app"
+        ├── local/          kind cluster, image loading, and one call to module "app"
+        └── local-zitadel/  Configures ZITADEL with the provider, through module "zitadel_config"
 ```
 
-Each component is its own module under `modules/`. `modules/app` wires them together and owns the toggles. `envs/<name>` is a thin root module: it creates the cluster, points the `kubernetes` provider at it, and calls `module "app"`.
+Each component is its own module under `modules/`. `modules/app` wires them together and owns the toggles. `envs/local` is a thin root module: it creates the cluster, points the `kubernetes` provider at it, and calls `module "app"`. `envs/local-zitadel` is a second root module that configures ZITADEL once it runs (see Ingress and ZITADEL).
 
 ## Local Environment
 
 We need Docker, Terraform and the [`kind` CLI](https://kind.sigs.k8s.io/docs/user/quick-start).
 
 ```bash
-npm run start:dev   # builds the images, creates the cluster, loads the images, applies
-npm run stop:dev    # destroys the cluster
+npm run start:dev   # builds the images, creates the cluster, loads the images, applies the three stages
+npm run stop:dev    # destroys the cluster and forgets the state of the ZITADEL configuration
 ```
 
 Both are safe to run twice. The app is served on `http://localhost:8080`. The kubeconfig is written to `infra/terraform/envs/local/smart-novel-config`:
@@ -57,9 +58,15 @@ MinIO is reachable from the host on `localhost:9000` (S3 API) and `localhost:900
 
 Traefik listens on node port 80, which kind maps to `localhost:8080`. It uses its file provider, so it needs no Kubernetes API access and no CRDs. A module contributes a route by exposing it in a `routes` output (`name`, `rule`, `priority`, `service`, optional `middlewares`); `modules/app` passes the routes of all modules to `modules/ingress`. The ingress module knows nothing about the applications behind it.
 
-ZITADEL's generated credentials (the bot PAT, the login-client PAT, the project ID, the OIDC client ID and the user IDs written by the setup script) live on one PersistentVolumeClaim, `zitadel-credentials`, mounted at `/zitadel-pat` by ZITADEL, the login UI and the setup Job. Consumers get the claim name and file paths from the `zitadel_credentials` output of `modules/app` (available only after the setup Job finished) and never refer to the volume directly.
+ZITADEL is configured in three stages, which `start-dev.sh` applies in order:
 
-To read the files from the host, for example for the e2e suites, copy them out of a pod that mounts the claim. Step 8 of `REQUIREMENTS.md` does this into the git-ignored `local-setup/{pats,client,user-ids}` directories the suites already read.
+1. `envs/local` with `wait_for_zitadel_credentials = true` creates the cluster and everything except the backend, the frontend and the pre-deploy Jobs, which need values ZITADEL generates.
+2. `envs/local-zitadel` configures ZITADEL with the `zitadel/zitadel` provider, through `modules/zitadel_config`: the project and its roles, the public OIDC application, the test users and their grants, self-registration with the action that grants the `user` role, and impersonation with the integration-test bot. Its outputs are the client ID, the bot PAT, the user IDs and the integration-test values.
+3. `envs/local` again with `wait_for_zitadel_credentials = false` reads those outputs with `terraform_remote_state` and passes them to the workloads as ordinary settings: `ZITADEL_CLIENT_ID` and `ZITADEL_PAT` (a Secret) for the backend, `VITE_OIDC_CLIENT_ID` for the frontend, `ZITADEL_WRITER_USER_ID` for the init Job. `modules/app` only knows its inputs and nothing about ZITADEL's configuration.
+
+`modules/zitadel_config` is the part a deployed environment reuses. Its root module supplies the inputs: `redirect_uris`, `users` (empty means none), `allow_self_registration` and `impersonation` (`null` means none, and it should only be set on an instance without real users, because it lets the bot act as any user). `envs/local-zitadel` authenticates the provider with ZITADEL's first-instance PAT, read from the cluster with `kubectl exec`. A deployed environment passes a JWT profile key to the provider instead. See `infra/docs/zitadel-terraform-provider.md`.
+
+The state of stage 2 lives next to `envs/local-zitadel` and is git-ignored. `stop-dev.sh` removes it with the cluster, so a fresh start configures a fresh ZITADEL.
 
 ## Observability
 
@@ -77,7 +84,7 @@ Beatrice consumes audio jobs from RabbitMQ, normalizes text with an LLM (Ollama)
 
 The modules know nothing about development. `backend` and `frontend` take an image, a port, environment, `volumes` (host path or claim), and the frontend also an optional `command` and `files`. Anything that has to run first, such as applying the database schema, is a `pre_deploy_jobs` entry (`modules/job`): the backend and the frontend start only after all of them completed, and `use_backend_environment` gives a Job the backend's environment, including what `modules/app` fills in.
 
-Everything specific to hot reload lives in `envs/local/main.tf`: the development images, the `hostPath` volumes that mount `apps/` from the node, the frontend start script (`envs/local/files/`, reads the generated OIDC client ID from the credentials volume), and two pre-deploy Jobs: `backend-init` (`prisma db push`, `generate`, `seed`) and `frontend-codegen` (`nx codegen frontend`, then `chown` of `apps/` to `run_as_user`; `start-dev.sh` passes `id -u`). A deployed environment passes production images, no volumes and its own migration Job. The `zitadel_credentials = true` flag on a volume means ZITADEL's credentials claim, which only `modules/app` knows the name of.
+Everything specific to hot reload lives in `envs/local/main.tf`: the development images, the `hostPath` volumes that mount `apps/` from the node, the frontend start script (`envs/local/files/`, which reads `VITE_OIDC_CLIENT_ID`), and two pre-deploy Jobs: `backend-init` (`prisma db push`, `generate`, `seed`) and `frontend-codegen` (`nx codegen frontend`, then `chown` of `apps/` to `run_as_user`; `start-dev.sh` passes `id -u`). A deployed environment passes production images, no volumes and its own migration Job.
 
 ## Devtools
 
@@ -89,7 +96,7 @@ Each tool is deployed only when the service it inspects runs in the cluster (an 
 
 ## End-to-End Tests
 
-`nx e2e backend-e2e` and `nx e2e frontend-e2e` run `infra/scripts/start-dev.sh e2e`, which builds the production backend and frontend images (the init Job still uses the development image and the mounted sources), applies `envs/local` with `mode = e2e`, `enable_devtools = false` and `enable_ai = true`, and tears everything down with `stop-dev.sh` afterwards. Redis is exposed on `localhost:6379` because the backend suites subscribe to it directly. The suites copy the credentials ZITADEL generated out of the cluster into the git-ignored `local-setup/{pats,client,user-ids}`, with `kubectl exec` into the backend pod.
+`nx e2e backend-e2e` and `nx e2e frontend-e2e` run `infra/scripts/start-dev.sh e2e`, which builds the production backend and frontend images (the init Job still uses the development image and the mounted sources), applies `envs/local` with `mode = e2e`, `enable_devtools = false` and `enable_ai = true`, and tears everything down with `stop-dev.sh` afterwards. Redis is exposed on `localhost:6379` because the backend suites subscribe to it directly. `backend-e2e` reads the project ID, the user IDs and the integration-test bot's key and client from `terraform output -json` of `envs/local-zitadel`, so nothing is copied out of the cluster or written to the host.
 
 The dev and e2e environments both use the cluster name `smart-novel` and host port 8080, so they cannot run together: `start-dev.sh e2e` exits with code 3 and an instruction to run `npm run stop:dev` first when the cluster exists, and the callers then skip their teardown instead of destroying the environment that is running.
 
@@ -98,4 +105,5 @@ The dev and e2e environments both use the cluster name `smart-novel` and host po
 - A new component: add `modules/<component>` and call it from `modules/app`.
 - A new variable in a module: give it a default that suits local development, and set it in an environment only if that one differs.
 - Something specific to one environment: put it in that environment's root module and pass it into `module "app"` as an input.
+- ZITADEL's configuration (a role, an application, a user, a policy): `modules/zitadel_config`, with the local values in `envs/local-zitadel/main.tf`.
 - Personal overrides: `envs/local/terraform.tfvars` (git-ignored).

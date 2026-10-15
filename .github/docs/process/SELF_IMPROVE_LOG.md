@@ -42,3 +42,9 @@
 - Pure deletion: `local-setup/setup-zitadel`, `modules/zitadel_setup`, the image build, the image load and the `setup_zitadel` image variable. Step 6 had already removed the module call, so nothing referenced the module any more.
 - The AC grep still matches `REQUIREMENTS.md` (archived later) and `infra/docs/zitadel-terraform-provider.md`, which Step 8 replaces. The two README references and the test-user comment in `auth.commands.ts` were repointed to `envs/local-zitadel` now, since they were links, not prose to rewrite.
 - The README paragraphs that still describe the credentials volume and the setup Job are wrong now; they are Step 8's.
+
+## Zitadel Terraform, Step 8 (2026-10-15)
+
+- Docs: `infra/README.md` (three stages, `zitadel_config`, e2e reading outputs), `.github/CONTRIBUTING.md` (where to change ZITADEL), and the old future-enhancement note replaced by a short production note. `.env.example` and `.github/README.md` were already updated in Steps 6 and 7.
+- Housekeeping: I first dropped the `local-setup/{pats,client,user-ids}` lines from `.gitignore`, which made `git add -A` stage leftover credential files from earlier runs (bot key, PATs). Unstaged before any commit and the lines restored. Lesson: never remove an ignore rule for a directory that may still hold generated secrets; delete the directory first, or leave the rule. `npm run clean` still removes them.
+- Only the commands that were run are verifiable from here: `terraform test` and `validate`, `tsc`, `eslint`. The documented flow (`start:dev`, `stop:dev`, both e2e suites, idempotent re-runs) has not been executed by this session.
