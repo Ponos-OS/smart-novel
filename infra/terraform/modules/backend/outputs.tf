@@ -1,3 +1,8 @@
+output "enabled" {
+  description = "Whether the workload is deployed"
+  value       = var.enabled
+}
+
 output "routes" {
   description = "Routes for the ingress: the GraphQL API and the callbacks Beatrice calls when audio is ready"
   value = [

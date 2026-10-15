@@ -3,6 +3,8 @@ locals {
 }
 
 resource "kubernetes_secret_v1" "backend" {
+  count = var.enabled ? 1 : 0
+
   metadata {
     name      = "backend"
     namespace = var.namespace
@@ -14,10 +16,14 @@ resource "kubernetes_secret_v1" "backend" {
 
 # Ordering goes through a value instead of a module-level depends_on, which would make the routes output wait for the Jobs and close a cycle with the ingress.
 resource "terraform_data" "wait_for" {
+  count = var.enabled ? 1 : 0
+
   input = var.wait_for
 }
 
 resource "kubernetes_deployment_v1" "backend" {
+  count = var.enabled ? 1 : 0
+
   metadata {
     name      = "backend"
     namespace = var.namespace
@@ -46,7 +52,7 @@ resource "kubernetes_deployment_v1" "backend" {
 
           env_from {
             secret_ref {
-              name = kubernetes_secret_v1.backend.metadata[0].name
+              name = kubernetes_secret_v1.backend[0].metadata[0].name
             }
           }
 

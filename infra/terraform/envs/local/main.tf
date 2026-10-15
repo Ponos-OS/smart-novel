@@ -189,14 +189,15 @@ module "app" {
     backend       = local.backend_image
     frontend      = local.frontend_image
   })
-  enable_ai    = var.enable_ai
-  llm_base_url = var.llm_base_url
-  llm_model    = lookup(local.dotenv, "BEATRICE_LLM_MODEL", "llama3.2:1b")
-  tts_model    = lookup(local.dotenv, "BEATRICE_TTS_MODEL", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice")
-  tts_base_url = var.tts_base_url
-  llm_api_key  = var.llm_api_key
-  tts_api_key  = var.tts_api_key
-  tts_voices   = var.tts_voices
+  wait_for_zitadel_credentials = var.wait_for_zitadel_credentials
+  enable_ai                    = var.enable_ai
+  llm_base_url                 = var.llm_base_url
+  llm_model                    = lookup(local.dotenv, "BEATRICE_LLM_MODEL", "llama3.2:1b")
+  tts_model                    = lookup(local.dotenv, "BEATRICE_TTS_MODEL", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice")
+  tts_base_url                 = var.tts_base_url
+  llm_api_key                  = var.llm_api_key
+  tts_api_key                  = var.tts_api_key
+  tts_voices                   = var.tts_voices
 
   backend_port               = tonumber(local.dotenv["BACKEND_PORT"])
   backend_environment        = local.backend_environment_by_mode

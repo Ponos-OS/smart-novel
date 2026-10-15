@@ -85,4 +85,11 @@ TF_VAR_run_as_user="$(id -u)"
 export TF_VAR_run_as_user
 
 terraform -chdir="$env_dir" init
-terraform -chdir="$env_dir" apply -auto-approve "$@"
+
+# Stage 1: the cluster and ZITADEL. The backend, the frontend and the Jobs need ZITADEL's generated credentials at startup, so they wait for stage 2.
+terraform -chdir="$env_dir" apply -auto-approve -var wait_for_zitadel_credentials=true "$@"
+
+# Stage 2: configure ZITADEL (placeholder until infra/terraform/envs/local-zitadel exists).
+
+# Stage 3: deploy the workloads.
+terraform -chdir="$env_dir" apply -auto-approve -var wait_for_zitadel_credentials=false "$@"

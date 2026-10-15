@@ -21,8 +21,8 @@ output "object_storage_endpoint" {
 }
 
 output "zitadel_credentials" {
-  description = "Where ZITADEL's generated credentials live, available once the setup finished"
-  value       = module.zitadel_setup.credentials
+  description = "Where ZITADEL's generated credentials live, available once the setup finished; null when the workloads are not deployed"
+  value       = one(module.zitadel_setup[*].credentials)
 }
 
 output "otlp_http_endpoint" {

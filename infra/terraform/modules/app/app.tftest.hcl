@@ -4,26 +4,26 @@ variables {
   namespace = "smart-novel"
   labels    = { Project = "smart-novel" }
   images = {
-    postgres                    = "postgres:18.2-bookworm"
-    redis                       = "redis:8.6-alpine3.23"
-    minio                       = "quay.io/minio/minio:RELEASE.2025-04-08T15-41-24Z"
-    minio_mc                    = "quay.io/minio/mc:RELEASE.2025-04-08T15-39-49Z"
-    traefik                     = "traefik:v3.6.8"
-    zitadel                     = "ghcr.io/zitadel/zitadel:v4.12.3"
-    zitadel_login               = "ghcr.io/zitadel/zitadel-login:v4.12.3"
-    busybox                     = "busybox:1.37"
-    rabbitmq                    = "rabbitmq:3.13-management-alpine"
-    beatrice                    = "9109679196/smart-novel-beatrice:5.0.0"
-    ollama                      = "smart-novel-ollama:dev"
-    openai_compatible_tts       = "smart-novel-openai-compatible-tts:dev"
-    backend                     = "smart-novel-backend:1.4.0"
-    frontend                    = "smart-novel-frontend:1.4.0"
-    redis_insight               = "redis/redisinsight:2.70.1"
-    pgadmin                     = "dpage/pgadmin4:8.4"
-    open_webui                  = "ghcr.io/open-webui/open-webui:v0.8.0"
-    otel_collector              = "otel/opentelemetry-collector-contrib:0.110.0"
-    jaeger                      = "jaegertracing/all-in-one:1.62.0"
-    setup_zitadel               = "smart-novel-setup-zitadel:dev"
+    postgres              = "postgres:18.2-bookworm"
+    redis                 = "redis:8.6-alpine3.23"
+    minio                 = "quay.io/minio/minio:RELEASE.2025-04-08T15-41-24Z"
+    minio_mc              = "quay.io/minio/mc:RELEASE.2025-04-08T15-39-49Z"
+    traefik               = "traefik:v3.6.8"
+    zitadel               = "ghcr.io/zitadel/zitadel:v4.12.3"
+    zitadel_login         = "ghcr.io/zitadel/zitadel-login:v4.12.3"
+    busybox               = "busybox:1.37"
+    rabbitmq              = "rabbitmq:3.13-management-alpine"
+    beatrice              = "9109679196/smart-novel-beatrice:5.0.0"
+    ollama                = "smart-novel-ollama:dev"
+    openai_compatible_tts = "smart-novel-openai-compatible-tts:dev"
+    backend               = "smart-novel-backend:1.4.0"
+    frontend              = "smart-novel-frontend:1.4.0"
+    redis_insight         = "redis/redisinsight:2.70.1"
+    pgadmin               = "dpage/pgadmin4:8.4"
+    open_webui            = "ghcr.io/open-webui/open-webui:v0.8.0"
+    otel_collector        = "otel/opentelemetry-collector-contrib:0.110.0"
+    jaeger                = "jaegertracing/all-in-one:1.62.0"
+    setup_zitadel         = "smart-novel-setup-zitadel:dev"
   }
 }
 
@@ -202,5 +202,39 @@ run "devtools_are_deployed_when_enabled" {
   assert {
     condition     = length(module.devtools) == 1
     error_message = "enable_devtools must deploy the devtools module"
+  }
+}
+
+run "workloads_are_deployed_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(module.zitadel_setup) == 1 && module.backend.enabled && module.frontend.enabled
+    error_message = "the backend, the frontend and the setup must be deployed by default"
+  }
+}
+
+run "without_workloads_only_the_infrastructure_remains" {
+  command = plan
+
+  variables {
+    wait_for_zitadel_credentials = true
+    pre_deploy_jobs = [
+      {
+        name    = "backend-init"
+        image   = "smart-novel-backend:dev"
+        command = ["/bin/sh", "-c", "npx nx run backend:prisma:db:push"]
+      },
+    ]
+  }
+
+  assert {
+    condition     = length(module.zitadel_setup) == 0 && !module.backend.enabled && !module.frontend.enabled && length(module.pre_deploy_job) == 0 && output.zitadel_credentials == null
+    error_message = "nothing that needs the generated credentials may remain"
+  }
+
+  assert {
+    condition     = length(module.zitadel.routes) == 2 && length(module.ingress.internal_url) > 0
+    error_message = "ZITADEL must stay reachable through the ingress"
   }
 }

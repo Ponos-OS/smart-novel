@@ -21,12 +21,12 @@ run "mounts_exactly_the_given_volumes" {
   }
 
   assert {
-    condition     = [for v in kubernetes_deployment_v1.backend.spec[0].template[0].spec[0].volume : v.name] == ["credentials", "data"]
+    condition     = [for v in kubernetes_deployment_v1.backend[0].spec[0].template[0].spec[0].volume : v.name] == ["credentials", "data"]
     error_message = "every given volume must be declared"
   }
 
   assert {
-    condition     = length(kubernetes_deployment_v1.backend.spec[0].template[0].spec[0].container[0].volume_mount) == 2
+    condition     = length(kubernetes_deployment_v1.backend[0].spec[0].template[0].spec[0].container[0].volume_mount) == 2
     error_message = "every given volume must be mounted"
   }
 }
@@ -35,7 +35,7 @@ run "without_volumes_nothing_is_mounted" {
   command = plan
 
   assert {
-    condition     = length(kubernetes_deployment_v1.backend.spec[0].template[0].spec[0].volume) == 0
+    condition     = length(kubernetes_deployment_v1.backend[0].spec[0].template[0].spec[0].volume) == 0
     error_message = "a backend without volumes must mount nothing"
   }
 }
@@ -48,7 +48,7 @@ run "the_port_reaches_the_container_and_the_routes" {
   }
 
   assert {
-    condition     = one([for e in kubernetes_deployment_v1.backend.spec[0].template[0].spec[0].container[0].env : e.value if e.name == "PORT"]) == "4000"
+    condition     = one([for e in kubernetes_deployment_v1.backend[0].spec[0].template[0].spec[0].container[0].env : e.value if e.name == "PORT"]) == "4000"
     error_message = "the backend must listen on the given port"
   }
 
@@ -62,7 +62,7 @@ run "secrets_stay_out_of_the_pod_spec" {
   command = plan
 
   assert {
-    condition     = length([for e in kubernetes_deployment_v1.backend.spec[0].template[0].spec[0].container[0].env : e if e.name == "DATABASE_URL"]) == 0
+    condition     = length([for e in kubernetes_deployment_v1.backend[0].spec[0].template[0].spec[0].container[0].env : e if e.name == "DATABASE_URL"]) == 0
     error_message = "the database URL carries a password and must come from the secret"
   }
 }
