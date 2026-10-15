@@ -13,7 +13,7 @@ variables {
     zitadel_login  = "ghcr.io/zitadel/zitadel-login:v4.12.3"
     busybox        = "busybox:1.37"
     rabbitmq       = "rabbitmq:3.13-management-alpine"
-    beatrice       = "9109679196/smart-novel-beatrice:4.1.0"
+    beatrice       = "9109679196/smart-novel-beatrice:5.0.0"
     ollama         = "smart-novel-ollama:dev"
     qwen_tts       = "smart-novel-qwen-tts:dev"
     backend        = "smart-novel-backend:1.4.0"
@@ -104,7 +104,7 @@ run "disabling_ai_with_external_endpoints_keeps_beatrice" {
   variables {
     enable_ai    = false
     llm_base_url = "https://api.openai.com/v1"
-    tts_base_url = "https://dashscope-intl.aliyuncs.com"
+    tts_base_url = "https://api.openai.com/v1"
   }
 
   assert {

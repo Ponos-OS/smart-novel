@@ -8,6 +8,31 @@ import { AuthorizationFixture } from '../support';
 /** @description Must match `TTS_STATUS_CHANNEL` in apps/backend/src/modules/tts-callbacks/constants.ts */
 const TTS_STATUS_CHANNEL = 'tts-audio:status';
 
+async function getContentUpdatedAt(
+  novelId: string,
+  chapterId: string,
+  authorization: string,
+): Promise<string> {
+  const { data } = await axios.post(
+    '/graphql',
+    {
+      query: `#graphql
+        query GetChapterContentUpdatedAt($novelId: ID!, $chapterId: ID!) {
+          novel(id: $novelId) {
+            chapter(id: $chapterId) {
+              contentUpdatedAt
+            }
+          }
+        }
+      `,
+      variables: { novelId, chapterId },
+    },
+    { headers: { Authorization: authorization } },
+  );
+
+  return data.data.novel.chapter.contentUpdatedAt;
+}
+
 describe('Beatrice callbacks (e2e)', () => {
   describe('POST /beatrice-callbacks/gen-upload-url', () => {
     it('should return a presigned upload URL for a valid token', async () => {
@@ -36,7 +61,13 @@ describe('Beatrice callbacks (e2e)', () => {
     it('should reject a request with a tampered token', async () => {
       const authorization =
         await AuthorizationFixture.getUserAuthorizationHeader();
-      const tamperedAuthorization = authorization.slice(0, -1) + 'x';
+      // The last base64url char of an RS256 signature carries padding bits, so
+      // changing it can leave the decoded signature intact; flip one in the middle.
+      const signatureMiddle = authorization.length - 100;
+      const tamperedAuthorization =
+        authorization.slice(0, signatureMiddle) +
+        (authorization[signatureMiddle] === 'A' ? 'B' : 'A') +
+        authorization.slice(signatureMiddle + 1);
 
       const { status, data } = await axios.post(
         '/beatrice-callbacks/gen-upload-url',
@@ -212,8 +243,8 @@ describe('Beatrice callbacks (e2e)', () => {
         '/graphql',
         {
           query: `#graphql
-              mutation UpdateContent($id: ID!, $content: String!) {
-                updateContent(id: $id, content: $content) {
+              mutation UpdateContent($id: ID!, $content: String!, $expectedContentUpdatedAt: String!) {
+                updateContent(id: $id, content: $content, expectedContentUpdatedAt: $expectedContentUpdatedAt) {
                   id
                 }
               }
@@ -221,6 +252,11 @@ describe('Beatrice callbacks (e2e)', () => {
           variables: {
             id: CHAPTER_TWO_ID,
             content: '# Chapter 2\n\nStep 2.1 e2e content',
+            expectedContentUpdatedAt: await getContentUpdatedAt(
+              NOVEL_ID,
+              CHAPTER_TWO_ID,
+              authorization,
+            ),
           },
         },
         { headers: { Authorization: authorization } },
@@ -258,6 +294,7 @@ describe('Beatrice callbacks (e2e)', () => {
   });
 
   describe('Step 2.2: chapterNarrationUpdated live progress', () => {
+    const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829';
     const CHAPTER_TWO_ID = '4769a024-6267-4abc-a412-5ab0241a8d0e';
 
     let redisSubscriber: Redis;
@@ -344,8 +381,8 @@ describe('Beatrice callbacks (e2e)', () => {
           '/graphql',
           {
             query: `#graphql
-                mutation UpdateContent($id: ID!, $content: String!) {
-                  updateContent(id: $id, content: $content) {
+                mutation UpdateContent($id: ID!, $content: String!, $expectedContentUpdatedAt: String!) {
+                  updateContent(id: $id, content: $content, expectedContentUpdatedAt: $expectedContentUpdatedAt) {
                     id
                   }
                 }
@@ -353,6 +390,11 @@ describe('Beatrice callbacks (e2e)', () => {
             variables: {
               id: CHAPTER_TWO_ID,
               content: '# Chapter 2\n\nStep 2.2 e2e content',
+              expectedContentUpdatedAt: await getContentUpdatedAt(
+                NOVEL_ID,
+                CHAPTER_TWO_ID,
+                authorization,
+              ),
             },
           },
           { headers: { Authorization: authorization } },

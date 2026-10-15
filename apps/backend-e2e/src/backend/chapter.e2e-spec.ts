@@ -201,9 +201,9 @@ describe('Chapter (e2e)', () => {
       role: 'writer who does not own the novel',
       getAuthorizationHeader:
         AuthorizationFixture.getSecondWriterAuthorizationHeader,
-      // Rejected by ChapterPolicy.assertCanCreateInNovel's explicit ownership check.
+      // Rejected by the CASL ownership check on the novel passed as `novelId`.
       expectedMessage:
-        'You do not have permission to create a chapter in this novel',
+        'You do not have permission to create this chapter',
     },
   ])(
     'should NOT allow $role to create a chapter',

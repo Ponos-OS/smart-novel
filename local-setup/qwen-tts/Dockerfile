@@ -2,8 +2,8 @@
 
 FROM python:3.11-slim
 
-ARG QWEN_TTS_MODEL=Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice
-ENV QWEN_TTS_MODEL=${QWEN_TTS_MODEL}
+ARG BEATRICE_TTS_MODEL=Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice
+ENV BEATRICE_TTS_MODEL=${BEATRICE_TTS_MODEL}
 ENV QWEN_TTS_DEVICE=cpu
 ENV QWEN_TTS_PORT=8001
 # Cache HF downloads in the image layer instead of re-fetching them into a throwaway container home dir.
