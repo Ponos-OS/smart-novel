@@ -115,6 +115,10 @@ Apply in this order, copying `backend.tf.example` to `backend.tf` and `terraform
 
 The backend's `zitadel_pat` should be a machine user's token. The instance admin token that `hetzner-zitadel` reads is not meant for the app.
 
+## Backup Restore Test
+
+`infra/scripts/restore-test.sh` (needs Docker) starts a throwaway PostgreSQL with this project's image and an S3 server, runs the commands of `modules/backup` (`pg_dump --format=custom`, upload to `daily/smart-novel/smart_novel/<stamp>.dump`), downloads the object, restores it into a scratch database and compares row counts, a checksum, a full-text query and the index count with the source. It proves the commands and the format, not the CronJob, Hetzner Object Storage or real data.
+
 ## Where to Change Things
 
 - A new component of the app: add `modules/<component>` and call it from `modules/app`. A stand-in for the platform (anything a shared cluster provides) goes in `envs/local` instead.
