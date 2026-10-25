@@ -35,3 +35,8 @@ output "beatrice_url" {
   description = "In-cluster GraphQL URL of Beatrice; null when it is not deployed"
   value       = one(module.beatrice[*].graphql_url)
 }
+
+output "workloads_enabled" {
+  description = "Whether the backend and the frontend are deployed"
+  value       = module.backend.enabled && module.frontend.enabled
+}

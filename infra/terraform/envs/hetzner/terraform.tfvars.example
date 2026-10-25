@@ -1,0 +1,27 @@
+# Copy to terraform.tfvars (git-ignored). Secrets come from TF_VAR_* environment variables instead:
+# llm_api_key, tts_api_key, zitadel_pat, backup_access_key, backup_secret_key, backend_secret_environment.
+kubeconfig_path         = "../../../../../infra/terraform/hetzner/kubeconfig"
+domain                  = "novel.example.com"
+ingress_class           = "traefik"
+cluster_issuer          = "letsencrypt-prod"
+storage_class           = "local-path"
+otel_collector_endpoint = "http://otel-collector.observability:4318"
+
+images = {
+  backend  = "ghcr.io/<owner>/smart-novel-backend:1.4.0"
+  frontend = "ghcr.io/<owner>/smart-novel-frontend:1.4.0"
+  beatrice = "9109679196/smart-novel-beatrice:5.0.0"
+}
+migrate_image = "ghcr.io/<owner>/smart-novel-migrate:1.4.0"
+
+object_storage_endpoint = "https://<account>.r2.cloudflarestorage.com"
+llm_base_url            = "https://api.openai.com/v1"
+llm_model               = "gpt-4o-mini"
+tts_base_url            = "https://api.openai.com/v1"
+tts_model               = "gpt-4o-mini-tts"
+
+backup_endpoint = "https://fsn1.your-objectstorage.com"
+backup_bucket   = "<backup_bucket output of the infra repo>"
+
+# After envs/hetzner-zitadel is applied:
+# zitadel_client_id = "<client_id output>"

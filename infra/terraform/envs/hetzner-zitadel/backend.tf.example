@@ -1,0 +1,22 @@
+# Copy to backend.tf. Same bucket as the infra repo's roots, a key of its own per root
+# (smart-novel/hetzner.tfstate, smart-novel/hetzner-zitadel.tfstate).
+# Credentials come from AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY.
+terraform {
+  backend "s3" {
+    bucket = "ponos-terraform-state"
+    key    = "smart-novel/hetzner-zitadel.tfstate"
+    region = "eu-central-1"
+
+    endpoints = {
+      s3 = "https://fsn1.your-objectstorage.com"
+    }
+
+    use_path_style = true
+
+    skip_credentials_validation = true
+    skip_metadata_api_check     = true
+    skip_region_validation      = true
+    skip_requesting_account_id  = true
+    skip_s3_checksum            = true
+  }
+}

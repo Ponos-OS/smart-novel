@@ -22,11 +22,14 @@ infra/
     │   ├── job/        A one-shot Job
     │   ├── devtools/   RedisInsight, pgAdmin, Open WebUI; off by default
     │   ├── observability/  OpenTelemetry Collector and Jaeger
+    │   ├── backup/     CronJobs that pg_dump to the backup bucket
     │   ├── zitadel/    ZITADEL (init Job, server, login UI); it writes its first-instance PATs to a volume
     │   └── zitadel_config/  Project, roles, users, OIDC apps, self-registration and impersonation, through the ZITADEL provider
     └── envs/
         ├── local/          kind cluster, image loading, and one call to module "app"
-        └── local-zitadel/  Configures ZITADEL with the provider, through module "zitadel_config"
+        ├── local-zitadel/  Configures ZITADEL with the provider, through module "zitadel_config"
+        ├── hetzner/        Deploys onto the shared Hetzner cluster: module "app" plus the backup CronJobs
+        └── hetzner-zitadel/ Project, roles and client on the shared ZITADEL
 ```
 
 Each component is its own module under `modules/`. `modules/app` is the app layer: data stores, backend, frontend, Beatrice and one `Ingress`. It takes everything about the platform as inputs (`ingress_class_name`, `ingress_host`, `cluster_issuer`, `otlp_endpoint`), so it also deploys onto a shared cluster. `envs/local` creates the kind cluster, points the `kubernetes` provider at it, and calls `module "app"` plus the three modules that stand in for the platform locally: `ingress` (Traefik), `observability` and `zitadel`. Nothing outside `envs/local` calls those three. `envs/local-zitadel` is a second root module that configures ZITADEL once it runs (see Ingress and ZITADEL).
@@ -99,6 +102,18 @@ Each tool is deployed only when the service it inspects runs in the cluster (an 
 `nx e2e backend-e2e` and `nx e2e frontend-e2e` run `infra/scripts/start-dev.sh e2e`, which builds the production backend and frontend images (the init Job still uses the development image and the mounted sources), applies `envs/local` with `mode = e2e`, `enable_devtools = false` and `run_local_ai_models` taken from `RUN_LOCAL_AI_MODELS` in `.env`, and tears everything down with `stop-dev.sh` afterwards. Redis is exposed on `localhost:6379` because the backend suites subscribe to it directly. `backend-e2e` reads the project ID, the user IDs and the integration-test bot's key and client from `terraform output -json` of `envs/local-zitadel`, so nothing is copied out of the cluster or written to the host.
 
 The dev and e2e environments both use the cluster name `smart-novel` and host port 8080, so they cannot run together: `start-dev.sh e2e` exits with code 3 and an instruction to run `npm run stop:dev` first when the cluster exists, and the callers then skip their teardown instead of destroying the environment that is running.
+
+## Hetzner
+
+`envs/hetzner` deploys `modules/app` onto the cluster that the infra repo runs. It calls none of the local stand-ins (Traefik, ZITADEL server, observability) and imports no code from the infra repo: everything the cluster provides comes in as a variable (`ingress_class`, `cluster_issuer`, `storage_class`, `otel_collector_endpoint`, the kubeconfig), the values of the infra repo's `docs/app-contract.md`. Postgres and Redis run in the namespace on persistent volumes. Object storage is Cloudflare R2 and the LLM and TTS are external. `modules/backup` adds a daily and a monthly CronJob that `pg_dump` into the backup bucket under `daily/smart-novel/<database>/` and `monthly/smart-novel/<database>/`.
+
+Apply in this order, copying `backend.tf.example` to `backend.tf` and `terraform.tfvars.example` to `terraform.tfvars` in each root, and keeping secrets in `TF_VAR_*`:
+
+1. `envs/hetzner` without `zitadel_client_id`: everything but the backend, the frontend and the migration Job.
+2. `envs/hetzner-zitadel`: the project, roles, client and post-registration action on the shared ZITADEL. Self-registration also needs `allow_register = true` in the infra repo's `zitadel/` root, which is instance-wide.
+3. `envs/hetzner` with `zitadel_client_id` and `zitadel_pat`: the workloads.
+
+The backend's `zitadel_pat` should be a machine user's token. The instance admin token that `hetzner-zitadel` reads is not meant for the app.
 
 ## Where to Change Things
 
