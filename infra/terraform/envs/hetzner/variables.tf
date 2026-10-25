@@ -162,3 +162,15 @@ variable "backup_secret_key" {
   type        = string
   sensitive   = true
 }
+
+variable "postgres_password" {
+  description = "Superuser password of the in-cluster PostgreSQL"
+  type        = string
+  sensitive   = true
+}
+
+variable "redis_password" {
+  description = "Password the in-cluster Redis requires"
+  type        = string
+  sensitive   = true
+}

@@ -12,6 +12,7 @@ module "postgres" {
   labels             = var.labels
   image              = var.images["postgres"]
   database_url       = var.database_url
+  password           = coalesce(var.postgres_password, "postgres")
   persistent_volumes = var.persistent_volumes
   storage_class_name = var.storage_class_name
 
@@ -25,6 +26,7 @@ module "redis" {
   labels    = var.labels
   image     = var.images["redis"]
   redis_url = var.redis_url
+  password  = var.redis_password
   node_port = var.redis_node_port
 }
 

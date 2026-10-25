@@ -246,3 +246,17 @@ run "without_workloads_only_the_infrastructure_remains" {
     error_message = "nothing that needs the generated credentials may remain"
   }
 }
+
+run "a_password_protects_the_in_cluster_stores" {
+  command = plan
+
+  variables {
+    postgres_password = "7c1e0a9d4b2f6e83"
+    redis_password    = "a41d9e07c3b85f26"
+  }
+
+  assert {
+    condition     = nonsensitive(strcontains(module.postgres.database_url, "7c1e0a9d4b2f6e83") && strcontains(module.redis.redis_url, "a41d9e07c3b85f26"))
+    error_message = "the given passwords must protect PostgreSQL and Redis"
+  }
+}

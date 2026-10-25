@@ -24,6 +24,8 @@ variables {
   backup_bucket           = "ponos-backups"
   backup_access_key       = "AKIAEXAMPLE"
   backup_secret_key       = "c2VjcmV0LWtleS1leGFtcGxl"
+  postgres_password       = "7c1e0a9d4b2f6e83"
+  redis_password          = "a41d9e07c3b85f26"
 }
 
 run "passes_the_contract_values_to_the_app_layer" {

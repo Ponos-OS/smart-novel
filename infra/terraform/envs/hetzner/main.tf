@@ -25,6 +25,8 @@ module "app" {
   persistent_volumes      = true
   storage_class_name      = var.storage_class
   create_zitadel_database = false
+  postgres_password       = var.postgres_password
+  redis_password          = var.redis_password
   object_storage_endpoint = var.object_storage_endpoint
 
   ingress_class_name = var.ingress_class

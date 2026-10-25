@@ -268,3 +268,17 @@ variable "devtools_node_ports" {
   })
   default = {}
 }
+
+variable "postgres_password" {
+  description = "Superuser password of the in-cluster PostgreSQL; null keeps the local-development default"
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
+variable "redis_password" {
+  description = "Password the in-cluster Redis requires; null leaves it passwordless, which is fine for local development"
+  type        = string
+  default     = null
+  sensitive   = true
+}
