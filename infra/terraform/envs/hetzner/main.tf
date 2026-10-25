@@ -12,6 +12,7 @@ locals {
   frontend_environment = merge(
     var.frontend_environment,
     local.zitadel_ready ? { VITE_OIDC_CLIENT_ID = var.zitadel_client_id } : {},
+    var.zitadel_org_id == null ? {} : { VITE_OIDC_ORG_ID = var.zitadel_org_id },
   )
 }
 

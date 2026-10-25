@@ -9,7 +9,7 @@ variable "zitadel_domain" {
 }
 
 variable "zitadel_admin_secret" {
-  description = "Namespace and name of the Secret that holds the admin token (zitadel_admin_secret output of the infra repo's cluster/ root, key token)"
+  description = "Namespace and name of the Secret that holds the admin token (zitadel_admin_secret output of the infra repo's cluster/ root, key jwt_profile_json)"
   type = object({
     namespace = string
     name      = string
@@ -29,4 +29,10 @@ variable "redirect_path" {
   description = "Path of the app's OIDC callback"
   type        = string
   default     = "/auth/callback"
+}
+
+variable "zitadel_org_name" {
+  description = "Name of the organization created on the shared ZITADEL for smart-novel's users"
+  type        = string
+  default     = "smart-novel"
 }

@@ -243,3 +243,81 @@ run "without_instance_settings_only_the_project_level_pieces_remain" {
     error_message = "the instance-wide policies belong to the instance owner, the post-registration action to this project"
   }
 }
+
+run "an_existing_organization_is_used_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(zitadel_org.this) == 0 && length(zitadel_login_policy.this) == 0 && length(data.zitadel_orgs.this) == 1
+    error_message = "without create_org the organization is looked up and no organization policy is set"
+  }
+}
+
+run "its_own_organization_gets_its_own_login_policy" {
+  command = plan
+
+  variables {
+    create_org                 = true
+    org_name                   = "smart-novel"
+    manage_instance_settings   = false
+    allow_self_registration    = true
+    login_default_redirect_uri = "https://novel.example.com"
+  }
+
+  assert {
+    condition     = zitadel_org.this[0].name == "smart-novel" && length(data.zitadel_orgs.this) == 0
+    error_message = "the organization must be created, not looked up"
+  }
+
+  assert {
+    condition     = zitadel_login_policy.this[0].allow_register && zitadel_login_policy.this[0].default_redirect_uri == "https://novel.example.com" && length(zitadel_default_login_policy.this) == 0 && length(zitadel_action.post_self_registration) == 1
+    error_message = "the login policy belongs to the organization, not to the instance, and the post-registration action stays"
+  }
+}
+
+run "no_login_page_branding_without_an_organization_of_its_own" {
+  command = plan
+
+  assert {
+    condition     = length(zitadel_label_policy.this) == 0
+    error_message = "the local environment authenticates with a token, which cannot upload the logo"
+  }
+}
+
+run "the_login_page_follows_the_frontends_palette_in_both_themes" {
+  command = plan
+
+  variables {
+    create_org               = true
+    org_name                 = "smart-novel"
+    manage_instance_settings = false
+  }
+
+  assert {
+    condition = (
+      zitadel_label_policy.this[0].theme_mode == "THEME_MODE_AUTO" &&
+      zitadel_label_policy.this[0].background_color == "#f9fafb" &&
+      zitadel_label_policy.this[0].background_color_dark == "#111827" &&
+      zitadel_label_policy.this[0].primary_color == "#2563eb" &&
+      zitadel_label_policy.this[0].primary_color_dark == "#3b82f6" &&
+      zitadel_label_policy.this[0].warn_color == "#dc2626" &&
+      zitadel_label_policy.this[0].warn_color_dark == "#f87171"
+    )
+    error_message = "the colors must be the frontend's gray and blue, light and dark"
+  }
+
+  assert {
+    condition     = endswith(zitadel_label_policy.this[0].logo_path, "apps/frontend/public/logo.png") && endswith(zitadel_label_policy.this[0].logo_dark_path, "files/login/logo-dark.png") && zitadel_label_policy.this[0].disable_watermark
+    error_message = "the light logo is the frontend's own file, the dark one is derived from it"
+  }
+}
+
+run "a_color_that_is_not_a_hex_value_is_rejected" {
+  command = plan
+
+  variables {
+    branding = { dark = { primary_color = "blue" } }
+  }
+
+  expect_failures = [var.branding]
+}

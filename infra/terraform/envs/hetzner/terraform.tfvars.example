@@ -25,3 +25,4 @@ backup_bucket   = "<backup_bucket output of the infra repo>"
 
 # After envs/hetzner-zitadel is applied:
 # zitadel_client_id = "<client_id output>"
+# zitadel_org_id    = "<org_id output>"

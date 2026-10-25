@@ -10,18 +10,21 @@ data "kubernetes_secret_v1" "admin" {
 }
 
 provider "zitadel" {
-  domain       = var.zitadel_domain
-  port         = "443"
-  access_token = trimspace(data.kubernetes_secret_v1.admin.data["token"])
+  domain = var.zitadel_domain
+  port   = "443"
+  # A key, not the token: uploading the login page's logo and icon needs a JWT profile.
+  jwt_profile_json = data.kubernetes_secret_v1.admin.data["jwt_profile_json"]
 }
 
-# Instance-wide settings (allow_register and the like) belong to the infra repo; this root only sets up the project, its roles, the client and the post-registration action.
+# Its own organization on the shared instance, with its own users and login policy; instance-wide settings belong to the infra repo.
 module "zitadel_config" {
   source = "../../modules/zitadel_config"
 
   redirect_uris             = ["https://${var.domain}${var.redirect_path}"]
   post_logout_redirect_uris = ["https://${var.domain}"]
 
+  create_org                 = true
+  org_name                   = var.zitadel_org_name
   allow_self_registration    = true
   login_default_redirect_uri = "https://${var.domain}"
   manage_instance_settings   = false

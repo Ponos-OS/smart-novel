@@ -123,6 +123,12 @@ variable "zitadel_client_id" {
   default     = null
 }
 
+variable "zitadel_org_id" {
+  description = "org_id output of envs/hetzner-zitadel; the frontend signs in with this organization's login policy"
+  type        = string
+  default     = null
+}
+
 variable "zitadel_pat" {
   description = "Token the backend uses to create sessions in ZITADEL. Create a machine user for it; do not hand over the instance admin token"
   type        = string

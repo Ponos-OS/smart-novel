@@ -1,3 +1,8 @@
+output "org_id" {
+  description = "ID of the organization; with create_org, the scope urn:zitadel:iam:org:id:<org_id> makes a login use its policy"
+  value       = local.org_id
+}
+
 output "project_id" {
   description = "ID of the project"
   value       = zitadel_project.this.id

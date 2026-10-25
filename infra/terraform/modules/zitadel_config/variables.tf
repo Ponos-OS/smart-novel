@@ -1,5 +1,5 @@
 variable "org_name" {
-  description = "Name of the organization everything is created in; ZITADEL's first instance names it ZITADEL"
+  description = "Name of the organization everything is created in. An existing one by default (ZITADEL's first instance names it ZITADEL); with create_org, the name of the new one"
   type        = string
   default     = "ZITADEL"
 }
@@ -87,7 +87,37 @@ variable "impersonation" {
 }
 
 variable "manage_instance_settings" {
-  description = "Set the instance-wide login policy and security settings. Turn it off on a ZITADEL that other projects share and whose owner sets them"
+  description = "Set the instance-wide default login policy and security settings. Turn it off on a ZITADEL that other projects share and whose owner sets them"
   type        = bool
   default     = true
+}
+
+variable "create_org" {
+  description = "Create the organization org_name instead of using an existing one, with its own login policy. Logins reach it only when the sign-in request carries the scope urn:zitadel:iam:org:id:<org_id>"
+  type        = bool
+  default     = false
+}
+
+variable "branding" {
+  description = "Colors of the login page, the frontend's Tailwind palette (gray and blue), light and dark, so the two look the same: change them together. ZITADEL knows four colors, so the surfaces are not set, and links take the primary color"
+  type = object({
+    light = optional(object({
+      background_color = optional(string, "#f9fafb") # Tailwind gray-50, the page background
+      font_color       = optional(string, "#111827") # Tailwind gray-900, the text
+      primary_color    = optional(string, "#2563eb") # Tailwind blue-600, buttons and links
+      warn_color       = optional(string, "#dc2626") # Tailwind red-600, errors
+    }), {})
+    dark = optional(object({
+      background_color = optional(string, "#111827") # Tailwind gray-900
+      font_color       = optional(string, "#f3f4f6") # Tailwind gray-100
+      primary_color    = optional(string, "#3b82f6") # Tailwind blue-500
+      warn_color       = optional(string, "#f87171") # Tailwind red-400
+    }), {})
+  })
+  default = {}
+
+  validation {
+    condition     = alltrue([for theme in [var.branding.light, var.branding.dark] : alltrue([for color in values(theme) : can(regex("^#[0-9a-fA-F]{6}$", color))])])
+    error_message = "Every color must be a hex value such as #111827"
+  }
 }
