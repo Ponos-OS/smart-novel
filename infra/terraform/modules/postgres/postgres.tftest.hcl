@@ -44,3 +44,16 @@ run "with_database_url_skips_postgres" {
     error_message = "PostgreSQL must not be deployed when an external database_url is given"
   }
 }
+
+run "without_the_zitadel_database_there_is_no_init_script" {
+  command = plan
+
+  variables {
+    create_zitadel_database = false
+  }
+
+  assert {
+    condition     = length(kubernetes_config_map_v1.init) == 0 && length(kubernetes_deployment_v1.postgres[0].spec[0].template[0].spec[0].volume) == 1
+    error_message = "the init script and its volume must be absent when ZITADEL does not share this database"
+  }
+}

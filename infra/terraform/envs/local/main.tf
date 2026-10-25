@@ -96,6 +96,17 @@ locals {
   redis_node_port         = 30379
   s3_api_node_port        = 30900
   s3_console_node_port    = 30901
+
+  # The collector's Service name is fixed, and the app is created before the observability module because it provides the namespace.
+  ingress_class_name = "traefik"
+  otlp_endpoint      = var.enable_observability ? "http://otel-collector:4318" : null
+}
+
+check "otlp_endpoint_matches_the_collector" {
+  assert {
+    condition     = !var.enable_observability || local.otlp_endpoint == module.observability[0].otlp_http_endpoint
+    error_message = "the OTLP endpoint given to the app must be the one the observability module serves"
+  }
 }
 
 data "terraform_remote_state" "zitadel" {
@@ -230,11 +241,62 @@ module "app" {
 
   pre_deploy_jobs            = local.pre_deploy_jobs
   object_storage_seed_volume = { host_path = "${local.node_apps}/backend/data" }
-  external_port              = var.host_port
+  otlp_endpoint              = local.otlp_endpoint
+  ingress_class_name         = local.ingress_class_name
 
   redis_node_port                  = local.redis_node_port
   object_storage_api_node_port     = local.s3_api_node_port
   object_storage_console_node_port = local.s3_console_node_port
 
   depends_on = [terraform_data.load_images]
+}
+
+module "observability" {
+  source = "../../modules/observability"
+  count  = var.enable_observability ? 1 : 0
+
+  namespace       = module.app.namespace
+  labels          = var.tags
+  collector_image = local.third_party_images["otel_collector"]
+  jaeger_image    = local.third_party_images["jaeger"]
+  sampling_ratio  = var.trace_sampling_ratio
+}
+
+module "zitadel" {
+  source = "../../modules/zitadel"
+
+  namespace     = module.app.namespace
+  labels        = var.tags
+  image         = local.third_party_images["zitadel"]
+  login_image   = local.third_party_images["zitadel_login"]
+  busybox_image = local.third_party_images["busybox"]
+  external_port = var.host_port
+
+  depends_on = [module.app]
+}
+
+module "ingress" {
+  source = "../../modules/ingress"
+
+  namespace          = module.app.namespace
+  labels             = var.tags
+  image              = local.third_party_images["traefik"]
+  ingress_class_name = local.ingress_class_name
+  routes             = concat(module.zitadel.routes, flatten(module.observability[*].routes))
+  middlewares        = module.zitadel.middlewares
+}
+
+moved {
+  from = module.app.module.zitadel
+  to   = module.zitadel
+}
+
+moved {
+  from = module.app.module.observability
+  to   = module.observability
+}
+
+moved {
+  from = module.app.module.ingress
+  to   = module.ingress
 }

@@ -5,7 +5,7 @@ output "routes" {
       name = "zitadel-web"
       rule = join(" || ", [for prefix in [
         "/.well-known", "/oauth", "/oidc", "/saml", "/v2", "/management", "/admin", "/auth/v1",
-        "/assets", "/ui/console", "/debug", "/zitadel.",
+        "/assets/v1", "/ui/console", "/debug", "/zitadel.",
       ] : "PathPrefix(`${prefix}`)"])
       priority    = 100
       service     = "h2c://${kubernetes_service_v1.zitadel.metadata[0].name}:8080"

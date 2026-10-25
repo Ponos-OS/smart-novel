@@ -85,7 +85,7 @@ locals {
 }
 
 resource "zitadel_default_login_policy" "this" {
-  count = local.self_registration
+  count = var.manage_instance_settings ? local.self_registration : 0
 
   allow_register                = true
   user_login                    = true
@@ -132,7 +132,7 @@ locals {
 }
 
 resource "zitadel_default_security_settings" "this" {
-  count = local.impersonation
+  count = var.manage_instance_settings ? local.impersonation : 0
 
   enable_impersonation = true
 }

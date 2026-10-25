@@ -225,3 +225,21 @@ run "users_may_have_no_password_and_credentials_may_expire_sooner" {
     error_message = "the bot's key and PAT must expire when asked to"
   }
 }
+
+run "without_instance_settings_only_the_project_level_pieces_remain" {
+  command = plan
+
+  variables {
+    manage_instance_settings   = false
+    allow_self_registration    = true
+    login_default_redirect_uri = "https://novel.example.com"
+    impersonation = {
+      redirect_uris = ["http://localhost:8080/callback"]
+    }
+  }
+
+  assert {
+    condition     = length(zitadel_default_login_policy.this) == 0 && length(zitadel_default_security_settings.this) == 0 && length(zitadel_action.post_self_registration) == 1 && length(zitadel_trigger_actions.post_self_registration) == 1
+    error_message = "the instance-wide policies belong to the instance owner, the post-registration action to this project"
+  }
+}

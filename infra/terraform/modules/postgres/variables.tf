@@ -40,6 +40,12 @@ variable "zitadel_password" {
   sensitive   = true
 }
 
+variable "create_zitadel_database" {
+  description = "Create the zitadel role and database on first start, for a ZITADEL that shares this PostgreSQL"
+  type        = bool
+  default     = true
+}
+
 variable "database_url" {
   description = "URL of an external PostgreSQL; when set, nothing is deployed"
   type        = string

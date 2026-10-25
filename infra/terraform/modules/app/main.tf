@@ -14,6 +14,8 @@ module "postgres" {
   database_url       = var.database_url
   persistent_volumes = var.persistent_volumes
   storage_class_name = var.storage_class_name
+
+  create_zitadel_database = var.create_zitadel_database
 }
 
 module "redis" {
@@ -41,35 +43,11 @@ module "object_storage" {
   storage_class_name      = var.storage_class_name
 }
 
-module "zitadel" {
-  source = "../zitadel"
-
-  namespace     = module.namespace.name
-  labels        = var.labels
-  image         = var.images["zitadel"]
-  login_image   = var.images["zitadel_login"]
-  busybox_image = var.images["busybox"]
-  external_port = var.external_port
-
-  depends_on = [module.postgres]
-}
-
-module "observability" {
-  source = "../observability"
-  count  = var.enable_observability ? 1 : 0
-
-  namespace       = module.namespace.name
-  labels          = var.labels
-  collector_image = var.images["otel_collector"]
-  jaeger_image    = var.images["jaeger"]
-  sampling_ratio  = var.trace_sampling_ratio
-}
-
 locals {
   llm_base_url    = var.run_local_ai_models ? module.ollama[0].base_url : var.llm_base_url
   tts_base_url    = var.run_local_ai_models ? module.openai_compatible_tts[0].base_url : var.tts_base_url
   deploy_beatrice = local.llm_base_url != null && local.tts_base_url != null
-  otlp_endpoint   = one(module.observability[*].otlp_http_endpoint)
+  otlp_endpoint   = var.otlp_endpoint
   beatrice_url    = one(module.beatrice[*].graphql_url)
 
   backend_environment = merge(
@@ -147,7 +125,7 @@ module "pre_deploy_job" {
   secret_environment = each.value.use_backend_environment ? local.backend_secret_environment : {}
   volumes            = each.value.volumes
 
-  depends_on = [module.postgres, module.redis, module.object_storage, module.beatrice, module.observability]
+  depends_on = [module.postgres, module.redis, module.object_storage, module.beatrice]
 }
 
 module "backend" {
@@ -194,12 +172,50 @@ module "devtools" {
   node_ports          = var.devtools_node_ports
 }
 
-module "ingress" {
-  source = "../ingress"
+resource "kubernetes_ingress_v1" "app" {
+  metadata {
+    name      = "app"
+    namespace = module.namespace.name
+    labels    = var.labels
 
-  namespace   = module.namespace.name
-  labels      = var.labels
-  image       = var.images["traefik"]
-  routes      = concat(module.zitadel.routes, flatten(module.observability[*].routes), module.backend.routes, module.frontend.routes)
-  middlewares = module.zitadel.middlewares
+    annotations = var.cluster_issuer == null ? {} : { "cert-manager.io/cluster-issuer" = var.cluster_issuer }
+  }
+
+  spec {
+    ingress_class_name = var.ingress_class_name
+
+    rule {
+      host = var.ingress_host
+
+      http {
+        dynamic "path" {
+          for_each = { for route in concat(module.backend.routes, module.frontend.routes) : route.name => route }
+
+          content {
+            path      = path.value.path
+            path_type = "Prefix"
+
+            backend {
+              service {
+                name = path.value.service_name
+
+                port {
+                  number = path.value.service_port
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    dynamic "tls" {
+      for_each = var.cluster_issuer != null && var.ingress_host != null ? [var.ingress_host] : []
+
+      content {
+        hosts       = [tls.value]
+        secret_name = "app-tls"
+      }
+    }
+  }
 }

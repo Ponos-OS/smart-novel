@@ -36,3 +36,12 @@ run "with_broker_url_skips_rabbitmq" {
     error_message = "the external broker URL must be passed through"
   }
 }
+
+run "exposes_metrics_for_prometheus" {
+  command = plan
+
+  assert {
+    condition     = kubernetes_deployment_v1.rabbitmq[0].spec[0].template[0].metadata[0].annotations["prometheus.io/port"] == "15692" && strcontains(kubernetes_config_map_v1.plugins[0].data["enabled_plugins"], "rabbitmq_prometheus")
+    error_message = "the Prometheus plugin must be enabled and the pod annotated for scraping"
+  }
+}

@@ -54,16 +54,16 @@ run "mounts_exactly_the_given_volumes" {
   }
 }
 
-run "assets_route_leaves_the_zitadel_api_alone" {
+run "static_routes_target_the_frontend" {
   command = plan
 
   assert {
-    condition     = one([for r in output.routes : r.rule if r.name == "frontend-assets"]) == "PathPrefix(`/assets`) && !PathPrefix(`/assets/v1`)"
-    error_message = "ZITADEL's /assets/v1 must not be routed to the frontend"
+    condition     = one([for r in output.routes : r.path if r.name == "frontend-assets"]) == "/assets"
+    error_message = "the static assets must be routed to the frontend"
   }
 
   assert {
-    condition     = one([for r in output.routes : r.priority if r.name == "frontend-web"]) == 50
-    error_message = "the catch-all route must have the lowest priority"
+    condition     = one([for r in output.routes : r.path if r.name == "frontend-web"]) == "/"
+    error_message = "the catch-all route must be the root path"
   }
 }

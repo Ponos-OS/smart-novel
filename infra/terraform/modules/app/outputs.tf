@@ -21,8 +21,8 @@ output "object_storage_endpoint" {
 }
 
 output "otlp_http_endpoint" {
-  description = "In-cluster OTLP/HTTP endpoint for traces; null when observability is disabled"
-  value       = one(module.observability[*].otlp_http_endpoint)
+  description = "OTLP/HTTP endpoint the workloads export to; null when tracing is off"
+  value       = var.otlp_endpoint
 }
 
 output "broker_url" {

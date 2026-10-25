@@ -155,3 +155,15 @@ variable "wait_for_zitadel_credentials" {
   type        = bool
   default     = false
 }
+
+variable "enable_observability" {
+  description = "Deploy the OpenTelemetry Collector and Jaeger"
+  type        = bool
+  default     = true
+}
+
+variable "trace_sampling_ratio" {
+  description = "Share of the non-noisy traces that are kept, between 0 and 1"
+  type        = number
+  default     = 1.0
+}

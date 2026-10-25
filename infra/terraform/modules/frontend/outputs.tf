@@ -4,19 +4,9 @@ output "enabled" {
 }
 
 output "routes" {
-  description = "Routes for the ingress: the app itself, and its static assets, which must not swallow ZITADEL's /assets/v1 API"
+  description = "Ingress routes: the app itself, and its static assets. ZITADEL's /assets/v1 API is longer and wins where both are served"
   value = [
-    {
-      name     = "frontend-web"
-      rule     = "PathPrefix(`/`)"
-      priority = 50
-      service  = "http://${kubernetes_service_v1.frontend.metadata[0].name}:${var.port}"
-    },
-    {
-      name     = "frontend-assets"
-      rule     = "PathPrefix(`/assets`) && !PathPrefix(`/assets/v1`)"
-      priority = 200
-      service  = "http://${kubernetes_service_v1.frontend.metadata[0].name}:${var.port}"
-    },
+    { name = "frontend-web", path = "/", service_name = kubernetes_service_v1.frontend.metadata[0].name, service_port = var.port },
+    { name = "frontend-assets", path = "/assets", service_name = kubernetes_service_v1.frontend.metadata[0].name, service_port = var.port },
   ]
 }

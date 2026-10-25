@@ -29,7 +29,7 @@ infra/
         └── local-zitadel/  Configures ZITADEL with the provider, through module "zitadel_config"
 ```
 
-Each component is its own module under `modules/`. `modules/app` wires them together and owns the toggles. `envs/local` is a thin root module: it creates the cluster, points the `kubernetes` provider at it, and calls `module "app"`. `envs/local-zitadel` is a second root module that configures ZITADEL once it runs (see Ingress and ZITADEL).
+Each component is its own module under `modules/`. `modules/app` is the app layer: data stores, backend, frontend, Beatrice and one `Ingress`. It takes everything about the platform as inputs (`ingress_class_name`, `ingress_host`, `cluster_issuer`, `otlp_endpoint`), so it also deploys onto a shared cluster. `envs/local` creates the kind cluster, points the `kubernetes` provider at it, and calls `module "app"` plus the three modules that stand in for the platform locally: `ingress` (Traefik), `observability` and `zitadel`. Nothing outside `envs/local` calls those three. `envs/local-zitadel` is a second root module that configures ZITADEL once it runs (see Ingress and ZITADEL).
 
 ## Local Environment
 
@@ -56,7 +56,7 @@ RustFS is reachable from the host on `localhost:9000` (S3 API) and `localhost:90
 
 ## Ingress and ZITADEL
 
-Traefik listens on node port 80, which kind maps to `localhost:8080`. It uses its file provider, so it needs no Kubernetes API access and no CRDs. A module contributes a route by exposing it in a `routes` output (`name`, `rule`, `priority`, `service`, optional `middlewares`); `modules/app` passes the routes of all modules to `modules/ingress`. The ingress module knows nothing about the applications behind it.
+Traefik listens on node port 80, which kind maps to `localhost:8080`. It reads the app's standard `Ingress` (class `traefik`) through the Kubernetes Ingress provider. ZITADEL and the observability routes stay on its file provider, because they need h2c and header middlewares, which plain Ingress cannot express; `envs/local` passes those routes to `modules/ingress`. `backend` and `frontend` expose their routes (`name`, `path`, `service_name`, `service_port`) and `modules/app` turns them into the Ingress. ZITADEL's `/assets/v1` is longer than the frontend's `/assets` and has an explicit priority, so it wins there.
 
 ZITADEL is configured in three stages, which `start-dev.sh` applies in order:
 
@@ -102,7 +102,7 @@ The dev and e2e environments both use the cluster name `smart-novel` and host po
 
 ## Where to Change Things
 
-- A new component: add `modules/<component>` and call it from `modules/app`.
+- A new component of the app: add `modules/<component>` and call it from `modules/app`. A stand-in for the platform (anything a shared cluster provides) goes in `envs/local` instead.
 - A new variable in a module: give it a default that suits local development, and set it in an environment only if that one differs.
 - Something specific to one environment: put it in that environment's root module and pass it into `module "app"` as an input.
 - ZITADEL's configuration (a role, an application, a user, a policy): `modules/zitadel_config`, with the local values in `envs/local-zitadel/main.tf`.

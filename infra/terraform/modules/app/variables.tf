@@ -11,7 +11,7 @@ variable "labels" {
 }
 
 variable "images" {
-  description = "Container images: postgres, redis, object_storage, aws_cli, traefik, zitadel, zitadel_login, busybox, otel_collector, jaeger, rabbitmq, beatrice, ollama, openai_compatible_tts, backend and frontend, plus redis_insight, pgadmin and open_webui when enable_devtools is true"
+  description = "Container images: postgres, redis, object_storage, aws_cli, rabbitmq, beatrice, ollama, openai_compatible_tts, backend and frontend, plus redis_insight, pgadmin and open_webui when enable_devtools is true"
   type        = map(string)
 }
 
@@ -65,22 +65,34 @@ variable "object_storage_console_node_port" {
   default     = null
 }
 
-variable "external_port" {
-  description = "Port the application is reached on from the browser; ZITADEL's external port and redirect URIs are built from it"
-  type        = number
-  default     = 8080
+variable "ingress_class_name" {
+  description = "IngressClass of the app's Ingress"
+  type        = string
+  default     = "traefik"
 }
 
-variable "enable_observability" {
-  description = "Deploy the OpenTelemetry Collector and Jaeger"
+variable "ingress_host" {
+  description = "Host the app is served on; null serves every host"
+  type        = string
+  default     = null
+}
+
+variable "cluster_issuer" {
+  description = "cert-manager ClusterIssuer that issues the certificate of the ingress_host; null serves plain HTTP"
+  type        = string
+  default     = null
+}
+
+variable "otlp_endpoint" {
+  description = "OTLP/HTTP endpoint the backend and Beatrice export to; null turns tracing off"
+  type        = string
+  default     = null
+}
+
+variable "create_zitadel_database" {
+  description = "Create the zitadel role and database in the in-cluster PostgreSQL, for a ZITADEL that shares it (local only)"
   type        = bool
   default     = true
-}
-
-variable "trace_sampling_ratio" {
-  description = "Share of the non-noisy traces that are kept, between 0 and 1"
-  type        = number
-  default     = 1.0
 }
 
 variable "run_local_ai_models" {

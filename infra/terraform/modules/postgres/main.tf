@@ -1,5 +1,6 @@
 locals {
   deploy = var.database_url == null
+  init   = local.deploy && var.create_zitadel_database
 }
 
 resource "kubernetes_secret_v1" "postgres" {
@@ -18,7 +19,7 @@ resource "kubernetes_secret_v1" "postgres" {
 
 # Runs only on an empty data directory, which is what a throwaway local database always starts with.
 resource "kubernetes_config_map_v1" "init" {
-  count = local.deploy ? 1 : 0
+  count = local.init ? 1 : 0
 
   metadata {
     name      = "postgres-init"
@@ -123,10 +124,14 @@ resource "kubernetes_deployment_v1" "postgres" {
             mount_path = "/var/lib/postgresql"
           }
 
-          volume_mount {
-            name       = "init"
-            mount_path = "/docker-entrypoint-initdb.d"
-            read_only  = true
+          dynamic "volume_mount" {
+            for_each = local.init ? [1] : []
+
+            content {
+              name       = "init"
+              mount_path = "/docker-entrypoint-initdb.d"
+              read_only  = true
+            }
           }
         }
 
@@ -146,11 +151,15 @@ resource "kubernetes_deployment_v1" "postgres" {
           }
         }
 
-        volume {
-          name = "init"
+        dynamic "volume" {
+          for_each = local.init ? [1] : []
 
-          config_map {
-            name = kubernetes_config_map_v1.init[0].metadata[0].name
+          content {
+            name = "init"
+
+            config_map {
+              name = kubernetes_config_map_v1.init[0].metadata[0].name
+            }
           }
         }
       }

@@ -85,3 +85,9 @@ variable "impersonation" {
   })
   default = null
 }
+
+variable "manage_instance_settings" {
+  description = "Set the instance-wide login policy and security settings. Turn it off on a ZITADEL that other projects share and whose owner sets them"
+  type        = bool
+  default     = true
+}

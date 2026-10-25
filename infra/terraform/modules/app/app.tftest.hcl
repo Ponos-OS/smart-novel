@@ -8,10 +8,6 @@ variables {
     redis                 = "redis:8.6-alpine3.23"
     object_storage        = "rustfs/rustfs:1.0.1"
     aws_cli               = "amazon/aws-cli:2.38.1"
-    traefik               = "traefik:v3.6.8"
-    zitadel               = "ghcr.io/zitadel/zitadel:v4.12.3"
-    zitadel_login         = "ghcr.io/zitadel/zitadel-login:v4.12.3"
-    busybox               = "busybox:1.37"
     rabbitmq              = "rabbitmq:3.13-management-alpine"
     beatrice              = "9109679196/smart-novel-beatrice:5.0.0"
     ollama                = "smart-novel-ollama:dev"
@@ -21,8 +17,6 @@ variables {
     redis_insight         = "redis/redisinsight:2.70.1"
     pgadmin               = "dpage/pgadmin4:8.4"
     open_webui            = "ghcr.io/open-webui/open-webui:v0.8.0"
-    otel_collector        = "otel/opentelemetry-collector-contrib:0.110.0"
-    jaeger                = "jaegertracing/all-in-one:1.62.0"
   }
 }
 
@@ -44,34 +38,54 @@ run "deploys_every_data_component_by_default" {
   }
 }
 
-run "routes_the_zitadel_endpoints_through_the_ingress" {
+run "serves_backend_and_frontend_through_one_ingress" {
   command = plan
 
   assert {
-    condition     = strcontains(module.ingress.internal_url, "traefik") && length(module.zitadel.routes) == 2
-    error_message = "the ingress must be wired with the routes the zitadel module contributes"
+    condition     = kubernetes_ingress_v1.app.spec[0].ingress_class_name == "traefik" && length(kubernetes_ingress_v1.app.spec[0].rule[0].http[0].path) == 4
+    error_message = "one Ingress of the given class must carry the backend and frontend routes"
   }
-}
-
-run "deploys_observability_by_default" {
-  command = plan
 
   assert {
-    condition     = length(module.observability) == 1 && output.otlp_http_endpoint == "http://otel-collector:4318"
-    error_message = "the collector and Jaeger must be deployed by default"
+    condition     = length(kubernetes_ingress_v1.app.spec[0].tls) == 0 && length(kubernetes_ingress_v1.app.metadata[0].annotations) == 0
+    error_message = "without an issuer the Ingress serves plain HTTP"
   }
 }
 
-run "disabling_observability_deploys_neither" {
+run "a_host_and_an_issuer_turn_on_tls" {
   command = plan
 
   variables {
-    enable_observability = false
+    ingress_class_name = "traefik"
+    ingress_host       = "novel.example.com"
+    cluster_issuer     = "letsencrypt-prod"
   }
 
   assert {
-    condition     = length(module.observability) == 0 && output.otlp_http_endpoint == null
-    error_message = "nothing observability related must remain when it is disabled"
+    condition     = kubernetes_ingress_v1.app.spec[0].rule[0].host == "novel.example.com" && contains(tolist(kubernetes_ingress_v1.app.spec[0].tls[0].hosts), "novel.example.com") && kubernetes_ingress_v1.app.metadata[0].annotations["cert-manager.io/cluster-issuer"] == "letsencrypt-prod"
+    error_message = "the host must get a certificate from the given issuer"
+  }
+}
+
+run "tracing_follows_the_otlp_endpoint" {
+  command = plan
+
+  variables {
+    otlp_endpoint = "http://otel-collector.observability:4318"
+  }
+
+  assert {
+    condition     = output.otlp_http_endpoint == "http://otel-collector.observability:4318"
+    error_message = "the given OTLP endpoint must be the one the workloads export to"
+  }
+}
+
+run "tracing_is_off_without_an_otlp_endpoint" {
+  command = plan
+
+  assert {
+    condition     = output.otlp_http_endpoint == null
+    error_message = "nothing is exported unless an endpoint is given"
   }
 }
 
@@ -129,7 +143,7 @@ run "the_frontend_serves_on_port_80_by_default" {
   command = plan
 
   assert {
-    condition     = alltrue([for r in module.frontend.routes : endswith(r.service, ":80")])
+    condition     = alltrue([for r in module.frontend.routes : r.service_port == 80])
     error_message = "the frontend routes must target port 80 by default"
   }
 }
@@ -142,7 +156,7 @@ run "the_frontend_port_is_configurable" {
   }
 
   assert {
-    condition     = alltrue([for r in module.frontend.routes : endswith(r.service, ":4300")]) && module.backend.internal_url == "http://backend:3000"
+    condition     = alltrue([for r in module.frontend.routes : r.service_port == 4300]) && module.backend.internal_url == "http://backend:3000"
     error_message = "the frontend routes must target the given port and the backend must be reachable by its service name"
   }
 }
@@ -230,10 +244,5 @@ run "without_workloads_only_the_infrastructure_remains" {
   assert {
     condition     = !module.backend.enabled && !module.frontend.enabled && length(module.pre_deploy_job) == 0
     error_message = "nothing that needs the generated credentials may remain"
-  }
-
-  assert {
-    condition     = length(module.zitadel.routes) == 2 && length(module.ingress.internal_url) > 0
-    error_message = "ZITADEL must stay reachable through the ingress"
   }
 }

@@ -50,3 +50,25 @@ run "without_routes_the_dynamic_config_has_none" {
     error_message = "no routes are registered unless a module contributes one"
   }
 }
+
+run "serves_the_ingress_class_through_the_kubernetes_provider" {
+  command = plan
+
+  variables {
+    ingress_class_name = "smart-novel"
+  }
+
+  assert {
+    condition     = kubernetes_ingress_class_v1.traefik.metadata[0].name == "smart-novel" && contains(kubernetes_deployment_v1.traefik.spec[0].template[0].spec[0].container[0].args, "--providers.kubernetesingress.ingressclass=smart-novel")
+    error_message = "Traefik must watch the Ingress objects of its class"
+  }
+}
+
+run "only_ingress_classes_are_read_cluster_wide" {
+  command = plan
+
+  assert {
+    condition     = length(kubernetes_cluster_role_v1.traefik.rule) == 1 && contains(tolist(one(kubernetes_cluster_role_v1.traefik.rule).resources), "ingressclasses")
+    error_message = "everything but the cluster-scoped IngressClass must be granted inside the namespace"
+  }
+}

@@ -14,6 +14,12 @@ variable "image" {
   type        = string
 }
 
+variable "ingress_class_name" {
+  description = "Name of the IngressClass Traefik serves; the app's Ingress objects use it"
+  type        = string
+  default     = "traefik"
+}
+
 variable "routes" {
   description = "Routes contributed by the other modules; the service is the URL Traefik forwards to (h2c:// for HTTP/2 without TLS)"
   type = list(object({

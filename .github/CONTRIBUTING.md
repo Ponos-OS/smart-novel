@@ -29,7 +29,7 @@ To skip the heavy models (Ollama, OpenAI-compatible TTS, and with them Beatrice)
 
 ## Where to Change Things (Infrastructure)
 
-- A new component (a database, a worker, a tool): add `infra/terraform/modules/<component>` with only the inputs it needs and a `.tftest.hcl`, then call it from `infra/terraform/modules/app`. A module that serves HTTP contributes its ingress routes through a `routes` output.
+- A new component (a database, a worker, a tool): add `infra/terraform/modules/<component>` with only the inputs it needs and a `.tftest.hcl`, then call it from `infra/terraform/modules/app`. A module that serves HTTP contributes its ingress routes (`name`, `path`, `service_name`, `service_port`) through a `routes` output, and `modules/app` puts them in its `Ingress`. What a shared cluster would provide (ingress controller, ZITADEL server, observability) is called only from `envs/local`.
 - A new variable in a module: give it a default that suits local development, and set it in an environment only if that one differs.
 - A change to ZITADEL itself (a role, an application, a user, a policy): `infra/terraform/modules/zitadel_config`, with the local values in `infra/terraform/envs/local-zitadel/main.tf`. `npm run start:dev` applies it between the cluster and the workloads. What the workloads need from it (client ID, PAT) reaches them as environment settings from `envs/local`.
 - A new application setting (`.env` key): add it to `.env.example`. `envs/local` hands the whole `.env` to the backend, the `VITE_` keys to the frontend, and keys that look like secrets (`PASSWORD`, `SECRET`, `MASTERKEY`, `ACCESS_KEY`) go to a Secret. Values that depend on a deployed component are filled in by `modules/app`.

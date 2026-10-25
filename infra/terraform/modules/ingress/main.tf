@@ -27,7 +27,112 @@ locals {
   dynamic_config_yaml = yamlencode(local.dynamic_config)
 }
 
-# Traefik reads this through its file provider, so it needs no Kubernetes API access and no CRDs.
+# The Ingress objects of the app are read through the Kubernetes Ingress provider, which needs read access to them. ZITADEL and the observability routes below come through the file provider, so no CRDs are needed.
+resource "kubernetes_service_account_v1" "traefik" {
+  metadata {
+    name      = "traefik"
+    namespace = var.namespace
+    labels    = var.labels
+  }
+}
+
+resource "kubernetes_role_v1" "traefik" {
+  metadata {
+    name      = "traefik"
+    namespace = var.namespace
+    labels    = var.labels
+  }
+
+  rule {
+    api_groups = [""]
+    resources  = ["services", "secrets", "configmaps"]
+    verbs      = ["list", "watch"]
+  }
+
+  rule {
+    api_groups = ["discovery.k8s.io"]
+    resources  = ["endpointslices"]
+    verbs      = ["list", "watch"]
+  }
+
+  rule {
+    api_groups = ["networking.k8s.io"]
+    resources  = ["ingresses"]
+    verbs      = ["list", "watch"]
+  }
+
+  rule {
+    api_groups = ["networking.k8s.io"]
+    resources  = ["ingresses/status"]
+    verbs      = ["update"]
+  }
+}
+
+resource "kubernetes_role_binding_v1" "traefik" {
+  metadata {
+    name      = "traefik"
+    namespace = var.namespace
+    labels    = var.labels
+  }
+
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "Role"
+    name      = kubernetes_role_v1.traefik.metadata[0].name
+  }
+
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account_v1.traefik.metadata[0].name
+    namespace = var.namespace
+  }
+}
+
+# IngressClass is cluster-scoped, so this is the only cluster-wide permission.
+resource "kubernetes_cluster_role_v1" "traefik" {
+  metadata {
+    name   = "${var.namespace}-traefik"
+    labels = var.labels
+  }
+
+  rule {
+    api_groups = ["networking.k8s.io"]
+    resources  = ["ingressclasses"]
+    verbs      = ["list", "watch"]
+  }
+}
+
+resource "kubernetes_cluster_role_binding_v1" "traefik" {
+  metadata {
+    name   = "${var.namespace}-traefik"
+    labels = var.labels
+  }
+
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = kubernetes_cluster_role_v1.traefik.metadata[0].name
+  }
+
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account_v1.traefik.metadata[0].name
+    namespace = var.namespace
+  }
+}
+
+resource "kubernetes_ingress_class_v1" "traefik" {
+  metadata {
+    name   = var.ingress_class_name
+    labels = var.labels
+  }
+
+  spec {
+    controller = "traefik.io/ingress-controller"
+  }
+}
+
+# Traefik reads this through its file provider.
 resource "kubernetes_config_map_v1" "dynamic" {
   metadata {
     name      = "traefik-dynamic"
@@ -64,6 +169,8 @@ resource "kubernetes_deployment_v1" "traefik" {
       }
 
       spec {
+        service_account_name = kubernetes_service_account_v1.traefik.metadata[0].name
+
         # The kind node that maps the host port carries this label; hostPort 80 is what that mapping reaches.
         node_selector = { "ingress-ready" = "true" }
 
@@ -80,6 +187,9 @@ resource "kubernetes_deployment_v1" "traefik" {
           args = [
             "--providers.file.directory=/etc/traefik/dynamic",
             "--providers.file.watch=true",
+            "--providers.kubernetesingress=true",
+            "--providers.kubernetesingress.ingressclass=${var.ingress_class_name}",
+            "--providers.kubernetesingress.namespaces=${var.namespace}",
             "--entrypoints.web.address=:80",
             "--api.dashboard=false",
             "--api.insecure=false",
