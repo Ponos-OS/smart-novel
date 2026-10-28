@@ -90,7 +90,7 @@
     },
     "test": {
       "executor": "@nx/vitest:test",
-      "dependsOn": ["beatrice:codegen"],
+      "dependsOn": ["prisma:generate", "beatrice:codegen"],
       "options": {
         "config": "{projectRoot}/vitest.config.ts",
         "reportsDirectory": "../../coverage/apps/backend",

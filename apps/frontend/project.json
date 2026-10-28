@@ -17,6 +17,7 @@
     },
     "test": {
       "executor": "@nx/vitest:test",
+      "dependsOn": ["codegen"],
       "options": {
         "config": "{projectRoot}/vitest.config.ts",
         "reportsDirectory": "../../coverage/apps/frontend",
