@@ -1,6 +1,11 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
 import { Button } from '../../components/Button';
+import {
+  useDeleteChapterMutation,
+  useGetNovelQuery,
+} from '../../generated/graphql';
 import { ChapterList } from './ChapterList';
 import { useNovelOutletContext } from './NovelLayout';
 
@@ -8,6 +13,8 @@ export function ChapterListPage() {
   const { novel, canEditContent, canManageTts } =
     useNovelOutletContext();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const deleteChapterMutation = useDeleteChapterMutation();
 
   const goToChapter = (chapterId: string) => {
     navigate(`/novel/${novel.id}/chapters/${chapterId}`);
@@ -19,6 +26,13 @@ export function ChapterListPage() {
 
   const goToEditChapter = (chapterId: string) => {
     navigate(`/novel/${novel.id}/chapters/${chapterId}/edit`);
+  };
+
+  const handleDeleteChapter = async (chapterId: string) => {
+    await deleteChapterMutation.mutateAsync({ id: chapterId });
+    await queryClient.invalidateQueries({
+      queryKey: useGetNovelQuery.getKey({ id: novel.id }),
+    });
   };
 
   const handleReadFirstChapter = () => {
@@ -124,6 +138,7 @@ export function ChapterListPage() {
           chapters={chaptersInfo}
           onChapterClick={goToChapter}
           onEditClick={goToEditChapter}
+          onDelete={handleDeleteChapter}
           currentChapterId={null}
           canManageTts={canManageTts}
           canEditContent={canEditContent}

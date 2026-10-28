@@ -1,4 +1,7 @@
+import { useState } from 'react';
+
 import { Button } from '../../components/Button';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { GenerateTtsButton } from '../../components/GenerateTtsButton';
 import { NarrationStatus } from '../../generated/graphql';
 import { useReadChapters } from '../../hooks/useReadChapters';
@@ -15,6 +18,7 @@ interface ChapterListProps {
   chapters: ChapterInfo[];
   onChapterClick: (chapterId: string) => void;
   onEditClick: (chapterId: string) => void;
+  onDelete?: (chapterId: string) => Promise<void>;
   currentChapterId: string | null;
   canManageTts?: boolean;
   canEditContent?: boolean;
@@ -25,12 +29,44 @@ export function ChapterList({
   chapters,
   onChapterClick,
   onEditClick,
+  onDelete,
   currentChapterId,
   canManageTts,
   canEditContent,
   novelId,
 }: ChapterListProps) {
   const { isRead } = useReadChapters();
+  const [chapterToDelete, setChapterToDelete] =
+    useState<ChapterInfo | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const closeDeleteDialog = () => {
+    setChapterToDelete(null);
+    setDeleteError(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!chapterToDelete || !onDelete) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError(null);
+
+    try {
+      await onDelete(chapterToDelete.id);
+      closeDeleteDialog();
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : 'Something went wrong. Try again later.',
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -97,10 +133,31 @@ export function ChapterList({
                   Edit
                 </Button>
               )}
+              {canEditContent && onDelete && (
+                <Button
+                  variant="chip"
+                  color="red"
+                  onClick={() => setChapterToDelete(chapter)}
+                  title="Delete chapter"
+                >
+                  Delete
+                </Button>
+              )}
             </div>
           </div>
         );
       })}
+      {chapterToDelete && (
+        <ConfirmDialog
+          title="Delete chapter"
+          message={`Delete "${chapterToDelete.title ?? 'this chapter'}"? Its content, read history and audio are removed permanently, and the chapters after it move up by one.`}
+          confirmLabel="Delete"
+          isLoading={isDeleting}
+          error={deleteError}
+          onConfirm={confirmDelete}
+          onCancel={closeDeleteDialog}
+        />
+      )}
     </div>
   );
 }

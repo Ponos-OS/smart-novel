@@ -123,6 +123,13 @@ mutation UpdateChapterAndContent(
   }
 }
 
+mutation DeleteChapter($id: ID!) {
+  deleteChapter(id: $id) {
+    id
+    novelId
+  }
+}
+
 mutation GenerateChapterAudio($id: ID!) {
   generateChapterAudio(id: $id) {
     status

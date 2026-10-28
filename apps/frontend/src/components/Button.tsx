@@ -16,6 +16,8 @@ const VARIANT_CLASSES: Record<string, string> = {
     'rounded bg-green-100 px-3 py-1.5 text-xs text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-200 dark:hover:bg-green-800',
   'chip-blue':
     'rounded bg-blue-100 px-3 py-1.5 text-xs text-blue-800 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:hover:bg-blue-800',
+  'chip-red':
+    'rounded bg-red-100 px-3 py-1.5 text-xs text-red-800 hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800',
   'solid-gray':
     'rounded-lg bg-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600',
   'solid-blue':
