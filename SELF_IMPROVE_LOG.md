@@ -69,3 +69,10 @@
 - The type-the-name guard went into `ConfirmDialog` as an optional `confirmationText` prop (additive, existing callers and specs unchanged) instead of building a second dialog.
 - "No longer shows on the home or search page" is implemented by removing the novel's query and invalidating the `GetNovels` and `SearchNovels` keys; the specs assert the delete call and navigation but not the cache effect, which the Step 10 Cypress journey covers.
 - `nx build-storybook` printed nothing on the first chained run; rerun on its own to see the real result (Nx may also answer from cache, so a successful line there only proves the previous run).
+
+## Step 9 (cover upload in the UI), 2026-10-28
+
+- Built on request, left uncommitted for review (REQUIREMENTS.md: do not commit each step).
+- Split into a presentational `NovelCoverConfirmForm` (props only, so Storybook can show picked/uploading/error without the mock-plugin machinery) and a `NovelCoverUpload` container that owns the file, the three calls and the cache refresh.
+- The preview object URL is created and revoked inside one `useEffect` keyed on the file; creating it in `useMemo` and revoking in an effect cleanup would revoke a URL still in use under React StrictMode's double effect run.
+- Unit specs mock `fetch` and the two mutations, so the real browser `PUT`, CORS and the cover showing on the novel page and the cards are only covered by the Step 10 Cypress journey; nothing here was run in a browser.

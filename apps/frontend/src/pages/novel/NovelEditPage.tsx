@@ -15,6 +15,7 @@ import {
 } from '../../generated/graphql';
 import { useAuth } from '../../hooks/useAuth';
 import { showApiError } from '../../utils/notification';
+import { NovelCoverUpload } from './NovelCoverUpload';
 import { NovelForm, NovelFormValues } from './NovelForm';
 
 export function NovelEditPage() {
@@ -115,6 +116,13 @@ export function NovelEditPage() {
       <h1 className="mb-6 text-3xl font-bold text-gray-900 dark:text-white">
         Edit novel
       </h1>
+      <div className="mb-6">
+        <NovelCoverUpload
+          novelId={novel.id}
+          novelName={novel.name}
+          coverUrl={novel.coverUrl}
+        />
+      </div>
       <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         <NovelForm
           initialValues={{
