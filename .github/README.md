@@ -2,18 +2,17 @@
 
 A modern monorepo project for managing and reading novels with AI-powered word explanations. Built with Nx, NestJS, GraphQL, and React.
 
-## 🌟 Features
+| Service                                                                                           | Replicas | vCPU |    RAM |  Disk | Notes                                                                       |
+| ------------------------------------------------------------------------------------------------- | -------: | ---: | -----: | ----: | --------------------------------------------------------------------------- |
+| Frontend (SPA)                                                                                    |        1 |  0.1 |  64 MB |     - | [Nginx](https://github.com/Ponos-OS/infra/blob/main/.github/docs/nginx.md). |
+| Backend ([NestJS + Prisma](https://github.com/Ponos-OS/infra/blob/main/.github/docs/nodejs.md))   |        1 |    1 |   1 GB |     - |                                                                             |
+| Beatrice ([FastAPI](https://github.com/Ponos-OS/infra/blob/main/.github/docs/python.md))          |        1 |  0.5 | 512 MB |     - | LLM + TTS service, port 3000. Also runs the RabbitMQ audio worker.          |
+| [Redis](docs/redis.md)                                                                            |        1 | 0.25 | 256 MB |     - | Cache only, no persistence.                                                 |
+| smart-novel [Postgres](https://github.com/Ponos-OS/infra/blob/main/.github/docs/postgres.md)      |        1 |    1 |   2 GB | 20 GB | Daily backup, its own CronJob.                                              |
+| smart-novel [RabbitMQ](https://github.com/Ponos-OS/infra/blob/main/.github/docs/rabbitmq.md)      |        1 |  0.5 | 512 MB |  2 GB | Private only.                                                               |
+| [Object storage](https://github.com/Ponos-OS/infra/blob/main/.github/docs/object-storage.md) (S3) |        - |    - |      - | 50 GB | Cloudflare R2, not a pod. Not in the disk totals. Covers and narration.     |
 
-- **📚 Novel Management**: Create, read, and manage novels with chapters stored in PostgreSQL via Prisma
-- **🔍 GraphQL API**: Powerful query, mutation, and subscription capabilities (Apollo Server)
-- **🏷️ Advanced Filtering**: Filter and search novels by categories with inclusion/exclusion
-- **🤖 AI-Powered Explanations**: Word definitions with context using Ollama LLM, with client-side rate limiting (token bucket)
-- **🔊 Text-to-Speech Narration**: Chapter narration via Piper TTS with real-time status updates through GraphQL subscriptions
-- **🔐 Authentication & Authorization**: OIDC-based auth via Zitadel with RBAC (role-based access control)
-- **🌗 Theme Support**: Light/dark mode toggle with persistent theme preferences
-- **📄 Pagination**: Cursor-based novel listing with pagination support
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 smart-novel/
@@ -46,77 +45,3 @@ smart-novel/
 ├── nx.json                       # Nx configuration
 └── tsconfig.base.json            # TypeScript base configuration
 ```
-
-## 🛠️ Technology Stack
-
-- **Backend**: NestJS, GraphQL (Apollo Server), TypeScript, Prisma ORM, Webpack
-- **Frontend**: React, Vite, TypeScript, TailwindCSS, TanStack Query, React Router
-- **Database**: PostgreSQL
-- **Cache**: Redis (ioredis)
-- **Auth**: Zitadel (OIDC/OAuth2), RBAC
-- **LLM**: Ollama (llama3.2:1b), Open WebUI
-- **TTS**: Piper TTS REST API
-- **Object Storage**: RustFS (S3-compatible)
-- **Reverse Proxy**: Traefik
-- **Testing**: Vitest (unit/integration), Cypress (E2E)
-- **Monorepo**: Nx
-- **Infrastructure**: Docker, kind, Terraform
-
-### Local Development
-
-```bash
-npm ci
-npm run start:dev
-```
-
-|                 | URL                               | Info                                                                                   |
-| --------------- | --------------------------------- | -------------------------------------------------------------------------------------- |
-| UI              | http://localhost:8080             | Username/Password: `infra/terraform/envs/local-zitadel/main.tf`                        |
-| smart-novel API | http://localhost:8080/graphql     | Apollo Sandbox. Needs a bearer token from a logged-in session.                         |
-| Beatrice API    | http://localhost:3001/graphql     | Cluster-internal; run `kubectl -n smart-novel port-forward deploy/beatrice 3001:3000`. |
-| Jaeger          | http://localhost:8080/jaeger      | No login needed for local dev.                                                         |
-| ZITADEL console | http://localhost:8080/ui/console/ | Admin login: `infra/terraform/envs/local-zitadel/main.tf`                              |
-| RustFS console  | http://localhost:9001             | S3 API on http://localhost:9000.                                                       |
-| Open WebUI      | http://localhost:8090             | Needs `enable_devtools = true`.                                                        |
-| RedisInsight    | http://localhost:5540             | Needs `enable_devtools = true`.                                                        |
-| pgAdmin         | http://localhost:5050             | Needs `enable_devtools = true`; `admin@admin.com` / `admin`.                           |
-
-### E2E
-
-```bash
-nx storybook frontend # starts storybook
-nx e2e backend-e2e    # starts backend e2e tests
-```
-
-#### Connect to External LLM Providers
-
-Beatrice talks to an OpenAI-compatible LLM and an OpenAI-compatible speech endpoint.
-
-`RUN_LOCAL_AI_MODELS` in `.env`, picks where the requests must go when starting the app (`npm run start:dev`) or running the tests (`nx e2e backend-e2e`).
-
-Local models utilize Ollama and the bundled `local-setup/openai-compatible-tts`. Then we do not need to change anything [`terraform.tfvars`](../infra/terraform/envs/local/terraform.tfvars); set these in `.env`:
-
-```bash
-RUN_LOCAL_AI_MODELS=false
-BEATRICE_LLM_MODEL=gpt-4o-mini
-BEATRICE_TTS_MODEL=gpt-4o-mini-tts
-BEATRICE_DEFAULT_VOICE=alloy
-```
-
-Then put the endpoints and keys in `infra/terraform/envs/local/terraform.tfvars`:
-
-```hcl
-llm_base_url = "https://api.openai.com/v1"
-llm_api_key  = "sk-..."
-tts_base_url = "https://api.openai.com/v1"
-tts_api_key  = "sk-..."
-tts_voices   = "alloy,nova"
-```
-
-`BEATRICE_DEFAULT_VOICE` must be one of `tts_voices`.
-
-> [!IMPORTANT]
->
-> The LLM and speech endpoints cannot be mixed (one local, one external) with the current switch.
-
-Every call to a paid provider costs money, so run only the specs that you are interested in: Narrow `include` in [`apps/backend-e2e/vitest.config.ts`](../apps/backend-e2e/vitest.config.ts) to those specs, e.g. `src/backend/beatrice-callbacks.e2e-spec.ts`. Do not commit this change though.

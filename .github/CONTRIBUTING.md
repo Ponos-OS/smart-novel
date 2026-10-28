@@ -1,31 +1,62 @@
 ## 🚀 Quick Start
 
-```bash
-npm run init
-npm run start:dev
-```
-
-Then open:
-
-- Frontend: http://localhost:8080
-- GraphQL API: http://localhost:8080/graphql
-- ZITADEL console: http://localhost:8080/ui/console/
-
-`npm run stop:dev` removes the environment. Prerequisites are Docker, Terraform and the [`kind` CLI](https://kind.sigs.k8s.io/docs/user/quick-start). The environment is a kind cluster described by Terraform modules under `infra/`; `infra/README.md` explains how it is put together.
-
-Jaeger (traces) is at http://localhost:8080/jaeger. RustFS is at http://localhost:9001 (console) and http://localhost:9000 (S3 API).
-
-If you need DevTools such as RedisInsight, pgAdmin or Open WebUI, put this in `infra/terraform/envs/local/terraform.tfvars` (git-ignored) and run `npm run start:dev` again:
+Prerequisites are Docker, Terraform and the [`kind` CLI](https://kind.sigs.k8s.io/docs/user/quick-start). Learn more about kind cluster here [`infra/README.md`](../infra/README.md). If you need DevTools such as RedisInsight, pgAdmin or Open WebUI, put this in `infra/terraform/envs/local/terraform.tfvars` (git-ignored) and run `npm run start:dev` again:
 
 ```hcl
 enable_devtools = true
 ```
 
-- Open WebUI: http://localhost:8090/
-- RedisInsight: http://localhost:5540/
-- pgAdmin: http://localhost:5050/ (`admin@admin.com` / `admin`)
+<details><summary>To skip the heavy models (Ollama, OpenAI-compatible TTS, and with them Beatrice), set <code>RUN_LOCAL_AI_MODELS=false</code> in the <code>.env</code></summary>
 
-To skip the heavy models (Ollama, OpenAI-compatible TTS, and with them Beatrice), set `run_local_ai_models = false` the same way.
+Beatrice talks to an OpenAI-compatible LLM and an OpenAI-compatible speech endpoint.
+
+`RUN_LOCAL_AI_MODELS` in `.env`, picks where the requests must go when starting the app (`npm run start:dev`) or running the tests (`nx e2e backend-e2e`).
+
+Local models utilize Ollama and the bundled `local-setup/openai-compatible-tts`. Then we do not need to change anything [`terraform.tfvars`](../infra/terraform/envs/local/terraform.tfvars); set these in `.env`:
+
+```bash
+RUN_LOCAL_AI_MODELS=false
+BEATRICE_LLM_MODEL=gpt-4o-mini
+BEATRICE_TTS_MODEL=gpt-4o-mini-tts
+BEATRICE_DEFAULT_VOICE=alloy
+```
+
+Then put the endpoints and keys in `infra/terraform/envs/local/terraform.tfvars`:
+
+```hcl
+llm_base_url = "https://api.openai.com/v1"
+llm_api_key  = "sk-..."
+tts_base_url = "https://api.openai.com/v1"
+tts_api_key  = "sk-..."
+tts_voices   = "alloy,nova"
+```
+
+`BEATRICE_DEFAULT_VOICE` must be one of `tts_voices`.
+
+> [!IMPORTANT]
+>
+> The LLM and speech endpoints cannot be mixed (one local, one external) with the current switch.
+
+Every call to a paid provider costs money, so run only the specs that you are interested in: Narrow `include` in [`apps/backend-e2e/vitest.config.ts`](../apps/backend-e2e/vitest.config.ts) to those specs, e.g. `src/backend/beatrice-callbacks.e2e-spec.ts`. Do not commit this change though.
+
+</details>
+
+```bash
+npm ci
+npm run start:dev
+```
+
+|                 | URL                               | Info                                                                                   |
+| --------------- | --------------------------------- | -------------------------------------------------------------------------------------- |
+| UI              | http://localhost:8080             | Username/Password: `infra/terraform/envs/local-zitadel/main.tf`                        |
+| smart-novel API | http://localhost:8080/graphql     | Apollo Sandbox. Needs a bearer token from a logged-in session.                         |
+| Beatrice API    | http://localhost:3001/graphql     | Cluster-internal; run `kubectl -n smart-novel port-forward deploy/beatrice 3001:3000`. |
+| Jaeger          | http://localhost:8080/jaeger      | No login needed for local dev.                                                         |
+| ZITADEL console | http://localhost:8080/ui/console/ | Admin login: `infra/terraform/envs/local-zitadel/main.tf`                              |
+| RustFS console  | http://localhost:9001             | S3 API on http://localhost:9000.                                                       |
+| Open WebUI      | http://localhost:8090             | Needs `enable_devtools = true`.                                                        |
+| RedisInsight    | http://localhost:5540             | Needs `enable_devtools = true`.                                                        |
+| pgAdmin         | http://localhost:5050             | Needs `enable_devtools = true`; `admin@admin.com` / `admin`.                           |
 
 ## Where to Change Things (Infrastructure)
 
@@ -116,9 +147,10 @@ All contributors (including AI-assisted tools) should follow the project's codin
 To run tests:
 
 ```bash
+# starts storybook
+nx storybook frontend
 # Run all e2e tests
 nx e2e frontend-e2e
-
 # Run all e2e tests
 nx e2e backend-e2e
 ```
