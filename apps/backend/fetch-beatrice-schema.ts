@@ -33,7 +33,7 @@ async function fetchBeatriceSchema() {
   }
 
   const version = resolveBeatriceVersion();
-  const url = `https://kasir-barati.github.io/smart-novel-beatrice/v${version}/schema.graphql`;
+  const url = `https://ponos-os.github.io/smart-novel-beatrice/v${version}/schema.graphql`;
   const response = await fetch(url);
 
   if (!response.ok) {
