@@ -118,3 +118,46 @@ groups:
           description: "The dead-letter queue holds audio jobs that failed or exhausted their delivery attempts. Inspect them and Beatrice's logs."
         labels:
           severity: critical
+      - uid: smart_novel_audio_removal_failed
+        title: "Narration audio could not be removed"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: loki
+            relativeTimeRange:
+              # Evaluate against the last 24 hours of logs.
+              from: 86400
+              to: 0
+            model:
+              refId: A
+              # Number of times the backend logged a failed removal of an object from the bucket (narration audio and covers use the same message).
+              expr: 'sum(count_over_time({namespace="smart-novel", app="backend"} |= "Failed to delete narration audio" [24h]))'
+              queryType: instant
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    # A single failed removal triggers it.
+                    params: [0]
+        # Fire as soon as the first line is seen.
+        for: 0s
+        # Treat missing data as healthy: Loki returns no series when nothing was logged.
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Objects were left behind in the bucket"
+          description: 'The backend could not remove a narration audio file or a cover after deleting a chapter, a novel or a cover. The object keys are in the backend logs (search for "Failed to delete narration audio"); remove those files from the bucket by hand.'
+        labels:
+          severity: warning
