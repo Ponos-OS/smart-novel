@@ -33,3 +33,9 @@ variable "broker_url" {
   default     = null
   sensitive   = true
 }
+
+variable "management_host" {
+  description = "Host the ingress serves the management UI on"
+  type        = string
+  default     = "rabbitmq.localhost"
+}

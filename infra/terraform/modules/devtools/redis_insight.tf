@@ -71,13 +71,11 @@ resource "kubernetes_service_v1" "redis_insight" {
   }
 
   spec {
-    type     = var.node_ports.redis_insight == null ? "ClusterIP" : "NodePort"
     selector = { app = "redis-insight" }
 
     port {
       port        = 5540
       target_port = "http"
-      node_port   = var.node_ports.redis_insight
     }
   }
 }

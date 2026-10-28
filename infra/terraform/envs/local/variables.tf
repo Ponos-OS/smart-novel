@@ -42,18 +42,6 @@ variable "third_party_images" {
   }
 }
 
-variable "s3_port" {
-  description = "Port on the host that reaches the S3 API; the covers' public URL in .env expects 9000"
-  type        = number
-  default     = 9000
-}
-
-variable "s3_console_port" {
-  description = "Port on the host that reaches the object storage console"
-  type        = number
-  default     = 9001
-}
-
 variable "tags" {
   description = "Labels on every Kubernetes resource, to filter them by"
   type        = map(string)
@@ -114,7 +102,7 @@ variable "run_as_user" {
 }
 
 variable "enable_devtools" {
-  description = "Run RedisInsight, pgAdmin and Open WebUI in the cluster, on localhost:5540, :5050 and :8090. Their images are large, so they are only pulled when this is true"
+  description = "Run RedisInsight, pgAdmin and Open WebUI in the cluster, behind the ingress on redis-insight.localhost, pgadmin.localhost and open-webui.localhost. Their images are large, so they are only pulled when this is true"
   type        = bool
   default     = false
 }
@@ -127,24 +115,6 @@ variable "devtools_images" {
     pgadmin       = "dpage/pgadmin4:8.4"
     open_webui    = "ghcr.io/open-webui/open-webui:v0.8.0"
   }
-}
-
-variable "redis_insight_port" {
-  description = "Port on the host that reaches RedisInsight"
-  type        = number
-  default     = 5540
-}
-
-variable "pgadmin_port" {
-  description = "Port on the host that reaches pgAdmin"
-  type        = number
-  default     = 5050
-}
-
-variable "open_webui_port" {
-  description = "Port on the host that reaches Open WebUI"
-  type        = number
-  default     = 8090
 }
 
 variable "redis_port" {

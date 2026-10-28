@@ -48,3 +48,12 @@ output "grafana_configmaps" {
     kubernetes_config_map_v1.shared_alert_rules[*].metadata[0].name,
   )
 }
+
+output "tool_routes" {
+  description = "Routes for the ingress to the in-cluster tools (S3 API and console, RabbitMQ management and the devtools), each on its own host"
+  value = concat(
+    module.object_storage.routes,
+    flatten(module.rabbitmq[*].routes),
+    flatten(module.devtools[*].routes),
+  )
+}

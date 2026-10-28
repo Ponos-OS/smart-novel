@@ -63,6 +63,11 @@ resource "kubernetes_deployment_v1" "rabbitmq" {
           }
 
           port {
+            name           = "management"
+            container_port = 15672
+          }
+
+          port {
             name           = "prometheus"
             container_port = 15692
           }
@@ -110,8 +115,15 @@ resource "kubernetes_service_v1" "rabbitmq" {
     selector = { app = "rabbitmq" }
 
     port {
+      name        = "amqp"
       port        = 5672
       target_port = "amqp"
+    }
+
+    port {
+      name        = "management"
+      port        = 15672
+      target_port = "management"
     }
   }
 }

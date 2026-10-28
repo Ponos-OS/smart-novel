@@ -159,21 +159,19 @@ resource "kubernetes_service_v1" "s3" {
   }
 
   spec {
-    type     = var.api_node_port == null && var.console_node_port == null ? "ClusterIP" : "NodePort"
+    type     = "ClusterIP"
     selector = { app = "object-storage" }
 
     port {
       name        = "api"
       port        = 9000
       target_port = "api"
-      node_port   = var.api_node_port
     }
 
     port {
       name        = "console"
       port        = 9001
       target_port = "console"
-      node_port   = var.console_node_port
     }
   }
 }

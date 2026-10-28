@@ -140,13 +140,11 @@ resource "kubernetes_service_v1" "pgadmin" {
   }
 
   spec {
-    type     = var.node_ports.pgadmin == null ? "ClusterIP" : "NodePort"
     selector = { app = "pgadmin" }
 
     port {
       port        = 80
       target_port = "http"
-      node_port   = var.node_ports.pgadmin
     }
   }
 }

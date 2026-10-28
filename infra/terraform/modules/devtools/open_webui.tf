@@ -64,13 +64,11 @@ resource "kubernetes_service_v1" "open_webui" {
   }
 
   spec {
-    type     = var.node_ports.open_webui == null ? "ClusterIP" : "NodePort"
     selector = { app = "open-webui" }
 
     port {
       port        = 8080
       target_port = "http"
-      node_port   = var.node_ports.open_webui
     }
   }
 }

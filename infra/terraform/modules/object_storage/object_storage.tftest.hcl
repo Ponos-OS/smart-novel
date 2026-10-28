@@ -16,21 +16,16 @@ run "without_endpoint_deploys_object_storage_and_initializes_the_bucket" {
 
   assert {
     condition     = kubernetes_service_v1.s3[0].spec[0].type == "ClusterIP"
-    error_message = "the service is cluster-internal unless a node port is given"
+    error_message = "the service is cluster-internal, the ingress reaches it"
   }
 }
 
-run "with_node_ports_exposes_the_service_to_the_host" {
+run "routes_the_api_and_the_console_by_host" {
   command = plan
 
-  variables {
-    api_node_port     = 30900
-    console_node_port = 30901
-  }
-
   assert {
-    condition     = kubernetes_service_v1.s3[0].spec[0].type == "NodePort"
-    error_message = "node ports must turn the service into a NodePort"
+    condition     = [for route in output.routes : route.rule] == ["Host(`s3.localhost`)", "Host(`s3-console.localhost`)"]
+    error_message = "the API and the console must each be routed by host"
   }
 }
 

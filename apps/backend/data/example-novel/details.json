@@ -5,5 +5,5 @@
   "author": "Jane Doe",
   "category": ["fantasy", "adventure"],
   "state": "ONGOING",
-  "coverUrl": "http://localhost:9000/smart-novel/covers/71a3fcd8-937d-4e3d-94de-a643ff515f82.png"
+  "coverUrl": "http://s3.localhost:8080/smart-novel/covers/71a3fcd8-937d-4e3d-94de-a643ff515f82.png"
 }

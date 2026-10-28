@@ -38,8 +38,6 @@ module "object_storage" {
   image                   = var.images["object_storage"]
   aws_cli_image           = var.images["aws_cli"]
   object_storage_endpoint = var.object_storage_endpoint
-  api_node_port           = var.object_storage_api_node_port
-  console_node_port       = var.object_storage_console_node_port
   seed_volume             = var.object_storage_seed_volume
   persistent_volumes      = var.persistent_volumes
   storage_class_name      = var.storage_class_name
@@ -171,7 +169,6 @@ module "devtools" {
   redis               = module.redis.connection
   postgres            = module.postgres.connection
   ollama_base_url     = one(module.ollama[*].host_url)
-  node_ports          = var.devtools_node_ports
 }
 
 resource "kubernetes_ingress_v1" "app" {

@@ -36,18 +36,17 @@ run "each_tool_follows_the_service_it_inspects" {
   }
 }
 
-run "node_ports_expose_only_the_tools_that_get_one" {
+run "routes_only_the_tools_that_are_deployed" {
   command = plan
 
   variables {
-    redis      = { host = "redis", port = 6379 }
-    postgres   = { host = "postgres", port = 5432, database = "smart_novel", username = "postgres" }
-    node_ports = { redis_insight = 30540 }
+    redis    = { host = "redis", port = 6379 }
+    postgres = null
   }
 
   assert {
-    condition     = kubernetes_service_v1.redis_insight[0].spec[0].type == "NodePort" && kubernetes_service_v1.pgadmin[0].spec[0].type == "ClusterIP"
-    error_message = "only a tool with a node port may be exposed"
+    condition     = [for route in output.routes : route.rule] == ["Host(`redis-insight.localhost`)"]
+    error_message = "a tool that is not deployed must not be routed"
   }
 }
 

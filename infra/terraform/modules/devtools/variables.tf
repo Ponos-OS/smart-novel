@@ -70,12 +70,12 @@ variable "ollama_base_url" {
   default     = null
 }
 
-variable "node_ports" {
-  description = "Node ports that expose each tool outside the cluster; null keeps a tool cluster-internal"
+variable "hosts" {
+  description = "Hosts the ingress serves each tool on"
   type = object({
-    redis_insight = optional(number)
-    pgadmin       = optional(number)
-    open_webui    = optional(number)
+    redis_insight = optional(string, "redis-insight.localhost")
+    pgadmin       = optional(string, "pgadmin.localhost")
+    open_webui    = optional(string, "open-webui.localhost")
   })
   default = {}
 }

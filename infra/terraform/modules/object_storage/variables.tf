@@ -47,16 +47,16 @@ variable "seed_volume" {
   default = null
 }
 
-variable "api_node_port" {
-  description = "Node port of the S3 API, to reach it from the host; null keeps it cluster-internal"
-  type        = number
-  default     = null
+variable "api_host" {
+  description = "Host the ingress serves the S3 API on"
+  type        = string
+  default     = "s3.localhost"
 }
 
-variable "console_node_port" {
-  description = "Node port of the the object storage console, to reach it from the host; null keeps it cluster-internal"
-  type        = number
-  default     = null
+variable "console_host" {
+  description = "Host the ingress serves the console on"
+  type        = string
+  default     = "s3-console.localhost"
 }
 
 variable "object_storage_endpoint" {

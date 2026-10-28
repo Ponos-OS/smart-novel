@@ -53,18 +53,6 @@ variable "redis_node_port" {
   default     = null
 }
 
-variable "object_storage_api_node_port" {
-  description = "Node port that exposes the S3 API to the host; null keeps it cluster-internal"
-  type        = number
-  default     = null
-}
-
-variable "object_storage_console_node_port" {
-  description = "Node port that exposes the object storage console to the host; null keeps it cluster-internal"
-  type        = number
-  default     = null
-}
-
 variable "ingress_class_name" {
   description = "IngressClass of the app's Ingress"
   type        = string
@@ -263,16 +251,6 @@ variable "enable_devtools" {
   description = "Deploy RedisInsight, pgAdmin and Open WebUI for the components that run in the cluster. For development only"
   type        = bool
   default     = false
-}
-
-variable "devtools_node_ports" {
-  description = "Node ports that expose each devtool outside the cluster; null keeps a tool cluster-internal"
-  type = object({
-    redis_insight = optional(number)
-    pgadmin       = optional(number)
-    open_webui    = optional(number)
-  })
-  default = {}
 }
 
 variable "postgres_password" {

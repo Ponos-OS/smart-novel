@@ -88,7 +88,7 @@ resource "kubernetes_role_binding_v1" "traefik" {
   }
 }
 
-# IngressClass is cluster-scoped, so this is the only cluster-wide permission.
+# IngressClass and Node are cluster-scoped, so these are the only cluster-wide permissions. Traefik lists Nodes to publish the address of the Ingress, and without access its Ingress provider never finishes its first sync, so no Ingress is served.
 resource "kubernetes_cluster_role_v1" "traefik" {
   metadata {
     name   = "${var.namespace}-traefik"
@@ -98,6 +98,12 @@ resource "kubernetes_cluster_role_v1" "traefik" {
   rule {
     api_groups = ["networking.k8s.io"]
     resources  = ["ingressclasses"]
+    verbs      = ["list", "watch"]
+  }
+
+  rule {
+    api_groups = [""]
+    resources  = ["nodes"]
     verbs      = ["list", "watch"]
   }
 }

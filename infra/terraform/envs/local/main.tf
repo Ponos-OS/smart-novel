@@ -90,12 +90,7 @@ locals {
     beatrice = "9109679196/smart-novel-beatrice:${local.dotenv["BEATRICE_VERSION"]}"
   })
 
-  redis_insight_node_port = 30540
-  pgadmin_node_port       = 30050
-  open_webui_node_port    = 30090
-  redis_node_port         = 30379
-  s3_api_node_port        = 30900
-  s3_console_node_port    = 30901
+  redis_node_port = 30379
 
   # The collector's Service name is fixed, and the app is created before the observability module because it provides the namespace.
   ingress_class_name = "traefik"
@@ -143,36 +138,6 @@ resource "kind_cluster" "this" {
       extra_port_mappings {
         container_port = local.redis_node_port
         host_port      = var.redis_port
-        listen_address = "127.0.0.1"
-      }
-
-      extra_port_mappings {
-        container_port = local.s3_api_node_port
-        host_port      = var.s3_port
-        listen_address = "127.0.0.1"
-      }
-
-      extra_port_mappings {
-        container_port = local.s3_console_node_port
-        host_port      = var.s3_console_port
-        listen_address = "127.0.0.1"
-      }
-
-      extra_port_mappings {
-        container_port = local.redis_insight_node_port
-        host_port      = var.redis_insight_port
-        listen_address = "127.0.0.1"
-      }
-
-      extra_port_mappings {
-        container_port = local.pgadmin_node_port
-        host_port      = var.pgadmin_port
-        listen_address = "127.0.0.1"
-      }
-
-      extra_port_mappings {
-        container_port = local.open_webui_node_port
-        host_port      = var.open_webui_port
         listen_address = "127.0.0.1"
       }
 
@@ -233,20 +198,13 @@ module "app" {
   frontend_volumes     = local.frontend_volumes
 
   enable_devtools = var.enable_devtools
-  devtools_node_ports = {
-    redis_insight = local.redis_insight_node_port
-    pgadmin       = local.pgadmin_node_port
-    open_webui    = local.open_webui_node_port
-  }
 
   pre_deploy_jobs            = local.pre_deploy_jobs
   object_storage_seed_volume = { host_path = "${local.node_apps}/backend/data" }
   otlp_endpoint              = local.otlp_endpoint
   ingress_class_name         = local.ingress_class_name
 
-  redis_node_port                  = local.redis_node_port
-  object_storage_api_node_port     = local.s3_api_node_port
-  object_storage_console_node_port = local.s3_console_node_port
+  redis_node_port = local.redis_node_port
 
   depends_on = [terraform_data.load_images]
 }
@@ -288,7 +246,7 @@ module "ingress" {
   labels             = var.tags
   image              = local.third_party_images["traefik"]
   ingress_class_name = local.ingress_class_name
-  routes             = concat(module.zitadel.routes, flatten(module.observability[*].routes))
+  routes             = concat(module.zitadel.routes, flatten(module.observability[*].routes), module.app.tool_routes)
   middlewares        = module.zitadel.middlewares
 }
 

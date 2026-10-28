@@ -55,11 +55,11 @@ Code changes need no rebuild: `envs/local` mounts `apps/` into the kind node and
 
 Postgres, Redis and RustFS are deployed in the cluster under the Service names `postgres`, `redis` and `s3`, which the application settings in `.env` already use. Setting `database_url`, `redis_url` or `object_storage_endpoint` on `module "app"` skips the matching component. Data is throwaway unless `persistent_volumes` is `true`.
 
-RustFS is reachable from the host on `localhost:9000` (S3 API) and `localhost:9001` (console), through node ports mapped by `envs/local`. The seed covers in `apps/backend/data` are uploaded only when `object_storage_seed_volume` is set (a host path or a claim); without it only the bucket and its policy are created.
+RustFS is reachable through the ingress on `s3.localhost:8080` (S3 API, the host of `OBJECT_STORAGE_PUBLIC_URL`) and `s3-console.localhost:8080` (console). The seed covers in `apps/backend/data` are uploaded only when `object_storage_seed_volume` is set (a host path or a claim); without it only the bucket and its policy are created.
 
 ## Ingress and ZITADEL
 
-Traefik listens on node port 80, which kind maps to `localhost:8080`. It reads the app's standard `Ingress` (class `traefik`) through the Kubernetes Ingress provider. ZITADEL and the observability routes stay on its file provider, because they need h2c and header middlewares, which plain Ingress cannot express; `envs/local` passes those routes to `modules/ingress`. `backend` and `frontend` expose their routes (`name`, `path`, `service_name`, `service_port`) and `modules/app` turns them into the Ingress. ZITADEL's `/assets/v1` is longer than the frontend's `/assets` and has an explicit priority, so it wins there.
+Traefik listens on node port 80, which kind maps to `localhost:8080`; that is the only HTTP port on the host, and every web tool is a `*.localhost` host on it (browsers resolve those to loopback), so nothing else needs a port-forward or a node port. Redis is the exception, on `localhost:6379`: it is raw TCP, which Traefik can only route per entrypoint, and only `backend-e2e` uses it. It reads the app's standard `Ingress` (class `traefik`) through the Kubernetes Ingress provider. ZITADEL, the observability routes and the in-cluster tools (`tool_routes` of `modules/app`: RustFS, RabbitMQ management and the devtools, each on its own host) stay on its file provider, because they need h2c and header middlewares, which plain Ingress cannot express; `envs/local` passes those routes to `modules/ingress`. `backend` and `frontend` expose their routes (`name`, `path`, `service_name`, `service_port`) and `modules/app` turns them into the Ingress. ZITADEL's `/assets/v1` is longer than the frontend's `/assets` and has an explicit priority, so it wins there.
 
 ZITADEL is configured in three stages, which `start-dev.sh` applies in order:
 
@@ -99,7 +99,7 @@ Everything specific to hot reload lives in `envs/local/main.tf`: the development
 
 ## Devtools
 
-`enable_devtools = true` in `envs/local/terraform.tfvars` adds RedisInsight (`localhost:5540`), pgAdmin (`localhost:5050`, `admin@admin.com` / `admin`, the database is pre-registered) and Open WebUI (`localhost:8090`, no login). Unlike Grafana they are reached by host port, through node ports mapped by `envs/local` like RustFS's: Open WebUI cannot be served under a path prefix, and these are the addresses `CONTRIBUTING.md` documents. The port mappings exist whether or not the tools are enabled, and their large images are pulled only when it is.
+`enable_devtools = true` in `envs/local/terraform.tfvars` adds RedisInsight (`redis-insight.localhost:8080`), pgAdmin (`pgadmin.localhost:8080`, `admin@admin.com` / `admin`, the database is pre-registered) and Open WebUI (`open-webui.localhost:8080`, no login). Like Grafana they are routed by host, because Open WebUI cannot be served under a path prefix. Their large images are pulled only when the flag is true.
 
 Each tool is deployed only when the service it inspects runs in the cluster (an external `database_url`, `redis_url` or `run_local_ai_models = false` skips pgAdmin, RedisInsight or Open WebUI). Nothing outside `modules/devtools` refers to it, so a deployed environment leaves the module call out, or keeps `enable_devtools` false.
 

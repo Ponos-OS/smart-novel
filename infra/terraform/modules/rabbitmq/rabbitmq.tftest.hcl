@@ -45,3 +45,34 @@ run "exposes_metrics_for_prometheus" {
     error_message = "the Prometheus plugin must be enabled and the pod annotated for scraping"
   }
 }
+
+run "routes_the_management_ui_by_host" {
+  command = plan
+
+  assert {
+    condition     = one(output.routes).rule == "Host(`rabbitmq.localhost`)" && one(output.routes).service == "http://rabbitmq:15672"
+    error_message = "the management UI must be routed by host to the in-cluster service"
+  }
+}
+
+run "an_external_broker_has_no_routes" {
+  command = plan
+
+  variables {
+    broker_url = "amqps://smart-novel:3c9a1f0e7b2d@b-93fec4bf-2f66.mq.eu-central-1.amazonaws.com:5671"
+  }
+
+  assert {
+    condition     = length(output.routes) == 0
+    error_message = "an external broker must not contribute routes"
+  }
+}
+
+run "every_service_port_is_named" {
+  command = plan
+
+  assert {
+    condition     = alltrue([for port in kubernetes_service_v1.rabbitmq[0].spec[0].port : port.name != null && port.name != ""])
+    error_message = "Kubernetes requires a name on each port of a multi-port Service"
+  }
+}

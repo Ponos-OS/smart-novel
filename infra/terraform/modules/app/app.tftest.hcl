@@ -287,3 +287,12 @@ run "the_dashboards_and_alert_rules_are_published_for_a_shared_grafana" {
     error_message = "the alert rules must be a ConfigMap labelled grafana_alert=1 in the app's namespace"
   }
 }
+
+run "routes_the_in_cluster_tools_by_host" {
+  command = plan
+
+  assert {
+    condition     = contains([for route in output.tool_routes : route.rule], "Host(`s3.localhost`)") && contains([for route in output.tool_routes : route.rule], "Host(`s3-console.localhost`)")
+    error_message = "the S3 API and the console must be routed"
+  }
+}

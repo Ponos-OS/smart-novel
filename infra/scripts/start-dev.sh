@@ -98,3 +98,24 @@ terraform -chdir="$zitadel_env_dir" apply -auto-approve
 
 # Stage 3: deploy the workloads.
 terraform -chdir="$env_dir" apply -auto-approve -var wait_for_zitadel_credentials=false "$@"
+
+if [ "$mode" = dev ]; then
+  cat <<'EOT'
+
+Everything is behind Traefik on port 8080:
+
+  UI                http://localhost:8080                      login: infra/terraform/envs/local-zitadel/main.tf
+  GraphQL (Apollo)  http://localhost:8080/graphql              needs a bearer token from a logged-in session
+  ZITADEL console   http://localhost:8080/ui/console/          admin login: infra/terraform/envs/local-zitadel/main.tf
+  Grafana           http://grafana.localhost:8080              admin password: see infra/README.md
+  RabbitMQ          http://rabbitmq.localhost:8080             guest / guest, only when Beatrice is deployed
+  RustFS console    http://s3-console.localhost:8080           S3 API on http://s3.localhost:8080
+  RedisInsight      http://redis-insight.localhost:8080        needs enable_devtools = true
+  pgAdmin           http://pgadmin.localhost:8080              needs enable_devtools = true, admin@admin.com / admin
+  Open WebUI        http://open-webui.localhost:8080           needs enable_devtools = true
+
+Beatrice is cluster-internal, forward it to reach http://localhost:3001/graphql:
+
+  kubectl --kubeconfig infra/terraform/envs/local/smart-novel-config -n smart-novel port-forward deploy/beatrice 3001:3000
+EOT
+fi
