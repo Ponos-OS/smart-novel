@@ -28,6 +28,10 @@ export function ChapterListPage() {
     navigate(`/novel/${novel.id}/chapters/${chapterId}/edit`);
   };
 
+  const goToEditNovel = () => {
+    navigate(`/novels/${novel.id}/edit`);
+  };
+
   const handleDeleteChapter = async (chapterId: string) => {
     await deleteChapterMutation.mutateAsync({ id: chapterId });
     await queryClient.invalidateQueries({
@@ -78,9 +82,20 @@ export function ChapterListPage() {
 
         {/* Novel Info */}
         <div className="flex-1">
-          <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
-            {novel.name}
-          </h1>
+          <div className="mb-2 flex items-start justify-between gap-4">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              {novel.name}
+            </h1>
+            {canEditContent && (
+              <Button
+                variant="outline"
+                color="gray"
+                onClick={goToEditNovel}
+              >
+                Edit novel
+              </Button>
+            )}
+          </div>
           <p className="mb-4 text-lg text-gray-600 dark:text-gray-400">
             By {novel.author}
           </p>

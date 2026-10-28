@@ -55,3 +55,10 @@
 - The content type and length checks moved from `NovelCoverService` into `CoverContentTypePipe` and `CoverContentLengthPipe` (`novel/pipes`), matching `ParseUuidPipe`/`IsoDateTimePipe`; the service keeps only business checks (novel exists, key belongs to it, object exists and is acceptable).
 - Moving the code exposed a bug in my original check: `COVER_CONTENT_TYPE_EXTENSIONS[contentType]` and `contentType in ...` accept `constructor`/`toString` (prototype keys). Both now use `Object.hasOwn`, and the pipe spec covers those values. Lookups into a plain-object map keyed by user input need `Object.hasOwn`.
 - Cover e2e rerun after the move: 14/14 (guards run before pipes, so an unauthorized caller still sees forbidden, not the validation message).
+
+## Step 7 (create and edit novel in the UI), 2026-10-28
+
+- Built on request, left uncommitted for review (REQUIREMENTS.md: do not commit each step).
+- Followed the routes as written in REQUIREMENTS.md (`/novels/new`, `/novels/:novelId/edit`) even though the existing novel pages live under `/novel/:id`; the mixed singular/plural is flagged to the user, not silently normalised.
+- Verified with unit specs (form, both pages, the two entry points), the Storybook build and the type-check; not exercised in a real browser against the stack (the Cypress journey is Step 10).
+- Role gating in the UI reads the ZITADEL role keys from the ID token (`writer`/`admin`) in a small `useCanCreateNovel` hook; the backend remains the actual authority.

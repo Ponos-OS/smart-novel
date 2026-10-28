@@ -1,0 +1,16 @@
+mutation CreateNovel($input: CreateNovelInput!) {
+  createNovel(input: $input) {
+    id
+  }
+}
+
+mutation UpdateNovel($id: ID!, $input: UpdateNovelInput!) {
+  updateNovel(id: $id, input: $input) {
+    id
+    name
+    author
+    description
+    state
+    category
+  }
+}

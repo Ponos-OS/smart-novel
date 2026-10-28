@@ -11,6 +11,8 @@ import { ChapterCreatePage } from '../pages/novel/ChapterCreatePage';
 import { ChapterEditPage } from '../pages/novel/ChapterEditPage';
 import { ChapterListPage } from '../pages/novel/ChapterListPage';
 import { ChapterReadPage } from '../pages/novel/ChapterReadPage';
+import { NovelCreatePage } from '../pages/novel/NovelCreatePage';
+import { NovelEditPage } from '../pages/novel/NovelEditPage';
 import { NovelLayout } from '../pages/novel/NovelLayout';
 import { SearchPage } from '../pages/search/SearchPage';
 import { SettingsPage } from '../pages/settings/SettingsPage';
@@ -27,6 +29,22 @@ const router = createBrowserRouter([
     element: (
       <Layout>
         <HomePage />
+      </Layout>
+    ),
+  },
+  {
+    path: '/novels/new',
+    element: (
+      <Layout>
+        <NovelCreatePage />
+      </Layout>
+    ),
+  },
+  {
+    path: '/novels/:novelId/edit',
+    element: (
+      <Layout>
+        <NovelEditPage />
       </Layout>
     ),
   },

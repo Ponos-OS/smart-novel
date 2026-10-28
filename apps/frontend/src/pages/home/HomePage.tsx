@@ -1,12 +1,17 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
+import { Button } from '../../components/Button';
 import { NovelCard } from '../../components/NovelCard';
 import { Pagination } from '../../components/Pagination';
 import { useGetNovelsQuery } from '../../generated/graphql';
+import { useCanCreateNovel } from '../../hooks/useCanCreateNovel';
 
 const PAGE_SIZE = 20;
 
 export function HomePage() {
+  const navigate = useNavigate();
+  const { canCreate } = useCanCreateNovel();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageCursors, setPageCursors] = useState<
     Map<number, string | null>
@@ -80,9 +85,20 @@ export function HomePage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <h1 className="mb-8 text-3xl font-bold text-gray-900 dark:text-white">
-        Discover Novels
-      </h1>
+      <div className="mb-8 flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          Discover Novels
+        </h1>
+        {canCreate && (
+          <Button
+            variant="solid"
+            color="blue"
+            onClick={() => navigate('/novels/new')}
+          >
+            New novel
+          </Button>
+        )}
+      </div>
 
       {novels.length === 0 ? (
         <div className="text-center text-gray-600 dark:text-gray-400">
