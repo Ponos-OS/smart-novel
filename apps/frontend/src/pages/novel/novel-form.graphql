@@ -4,6 +4,12 @@ mutation CreateNovel($input: CreateNovelInput!) {
   }
 }
 
+mutation DeleteNovel($id: ID!) {
+  deleteNovel(id: $id) {
+    id
+  }
+}
+
 mutation UpdateNovel($id: ID!, $input: UpdateNovelInput!) {
   updateNovel(id: $id, input: $input) {
     id

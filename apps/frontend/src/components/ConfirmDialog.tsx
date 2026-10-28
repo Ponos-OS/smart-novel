@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 
 import { Button } from './Button';
 
@@ -6,6 +6,8 @@ interface ConfirmDialogProps {
   title: string;
   message: ReactNode;
   confirmLabel: string;
+  /** @description When set, the confirm button stays disabled until this exact text is typed. */
+  confirmationText?: string;
   isLoading?: boolean;
   error?: string | null;
   onConfirm: () => void;
@@ -16,11 +18,16 @@ export function ConfirmDialog({
   title,
   message,
   confirmLabel,
+  confirmationText,
   isLoading = false,
   error,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const [typedText, setTypedText] = useState('');
+  const isConfirmationMissing =
+    confirmationText !== undefined && typedText !== confirmationText;
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
@@ -38,6 +45,20 @@ export function ConfirmDialog({
         <div className="mb-4 text-sm text-gray-700 dark:text-gray-300">
           {message}
         </div>
+        {confirmationText !== undefined && (
+          <label className="mb-4 block text-sm text-gray-700 dark:text-gray-300">
+            <span className="mb-1 block">
+              Type <strong>{confirmationText}</strong> to confirm
+            </span>
+            <input
+              type="text"
+              value={typedText}
+              onChange={(event) => setTypedText(event.target.value)}
+              disabled={isLoading}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+            />
+          </label>
+        )}
         {error && (
           <p
             role="alert"
@@ -59,7 +80,7 @@ export function ConfirmDialog({
             variant="solid"
             color="red"
             onClick={onConfirm}
-            disabled={isLoading}
+            disabled={isLoading || isConfirmationMissing}
           >
             {isLoading ? 'Deleting...' : confirmLabel}
           </Button>

@@ -60,6 +60,58 @@ describe('ConfirmDialog', () => {
     ).toBeDisabled();
   });
 
+  describe('with a confirmation text', () => {
+    it('keeps the confirm button disabled until the exact text is typed', () => {
+      // Arrange
+      const { onConfirm } = renderDialog({
+        confirmationText: 'The Lantern Keeper',
+      });
+      const input = screen.getByRole('textbox');
+
+      // Assert
+      expect(
+        screen.getByRole('button', { name: 'Delete' }),
+      ).toBeDisabled();
+
+      // Act
+      fireEvent.change(input, {
+        target: { value: 'the lantern keeper' },
+      });
+
+      // Assert
+      expect(
+        screen.getByRole('button', { name: 'Delete' }),
+      ).toBeDisabled();
+
+      // Act
+      fireEvent.change(input, {
+        target: { value: 'The Lantern Keeper ' },
+      });
+
+      // Assert
+      expect(
+        screen.getByRole('button', { name: 'Delete' }),
+      ).toBeDisabled();
+
+      // Act
+      fireEvent.change(input, {
+        target: { value: 'The Lantern Keeper' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+      // Assert
+      expect(onConfirm).toHaveBeenCalledOnce();
+    });
+
+    it('shows no text field when no confirmation text is given', () => {
+      // Arrange
+      renderDialog();
+
+      // Assert
+      expect(screen.queryByRole('textbox')).toBeNull();
+    });
+  });
+
   it('shows the error', () => {
     // Arrange
     renderDialog({ error: 'Chapter with id 4bbc4da9 not found' });

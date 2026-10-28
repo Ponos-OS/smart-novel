@@ -22,6 +22,14 @@ type Story = StoryObj<typeof ConfirmDialog>;
 
 export const Open: Story = {};
 
+export const WithConfirmationText: Story = {
+  args: {
+    title: 'Delete novel',
+    message: 'Delete "The Lantern Keeper" with all of its chapters?',
+    confirmationText: 'The Lantern Keeper',
+  },
+};
+
 export const Loading: Story = {
   args: { isLoading: true },
 };

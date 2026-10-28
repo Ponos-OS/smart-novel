@@ -2,7 +2,12 @@ import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 
 import { NovelAction, NovelState } from '../../generated/graphql';
@@ -11,6 +16,7 @@ import { NovelEditPage } from './NovelEditPage';
 
 const novelId = '78981754-46c4-4521-9216-b9b27dafeab2';
 const updateNovelMutate = vi.fn();
+const deleteNovelMutate = vi.fn();
 let novelQuery: {
   data?: unknown;
   isLoading: boolean;
@@ -29,6 +35,10 @@ vi.mock('../../generated/graphql', async () => {
     useGetNovelQuery,
     useUpdateNovelMutation: () => ({
       mutate: updateNovelMutate,
+      isPending: false,
+    }),
+    useDeleteNovelMutation: () => ({
+      mutate: deleteNovelMutate,
       isPending: false,
     }),
   };
@@ -68,6 +78,7 @@ function renderPage() {
         ),
       },
       { path: '/novel/:id', element: <div>Novel page</div> },
+      { path: '/', element: <div>Home page</div> },
     ],
     { initialEntries: [`/novels/${novelId}/edit`] },
   );
@@ -78,6 +89,7 @@ function renderPage() {
 describe('NovelEditPage', () => {
   beforeEach(() => {
     updateNovelMutate.mockReset();
+    deleteNovelMutate.mockReset();
     vi.mocked(showApiError).mockReset();
     novelQuery = {
       data: novel([NovelAction.EditContent, NovelAction.ManageTts]),
@@ -164,5 +176,104 @@ describe('NovelEditPage', () => {
     expect(screen.getByPlaceholderText('Novel name')).toHaveValue(
       'The Lantern Keeper II',
     );
+  });
+
+  describe('deleting the novel', () => {
+    function openDeleteDialog() {
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Delete novel' }),
+      );
+
+      return within(screen.getByRole('dialog'));
+    }
+
+    it('changes nothing when the dialog is cancelled', () => {
+      // Arrange
+      renderPage();
+      const dialog = openDeleteDialog();
+
+      // Act
+      fireEvent.click(dialog.getByRole('button', { name: 'Cancel' }));
+
+      // Assert
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect(deleteNovelMutate).not.toHaveBeenCalled();
+    });
+
+    it('keeps the confirm button disabled until the exact novel name is typed', () => {
+      // Arrange
+      renderPage();
+      const dialog = openDeleteDialog();
+
+      // Act
+      fireEvent.change(dialog.getByRole('textbox'), {
+        target: { value: 'The Lantern' },
+      });
+
+      // Assert
+      expect(
+        dialog.getByRole('button', { name: 'Delete' }),
+      ).toBeDisabled();
+
+      // Act
+      fireEvent.change(dialog.getByRole('textbox'), {
+        target: { value: 'The Lantern Keeper' },
+      });
+
+      // Assert
+      expect(
+        dialog.getByRole('button', { name: 'Delete' }),
+      ).toBeEnabled();
+    });
+
+    it('deletes the novel and goes to the home page', async () => {
+      // Arrange
+      deleteNovelMutate.mockImplementation((_variables, options) => {
+        options.onSuccess();
+      });
+      renderPage();
+      const dialog = openDeleteDialog();
+      fireEvent.change(dialog.getByRole('textbox'), {
+        target: { value: 'The Lantern Keeper' },
+      });
+
+      // Act
+      fireEvent.click(dialog.getByRole('button', { name: 'Delete' }));
+
+      // Assert
+      expect(deleteNovelMutate).toHaveBeenCalledExactlyOnceWith(
+        { id: novelId },
+        expect.objectContaining({
+          onSuccess: expect.any(Function),
+          onError: expect.any(Function),
+        }),
+      );
+      expect(await screen.findByText('Home page')).toBeTruthy();
+    });
+
+    it('shows the error in the open dialog when the delete fails', () => {
+      // Arrange
+      deleteNovelMutate.mockImplementation((_variables, options) => {
+        options.onError(
+          new Error(
+            'You do not have permission to delete this novel',
+          ),
+        );
+      });
+      renderPage();
+      const dialog = openDeleteDialog();
+      fireEvent.change(dialog.getByRole('textbox'), {
+        target: { value: 'The Lantern Keeper' },
+      });
+
+      // Act
+      fireEvent.click(dialog.getByRole('button', { name: 'Delete' }));
+
+      // Assert
+      expect(dialog.getByRole('alert')).toHaveTextContent(
+        'You do not have permission to delete this novel',
+      );
+      expect(screen.getByRole('dialog')).toBeTruthy();
+    });
   });
 });

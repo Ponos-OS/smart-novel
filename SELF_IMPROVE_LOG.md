@@ -62,3 +62,10 @@
 - Followed the routes as written in REQUIREMENTS.md (`/novels/new`, `/novels/:novelId/edit`) even though the existing novel pages live under `/novel/:id`; the mixed singular/plural is flagged to the user, not silently normalised.
 - Verified with unit specs (form, both pages, the two entry points), the Storybook build and the type-check; not exercised in a real browser against the stack (the Cypress journey is Step 10).
 - Role gating in the UI reads the ZITADEL role keys from the ID token (`writer`/`admin`) in a small `useCanCreateNovel` hook; the backend remains the actual authority.
+
+## Step 8 (delete novel in the UI), 2026-10-28
+
+- Built on request, left uncommitted for review (REQUIREMENTS.md: do not commit each step).
+- The type-the-name guard went into `ConfirmDialog` as an optional `confirmationText` prop (additive, existing callers and specs unchanged) instead of building a second dialog.
+- "No longer shows on the home or search page" is implemented by removing the novel's query and invalidating the `GetNovels` and `SearchNovels` keys; the specs assert the delete call and navigation but not the cache effect, which the Step 10 Cypress journey covers.
+- `nx build-storybook` printed nothing on the first chained run; rerun on its own to see the real result (Nx may also answer from cache, so a successful line there only proves the previous run).
