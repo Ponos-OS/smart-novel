@@ -255,11 +255,17 @@ module "observability" {
   source = "../../modules/observability"
   count  = var.enable_observability ? 1 : 0
 
-  namespace       = module.app.namespace
-  labels          = var.tags
-  collector_image = local.third_party_images["otel_collector"]
-  jaeger_image    = local.third_party_images["jaeger"]
-  sampling_ratio  = var.trace_sampling_ratio
+  namespace = module.app.namespace
+  labels    = var.tags
+  images = {
+    otel-collector = local.third_party_images["otel_collector"]
+    tempo          = local.third_party_images["tempo"]
+    loki           = local.third_party_images["loki"]
+    prometheus     = local.third_party_images["prometheus"]
+    grafana        = local.third_party_images["grafana"]
+  }
+  sampling_ratio   = var.trace_sampling_ratio
+  grafana_root_url = "http://grafana.localhost:${var.host_port}"
 }
 
 module "zitadel" {

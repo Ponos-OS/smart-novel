@@ -1,0 +1,54 @@
+# Grafana provisioning file.
+
+apiVersion: 1
+
+# Data sources Grafana connects to.
+datasources:
+  # Trace backend.
+  - name: Tempo
+    # Data source plugin.
+    type: tempo
+    # Stable ID other data sources and alerts refer to.
+    uid: tempo
+    # Grafana's backend makes the requests, not the browser.
+    access: proxy
+    # Tempo query API.
+    url: http://tempo:3200
+    isDefault: true
+    # Plugin-specific settings.
+    jsonData:
+      # Link a span to its logs.
+      tracesToLogsV2:
+        # It searches logs in Loki data source.
+        datasourceUid: loki
+        # When I click "Logs for this span" in a trace, Grafana runs a Loki query over a time window. By default that window is exactly the span's start to end. That's often too tight.
+        spanStartTimeShift: -2s
+        spanEndTimeShift: 2s
+        # Tells Grafana how to scope the log query to the right Loki stream.
+        tags:
+          # Grafana reads from the span I clicked.
+          - key: service.name
+            value: service_name
+        # Same trace ID.
+        filterByTraceID: true
+        # Do not narrow logs to the span ID.
+        filterBySpanID: false
+      streamingEnabled:
+        # Show trace search results as they arrive.
+        search: true
+        # Disable streaming metrics.
+        metrics: false
+
+  # Log backend.
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://loki:3100
+
+  # Metrics backend.
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    url: http://prometheus:9090

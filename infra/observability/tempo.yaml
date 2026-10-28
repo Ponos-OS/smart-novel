@@ -1,0 +1,50 @@
+stream_over_http_enabled: true
+
+# Tempo's HTTP server.
+server:
+  # Port Grafana queries traces on.
+  http_listen_port: 3200
+
+# Component that receives incoming spans.
+distributor:
+  # Supported ingest protocols.
+  receivers:
+    # Accept OpenTelemetry spans.
+    otlp:
+      # Transports enabled for OTLP.
+      protocols:
+        # OTLP over gRPC.
+        grpc:
+          # Listen on all interfaces; the collector sends traces here.
+          endpoint: 0.0.0.0:4317
+
+# Trace storage.
+storage:
+  # Settings for stored traces.
+  trace:
+    # Persist to the local disk instead of object storage.
+    backend: local
+    # Write-ahead log for spans not yet flushed to blocks.
+    wal:
+      path: /var/tempo/wal
+    # Local backend settings.
+    local:
+      # Directory for finished trace blocks.
+      path: /var/tempo/blocks
+
+# Tempo 3 deletes expired trace blocks through the backend scheduler and worker
+# (there is no compactor); both must agree on block_retention. Set from the
+# TRACES_RETENTION env var (-config.expand-env=true).
+backend_scheduler:
+  provider:
+    compaction:
+      compaction:
+        block_retention: ${TRACES_RETENTION}
+
+backend_worker:
+  compaction:
+    block_retention: ${TRACES_RETENTION}
+
+# Disable anonymous usage statistics sent to Grafana Labs.
+usage_report:
+  reporting_enabled: false

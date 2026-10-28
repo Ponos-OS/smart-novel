@@ -1,0 +1,18 @@
+# Default rules applied to every scrape job.
+global:
+  # How often targets are scraped.
+  scrape_interval: 15s
+  # How often rules are evaluated.
+  evaluation_interval: 15s
+
+# Prometheus pulls metrics from these targets.
+scrape_configs:
+  # RabbitMQ queue and broker metrics.
+  - job_name: rabbitmq
+    # We have a fixed target list, AKA no service discovery.
+    static_configs:
+      # RabbitMQ's built-in Prometheus plugin endpoint.
+      - targets: ["rabbitmq:15692"]
+        # The shared stack's Prometheus adds the namespace label itself, and the dashboard and alert queries filter on it.
+        labels:
+          namespace: smart-novel

@@ -21,7 +21,7 @@ infra/
     │   ├── frontend/   Vite SPA
     │   ├── job/        A one-shot Job
     │   ├── devtools/   RedisInsight, pgAdmin, Open WebUI; off by default
-    │   ├── observability/  OpenTelemetry Collector and Jaeger
+    │   ├── observability/  OpenTelemetry Collector, Tempo, Loki, Prometheus and Grafana
     │   ├── backup/     CronJobs that pg_dump to the backup bucket
     │   ├── zitadel/    ZITADEL (init Job, server, login UI); it writes its first-instance PATs to a volume
     │   └── zitadel_config/  Project, roles, users, OIDC apps, self-registration and impersonation, through the ZITADEL provider
@@ -73,9 +73,15 @@ The state of stage 2 lives next to `envs/local-zitadel` and is git-ignored. `sto
 
 ## Observability
 
-The OpenTelemetry Collector (tail sampling config in `modules/observability`) receives OTLP on `otel-collector:4318` (HTTP) and `:4317` (gRPC) and forwards to Jaeger. Browsers export to the same origin at `http://localhost:8080/v1/traces`, which the module routes through the ingress. The Jaeger UI is on `http://localhost:8080/jaeger`: UIs sit behind the ingress path, not behind port-forwards. `enable_observability = false` skips both; `trace_sampling_ratio` (1.0 locally) sets the share of non-noisy traces kept, errors are always kept. Readiness probes on both replace the compose health-check container.
+The OpenTelemetry Collector (tail sampling config in `modules/observability`) receives OTLP on `otel-collector:4318` (HTTP) and `:4317` (gRPC) and forwards the traces to Tempo. Prometheus scrapes RabbitMQ, and Loki is deployed for the logs the apps do not ship yet. Browsers export to the same origin at `http://localhost:8080/v1/traces`, which the module routes through the ingress. Grafana is on `http://grafana.localhost:8080`, routed by host through the same ingress, and loads the datasources, the RabbitMQ dashboard and the alert rules from `observability/grafana/provisioning`. Sign in as `admin` with the generated password:
 
-On Hetzner the shared Grafana serves both apps, and `envs/hetzner` sets `publish_grafana_configmaps` to publish the RabbitMQ dashboard and the audio queue alert rules from `observability/grafana/provisioning` as ConfigMaps in the `smart-novel` namespace. Their names carry the app name (UIDs, rule group, folders) and every query filters on `namespace="smart-novel"`, because the shared Prometheus holds both apps' series. Datasources are referenced by the UIDs `prometheus`, `tempo` and `loki`. Locally there is no Grafana, only Jaeger. smart-novel exports traces only, so there are no app metrics yet; the dashboard and the alerts use RabbitMQ's.
+```bash
+kubectl --kubeconfig infra/terraform/envs/local/smart-novel-config -n smart-novel get secret grafana-admin -o jsonpath='{.data.password}' | base64 -d
+```
+
+`enable_observability = false` skips the stack; `trace_sampling_ratio` (1.0 locally) sets the share of non-noisy traces kept, errors are always kept. The stores write to `emptyDir`, so the data goes away with the pods.
+
+On Hetzner the shared Grafana serves both apps, and `envs/hetzner` sets `publish_grafana_configmaps` to publish the RabbitMQ dashboard and the audio queue alert rules from `observability/grafana/provisioning` as ConfigMaps in the `smart-novel` namespace. Their names carry the app name (UIDs, rule group, folders) and every query filters on `namespace="smart-novel"`, because the shared Prometheus holds both apps' series. Datasources are referenced by the UIDs `prometheus`, `tempo` and `loki`. Locally the same files are mounted into the stack above. smart-novel exports traces only, so there are no app metrics yet; the dashboard and the alerts use RabbitMQ's.
 
 ## Messaging and AI
 
@@ -93,7 +99,7 @@ Everything specific to hot reload lives in `envs/local/main.tf`: the development
 
 ## Devtools
 
-`enable_devtools = true` in `envs/local/terraform.tfvars` adds RedisInsight (`localhost:5540`), pgAdmin (`localhost:5050`, `admin@admin.com` / `admin`, the database is pre-registered) and Open WebUI (`localhost:8090`, no login). Unlike Jaeger they are reached by host port, through node ports mapped by `envs/local` like RustFS's: Open WebUI cannot be served under a path prefix, and these are the addresses `CONTRIBUTING.md` documents. The port mappings exist whether or not the tools are enabled, and their large images are pulled only when it is.
+`enable_devtools = true` in `envs/local/terraform.tfvars` adds RedisInsight (`localhost:5540`), pgAdmin (`localhost:5050`, `admin@admin.com` / `admin`, the database is pre-registered) and Open WebUI (`localhost:8090`, no login). Unlike Grafana they are reached by host port, through node ports mapped by `envs/local` like RustFS's: Open WebUI cannot be served under a path prefix, and these are the addresses `CONTRIBUTING.md` documents. The port mappings exist whether or not the tools are enabled, and their large images are pulled only when it is.
 
 Each tool is deployed only when the service it inspects runs in the cluster (an external `database_url`, `redis_url` or `run_local_ai_models = false` skips pgAdmin, RedisInsight or Open WebUI). Nothing outside `modules/devtools` refers to it, so a deployed environment leaves the module call out, or keeps `enable_devtools` false.
 

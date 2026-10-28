@@ -33,8 +33,11 @@ variable "third_party_images" {
     zitadel        = "ghcr.io/zitadel/zitadel:v4.12.3"
     zitadel_login  = "ghcr.io/zitadel/zitadel-login:v4.12.3"
     busybox        = "busybox:1.37"
-    otel_collector = "otel/opentelemetry-collector-contrib:0.110.0"
-    jaeger         = "jaegertracing/all-in-one:1.62.0"
+    otel_collector = "otel/opentelemetry-collector-contrib:0.161.0"
+    tempo          = "grafana/tempo:3.0.0"
+    loki           = "grafana/loki:3.7.8"
+    prometheus     = "prom/prometheus:v3.15.0"
+    grafana        = "grafana/grafana:13.2.2"
     rabbitmq       = "rabbitmq:3.13-management-alpine"
   }
 }
@@ -157,7 +160,7 @@ variable "wait_for_zitadel_credentials" {
 }
 
 variable "enable_observability" {
-  description = "Deploy the OpenTelemetry Collector and Jaeger"
+  description = "Deploy the OpenTelemetry Collector, Tempo, Loki, Prometheus and Grafana"
   type        = bool
   default     = true
 }

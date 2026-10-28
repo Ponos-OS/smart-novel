@@ -55,8 +55,8 @@ processors:
         action: hash
 
 exporters:
-  otlp/jaeger:
-    endpoint: jaeger:4317
+  otlp_grpc/tempo:
+    endpoint: tempo:4317
     tls:
       insecure: true
   debug:
@@ -68,4 +68,4 @@ service:
     traces:
       receivers: [otlp]
       processors: [tail_sampling, attributes, batch]
-      exporters: [otlp/jaeger]
+      exporters: [otlp_grpc/tempo]

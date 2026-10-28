@@ -9,14 +9,14 @@ variable "labels" {
   default     = {}
 }
 
-variable "collector_image" {
-  description = "Container image of the OpenTelemetry Collector (contrib distribution, for tail sampling)"
-  type        = string
-}
+variable "images" {
+  description = "Container images of the stack: otel-collector (contrib distribution, for tail sampling), tempo, loki, prometheus and grafana"
+  type        = map(string)
 
-variable "jaeger_image" {
-  description = "Container image of Jaeger all-in-one"
-  type        = string
+  validation {
+    condition     = toset(keys(var.images)) == toset(["otel-collector", "tempo", "loki", "prometheus", "grafana"])
+    error_message = "images needs exactly otel-collector, tempo, loki, prometheus and grafana."
+  }
 }
 
 variable "sampling_ratio" {
@@ -30,8 +30,14 @@ variable "sampling_ratio" {
   }
 }
 
-variable "jaeger_path" {
-  description = "Path prefix the Jaeger UI is served under on the ingress"
+variable "grafana_host" {
+  description = "Host the ingress serves Grafana on, for example grafana.localhost"
   type        = string
-  default     = "/jaeger"
+  default     = "grafana.localhost"
+}
+
+variable "grafana_root_url" {
+  description = "Public URL of Grafana, which it uses in the links it generates"
+  type        = string
+  default     = "http://grafana.localhost:8080"
 }

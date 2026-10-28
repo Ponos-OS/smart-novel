@@ -1,0 +1,55 @@
+# Single-tenant mode: no X-Scope-OrgID header required.
+auth_enabled: false
+
+# Loki's HTTP server.
+server:
+  # Port Grafana & the OTel collector push/query on.
+  http_listen_port: 3100
+
+# Settings shared by all Loki components.
+common:
+  # Loki data is stored here.
+  path_prefix: /var/loki
+  # Keep a single copy of each chunk (single-node setup).
+  replication_factor: 1
+  ring:
+    kvstore:
+      # in-process memory; no Consul/etcd needed for one node.
+      store: inmemory
+  # Where logs are persisted.
+  storage:
+    # Store logs on the local disk instead of object storage.
+    filesystem:
+      chunks_directory: /var/loki/chunks
+      rules_directory: /var/loki/rules
+
+# How logs are indexed and stored over time.
+schema_config:
+  # List of schema versions, each valid from a date.
+  configs:
+    # Schema applies to data written on or after this date.
+    - from: 2026-01-01
+      # TSDB is the current index format.
+      store: tsdb
+      # Chunks are stored on the local filesystem.
+      object_store: filesystem
+      # Schema version 13, required for structured metadata.
+      schema: v13
+      # Index table settings.
+      index:
+        # Prefix for index table names.
+        prefix: index_
+        # One index table per day.
+        period: 24h
+
+limits_config:
+  # Accept OTLP attributes as structured metadata (needed for OTLP log ingestion).
+  allow_structured_metadata: true
+  # Set from the LOGS_RETENTION env var (-config.expand-env=true).
+  retention_period: ${LOGS_RETENTION}
+
+# Retention is only enforced by the compactor: without it, retention_period is accepted and nothing is ever deleted.
+compactor:
+  working_directory: /var/loki/compactor
+  retention_enabled: true
+  delete_request_store: filesystem
