@@ -35,3 +35,23 @@
 - The step assumed the backend's logs are in Loki, but the collector has only a traces pipeline and nothing ships pod logs, so the rule is valid but has no data until a log shipper exists. Checking that the signal an alert queries is actually produced (here: grep the collector pipelines and log exporters) belongs before writing the rule.
 - Verified live: the rule loads, is healthy with no data, and goes straight to firing (severity warning) once a matching line is pushed to Loki by hand (`for: 0s`, so no pending phase). `terraform test` passes for `observability` and `app`.
 - `start:dev`/`stop:dev` ran once, not twice, for the idempotence check in PROCESS.md; the user is asked to repeat it.
+
+## Step 6 (cover upload backend), 2026-10-28
+
+- Built on request, left uncommitted for review (REQUIREMENTS.md: do not commit each step).
+- First e2e run failed on `ECONNREFUSED 127.0.0.1:9000`: the gitignored `.env` still had the pre-Traefik `OBJECT_STORAGE_PUBLIC_URL=http://localhost:9000` while `.env.example` had `http://s3.localhost:8080`. A stale `.env` is an environment fault that looks like a code bug; before debugging a failing e2e that talks to the cluster, diff `.env` against `.env.example`. The one line was changed in `.env` to match.
+- RustFS supports `PutBucketCors`, so CORS lives in the bucket init Job (origins derived from `CORS_ALLOWED_ORIGINS`). The bucket enforces the signed content type and, once `content-length` is added to `signableHeaders`, the signed size (both 403 in e2e).
+- `signableHeaders` is only widened when a length is given, so the existing Beatrice upload path is unchanged; `beatrice-callbacks.e2e-spec.ts` still passes (10/10).
+- Guards run before pipes: a non-UUID id from a non-admin reaches `NovelPolicy`'s `findUnique` and leaks a Prisma error as INTERNAL_SERVER_ERROR (graphql-api-tester). Pre-existing for every policy-guarded mutation with a non-admin caller; not fixed in this step.
+- graphql-api-tester: all AC pass; its unknown-novel/bad-key ordering finding was fixed (novel looked up before the key check).
+
+## Step 6 follow-up: merged the object-storage services, 2026-10-28
+
+- `PresignedUploadUrlService`, `ObjectDeleterService` and `ObjectInspectorService` became one `ObjectStorageService` (`generateUploadUrl`, `generateBrowserUploadUrl`, `head`, `delete`) after the user pointed out that each one-method class over the same S3 client was needless. Lesson for the loop: when a step needs a new method on an existing area (Step 1 delete, Step 6 head), add it to the existing class first and split only when there is a reason, instead of a new class per method.
+- Unit tests do not cover Nest DI wiring (the `PUBLIC_S3_CLIENT` token and the module exports), so the cover, delete and Beatrice callback e2e specs were rerun after the merge: 30/30.
+
+## Step 6 follow-up: cover validation moved into pipes, 2026-10-28
+
+- The content type and length checks moved from `NovelCoverService` into `CoverContentTypePipe` and `CoverContentLengthPipe` (`novel/pipes`), matching `ParseUuidPipe`/`IsoDateTimePipe`; the service keeps only business checks (novel exists, key belongs to it, object exists and is acceptable).
+- Moving the code exposed a bug in my original check: `COVER_CONTENT_TYPE_EXTENSIONS[contentType]` and `contentType in ...` accept `constructor`/`toString` (prototype keys). Both now use `Object.hasOwn`, and the pipe spec covers those values. Lookups into a plain-object map keyed by user input need `Object.hasOwn`.
+- Cover e2e rerun after the move: 14/14 (guards run before pipes, so an unauthorized caller still sees forbidden, not the validation message).

@@ -39,8 +39,10 @@ module "object_storage" {
   aws_cli_image           = var.images["aws_cli"]
   object_storage_endpoint = var.object_storage_endpoint
   seed_volume             = var.object_storage_seed_volume
-  persistent_volumes      = var.persistent_volumes
-  storage_class_name      = var.storage_class_name
+  # One source of truth: the browser origins the backend already allows.
+  cors_allowed_origins = [for origin in split(",", lookup(var.backend_environment, "CORS_ALLOWED_ORIGINS", "http://localhost:8080")) : trimspace(origin) if trimspace(origin) != ""]
+  persistent_volumes   = var.persistent_volumes
+  storage_class_name   = var.storage_class_name
 }
 
 locals {

@@ -14,6 +14,11 @@ export interface ObjectStorageModuleOptions {
   /** @description Optional custom endpoint (e.g., http://localhost:4566 for Localstack, http://s3:9000 for RustFS). */
   endpoint?: string;
 
+  /**
+   * @description Endpoint a browser can reach, used only to sign URLs handed to clients. The signature covers the host, so a URL signed for the cluster-internal `endpoint` does not work from a browser. Defaults to `endpoint`.
+   */
+  publicEndpoint?: string;
+
   /** @description Preferred credential field names */
   accessKeyId?: string;
   secretAccessKey?: string;

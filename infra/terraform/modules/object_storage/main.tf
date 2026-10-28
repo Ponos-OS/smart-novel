@@ -29,6 +29,7 @@ resource "kubernetes_config_map_v1" "bucket_policy" {
 
   data = {
     "bucket-policy.json" = templatefile("${path.module}/bucket-policy.json.tftpl", { bucket = var.bucket })
+    "bucket-cors.json"   = templatefile("${path.module}/bucket-cors.json.tftpl", { origins = var.cors_allowed_origins })
   }
 }
 
@@ -210,6 +211,7 @@ resource "kubernetes_job_v1" "init" {
                 [ -f "$file" ] && aws --endpoint-url http://s3:9000 s3 cp "$file" s3://${var.bucket}/covers/
               done
               aws --endpoint-url http://s3:9000 s3api put-bucket-policy --bucket ${var.bucket} --policy file:///policy/bucket-policy.json
+              aws --endpoint-url http://s3:9000 s3api put-bucket-cors --bucket ${var.bucket} --cors-configuration file:///policy/bucket-cors.json
               echo 'Object storage initialization complete!'
             EOT
           ]

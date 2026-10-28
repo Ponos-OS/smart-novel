@@ -32,6 +32,7 @@ import {
   ChapterService,
   ChapterUserStateService,
   NarrationLockService,
+  NovelCoverService,
   NovelService,
   TtsTextService,
 } from './services';
@@ -46,6 +47,7 @@ import {
     ChapterUserStateResolver,
     ChapterConnectionFieldResolver,
     NovelService,
+    NovelCoverService,
     ChapterService,
     ChapterNarrationService,
     ChapterUserStateService,

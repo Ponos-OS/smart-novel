@@ -1,32 +1,31 @@
 import { BadRequestException } from '@nestjs/common';
 
-import type { PresignedUploadUrlService } from '../../object-storage';
+import type { ObjectStorageService } from '../../object-storage';
 
 import { GenUploadUrlController } from './gen-upload-url.controller';
 
 describe(GenUploadUrlController.name, () => {
   let uut: GenUploadUrlController;
-  let presignedUploadUrlService: PresignedUploadUrlService;
+  let objectStorageService: ObjectStorageService;
   const appConfig = {
     OBJECT_STORAGE_BUCKET: 'beatrice-local',
   } as any;
 
   beforeEach(() => {
-    presignedUploadUrlService = {
-      generate: vi.fn(),
+    objectStorageService = {
+      generateUploadUrl: vi.fn(),
     } as any;
 
-    uut = new GenUploadUrlController(
-      presignedUploadUrlService,
-      appConfig,
-    );
+    uut = new GenUploadUrlController(objectStorageService, appConfig);
   });
 
   it('should throw BadRequestException when the Idempotency-Key header is missing', async () => {
     await expect(uut.genUploadUrl(undefined)).rejects.toThrow(
       BadRequestException,
     );
-    expect(presignedUploadUrlService.generate).not.toHaveBeenCalled();
+    expect(
+      objectStorageService.generateUploadUrl,
+    ).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -41,14 +40,16 @@ describe(GenUploadUrlController.name, () => {
         BadRequestException,
       );
       expect(
-        presignedUploadUrlService.generate,
+        objectStorageService.generateUploadUrl,
       ).not.toHaveBeenCalled();
     },
   );
 
   it('should return the presigned URL for a deterministic, jobId-scoped object key', async () => {
     const jobId = '2bce49d6-6592-4ed3-b421-f913b9ecc3bd';
-    vi.mocked(presignedUploadUrlService.generate).mockResolvedValue(
+    vi.mocked(
+      objectStorageService.generateUploadUrl,
+    ).mockResolvedValue(
       'https://s3.example.com/beatrice-local/narrations/2bce49d6-6592-4ed3-b421-f913b9ecc3bd.mp3?X-Amz-Signature=abc',
     );
 
@@ -57,7 +58,9 @@ describe(GenUploadUrlController.name, () => {
     expect(result).toEqual({
       url: 'https://s3.example.com/beatrice-local/narrations/2bce49d6-6592-4ed3-b421-f913b9ecc3bd.mp3?X-Amz-Signature=abc',
     });
-    expect(presignedUploadUrlService.generate).toHaveBeenCalledWith(
+    expect(
+      objectStorageService.generateUploadUrl,
+    ).toHaveBeenCalledWith(
       'beatrice-local',
       'narrations/2bce49d6-6592-4ed3-b421-f913b9ecc3bd.mp3',
       'audio/mpeg',

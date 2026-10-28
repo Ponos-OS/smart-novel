@@ -38,6 +38,12 @@ variable "bucket" {
   default     = "smart-novel"
 }
 
+variable "cors_allowed_origins" {
+  description = "Origins whose pages may upload to the bucket straight from the browser (presigned PUT)"
+  type        = list(string)
+  default     = ["http://localhost:8080"]
+}
+
 variable "seed_volume" {
   description = "Where the seed data lives, from a host path or a persistent volume claim; its PNG files are uploaded as covers. Null uploads nothing"
   type = object({

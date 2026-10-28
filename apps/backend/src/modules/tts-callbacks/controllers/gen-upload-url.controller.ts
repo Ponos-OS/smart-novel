@@ -11,7 +11,7 @@ import {
 
 import { appConfigs } from '../../../app/configs/app.config';
 import { Public } from '../../auth';
-import { PresignedUploadUrlService } from '../../object-storage';
+import { ObjectStorageService } from '../../object-storage';
 import { TTS_AUDIO_OBJECT_KEY_PREFIX } from '../constants';
 import { BeatriceTokenGuard } from '../guards';
 
@@ -30,7 +30,7 @@ export class GenUploadUrlController {
   private static readonly CONTENT_TYPE = 'audio/mpeg';
 
   constructor(
-    private readonly presignedUploadUrlService: PresignedUploadUrlService,
+    private readonly objectStorageService: ObjectStorageService,
     @Inject(appConfigs.KEY)
     private readonly appConfig: ConfigType<typeof appConfigs>,
   ) {}
@@ -58,7 +58,7 @@ export class GenUploadUrlController {
     }
 
     const objectKey = `${TTS_AUDIO_OBJECT_KEY_PREFIX}/${idempotencyKey}.mp3`;
-    const url = await this.presignedUploadUrlService.generate(
+    const url = await this.objectStorageService.generateUploadUrl(
       this.appConfig.OBJECT_STORAGE_BUCKET,
       objectKey,
       GenUploadUrlController.CONTENT_TYPE,

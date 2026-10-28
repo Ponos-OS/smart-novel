@@ -7,4 +7,5 @@ export * from './delete-novel-response.type';
 export * from './delete-read-history-response.type';
 export * from './mark-chapters-read-response.type';
 export * from './novel-connection.type';
+export * from './novel-cover-upload-url.type';
 export * from './novel.type';

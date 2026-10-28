@@ -11,7 +11,7 @@ import { BeatriceTokenGuard } from './guards';
  * REST endpoints Beatrice calls into during a `generateAudio` job: `genUploadUrl`
  * and `statusCallbackUrl`.
  *
- * `AUTH_PROVIDER`, `PresignedUploadUrlService`, and `RedisService` come from
+ * `AUTH_PROVIDER`, `ObjectStorageService`, and `RedisService` come from
  * `AuthModule`/`ObjectStorageModule`/`RedisModule`, all registered `global: true`
  * in `AppModule` — no need to import them here.
  */

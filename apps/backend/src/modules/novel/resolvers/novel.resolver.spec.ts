@@ -2,13 +2,14 @@ import { NovelState } from '@prisma/client';
 
 import { type IAuthUser, Role } from '../../auth';
 import { NovelAction } from '../enums';
-import { NovelService } from '../services';
+import { NovelCoverService, NovelService } from '../services';
 import { Novel } from '../types';
 import { NovelResolver } from './novel.resolver';
 
 describe(NovelResolver.name, () => {
   let uut: NovelResolver;
   let novelService: NovelService;
+  let novelCoverService: NovelCoverService;
 
   beforeEach(() => {
     novelService = {
@@ -20,7 +21,11 @@ describe(NovelResolver.name, () => {
       updateNovel: vi.fn(),
       deleteNovel: vi.fn(),
     } as any;
-    uut = new NovelResolver(novelService);
+    novelCoverService = {
+      createUploadUrl: vi.fn(),
+      setCover: vi.fn(),
+    } as any;
+    uut = new NovelResolver(novelService, novelCoverService);
   });
 
   describe('createNovel', () => {
@@ -59,6 +64,46 @@ describe(NovelResolver.name, () => {
       ).toHaveBeenCalledExactlyOnceWith(novel.id, {
         state: NovelState.FINISHED,
       });
+      expect(result).toBe(novel);
+    });
+  });
+
+  describe('createNovelCoverUploadUrl', () => {
+    it('should delegate the novel id, content type and length to the cover service', async () => {
+      const novelId = '78981754-46c4-4521-9216-b9b27dafeab2';
+      const uploadUrl = {
+        uploadUrl:
+          'http://s3.localhost:8080/smart-novel/covers/x.png?X-Amz-Signature=abc',
+        objectKey: `covers/${novelId}/5c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f.png`,
+      };
+      vi.mocked(novelCoverService.createUploadUrl).mockResolvedValue(
+        uploadUrl,
+      );
+
+      const result = await uut.createNovelCoverUploadUrl(
+        novelId,
+        'image/png',
+        204800,
+      );
+
+      expect(
+        novelCoverService.createUploadUrl,
+      ).toHaveBeenCalledExactlyOnceWith(novelId, 'image/png', 204800);
+      expect(result).toBe(uploadUrl);
+    });
+  });
+
+  describe('setNovelCover', () => {
+    it('should delegate the novel id and object key to the cover service', async () => {
+      const novel = getNovel({ ownerId: '260311094522198751' });
+      const objectKey = `covers/${novel.id}/5c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f.png`;
+      vi.mocked(novelCoverService.setCover).mockResolvedValue(novel);
+
+      const result = await uut.setNovelCover(novel.id, objectKey);
+
+      expect(
+        novelCoverService.setCover,
+      ).toHaveBeenCalledExactlyOnceWith(novel.id, objectKey);
       expect(result).toBe(novel);
     });
   });

@@ -9,7 +9,7 @@ import { CustomLoggerService } from 'nestjs-backend-common';
 
 import { appConfigs } from '../../../app';
 import { LlmClient } from '../../llm';
-import { ObjectDeleterService } from '../../object-storage';
+import { ObjectStorageService } from '../../object-storage';
 import { RedisService } from '../../redis';
 import {
   IChapterContentRepository,
@@ -29,7 +29,7 @@ describe(ChapterNarrationService.name, () => {
   let appConfig: ConfigType<typeof appConfigs>;
   let llmClient: LlmClient;
   let redisService: RedisService;
-  let objectDeleterService: ObjectDeleterService;
+  let objectStorageService: ObjectStorageService;
   const mockChapterId = 'e8cec22d-a2c2-4f68-ac1c-6a3cdbbfef33';
   const mockJobId = '2bce49d6-6592-4ed3-b421-f913b9ecc3bd';
   const mockLockKey = `chapter_tts:${mockChapterId}`;
@@ -74,7 +74,7 @@ describe(ChapterNarrationService.name, () => {
       subscribe: vi.fn(),
     } as any;
 
-    objectDeleterService = {
+    objectStorageService = {
       delete: vi.fn().mockResolvedValue(undefined),
     } as any;
 
@@ -87,7 +87,7 @@ describe(ChapterNarrationService.name, () => {
       appConfig,
       llmClient,
       redisService,
-      objectDeleterService,
+      objectStorageService,
     );
   });
 
@@ -730,7 +730,7 @@ describe(ChapterNarrationService.name, () => {
     it('should delete the object the narration URL points at', async () => {
       await uut.deleteAudio(narrationUrl);
 
-      expect(objectDeleterService.delete).toHaveBeenCalledWith(
+      expect(objectStorageService.delete).toHaveBeenCalledWith(
         'smart-novel',
         'narrations/0b6b3d0e-5d0e-4d58-9f0b-3f1c7d6a2e11.mp3',
       );
@@ -739,11 +739,11 @@ describe(ChapterNarrationService.name, () => {
     it('should do nothing when the chapter has no narration', async () => {
       await uut.deleteAudio(undefined);
 
-      expect(objectDeleterService.delete).not.toHaveBeenCalled();
+      expect(objectStorageService.delete).not.toHaveBeenCalled();
     });
 
     it('should log the object key and not throw when the removal fails', async () => {
-      vi.mocked(objectDeleterService.delete).mockRejectedValue(
+      vi.mocked(objectStorageService.delete).mockRejectedValue(
         new Error('AccessDenied'),
       );
 

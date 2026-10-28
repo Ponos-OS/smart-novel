@@ -21,6 +21,7 @@ export class ObjectStorageModuleConfig implements ObjectStorageModuleOptionsFact
     return {
       region: this.appConfig.OBJECT_STORAGE_REGION,
       endpoint: this.appConfig.OBJECT_STORAGE_ENDPOINT,
+      publicEndpoint: this.appConfig.OBJECT_STORAGE_PUBLIC_URL,
       accessKeyId: this.appConfig.OBJECT_STORAGE_ACCESS_KEY,
       secretAccessKey: this.appConfig.OBJECT_STORAGE_SECRET_KEY,
       enableLogger: this.appConfig.NODE_ENV === 'development',

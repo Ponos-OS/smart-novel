@@ -13,6 +13,7 @@ describe(PrismaNovelRepository.name, () => {
       novel: {
         findMany: vi.fn(),
         findUnique: vi.fn(),
+        findUniqueOrThrow: vi.fn(),
         count: vi.fn(),
         create: vi.fn(),
         update: vi.fn(),
@@ -202,6 +203,76 @@ describe(PrismaNovelRepository.name, () => {
           }),
         }),
       );
+    });
+  });
+
+  describe('setCoverUrl', () => {
+    it('should store the new cover URL and return the one it replaced', async () => {
+      const novelId = '78981754-46c4-4521-9216-b9b27dafeab2';
+      vi.mocked(
+        prismaService.novel.findUniqueOrThrow,
+      ).mockResolvedValue({
+        coverUrl:
+          'http://s3.localhost:8080/smart-novel/covers/old.png',
+      } as any);
+      vi.mocked(prismaService.novel.update).mockResolvedValue({
+        id: novelId,
+        ownerId: '260311094522198751',
+        name: 'The Journey Begins',
+        author: 'Jane Doe',
+        description: 'A young hero leaves home.',
+        state: NovelState.ONGOING,
+        coverUrl:
+          'http://s3.localhost:8080/smart-novel/covers/new.png',
+        categories: [],
+      } as any);
+
+      const result = await uut.setCoverUrl(
+        novelId,
+        'http://s3.localhost:8080/smart-novel/covers/new.png',
+      );
+
+      expect(prismaService.novel.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: novelId },
+          data: {
+            coverUrl:
+              'http://s3.localhost:8080/smart-novel/covers/new.png',
+          },
+        }),
+      );
+      expect(result.previousCoverUrl).toBe(
+        'http://s3.localhost:8080/smart-novel/covers/old.png',
+      );
+      expect(result.novel.coverUrl).toBe(
+        'http://s3.localhost:8080/smart-novel/covers/new.png',
+      );
+    });
+
+    it('should report no previous cover when the novel had none', async () => {
+      vi.mocked(
+        prismaService.novel.findUniqueOrThrow,
+      ).mockResolvedValue({
+        coverUrl: null,
+      } as any);
+      vi.mocked(prismaService.novel.update).mockResolvedValue({
+        id: '78981754-46c4-4521-9216-b9b27dafeab2',
+        ownerId: '260311094522198751',
+        name: 'The Journey Begins',
+        author: 'Jane Doe',
+        description: 'A young hero leaves home.',
+        state: NovelState.ONGOING,
+        coverUrl:
+          'http://s3.localhost:8080/smart-novel/covers/new.png',
+        categories: [],
+      } as any);
+
+      const result = await uut.setCoverUrl(
+        '78981754-46c4-4521-9216-b9b27dafeab2',
+        'http://s3.localhost:8080/smart-novel/covers/new.png',
+      );
+
+      expect(result.previousCoverUrl).toBeUndefined();
     });
   });
 

@@ -19,7 +19,7 @@ import {
 
 import { appConfigs } from '../../../app/configs/app.config';
 import { LlmClient } from '../../llm';
-import { ObjectDeleterService } from '../../object-storage';
+import { ObjectStorageService } from '../../object-storage';
 import { RedisService } from '../../redis';
 import {
   isBeatriceTerminal,
@@ -84,7 +84,7 @@ export class ChapterNarrationService implements OnModuleInit {
     private readonly appConfig: ConfigType<typeof appConfigs>,
     private readonly llmClient: LlmClient,
     private readonly redisService: RedisService,
-    private readonly objectDeleterService: ObjectDeleterService,
+    private readonly objectStorageService: ObjectStorageService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -429,7 +429,7 @@ export class ChapterNarrationService implements OnModuleInit {
       `/${bucket}/`,
     )[1];
     const [error] = await retryAsync(
-      () => this.objectDeleterService.delete(bucket, objectKey),
+      () => this.objectStorageService.delete(bucket, objectKey),
       { retry: 0 },
     );
 

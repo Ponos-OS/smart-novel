@@ -27,18 +27,26 @@ import {
   NovelFiltersInput,
   UpdateNovelInput,
 } from '../inputs';
-import { NovelService } from '../services';
+import {
+  CoverContentLengthPipe,
+  CoverContentTypePipe,
+} from '../pipes';
+import { NovelCoverService, NovelService } from '../services';
 import {
   Chapter,
   ChapterConnection,
   DeleteNovelResponse,
   Novel,
   NovelConnection,
+  NovelCoverUploadUrl,
 } from '../types';
 
 @Resolver(() => Novel)
 export class NovelResolver {
-  constructor(private readonly novelService: NovelService) {}
+  constructor(
+    private readonly novelService: NovelService,
+    private readonly novelCoverService: NovelCoverService,
+  ) {}
 
   @Public()
   @Query(() => Novel, { description: 'Find a novel by its ID' })
@@ -128,6 +136,65 @@ export class NovelResolver {
     input: UpdateNovelInput,
   ): Promise<Novel> {
     return this.novelService.updateNovel(id, input);
+  }
+
+  @CheckPolicy('novel', 'update', 'novelId')
+  @Mutation(() => NovelCoverUploadUrl, {
+    description:
+      'First step of a cover change: get a presigned URL to PUT the image to. Allowed types are image/jpeg, image/png and image/webp, up to 5 MB. Call `setNovelCover` once the upload succeeded.',
+  })
+  async createNovelCoverUploadUrl(
+    @Args(
+      'novelId',
+      { type: () => ID, description: 'The ID of the novel' },
+      ParseUuidPipe,
+    )
+    novelId: string,
+    @Args(
+      'contentType',
+      {
+        type: () => String,
+        description: 'MIME type of the image',
+      },
+      CoverContentTypePipe,
+    )
+    contentType: string,
+    @Args(
+      'contentLength',
+      {
+        type: () => Int,
+        description: 'Size of the image in bytes',
+      },
+      CoverContentLengthPipe,
+    )
+    contentLength: number,
+  ): Promise<NovelCoverUploadUrl> {
+    return this.novelCoverService.createUploadUrl(
+      novelId,
+      contentType,
+      contentLength,
+    );
+  }
+
+  @CheckPolicy('novel', 'update', 'novelId')
+  @Mutation(() => Novel, {
+    description:
+      'Second step of a cover change: make the uploaded object the novel cover. The previous cover is removed from the bucket.',
+  })
+  async setNovelCover(
+    @Args(
+      'novelId',
+      { type: () => ID, description: 'The ID of the novel' },
+      ParseUuidPipe,
+    )
+    novelId: string,
+    @Args('objectKey', {
+      type: () => String,
+      description: 'The key returned by `createNovelCoverUploadUrl`',
+    })
+    objectKey: string,
+  ): Promise<Novel> {
+    return this.novelCoverService.setCover(novelId, objectKey);
   }
 
   @CheckPolicy('novel', 'delete')

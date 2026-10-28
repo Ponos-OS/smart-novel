@@ -51,6 +51,19 @@ run "without_seed_volume_mounts_only_the_policy" {
   }
 }
 
+run "allows_browser_uploads_from_the_given_origins" {
+  command = plan
+
+  variables {
+    cors_allowed_origins = ["http://localhost:8080", "https://novel.example.com"]
+  }
+
+  assert {
+    condition     = jsondecode(kubernetes_config_map_v1.bucket_policy[0].data["bucket-cors.json"]).CORSRules[0].AllowedOrigins == ["http://localhost:8080", "https://novel.example.com"] && jsondecode(kubernetes_config_map_v1.bucket_policy[0].data["bucket-cors.json"]).CORSRules[0].AllowedMethods == ["PUT"]
+    error_message = "the bucket must allow PUT from exactly the given origins"
+  }
+}
+
 run "with_endpoint_skips_object_storage" {
   command = plan
 

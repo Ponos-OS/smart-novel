@@ -13,6 +13,7 @@ import {
   type FindNovelsConnectionArgs,
   type INovelRepository,
   type NovelConnectionFilters,
+  type NovelWithPreviousCover,
   type UpdateNovelData,
 } from '../interfaces';
 import { Novel } from '../types';
@@ -164,6 +165,28 @@ export class PrismaNovelRepository implements INovelRepository {
       });
 
       return this.toNovel(novel);
+    });
+  }
+
+  async setCoverUrl(
+    id: string,
+    coverUrl: string,
+  ): Promise<NovelWithPreviousCover> {
+    return this.prisma.$transaction(async (tx) => {
+      const previous = await tx.novel.findUniqueOrThrow({
+        where: { id },
+        select: { coverUrl: true },
+      });
+      const novel = await tx.novel.update({
+        where: { id },
+        data: { coverUrl },
+        include: NOVEL_INCLUDE,
+      });
+
+      return {
+        novel: this.toNovel(novel),
+        previousCoverUrl: previous.coverUrl ?? undefined,
+      };
     });
   }
 

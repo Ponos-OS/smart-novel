@@ -1,3 +1,2 @@
-export * from './object-deleter.service';
-export * from './presigned-upload-url.service';
+export * from './object-storage.service';
 export * from './uploader.service';

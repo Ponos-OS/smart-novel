@@ -32,6 +32,11 @@ export interface DeletedNovel {
   narrationUrls: string[];
 }
 
+export interface NovelWithPreviousCover {
+  novel: INovel;
+  previousCoverUrl?: string;
+}
+
 export interface INovelRepository {
   findNovelsConnection(
     args: FindNovelsConnectionArgs,
@@ -42,6 +47,10 @@ export interface INovelRepository {
   createNovel(data: CreateNovelData): Promise<INovel>;
   updateNovel(id: string, data: UpdateNovelData): Promise<INovel>;
   deleteNovel(id: string): Promise<DeletedNovel | null>;
+  setCoverUrl(
+    id: string,
+    coverUrl: string,
+  ): Promise<NovelWithPreviousCover>;
 }
 
 export const NOVEL_REPOSITORY = Symbol('NOVEL_REPOSITORY');

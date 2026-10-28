@@ -55,7 +55,7 @@ Code changes need no rebuild: `envs/local` mounts `apps/` into the kind node and
 
 Postgres, Redis and RustFS are deployed in the cluster under the Service names `postgres`, `redis` and `s3`, which the application settings in `.env` already use. Setting `database_url`, `redis_url` or `object_storage_endpoint` on `module "app"` skips the matching component. Data is throwaway unless `persistent_volumes` is `true`.
 
-RustFS is reachable through the ingress on `s3.localhost:8080` (S3 API, the host of `OBJECT_STORAGE_PUBLIC_URL`) and `s3-console.localhost:8080` (console). The seed covers in `apps/backend/data` are uploaded only when `object_storage_seed_volume` is set (a host path or a claim); without it only the bucket and its policy are created.
+RustFS is reachable through the ingress on `s3.localhost:8080` (S3 API, the host of `OBJECT_STORAGE_PUBLIC_URL`) and `s3-console.localhost:8080` (console). The seed covers in `apps/backend/data` are uploaded only when `object_storage_seed_volume` is set (a host path or a claim); without it only the bucket, its policy and its CORS rule are created. The CORS rule lets the browser `PUT` cover images straight to the bucket with a presigned URL; its origins are the ones in `CORS_ALLOWED_ORIGINS`. An external storage (`object_storage_endpoint`, e.g. R2 on Hetzner) is not touched by that Job, so allow `PUT` from the frontend origin there yourself, and set `OBJECT_STORAGE_PUBLIC_URL` to the host browsers reach it on.
 
 ## Ingress and ZITADEL
 
