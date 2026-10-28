@@ -260,3 +260,30 @@ run "a_password_protects_the_in_cluster_stores" {
     error_message = "the given passwords must protect PostgreSQL and Redis"
   }
 }
+
+run "no_grafana_configmaps_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(kubernetes_config_map_v1.shared_dashboard) == 0 && length(kubernetes_config_map_v1.shared_alert_rules) == 0
+    error_message = "a stack with its own Grafana must not ship ConfigMaps for another one"
+  }
+}
+
+run "the_dashboards_and_alert_rules_are_published_for_a_shared_grafana" {
+  command = plan
+
+  variables {
+    publish_grafana_configmaps = true
+  }
+
+  assert {
+    condition     = toset(keys(kubernetes_config_map_v1.shared_dashboard)) == toset(["smart-novel-rabbitmq.json"]) && kubernetes_config_map_v1.shared_dashboard["smart-novel-rabbitmq.json"].metadata[0].labels["grafana_dashboard"] == "1" && kubernetes_config_map_v1.shared_dashboard["smart-novel-rabbitmq.json"].metadata[0].namespace == "smart-novel"
+    error_message = "the dashboard must be a ConfigMap labelled grafana_dashboard=1 in the app's namespace"
+  }
+
+  assert {
+    condition     = kubernetes_config_map_v1.shared_alert_rules[0].metadata[0].labels["grafana_alert"] == "1" && kubernetes_config_map_v1.shared_alert_rules[0].metadata[0].namespace == "smart-novel" && toset(keys(kubernetes_config_map_v1.shared_alert_rules[0].data)) == toset(["smart-novel-alert-rules.yaml"])
+    error_message = "the alert rules must be a ConfigMap labelled grafana_alert=1 in the app's namespace"
+  }
+}

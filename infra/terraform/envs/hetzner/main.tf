@@ -35,6 +35,8 @@ module "app" {
   cluster_issuer     = var.cluster_issuer
   otlp_endpoint      = var.otel_collector_endpoint
 
+  publish_grafana_configmaps = true
+
   run_local_ai_models = false
   llm_base_url        = var.llm_base_url
   llm_model           = var.llm_model

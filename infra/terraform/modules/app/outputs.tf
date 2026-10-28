@@ -40,3 +40,11 @@ output "workloads_enabled" {
   description = "Whether the backend and the frontend are deployed"
   value       = module.backend.enabled && module.frontend.enabled
 }
+
+output "grafana_configmaps" {
+  description = "Names of the ConfigMaps published for the shared Grafana; empty unless publish_grafana_configmaps is set"
+  value = concat(
+    [for map in kubernetes_config_map_v1.shared_dashboard : map.metadata[0].name],
+    kubernetes_config_map_v1.shared_alert_rules[*].metadata[0].name,
+  )
+}

@@ -42,6 +42,15 @@ run "passes_the_contract_values_to_the_app_layer" {
   }
 }
 
+run "the_dashboards_and_alert_rules_go_to_the_shared_grafana" {
+  command = plan
+
+  assert {
+    condition     = toset(module.app.grafana_configmaps) == toset(["dashboard-smart-novel-rabbitmq", "alert-rules"])
+    error_message = "the shared Grafana must receive the dashboard and the alert rules"
+  }
+}
+
 run "without_the_zitadel_values_the_workloads_are_held_back" {
   command = plan
 

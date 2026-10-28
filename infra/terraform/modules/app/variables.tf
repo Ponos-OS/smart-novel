@@ -89,6 +89,12 @@ variable "otlp_endpoint" {
   default     = null
 }
 
+variable "publish_grafana_configmaps" {
+  description = "Ship the dashboards and alert rules as ConfigMaps labelled grafana_dashboard=1 and grafana_alert=1, for a Grafana whose sidecars copy them in. Their alert rules query the datasources with UIDs prometheus, tempo and loki"
+  type        = bool
+  default     = false
+}
+
 variable "create_zitadel_database" {
   description = "Create the zitadel role and database in the in-cluster PostgreSQL, for a ZITADEL that shares it (local only)"
   type        = bool
