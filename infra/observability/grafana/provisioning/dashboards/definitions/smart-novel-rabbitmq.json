@@ -1,0 +1,145 @@
+{
+  "uid": "smart-novel-rabbitmq",
+  "title": "smart-novel RabbitMQ",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Messages ready (audio queue)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "rabbitmq_queue_messages_ready{namespace=\"smart-novel\",queue=\"beatrice.generate_audio\"}",
+          "legendFormat": "{{queue}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Messages ready (dead-letter queue)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "rabbitmq_queue_messages_ready{namespace=\"smart-novel\",queue=\"beatrice.generate_audio.dlq\"}",
+          "legendFormat": "{{queue}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Unacknowledged messages",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "rabbitmq_queue_messages_unacked{namespace=\"smart-novel\",queue=~\"beatrice\\\\.generate_audio(\\\\.dlq)?\"}",
+          "legendFormat": "{{queue}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Consumers per queue",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "rabbitmq_queue_consumers{namespace=\"smart-novel\",queue=~\"beatrice\\\\.generate_audio(\\\\.dlq)?\"}",
+          "legendFormat": "{{queue}}"
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "tags": ["smart-novel"]
+}

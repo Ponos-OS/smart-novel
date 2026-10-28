@@ -1,0 +1,120 @@
+# Grafana provisioning file.
+
+apiVersion: 1
+
+# Beatrice consumes `beatrice.generate_audio`; jobs that are not retryable, or exhaust their deliveries, land on `beatrice.generate_audio.dlq`.
+groups:
+  - orgId: 1
+    name: smart_novel_audio_alerts
+    # Grafana folder holding the rules.
+    folder: smart-novel Alerts
+    # How often the rules in the group are evaluated.
+    interval: 60s
+    rules:
+      - uid: smart_novel_queue_depth
+        title: "Audio queue depth above 100"
+        # Step (refId) whose result decides whether the alert fires.
+        condition: C
+        # Query & expression steps.
+        data:
+          # Step A.
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              # Start 300 seconds ago.
+              from: 300
+              # End now.
+              to: 0
+            # Query definition.
+            model:
+              # Step ID.
+              refId: A
+              # Backlog of the audio generation queue.
+              expr: 'max(rabbitmq_queue_messages_ready{namespace="smart-novel",queue="beatrice.generate_audio"})'
+              # Single point-in-time value instead of a range.
+              instant: true
+          - refId: B
+            # Grafana's built-in expression engine.
+            datasourceUid: __expr__
+            # Expression definition.
+            model:
+              refId: B
+              # Reduce a series to a single value.
+              type: reduce
+              # Input is step A.
+              expression: A
+              # Use the latest value.
+              reducer: last
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              # Compare a value against a threshold.
+              type: threshold
+              expression: B
+              # Threshold checks.
+              conditions:
+                # How the value is evaluated.
+                - evaluator:
+                    # Greater than.
+                    type: gt
+                    # Threshold of 100 ready messages.
+                    params: [100]
+        # Condition must hold this long before the alert fires.
+        for: 5m
+        # Treat missing data as healthy.
+        noDataState: OK
+        # Raise an error state if the query fails.
+        execErrState: Error
+        # Human-readable alert text.
+        annotations:
+          # Short title in notifications.
+          summary: "The audio generation queue is backing up"
+          # Longer explanation and next step.
+          description: "More than 100 audio jobs have been waiting for over 5 minutes. Check Beatrice, Ollama and the TTS server, or add replicas."
+        # Labels used for routing and filtering.
+        labels:
+          # Severity of this alert.
+          severity: warning
+      - uid: smart_novel_dlq_not_empty
+        title: "Audio dead-letter queue not empty"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              refId: A
+              # Messages waiting on the audio dead-letter queue.
+              expr: 'sum(rabbitmq_queue_messages_ready{namespace="smart-novel",queue="beatrice.generate_audio.dlq"})'
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    # Any message at all triggers it.
+                    params: [0]
+        # Condition must hold this long before the alert fires.
+        for: 1m
+        noDataState: OK
+        # Raise an error state if the query fails.
+        execErrState: Error
+        annotations:
+          summary: "Audio jobs were dead-lettered"
+          description: "The dead-letter queue holds audio jobs that failed or exhausted their delivery attempts. Inspect them and Beatrice's logs."
+        labels:
+          severity: critical

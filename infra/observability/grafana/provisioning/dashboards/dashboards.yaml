@@ -1,0 +1,20 @@
+# Grafana provisioning file.
+
+apiVersion: 1
+
+providers:
+  # Provider name shown in Grafana.
+  - name: smart-novel
+    # Grafana organization the dashboards belong to.
+    orgId: 1
+    # Grafana folder the dashboards are placed in.
+    folder: smart-novel
+    # Read dashboards from JSON files on disk.
+    type: file
+    # Prevent deleting provisioned dashboards from the UI.
+    disableDeletion: true
+    # Prevent saving UI edits; changes must go through the files.
+    editable: false
+    # Provider-specific settings.
+    options:
+      path: /etc/grafana/provisioning/dashboards/definitions
