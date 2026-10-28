@@ -94,7 +94,7 @@ jobs:
         run: cp .env.example .env
 
       - name: Run unit tests
-        run: npx nx run-many -t test
+        run: npx nx run-many -t test --coverage.enabled
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4

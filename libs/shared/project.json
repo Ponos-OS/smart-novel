@@ -9,7 +9,7 @@
       "executor": "@nx/vitest:test",
       "options": {
         "config": "{projectRoot}/vitest.config.ts",
-        "reportsDirectory": "../../coverage/libs/shared",
+        "reportsDirectory": "coverage/libs/shared",
         "passWithNoTests": true,
         "reporter": "verbose"
       }

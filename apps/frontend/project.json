@@ -23,7 +23,7 @@
       "dependsOn": ["codegen"],
       "options": {
         "config": "{projectRoot}/vitest.config.ts",
-        "reportsDirectory": "../../coverage/apps/frontend",
+        "reportsDirectory": "coverage/apps/frontend",
         "passWithNoTests": true,
         "reporter": "verbose"
       }

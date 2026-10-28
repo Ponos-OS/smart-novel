@@ -93,7 +93,7 @@
       "dependsOn": ["prisma:generate", "beatrice:codegen"],
       "options": {
         "config": "{projectRoot}/vitest.config.ts",
-        "reportsDirectory": "../../coverage/apps/backend",
+        "reportsDirectory": "coverage/apps/backend",
         "passWithNoTests": true,
         "reporter": "verbose"
       }
