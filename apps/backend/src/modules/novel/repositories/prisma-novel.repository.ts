@@ -9,6 +9,7 @@ import {
 import { PrismaService } from '../../prisma';
 import {
   type CreateNovelData,
+  type DeletedNovel,
   type FindNovelsConnectionArgs,
   type INovelRepository,
   type NovelConnectionFilters,
@@ -163,6 +164,45 @@ export class PrismaNovelRepository implements INovelRepository {
       });
 
       return this.toNovel(novel);
+    });
+  }
+
+  async deleteNovel(id: string): Promise<DeletedNovel | null> {
+    return this.prisma.$transaction(async (tx) => {
+      // Same lock `createChapter` takes, so a chapter being added cannot slip in mid-delete.
+      await tx.$queryRaw`SELECT id FROM novels WHERE id = ${id}::uuid FOR UPDATE`;
+
+      const novel = await tx.novel.findUnique({
+        where: { id },
+        select: {
+          coverUrl: true,
+          chapters: {
+            select: { contentId: true, narrationUrl: true },
+          },
+        },
+      });
+
+      if (!novel) {
+        return null;
+      }
+
+      // The novel delete cascades to chapters, read history and category links, but the relation between a chapter and its content cascades the other way, so the content rows are removed explicitly.
+      await tx.novel.delete({ where: { id } });
+      await tx.chapterContent.deleteMany({
+        where: {
+          id: {
+            in: novel.chapters.map((chapter) => chapter.contentId),
+          },
+        },
+      });
+
+      return {
+        id,
+        coverUrl: novel.coverUrl ?? undefined,
+        narrationUrls: novel.chapters.flatMap((chapter) =>
+          chapter.narrationUrl ? [chapter.narrationUrl] : [],
+        ),
+      };
     });
   }
 

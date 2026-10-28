@@ -29,6 +29,7 @@ import {
   NovelConnection,
   NovelEdge,
 } from '../types';
+import { ChapterNarrationService } from './chapter-narration.service';
 
 @Injectable()
 export class NovelService {
@@ -37,6 +38,7 @@ export class NovelService {
     private readonly novelRepository: INovelRepository,
     @Inject(CHAPTER_REPOSITORY)
     private readonly chapterRepository: IChapterRepository,
+    private readonly chapterNarrationService: ChapterNarrationService,
   ) {}
 
   async findOne(id: string): Promise<Novel> {
@@ -63,6 +65,28 @@ export class NovelService {
     await this.findOne(id);
 
     return this.novelRepository.updateNovel(id, input);
+  }
+
+  async deleteNovel(id: string): Promise<{ id: string }> {
+    const deleted = await this.novelRepository.deleteNovel(id);
+
+    if (!deleted) {
+      throw new NotFoundException(`Novel with id ${id} not found`);
+    }
+
+    const urls = [
+      ...deleted.narrationUrls,
+      ...(deleted.coverUrl ? [deleted.coverUrl] : []),
+    ];
+
+    // `deleteAudio` never throws, so one failed object does not stop the others.
+    await Promise.all(
+      urls.map((url) =>
+        this.chapterNarrationService.deleteAudio(url),
+      ),
+    );
+
+    return { id };
   }
 
   async findNovelsConnection(

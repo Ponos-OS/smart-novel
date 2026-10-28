@@ -16,7 +16,10 @@ describe(PrismaNovelRepository.name, () => {
         count: vi.fn(),
         create: vi.fn(),
         update: vi.fn(),
+        delete: vi.fn(),
       },
+      chapterContent: { deleteMany: vi.fn() },
+      $queryRaw: vi.fn(),
       chapter: {
         findFirst: vi.fn(),
         findMany: vi.fn(),
@@ -199,6 +202,67 @@ describe(PrismaNovelRepository.name, () => {
           }),
         }),
       );
+    });
+  });
+
+  describe('deleteNovel', () => {
+    const novelId = '78981754-46c4-4521-9216-b9b27dafeab2';
+
+    it('should lock the novel, delete it and then its chapter contents, returning what object storage must drop', async () => {
+      vi.mocked(prismaService.novel.findUnique).mockResolvedValue({
+        coverUrl: `http://localhost:9000/smart-novel/covers/${novelId}/5c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f.png`,
+        chapters: [
+          {
+            contentId: 'ccc63ad5-1ac4-46c2-a25f-6f62d245f44c',
+            narrationUrl:
+              'http://localhost:9000/smart-novel/narrations/0b6b3d0e-5d0e-4d58-9f0b-3f1c7d6a2e11.mp3',
+          },
+          {
+            contentId: 'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
+            narrationUrl: null,
+          },
+        ],
+      } as any);
+
+      const result = await uut.deleteNovel(novelId);
+
+      expect(prismaService.$queryRaw).toHaveBeenCalledOnce();
+      expect(prismaService.novel.delete).toHaveBeenCalledWith({
+        where: { id: novelId },
+      });
+      expect(
+        prismaService.chapterContent.deleteMany,
+      ).toHaveBeenCalledWith({
+        where: {
+          id: {
+            in: [
+              'ccc63ad5-1ac4-46c2-a25f-6f62d245f44c',
+              'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
+            ],
+          },
+        },
+      });
+      expect(result).toEqual({
+        id: novelId,
+        coverUrl: `http://localhost:9000/smart-novel/covers/${novelId}/5c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f.png`,
+        narrationUrls: [
+          'http://localhost:9000/smart-novel/narrations/0b6b3d0e-5d0e-4d58-9f0b-3f1c7d6a2e11.mp3',
+        ],
+      });
+    });
+
+    it('should return null and delete nothing when the novel does not exist', async () => {
+      vi.mocked(prismaService.novel.findUnique).mockResolvedValue(
+        null,
+      );
+
+      const result = await uut.deleteNovel(novelId);
+
+      expect(result).toBeNull();
+      expect(prismaService.novel.delete).not.toHaveBeenCalled();
+      expect(
+        prismaService.chapterContent.deleteMany,
+      ).not.toHaveBeenCalled();
     });
   });
 

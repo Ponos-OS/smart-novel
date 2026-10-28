@@ -3,6 +3,7 @@ export * from './chapter-narration.type';
 export * from './chapter-viewer-state.type';
 export * from './chapter.type';
 export * from './delete-chapter-response.type';
+export * from './delete-novel-response.type';
 export * from './delete-read-history-response.type';
 export * from './mark-chapters-read-response.type';
 export * from './novel-connection.type';

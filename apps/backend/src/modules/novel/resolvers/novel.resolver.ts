@@ -31,6 +31,7 @@ import { NovelService } from '../services';
 import {
   Chapter,
   ChapterConnection,
+  DeleteNovelResponse,
   Novel,
   NovelConnection,
 } from '../types';
@@ -127,6 +128,22 @@ export class NovelResolver {
     input: UpdateNovelInput,
   ): Promise<Novel> {
     return this.novelService.updateNovel(id, input);
+  }
+
+  @CheckPolicy('novel', 'delete')
+  @Mutation(() => DeleteNovelResponse, {
+    description:
+      'Permanently delete a novel with its chapters, contents, read history, narration audio and cover.',
+  })
+  async deleteNovel(
+    @Args(
+      'id',
+      { type: () => ID, description: 'The ID of the novel' },
+      ParseUuidPipe,
+    )
+    id: string,
+  ): Promise<DeleteNovelResponse> {
+    return this.novelService.deleteNovel(id);
   }
 
   @ResolveField(() => [NovelAction], {

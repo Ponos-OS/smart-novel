@@ -1,4 +1,5 @@
 import { execSync } from 'node:child_process';
+import { resolve } from 'node:path';
 
 import { Logger } from './logger';
 
@@ -14,7 +15,24 @@ const namespace = 'smart-novel';
 const kubeconfig = 'infra/terraform/envs/local/smart-novel-config';
 const kubectl = `kubectl --kubeconfig ${kubeconfig} -n ${namespace}`;
 
+const workspaceRoot = resolve(__dirname, '../../../../');
+
 export class ClusterFixture {
+  /**
+   * @description Runs SQL in the cluster's database and returns the raw, unaligned output (one line per row, `|` between columns). For asserting on rows the GraphQL API cannot show, such as the ones a cascade should have removed.
+   */
+  static queryDatabase(sql: string): string {
+    return execSync(
+      `${kubectl} exec -i deploy/postgres -- psql -U postgres -d smart_novel -tA`,
+      {
+        cwd: workspaceRoot,
+        input: sql,
+        encoding: 'utf-8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+      },
+    ).trim();
+  }
+
   static persistLogs(
     cwd: string,
     workload: Workload,

@@ -20,3 +20,11 @@
 - New e2e novels cannot be deleted until Step 4 and existing specs filter on `fantasy`/`adventure` and read `edges[0]`, so the new spec only uses unique `e2e-*` category names. The sibling novel specs passed alongside it.
 - An invalid enum value is rejected by GraphQL with HTTP 400 before any resolver runs; e2e helpers need `validateStatus: () => true` for that case.
 - graphql-api-tester: all AC pass; unknown id has message "not found" but code INTERNAL_SERVER_ERROR (existing formatter, same as Step 1).
+
+## Step 4 (deleteNovel), 2026-10-28
+
+- Built on request, left uncommitted for review (REQUIREMENTS.md: do not commit each step).
+- Same orphan gap as Step 1 (chapter content cascades content-to-chapter only), so the transaction deletes the contents explicitly. GraphQL cannot show orphaned rows, so `ClusterFixture.queryDatabase` (psql via `kubectl exec deploy/postgres`) was added to assert the cascade in `backend-e2e`.
+- The throwaway single-spec vitest config (globalSetup disabled) from Step 3 worked again, with the cluster started via `start-dev.sh e2e`; it let me run the new spec, the Step 3 spec and the graphql-api-tester against one cluster.
+- Cover and narration objects both go through `ChapterNarrationService.deleteAudio` so the one alert message covers both; the cover is only set from Step 6 on, so the cover path is unit-tested only.
+- graphql-api-tester: all AC pass; not-found has code INTERNAL_SERVER_ERROR (existing formatter).

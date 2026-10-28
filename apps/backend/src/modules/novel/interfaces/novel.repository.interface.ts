@@ -26,6 +26,12 @@ export type UpdateNovelData = Partial<
   Omit<CreateNovelData, 'ownerId'>
 >;
 
+export interface DeletedNovel {
+  id: string;
+  coverUrl?: string;
+  narrationUrls: string[];
+}
+
 export interface INovelRepository {
   findNovelsConnection(
     args: FindNovelsConnectionArgs,
@@ -35,6 +41,7 @@ export interface INovelRepository {
   getCategories(): Promise<string[]>;
   createNovel(data: CreateNovelData): Promise<INovel>;
   updateNovel(id: string, data: UpdateNovelData): Promise<INovel>;
+  deleteNovel(id: string): Promise<DeletedNovel | null>;
 }
 
 export const NOVEL_REPOSITORY = Symbol('NOVEL_REPOSITORY');

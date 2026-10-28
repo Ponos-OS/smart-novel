@@ -18,6 +18,7 @@ describe(NovelResolver.name, () => {
       getChaptersConnection: vi.fn(),
       createNovel: vi.fn(),
       updateNovel: vi.fn(),
+      deleteNovel: vi.fn(),
     } as any;
     uut = new NovelResolver(novelService);
   });
@@ -59,6 +60,22 @@ describe(NovelResolver.name, () => {
         state: NovelState.FINISHED,
       });
       expect(result).toBe(novel);
+    });
+  });
+
+  describe('deleteNovel', () => {
+    it('should delegate the id to the service', async () => {
+      const novelId = '78981754-46c4-4521-9216-b9b27dafeab2';
+      vi.mocked(novelService.deleteNovel).mockResolvedValue({
+        id: novelId,
+      });
+
+      const result = await uut.deleteNovel(novelId);
+
+      expect(
+        novelService.deleteNovel,
+      ).toHaveBeenCalledExactlyOnceWith(novelId);
+      expect(result).toEqual({ id: novelId });
     });
   });
 

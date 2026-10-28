@@ -6,6 +6,7 @@ import type {
   IChapterRepository,
   INovelRepository,
 } from '../interfaces';
+import type { ChapterNarrationService } from './chapter-narration.service';
 
 import { OrderDirection } from '../../../shared';
 import { ChapterOrderField } from '../enums';
@@ -16,6 +17,7 @@ describe(NovelService.name, () => {
   let uut: NovelService;
   let novelRepository: INovelRepository;
   let chapterRepository: IChapterRepository;
+  let chapterNarrationService: ChapterNarrationService;
 
   beforeEach(() => {
     novelRepository = {
@@ -24,6 +26,7 @@ describe(NovelService.name, () => {
       getCategories: vi.fn(),
       createNovel: vi.fn(),
       updateNovel: vi.fn(),
+      deleteNovel: vi.fn(),
     } as any;
     chapterRepository = {
       findChaptersConnection: vi.fn(),
@@ -32,7 +35,15 @@ describe(NovelService.name, () => {
       getLastChapter: vi.fn(),
     } as any;
 
-    uut = new NovelService(novelRepository, chapterRepository);
+    chapterNarrationService = {
+      deleteAudio: vi.fn().mockResolvedValue(undefined),
+    } as any;
+
+    uut = new NovelService(
+      novelRepository,
+      chapterRepository,
+      chapterNarrationService,
+    );
   });
 
   describe('findOne', () => {
@@ -133,6 +144,57 @@ describe(NovelService.name, () => {
 
       await expect(result).rejects.toThrow(NotFoundException);
       expect(novelRepository.updateNovel).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteNovel', () => {
+    const novelId = '78981754-46c4-4521-9216-b9b27dafeab2';
+
+    it('should delete the audio of every chapter and the cover once the novel is gone', async () => {
+      vi.mocked(novelRepository.deleteNovel).mockResolvedValue({
+        id: novelId,
+        coverUrl: `http://localhost:9000/smart-novel/covers/${novelId}/5c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f.png`,
+        narrationUrls: [
+          'http://localhost:9000/smart-novel/narrations/0b6b3d0e-5d0e-4d58-9f0b-3f1c7d6a2e11.mp3',
+          'http://localhost:9000/smart-novel/narrations/9f8e7d6c-5b4a-4392-8170-6f5e4d3c2b1a.mp3',
+        ],
+      });
+
+      const result = await uut.deleteNovel(novelId);
+
+      expect(result).toEqual({ id: novelId });
+      expect(
+        chapterNarrationService.deleteAudio,
+      ).toHaveBeenCalledTimes(3);
+      expect(
+        chapterNarrationService.deleteAudio,
+      ).toHaveBeenCalledWith(
+        `http://localhost:9000/smart-novel/covers/${novelId}/5c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f.png`,
+      );
+    });
+
+    it('should not touch object storage when there is nothing to delete', async () => {
+      vi.mocked(novelRepository.deleteNovel).mockResolvedValue({
+        id: novelId,
+        narrationUrls: [],
+      });
+
+      await uut.deleteNovel(novelId);
+
+      expect(
+        chapterNarrationService.deleteAudio,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException and leave object storage alone when the novel does not exist', async () => {
+      vi.mocked(novelRepository.deleteNovel).mockResolvedValue(null);
+
+      const result = uut.deleteNovel(novelId);
+
+      await expect(result).rejects.toThrow(NotFoundException);
+      expect(
+        chapterNarrationService.deleteAudio,
+      ).not.toHaveBeenCalled();
     });
   });
 
