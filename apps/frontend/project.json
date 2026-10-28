@@ -15,6 +15,9 @@
         "cwd": "{projectRoot}"
       }
     },
+    "build": {
+      "dependsOn": ["^build", "codegen"]
+    },
     "test": {
       "executor": "@nx/vitest:test",
       "dependsOn": ["codegen"],

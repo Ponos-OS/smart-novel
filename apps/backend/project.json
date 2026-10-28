@@ -30,7 +30,7 @@
     },
     "build": {
       "executor": "nx:run-commands",
-      "dependsOn": ["beatrice:codegen"],
+      "dependsOn": ["prisma:generate", "beatrice:codegen"],
       "options": {
         "command": "webpack-cli build",
         "args": ["--node-env=production"],
