@@ -4,6 +4,7 @@ export type {
   ObjectStorageModuleOptionsFactory,
 } from './object-storage.module-definition';
 export {
+  ObjectDeleterService,
   PresignedUploadUrlService,
   UploaderService,
 } from './services';

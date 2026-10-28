@@ -31,6 +31,11 @@ export interface CreateChapterData {
   content: string;
 }
 
+export type DeletedChapter = Pick<
+  IChapter,
+  'id' | 'novelId' | 'narrationUrl'
+>;
+
 export interface IChapterRepository {
   createChapter(data: CreateChapterData): Promise<IChapter>;
   getChapter(
@@ -64,6 +69,7 @@ export interface IChapterRepository {
   ): Promise<number>;
   getFirstChapter(novelId: string): Promise<IChapter | null>;
   getLastChapter(novelId: string): Promise<IChapter | null>;
+  deleteChapter(id: string): Promise<DeletedChapter | null>;
 }
 
 export const CHAPTER_REPOSITORY = Symbol('CHAPTER_REPOSITORY');

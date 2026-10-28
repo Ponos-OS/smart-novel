@@ -45,6 +45,7 @@ describe(PrismaChapterRepository.name, () => {
         narrationUrl: null,
       };
       const tx = {
+        $queryRaw: vi.fn(),
         chapter: {
           findFirst: vi.fn().mockResolvedValue({ chapterNumber: 1 }),
           create: vi.fn().mockResolvedValue(createdChapter),
@@ -97,6 +98,7 @@ describe(PrismaChapterRepository.name, () => {
         narrationUrl: null,
       };
       const tx = {
+        $queryRaw: vi.fn(),
         chapter: {
           findFirst: vi.fn().mockResolvedValue(null),
           create: vi.fn().mockResolvedValue(createdChapter),
@@ -131,6 +133,87 @@ describe(PrismaChapterRepository.name, () => {
       });
 
       await expect(result).rejects.toThrowError(error);
+    });
+  });
+
+  describe('deleteChapter', () => {
+    const chapterId = 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c';
+    const novelId = '248c9fee-cad0-43fc-9abb-c2ab8ff002ec';
+    const contentId = 'ccc63ad5-1ac4-46c2-a25f-6f62d245f44c';
+    const chapterRow = {
+      id: chapterId,
+      novelId,
+      contentId,
+      title: 'Chapter 2: The Journey',
+      chapterNumber: 2,
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-01T00:00:00Z'),
+      narrationStatus: null,
+      narrationUrl:
+        'http://localhost:8080/smart-novel/narrations/0b6b3d0e-5d0e-4d58-9f0b-3f1c7d6a2e11.mp3',
+    };
+    let tx: any;
+
+    beforeEach(() => {
+      tx = {
+        $queryRaw: vi.fn(),
+        chapter: {
+          findUnique: vi.fn(),
+          delete: vi.fn(),
+          updateMany: vi.fn(),
+        },
+        chapterContent: { delete: vi.fn() },
+      };
+      vi.mocked(prismaService.$transaction).mockImplementation(
+        (cb: any) => cb(tx),
+      );
+    });
+
+    it('should delete the chapter and its content, then shift the later chapters down by one', async () => {
+      tx.chapter.findUnique
+        .mockResolvedValueOnce({ novelId })
+        .mockResolvedValueOnce(chapterRow);
+
+      const result = await uut.deleteChapter(chapterId);
+
+      expect(tx.$queryRaw).toHaveBeenCalledOnce();
+      expect(tx.chapter.delete).toHaveBeenCalledWith({
+        where: { id: chapterId },
+      });
+      expect(tx.chapterContent.delete).toHaveBeenCalledWith({
+        where: { id: contentId },
+      });
+      expect(tx.chapter.updateMany).toHaveBeenCalledWith({
+        where: { novelId, chapterNumber: { gt: 2 } },
+        data: { chapterNumber: { decrement: 1 } },
+      });
+      expect(result).toEqual({
+        id: chapterId,
+        novelId,
+        narrationUrl: chapterRow.narrationUrl,
+      });
+    });
+
+    it('should return null without locking when the chapter does not exist', async () => {
+      tx.chapter.findUnique.mockResolvedValue(null);
+
+      const result = await uut.deleteChapter(chapterId);
+
+      expect(result).toBeNull();
+      expect(tx.$queryRaw).not.toHaveBeenCalled();
+      expect(tx.chapter.delete).not.toHaveBeenCalled();
+    });
+
+    it('should return null when a concurrent delete removed the chapter while waiting for the lock', async () => {
+      tx.chapter.findUnique
+        .mockResolvedValueOnce({ novelId })
+        .mockResolvedValueOnce(null);
+
+      const result = await uut.deleteChapter(chapterId);
+
+      expect(result).toBeNull();
+      expect(tx.chapter.delete).not.toHaveBeenCalled();
+      expect(tx.chapter.updateMany).not.toHaveBeenCalled();
     });
   });
 

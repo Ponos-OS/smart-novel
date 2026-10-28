@@ -184,6 +184,71 @@ describe(ChapterPolicy.name, () => {
     });
   });
 
+  describe('delete', () => {
+    const chapterId = '4bbc4da9-107c-4872-9809-78f6191a092d';
+
+    it('should allow an admin without checking ownership', async () => {
+      const result = await uut.isAllowed({
+        userId: '234980127461293847',
+        userRoles: ['admin'],
+        resourceId: chapterId,
+        action: 'delete',
+      });
+
+      expect(result).toBeTrue();
+      expect(prisma.chapter.findUnique).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      { ownerId: '234980127461293847', expected: true },
+      { ownerId: '268103642598401', expected: false },
+    ])(
+      'should return $expected for a writer when the novel owner is $ownerId',
+      async ({ ownerId, expected }) => {
+        vi.mocked(prisma.chapter.findUnique).mockResolvedValue({
+          novel: { ownerId },
+        } as any);
+
+        const result = await uut.isAllowed({
+          userId: '234980127461293847',
+          userRoles: ['writer'],
+          resourceId: chapterId,
+          action: 'delete',
+        });
+
+        expect(result).toBe(expected);
+      },
+    );
+
+    it('should deny a plain user without fetching the chapter', async () => {
+      const result = await uut.isAllowed({
+        userId: '234980127461293847',
+        userRoles: ['user'],
+        resourceId: chapterId,
+        action: 'delete',
+      });
+
+      expect(result).toBeFalse();
+      expect(prisma.chapter.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('should deny and log when the chapter does not exist', async () => {
+      vi.mocked(prisma.chapter.findUnique).mockResolvedValue(null);
+
+      const result = await uut.isAllowed({
+        userId: '234980127461293847',
+        userRoles: ['writer'],
+        resourceId: chapterId,
+        action: 'delete',
+      });
+
+      expect(result).toBeFalse();
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining(chapterId),
+      );
+    });
+  });
+
   describe('unknown action', () => {
     it('should deny and log', async () => {
       const result = await uut.isAllowed({

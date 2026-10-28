@@ -17,6 +17,7 @@ import {
   type ChapterConnectionFilters,
   type ChapterNovelKey,
   type CreateChapterData,
+  type DeletedChapter,
   type FindChaptersConnectionArgs,
   type IChapter,
   type IChapterRepository,
@@ -39,6 +40,8 @@ export class PrismaChapterRepository implements IChapterRepository {
     const contentHash = computeContentHash(content);
 
     const chapter = await this.prisma.$transaction(async (tx) => {
+      await this.lockNovel(tx, novelId);
+
       const lastChapter = await tx.chapter.findFirst({
         where: { novelId },
         orderBy: { chapterNumber: 'desc' },
@@ -278,6 +281,54 @@ export class PrismaChapterRepository implements IChapterRepository {
       },
     });
     return result.count;
+  }
+
+  async deleteChapter(id: string): Promise<DeletedChapter | null> {
+    return this.prisma.$transaction(async (tx) => {
+      const found = await tx.chapter.findUnique({
+        where: { id },
+        select: { novelId: true },
+      });
+
+      if (!found) {
+        return null;
+      }
+
+      await this.lockNovel(tx, found.novelId);
+
+      // Re-read after the lock: a concurrent delete may have deleted it or renumbered it while we waited.
+      const chapter = await tx.chapter.findUnique({ where: { id } });
+
+      if (!chapter) {
+        return null;
+      }
+
+      // The relation cascades from content to chapter, so the content row must go explicitly.
+      await tx.chapter.delete({ where: { id } });
+      await tx.chapterContent.delete({
+        where: { id: chapter.contentId },
+      });
+      await tx.chapter.updateMany({
+        where: {
+          novelId: chapter.novelId,
+          chapterNumber: { gt: chapter.chapterNumber },
+        },
+        data: { chapterNumber: { decrement: 1 } },
+      });
+
+      return {
+        id: chapter.id,
+        novelId: chapter.novelId,
+        narrationUrl: chapter.narrationUrl ?? undefined,
+      };
+    });
+  }
+
+  private async lockNovel(
+    tx: Prisma.TransactionClient,
+    novelId: string,
+  ): Promise<void> {
+    await tx.$queryRaw`SELECT id FROM novels WHERE id = ${novelId}::uuid FOR UPDATE`;
   }
 
   private buildChapterWhereClause(

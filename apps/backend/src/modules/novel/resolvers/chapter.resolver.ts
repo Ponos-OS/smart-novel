@@ -8,7 +8,7 @@ import {
 import { AuthHeader, CheckPolicy } from '../../auth';
 import { CreateChapterInput, UpdateChapterInput } from '../inputs';
 import { ChapterNarrationService, ChapterService } from '../services';
-import { Chapter } from '../types';
+import { Chapter, DeleteChapterResponse } from '../types';
 
 @Resolver(() => Chapter)
 export class ChapterResolver {
@@ -131,5 +131,27 @@ export class ChapterResolver {
       input,
       expectedUpdatedAt,
     );
+  }
+
+  @CheckPolicy('chapter', 'delete')
+  @Mutation(() => DeleteChapterResponse, {
+    description:
+      'Permanently delete a chapter, its content, its read history and its narration audio. The later chapters of the novel are renumbered down by one.',
+  })
+  async deleteChapter(
+    @Args(
+      'id',
+      {
+        type: () => ID,
+        description: 'Chapter ID',
+      },
+      ParseUuidPipe,
+    )
+    chapterId: string,
+  ): Promise<DeleteChapterResponse> {
+    const { id, novelId } =
+      await this.chapterService.deleteChapter(chapterId);
+
+    return { id, novelId };
   }
 }

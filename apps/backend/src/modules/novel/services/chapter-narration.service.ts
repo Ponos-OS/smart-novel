@@ -19,6 +19,7 @@ import {
 
 import { appConfigs } from '../../../app/configs/app.config';
 import { LlmClient } from '../../llm';
+import { ObjectDeleterService } from '../../object-storage';
 import { RedisService } from '../../redis';
 import {
   isBeatriceTerminal,
@@ -83,6 +84,7 @@ export class ChapterNarrationService implements OnModuleInit {
     private readonly appConfig: ConfigType<typeof appConfigs>,
     private readonly llmClient: LlmClient,
     private readonly redisService: RedisService,
+    private readonly objectDeleterService: ObjectDeleterService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -412,6 +414,31 @@ export class ChapterNarrationService implements OnModuleInit {
       `Queued Beatrice generateAudio job ${jobId} for chapter ${chapterId}`,
       { context: ChapterNarrationService.name },
     );
+  }
+
+  /**
+   * @description Best effort: the audio is only an orphaned file once its chapter is gone, so a failure is logged (an alert watches this message) and never thrown.
+   */
+  async deleteAudio(narrationUrl: string | undefined): Promise<void> {
+    if (isNil(narrationUrl)) {
+      return;
+    }
+
+    const bucket = this.appConfig.OBJECT_STORAGE_BUCKET;
+    const objectKey = new URL(narrationUrl).pathname.split(
+      `/${bucket}/`,
+    )[1];
+    const [error] = await retryAsync(
+      () => this.objectDeleterService.delete(bucket, objectKey),
+      { retry: 0 },
+    );
+
+    if (error) {
+      this.logger.error(
+        `Failed to delete narration audio: ${objectKey}`,
+        { context: ChapterNarrationService.name, error },
+      );
+    }
   }
 
   /**

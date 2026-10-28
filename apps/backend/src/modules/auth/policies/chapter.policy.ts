@@ -16,6 +16,7 @@ import {
  * - Read: any authenticated user.
  * - Create: admin OR (writer AND owns the target novel).
  * - Update: admin OR (writer AND owns the parent novel, resolved from the chapter's own id and checked against the real fetched row via CASL's `subject()` helper).
+ * - Delete: same rule as update.
  */
 @Injectable()
 export class ChapterPolicy implements IResourcePolicy {
@@ -64,8 +65,11 @@ export class ChapterPolicy implements IResourcePolicy {
           subject('Chapter', { novelOwnerId: novel.ownerId }),
         );
       }
-      case 'update': {
+      case 'update':
+      case 'delete': {
         const chapterId = resourceId;
+        const casl =
+          action === 'update' ? Action.Update : Action.Delete;
 
         // Admins bypass ownership entirely — skip the DB round trip. Non-admins with no
         // update rule at all (plain `user` role) are rejected the same way, without fetching
@@ -74,7 +78,7 @@ export class ChapterPolicy implements IResourcePolicy {
           return true;
         }
 
-        if (!ability.can(Action.Update, 'Chapter')) {
+        if (!ability.can(casl, 'Chapter')) {
           return false;
         }
 
@@ -89,7 +93,7 @@ export class ChapterPolicy implements IResourcePolicy {
         }
 
         return ability.can(
-          Action.Update,
+          casl,
           subject('Chapter', { novelOwnerId: chapter.novel.ownerId }),
         );
       }

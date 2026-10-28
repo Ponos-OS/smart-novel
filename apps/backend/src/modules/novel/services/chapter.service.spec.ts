@@ -17,6 +17,7 @@ describe(ChapterService.name, () => {
   beforeEach(() => {
     chapterRepository = {
       createChapter: vi.fn(),
+      deleteChapter: vi.fn(),
       findById: vi.fn(),
       getChapter: vi.fn(),
       updateChapterMetadata: vi.fn(),
@@ -33,6 +34,7 @@ describe(ChapterService.name, () => {
 
     chapterNarrationService = {
       regenerateAudio: vi.fn(),
+      deleteAudio: vi.fn(),
     } as any;
 
     uut = new ChapterService(
@@ -40,6 +42,42 @@ describe(ChapterService.name, () => {
       chapterContentRepository,
       chapterNarrationService,
     );
+  });
+
+  describe('deleteChapter', () => {
+    const chapterId = '4bbc4da9-107c-4872-9809-78f6191a092d';
+
+    it('should delete the chapter and then its narration audio', async () => {
+      const deleted = {
+        id: chapterId,
+        novelId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
+        narrationUrl:
+          'http://localhost:9000/smart-novel/narrations/0b6b3d0e-5d0e-4d58-9f0b-3f1c7d6a2e11.mp3',
+      };
+      vi.mocked(chapterRepository.deleteChapter).mockResolvedValue(
+        deleted,
+      );
+
+      const result = await uut.deleteChapter(chapterId);
+
+      expect(result).toEqual(deleted);
+      expect(
+        chapterNarrationService.deleteAudio,
+      ).toHaveBeenCalledWith(deleted.narrationUrl);
+    });
+
+    it('should throw NotFoundException and leave the audio alone when the chapter does not exist', async () => {
+      vi.mocked(chapterRepository.deleteChapter).mockResolvedValue(
+        null,
+      );
+
+      const result = uut.deleteChapter(chapterId);
+
+      await expect(result).rejects.toThrow(NotFoundException);
+      expect(
+        chapterNarrationService.deleteAudio,
+      ).not.toHaveBeenCalled();
+    });
   });
 
   describe('createChapter', () => {

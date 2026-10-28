@@ -46,6 +46,7 @@ export class CaslAbilityFactory {
       // object of that subject type regardless of its fields.
       can(Action.Create, 'Chapter', { novelOwnerId: user.sub });
       can(Action.Update, 'Chapter', { novelOwnerId: user.sub });
+      can(Action.Delete, 'Chapter', { novelOwnerId: user.sub });
     }
 
     return build();

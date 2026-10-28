@@ -15,6 +15,7 @@ describe(ChapterResolver.name, () => {
       createChapter: vi.fn(),
       updateContent: vi.fn(),
       updateChapter: vi.fn(),
+      deleteChapter: vi.fn(),
     } as any;
     chapterNarrationService = {
       regenerateAudio: vi.fn(),
@@ -24,6 +25,26 @@ describe(ChapterResolver.name, () => {
       chapterService,
       chapterNarrationService,
     );
+  });
+
+  describe('deleteChapter', () => {
+    it('should delegate to the service and return only the id and novel id', async () => {
+      const chapterId = '4bbc4da9-107c-4872-9809-78f6191a092d';
+      const novelId = '4754496a-ccb4-4a6b-805d-809a6cea97c8';
+      vi.mocked(chapterService.deleteChapter).mockResolvedValue({
+        id: chapterId,
+        novelId,
+        narrationUrl:
+          'http://localhost:9000/smart-novel/narrations/0b6b3d0e-5d0e-4d58-9f0b-3f1c7d6a2e11.mp3',
+      });
+
+      const result = await uut.deleteChapter(chapterId);
+
+      expect(
+        chapterService.deleteChapter,
+      ).toHaveBeenCalledExactlyOnceWith(chapterId);
+      expect(result).toEqual({ id: chapterId, novelId });
+    });
   });
 
   describe('createChapter', () => {

@@ -10,6 +10,7 @@ import {
   CHAPTER_CONTENT_REPOSITORY,
   CHAPTER_REPOSITORY,
   type CreateChapterData,
+  type DeletedChapter,
   IChapter,
   type IChapterContentRepository,
   type IChapterRepository,
@@ -40,6 +41,23 @@ export class ChapterService {
     );
 
     return chapter;
+  }
+
+  async deleteChapter(chapterId: string): Promise<DeletedChapter> {
+    const deleted =
+      await this.chapterRepository.deleteChapter(chapterId);
+
+    if (!deleted) {
+      throw new NotFoundException(
+        `Chapter with id ${chapterId} not found`,
+      );
+    }
+
+    await this.chapterNarrationService.deleteAudio(
+      deleted.narrationUrl,
+    );
+
+    return deleted;
   }
 
   async updateChapter(
