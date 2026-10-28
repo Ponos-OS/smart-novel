@@ -90,3 +90,10 @@
 - The moved role helpers had no unit test, so the lib got its own vitest target (`nx test shared`) and a spec; before this a lib with only constants needed no runner.
 - The backend `auth/enums` and `auth/utils/rbac.util.ts` were deleted and every importer (about 14 files) repointed to `@smart-novel/shared` instead of leaving re-export shims, so the source of the rule is visible at each use.
 - Do not run `pkill -f` with a pattern that also appears in your own command line: `pkill -f start-dev.sh` killed the shell running it (exit 144). Stop a background job with the task tool and `stop-dev.sh` instead.
+
+## Step 10 (Cypress user journey), 2026-10-28
+
+- `manage-novel.cy.ts` runs the whole journey as the writer against the production images: create a novel, edit it, upload a cover (real browser `PUT` to the bucket, asserted 200 and the image actually loads), add two chapters, delete the first (the refetch shows the second as chapter 1), delete the novel by typing its name, and the novel page then fails to load. It passes (22 s).
+- It took four runs because of one wrong assumption: the app's GraphQL fetcher sends only `query` and `variables`, so `request.body.operationName` is never set and an intercept matching on it never aliases anything. Two earlier "fixes" (removing an overlapping intercept, parsing the body) were guesses; the failure screenshot showed the app had behaved correctly and the refetch had gone through the handler without an alias, which is what pointed at the match condition. Match GraphQL intercepts on the query text, and read the failure screenshot before changing the spec.
+- Each run rebuilt and started the full production stack (several minutes), so check the request shape in the app code first instead of iterating on the stack.
+- Only `manage-novel.cy.ts` was run, not the whole `nx e2e frontend-e2e` suite.
