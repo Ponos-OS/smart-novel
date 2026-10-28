@@ -22,6 +22,8 @@ describe(NovelService.name, () => {
       findNovelsConnection: vi.fn(),
       findById: vi.fn(),
       getCategories: vi.fn(),
+      createNovel: vi.fn(),
+      updateNovel: vi.fn(),
     } as any;
     chapterRepository = {
       findChaptersConnection: vi.fn(),
@@ -70,6 +72,67 @@ describe(NovelService.name, () => {
       await expect(uut.findOne('missing-uuid')).rejects.toThrow(
         new NotFoundException('Novel with id missing-uuid not found'),
       );
+    });
+  });
+
+  describe('createNovel', () => {
+    it('should pass the caller as owner together with the input to the repository', async () => {
+      const input = {
+        name: 'The Journey Begins',
+        author: 'Jane Doe',
+        description: 'A young hero leaves home.',
+        categories: ['fantasy'],
+      };
+      const created = { id: '78981754-46c4-4521-9216-b9b27dafeab2' };
+      vi.mocked(novelRepository.createNovel).mockResolvedValue(
+        created as any,
+      );
+
+      const result = await uut.createNovel(
+        '260311094522198751',
+        input,
+      );
+
+      expect(novelRepository.createNovel).toHaveBeenCalledWith({
+        ownerId: '260311094522198751',
+        ...input,
+      });
+      expect(result).toBe(created);
+    });
+  });
+
+  describe('updateNovel', () => {
+    const novelId = '78981754-46c4-4521-9216-b9b27dafeab2';
+
+    it('should update the novel when it exists', async () => {
+      const updated = { id: novelId, name: 'Renamed' };
+      vi.mocked(novelRepository.findById).mockResolvedValue({
+        id: novelId,
+      } as any);
+      vi.mocked(novelRepository.updateNovel).mockResolvedValue(
+        updated as any,
+      );
+
+      const result = await uut.updateNovel(novelId, {
+        name: 'Renamed',
+      });
+
+      expect(novelRepository.updateNovel).toHaveBeenCalledWith(
+        novelId,
+        {
+          name: 'Renamed',
+        },
+      );
+      expect(result).toBe(updated);
+    });
+
+    it('should throw NotFoundException without updating when the novel does not exist', async () => {
+      vi.mocked(novelRepository.findById).mockResolvedValue(null);
+
+      const result = uut.updateNovel(novelId, { name: 'Renamed' });
+
+      await expect(result).rejects.toThrow(NotFoundException);
+      expect(novelRepository.updateNovel).not.toHaveBeenCalled();
     });
   });
 

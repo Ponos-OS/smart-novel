@@ -8,11 +8,17 @@ import {
 } from '../../../shared';
 import { PrismaService } from '../../prisma';
 import {
+  type CreateNovelData,
   type FindNovelsConnectionArgs,
   type INovelRepository,
   type NovelConnectionFilters,
+  type UpdateNovelData,
 } from '../interfaces';
 import { Novel } from '../types';
+
+const NOVEL_INCLUDE = {
+  categories: { select: { category: { select: { name: true } } } },
+} satisfies Prisma.NovelInclude;
 
 @Injectable()
 export class PrismaNovelRepository implements INovelRepository {
@@ -107,6 +113,94 @@ export class PrismaNovelRepository implements INovelRepository {
     });
 
     return categories.map((category) => category.name.toLowerCase());
+  }
+
+  async createNovel(data: CreateNovelData): Promise<Novel> {
+    const { categories, ...fields } = data;
+
+    return this.prisma.$transaction(async (tx) => {
+      const categoryIds = await this.resolveCategoryIds(
+        tx,
+        categories ?? [],
+      );
+      const novel = await tx.novel.create({
+        data: {
+          ...fields,
+          categories: {
+            create: categoryIds.map((categoryId) => ({ categoryId })),
+          },
+        },
+        include: NOVEL_INCLUDE,
+      });
+
+      return this.toNovel(novel);
+    });
+  }
+
+  async updateNovel(
+    id: string,
+    data: UpdateNovelData,
+  ): Promise<Novel> {
+    const { name, author, description, state, categories } = data;
+
+    return this.prisma.$transaction(async (tx) => {
+      const categoryIds = categories
+        ? await this.resolveCategoryIds(tx, categories)
+        : undefined;
+      const novel = await tx.novel.update({
+        where: { id },
+        data: {
+          name: name ?? undefined,
+          author: author ?? undefined,
+          description: description ?? undefined,
+          state: state ?? undefined,
+          categories: categoryIds && {
+            deleteMany: {},
+            create: categoryIds.map((categoryId) => ({ categoryId })),
+          },
+        },
+        include: NOVEL_INCLUDE,
+      });
+
+      return this.toNovel(novel);
+    });
+  }
+
+  /**
+   * @description Existing categories are matched case-insensitively (seed data has mixed casing); only the missing ones are created.
+   */
+  private async resolveCategoryIds(
+    tx: Prisma.TransactionClient,
+    names: string[],
+  ): Promise<string[]> {
+    if (names.length === 0) {
+      return [];
+    }
+
+    const existing = await tx.category.findMany({
+      where: { name: { in: names, mode: 'insensitive' } },
+      select: { id: true, name: true },
+    });
+    const existingNames = new Set(
+      existing.map((category) => category.name.toLowerCase()),
+    );
+    const missing = names.filter((name) => !existingNames.has(name));
+
+    if (missing.length === 0) {
+      return existing.map((category) => category.id);
+    }
+
+    // `skipDuplicates` keeps two concurrent requests creating the same category from failing on the unique name.
+    await tx.category.createMany({
+      data: missing.map((name) => ({ name })),
+      skipDuplicates: true,
+    });
+    const created = await tx.category.findMany({
+      where: { name: { in: missing, mode: 'insensitive' } },
+      select: { id: true },
+    });
+
+    return [...existing, ...created].map((category) => category.id);
   }
 
   private buildNovelWhereClause(

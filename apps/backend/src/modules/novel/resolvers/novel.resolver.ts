@@ -2,6 +2,7 @@ import {
   Args,
   ID,
   Int,
+  Mutation,
   Parent,
   Query,
   ResolveField,
@@ -11,6 +12,8 @@ import { isNil } from 'nestjs-backend-common';
 
 import { ParseUuidPipe } from '../../../shared';
 import {
+  CheckPolicy,
+  CurrentUser,
   CurrentUserOptional,
   type IAuthUser,
   Public,
@@ -20,7 +23,9 @@ import { NovelAction } from '../enums';
 import {
   ChapterFiltersInput,
   ChapterOrderByInput,
+  CreateNovelInput,
   NovelFiltersInput,
+  UpdateNovelInput,
 } from '../inputs';
 import { NovelService } from '../services';
 import {
@@ -85,6 +90,43 @@ export class NovelResolver {
   })
   async categories(): Promise<string[]> {
     return this.novelService.getCategories();
+  }
+
+  @CheckPolicy('novel', 'create')
+  @Mutation(() => Novel, {
+    description:
+      'Create a novel owned by the caller. Categories that do not exist yet are created.',
+  })
+  async createNovel(
+    @Args('input', {
+      type: () => CreateNovelInput,
+      description: 'The new novel',
+    })
+    input: CreateNovelInput,
+    @CurrentUser() user: IAuthUser,
+  ): Promise<Novel> {
+    return this.novelService.createNovel(user.sub, input);
+  }
+
+  @CheckPolicy('novel', 'update')
+  @Mutation(() => Novel, {
+    description:
+      'Update a novel. Only the passed fields change; passed categories replace the current ones.',
+  })
+  async updateNovel(
+    @Args(
+      'id',
+      { type: () => ID, description: 'The ID of the novel' },
+      ParseUuidPipe,
+    )
+    id: string,
+    @Args('input', {
+      type: () => UpdateNovelInput,
+      description: 'The fields to change',
+    })
+    input: UpdateNovelInput,
+  ): Promise<Novel> {
+    return this.novelService.updateNovel(id, input);
   }
 
   @ResolveField(() => [NovelAction], {

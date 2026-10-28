@@ -1,3 +1,5 @@
+import { NovelState } from '@prisma/client';
+
 import { PaginationArgs, TrimmedResult } from '../../../shared';
 import { INovel } from './novel-details.interface';
 
@@ -11,6 +13,19 @@ export interface FindNovelsConnectionArgs {
   filters?: NovelConnectionFilters;
 }
 
+export interface CreateNovelData {
+  ownerId: string;
+  name: string;
+  author: string;
+  description: string;
+  state?: NovelState;
+  categories?: string[];
+}
+
+export type UpdateNovelData = Partial<
+  Omit<CreateNovelData, 'ownerId'>
+>;
+
 export interface INovelRepository {
   findNovelsConnection(
     args: FindNovelsConnectionArgs,
@@ -18,6 +33,8 @@ export interface INovelRepository {
   countNovels(filters?: NovelConnectionFilters): Promise<number>;
   findById(id: string): Promise<INovel | null>;
   getCategories(): Promise<string[]>;
+  createNovel(data: CreateNovelData): Promise<INovel>;
+  updateNovel(id: string, data: UpdateNovelData): Promise<INovel>;
 }
 
 export const NOVEL_REPOSITORY = Symbol('NOVEL_REPOSITORY');

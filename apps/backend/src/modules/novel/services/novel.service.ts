@@ -10,7 +10,9 @@ import { ChapterOrderField } from '../enums';
 import {
   ChapterFiltersInput,
   ChapterOrderByInput,
+  CreateNovelInput,
   NovelFiltersInput,
+  UpdateNovelInput,
 } from '../inputs';
 import {
   CHAPTER_REPOSITORY,
@@ -45,6 +47,22 @@ export class NovelService {
     }
 
     return novel;
+  }
+
+  async createNovel(
+    ownerId: string,
+    input: CreateNovelInput,
+  ): Promise<Novel> {
+    return this.novelRepository.createNovel({ ownerId, ...input });
+  }
+
+  async updateNovel(
+    id: string,
+    input: UpdateNovelInput,
+  ): Promise<Novel> {
+    await this.findOne(id);
+
+    return this.novelRepository.updateNovel(id, input);
   }
 
   async findNovelsConnection(

@@ -12,3 +12,11 @@
 - `eslint --fix` run from a sub-directory with repo-relative paths silently matched nothing; the prettier errors only showed on the next root-level lint. Run eslint from the repo root.
 - Existing `frontend-e2e` suite not run: the step's Test section skips Cypress (permission boundary covered by `backend-e2e`).
 - `ChapterList` is only rendered by `ChapterListPage`, so the "deleted chapter is the one being read" branch has no host today and was not implemented.
+
+## Step 3 (createNovel and updateNovel), 2026-10-28
+
+- Built on request, left uncommitted for review (REQUIREMENTS.md: do not commit each step).
+- Running a single `backend-e2e` spec with plain `vitest run` also starts/tears down its own cluster (exit 3 against an existing one); PROCESS.md now says how to reuse a cluster with a throwaway config.
+- New e2e novels cannot be deleted until Step 4 and existing specs filter on `fantasy`/`adventure` and read `edges[0]`, so the new spec only uses unique `e2e-*` category names. The sibling novel specs passed alongside it.
+- An invalid enum value is rejected by GraphQL with HTTP 400 before any resolver runs; e2e helpers need `validateStatus: () => true` for that case.
+- graphql-api-tester: all AC pass; unknown id has message "not found" but code INTERNAL_SERVER_ERROR (existing formatter, same as Step 1).

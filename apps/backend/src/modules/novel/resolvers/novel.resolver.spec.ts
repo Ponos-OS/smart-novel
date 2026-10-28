@@ -16,8 +16,50 @@ describe(NovelResolver.name, () => {
       getFirstChapter: vi.fn(),
       getLastChapter: vi.fn(),
       getChaptersConnection: vi.fn(),
+      createNovel: vi.fn(),
+      updateNovel: vi.fn(),
     } as any;
     uut = new NovelResolver(novelService);
+  });
+
+  describe('createNovel', () => {
+    it('should create the novel owned by the caller', async () => {
+      const novel = getNovel({ ownerId: '260311094522198751' });
+      const input = {
+        name: 'The Journey Begins',
+        author: 'Jane Doe',
+        description: 'A young hero leaves home.',
+      };
+      vi.mocked(novelService.createNovel).mockResolvedValue(novel);
+
+      const result = await uut.createNovel(input, {
+        sub: '260311094522198751',
+        roles: [Role.writer],
+      } as IAuthUser);
+
+      expect(
+        novelService.createNovel,
+      ).toHaveBeenCalledExactlyOnceWith('260311094522198751', input);
+      expect(result).toBe(novel);
+    });
+  });
+
+  describe('updateNovel', () => {
+    it('should delegate the id and input to the service', async () => {
+      const novel = getNovel({ ownerId: '260311094522198751' });
+      vi.mocked(novelService.updateNovel).mockResolvedValue(novel);
+
+      const result = await uut.updateNovel(novel.id, {
+        state: NovelState.FINISHED,
+      });
+
+      expect(
+        novelService.updateNovel,
+      ).toHaveBeenCalledExactlyOnceWith(novel.id, {
+        state: NovelState.FINISHED,
+      });
+      expect(result).toBe(novel);
+    });
   });
 
   describe('lastChapterPublishedAt', () => {

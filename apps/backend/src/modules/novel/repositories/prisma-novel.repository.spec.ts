@@ -14,6 +14,8 @@ describe(PrismaNovelRepository.name, () => {
         findMany: vi.fn(),
         findUnique: vi.fn(),
         count: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
       },
       chapter: {
         findFirst: vi.fn(),
@@ -23,10 +25,181 @@ describe(PrismaNovelRepository.name, () => {
       },
       category: {
         findMany: vi.fn(),
+        createMany: vi.fn(),
       },
+      $transaction: vi.fn((callback) => callback(prismaService)),
     } as any;
 
     uut = new PrismaNovelRepository(prismaService);
+  });
+
+  describe('createNovel', () => {
+    const novelRecord = {
+      id: '78981754-46c4-4521-9216-b9b27dafeab2',
+      ownerId: '260311094522198751',
+      name: 'The Journey Begins',
+      author: 'Jane Doe',
+      description: 'A young hero leaves home.',
+      state: NovelState.ONGOING,
+      coverUrl: null,
+      categories: [{ category: { name: 'fantasy' } }],
+    };
+
+    it('should link existing categories and create the missing ones', async () => {
+      vi.mocked(prismaService.category.findMany)
+        .mockResolvedValueOnce([
+          {
+            id: '6e0b6b86-8b2d-4d9a-8d7e-0c1a2b3c4d5e',
+            name: 'Fantasy',
+          },
+        ] as any)
+        .mockResolvedValueOnce([
+          { id: 'a5b1f3c2-71d4-4f0e-9a3b-2d6c8e1f7a90' },
+        ] as any);
+      vi.mocked(prismaService.novel.create).mockResolvedValue(
+        novelRecord as any,
+      );
+
+      const result = await uut.createNovel({
+        ownerId: '260311094522198751',
+        name: 'The Journey Begins',
+        author: 'Jane Doe',
+        description: 'A young hero leaves home.',
+        categories: ['fantasy', 'sci-fi'],
+      });
+
+      expect(prismaService.category.createMany).toHaveBeenCalledWith({
+        data: [{ name: 'sci-fi' }],
+        skipDuplicates: true,
+      });
+      expect(prismaService.novel.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            ownerId: '260311094522198751',
+            name: 'The Journey Begins',
+            author: 'Jane Doe',
+            description: 'A young hero leaves home.',
+            categories: {
+              create: [
+                {
+                  categoryId: '6e0b6b86-8b2d-4d9a-8d7e-0c1a2b3c4d5e',
+                },
+                {
+                  categoryId: 'a5b1f3c2-71d4-4f0e-9a3b-2d6c8e1f7a90',
+                },
+              ],
+            },
+          },
+        }),
+      );
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: novelRecord.id,
+          ownerId: '260311094522198751',
+          category: ['fantasy'],
+        }),
+      );
+    });
+
+    it('should not touch the categories table when none are passed', async () => {
+      vi.mocked(prismaService.novel.create).mockResolvedValue({
+        ...novelRecord,
+        categories: [],
+      } as any);
+
+      await uut.createNovel({
+        ownerId: '260311094522198751',
+        name: 'The Journey Begins',
+        author: 'Jane Doe',
+        description: 'A young hero leaves home.',
+      });
+
+      expect(prismaService.category.findMany).not.toHaveBeenCalled();
+      expect(
+        prismaService.category.createMany,
+      ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('updateNovel', () => {
+    const novelId = '78981754-46c4-4521-9216-b9b27dafeab2';
+    const novelRecord = {
+      id: novelId,
+      ownerId: '260311094522198751',
+      name: 'Renamed',
+      author: 'Jane Doe',
+      description: 'A young hero leaves home.',
+      state: NovelState.FINISHED,
+      coverUrl: null,
+      categories: [],
+    };
+
+    it('should only send the passed fields and keep the categories when they are omitted', async () => {
+      vi.mocked(prismaService.novel.update).mockResolvedValue(
+        novelRecord as any,
+      );
+
+      await uut.updateNovel(novelId, { name: 'Renamed' });
+
+      expect(prismaService.novel.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: novelId },
+          data: {
+            name: 'Renamed',
+            author: undefined,
+            description: undefined,
+            state: undefined,
+            categories: undefined,
+          },
+        }),
+      );
+      expect(prismaService.category.findMany).not.toHaveBeenCalled();
+    });
+
+    it('should replace the categories when they are passed', async () => {
+      vi.mocked(prismaService.category.findMany).mockResolvedValue([
+        {
+          id: '6e0b6b86-8b2d-4d9a-8d7e-0c1a2b3c4d5e',
+          name: 'adventure',
+        },
+      ] as any);
+      vi.mocked(prismaService.novel.update).mockResolvedValue(
+        novelRecord as any,
+      );
+
+      await uut.updateNovel(novelId, { categories: ['adventure'] });
+
+      expect(prismaService.novel.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            categories: {
+              deleteMany: {},
+              create: [
+                {
+                  categoryId: '6e0b6b86-8b2d-4d9a-8d7e-0c1a2b3c4d5e',
+                },
+              ],
+            },
+          }),
+        }),
+      );
+    });
+
+    it('should clear the categories when an empty list is passed', async () => {
+      vi.mocked(prismaService.novel.update).mockResolvedValue(
+        novelRecord as any,
+      );
+
+      await uut.updateNovel(novelId, { categories: [] });
+
+      expect(prismaService.novel.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            categories: { deleteMany: {}, create: [] },
+          }),
+        }),
+      );
+    });
   });
 
   describe('findNovelsConnection', () => {
