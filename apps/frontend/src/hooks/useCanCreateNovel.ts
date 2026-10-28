@@ -1,11 +1,10 @@
+import { isWriterOrHigher } from '@smart-novel/shared';
+
 import { useAuth } from './useAuth';
 
 export function useCanCreateNovel() {
   const { user, loading } = useAuth();
-  const canCreate =
-    user?.roles.some(
-      (role) => role === 'writer' || role === 'admin',
-    ) ?? false;
+  const canCreate = isWriterOrHigher(user?.roles ?? []);
 
   return { canCreate, loading };
 }

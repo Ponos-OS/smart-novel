@@ -1,4 +1,5 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { Role } from '@smart-novel/shared';
 import axios from 'axios';
 import {
   createLocalJWKSet,
@@ -18,7 +19,6 @@ import {
   type AuthModuleOptions,
   MODULE_OPTIONS_TOKEN,
 } from '../auth.module-definition';
-import { Role } from '../enums';
 import {
   type IAuthProvider,
   IAuthUser,

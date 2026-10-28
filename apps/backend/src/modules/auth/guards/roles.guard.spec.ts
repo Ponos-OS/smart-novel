@@ -1,12 +1,12 @@
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
+import { Role } from '@smart-novel/shared';
 import { CustomLoggerService } from 'nestjs-backend-common';
 
 import type { IAuthUser } from '../interfaces';
 
 import { IS_PUBLIC_KEY, REQUIRE_ROLE_KEY } from '../decorators';
-import { Role } from '../enums';
 import { RolesGuard } from './roles.guard';
 
 vi.mock('@nestjs/graphql', () => ({

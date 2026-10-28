@@ -1,6 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
-
-import { Role } from '../enums';
+import { Role } from '@smart-novel/shared';
 
 export const REQUIRE_ROLE_KEY = Symbol('requireRole');
 

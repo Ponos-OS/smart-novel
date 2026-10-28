@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "apps/**"
+      - "libs/**"
       - "package.json"
       - "package-lock.json"
       - "nx.json"
@@ -15,6 +16,7 @@ on:
     branches: [main]
     paths:
       - "apps/**"
+      - "libs/**"
       - "package.json"
       - "package-lock.json"
       - "nx.json"

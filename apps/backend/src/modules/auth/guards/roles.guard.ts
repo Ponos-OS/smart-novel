@@ -6,13 +6,12 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
+import { hasMinimumRole, Role } from '@smart-novel/shared';
 import { CustomLoggerService } from 'nestjs-backend-common';
 
 import type { IAuthUser } from '../interfaces';
 
 import { IS_PUBLIC_KEY, REQUIRE_ROLE_KEY } from '../decorators';
-import { Role } from '../enums';
-import { hasMinimumRole } from '../utils';
 
 /**
  * @description role-based guard.

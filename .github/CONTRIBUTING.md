@@ -101,6 +101,7 @@ All contributors (including AI-assisted tools) should follow the project's codin
 - Do **NOT** add a barrel `index.ts` in the "frontend" app, for a Vite-powered SPA you should **NOT** because:
   - Tree-shaking happens still for the production builds, but it **hurts dev server startup and HMR performance** because Vite eagerly transforms every module the barrel re-exports, even if you only need one.
   - When you do `import { getInitials } from '../../utils'`, Vite (and Rollup under the hood) has to parse the entire barrel to figure out what's exported.
+- Code both apps need (a limit, a rule) lives once in `libs/shared`, imported as `@smart-novel/shared`; keep it plain TypeScript with no Node, browser or framework imports. A new lib or a new path needs the same treatment as `shared`: `paths` in `tsconfig.base.json`, a `COPY libs` in the app Dockerfiles, and the `libs` volume in `infra/terraform/envs/local`. The backend's `ts-node` scripts need `-r tsconfig-paths/register` to resolve it.
 - When you add a new resolver in the "backend" app, you **MUST** add it to the `apps/backend/gen-graphql-schema.ts`.
 - Use Nx targets instead of raw commands whenever it is possible.
 - A side-effect call from within a mutation that already committed its primary write (e.g. triggering Beatrice's `generateAudio` after `updateContent` persists) must not let the side effect's failure fail the whole mutation — wrap it (`retryAsync` with `{ retry: 0 }`, or try/catch) and log-and-continue.

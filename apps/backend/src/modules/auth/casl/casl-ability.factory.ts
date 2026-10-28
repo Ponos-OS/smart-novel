@@ -1,8 +1,7 @@
 import { AbilityBuilder, createMongoAbility } from '@casl/ability';
 import { Injectable } from '@nestjs/common';
+import { hasMinimumRole, isAdmin, Role } from '@smart-novel/shared';
 
-import { Role } from '../enums';
-import { hasMinimumRole, isAdmin } from '../utils';
 import { Action } from './action.enum';
 import { AppAbility } from './app-ability.type';
 

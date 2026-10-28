@@ -3,8 +3,7 @@ import {
   Injectable,
   PipeTransform,
 } from '@nestjs/common';
-
-import { COVER_MAX_SIZE_BYTES } from '../constants';
+import { COVER_MAX_SIZE_BYTES } from '@smart-novel/shared';
 
 /**
  * @description Validates that the value is a cover size in bytes: at least 1 and at most {@link COVER_MAX_SIZE_BYTES}.

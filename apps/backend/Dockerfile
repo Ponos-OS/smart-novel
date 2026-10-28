@@ -42,6 +42,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY tsconfig.base.json ./
 COPY nx.json ./
 COPY apps/backend ./apps/backend
+COPY libs ./libs
 RUN npx nx prisma:generate backend
 RUN npx nx build backend --prod
 

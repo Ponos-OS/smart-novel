@@ -1,4 +1,4 @@
-import { Role } from '../enums';
+import { Role } from '@smart-novel/shared';
 
 /**
  * @description Provider-agnostic authenticated user representation.

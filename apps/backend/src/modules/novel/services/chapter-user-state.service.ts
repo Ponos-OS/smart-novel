@@ -3,6 +3,7 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
+import { MARK_CHAPTERS_READ_MAX_BATCH_SIZE } from '@smart-novel/shared';
 import { arrayMaxSize } from 'class-validator';
 
 import {
@@ -29,10 +30,11 @@ export class ChapterUserStateService {
       return 0;
     }
 
-    const maxSize = 100;
-    if (!arrayMaxSize(chapterIds, maxSize)) {
+    if (
+      !arrayMaxSize(chapterIds, MARK_CHAPTERS_READ_MAX_BATCH_SIZE)
+    ) {
       throw new BadRequestException(
-        `Maximum ${maxSize} chapters can be marked as read per request`,
+        `Maximum ${MARK_CHAPTERS_READ_MAX_BATCH_SIZE} chapters can be marked as read per request`,
       );
     }
 

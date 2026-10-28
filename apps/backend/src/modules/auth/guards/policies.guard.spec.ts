@@ -1,6 +1,7 @@
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
+import { Role } from '@smart-novel/shared';
 import { CustomLoggerService } from 'nestjs-backend-common';
 
 import type {
@@ -9,7 +10,6 @@ import type {
 } from '../interfaces';
 
 import { CHECK_POLICY_KEY, IS_PUBLIC_KEY } from '../decorators';
-import { Role } from '../enums';
 import { PoliciesGuard } from './policies.guard';
 
 vi.mock('@nestjs/graphql', () => ({

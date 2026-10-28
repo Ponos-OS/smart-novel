@@ -1,3 +1,4 @@
+import { MARK_CHAPTERS_READ_MAX_BATCH_SIZE } from '@smart-novel/shared';
 import { useEffect, useRef } from 'react';
 
 import { useMarkChaptersReadMutation } from '../generated/graphql';
@@ -11,7 +12,7 @@ interface UseSyncReadChaptersOptions {
 
 /**
  * @summary Hook to sync locally stored read chapters to the backend when user logs in.
- * @description Handles batching of chapters (100 per batch due to API limits).
+ * @description Handles batching of chapters (the API accepts a limited number per request).
  */
 export function useSyncReadChapters({
   storage,
@@ -39,10 +40,18 @@ export function useSyncReadChapters({
       return;
     }
 
-    // Split into batches of 100 (API limit)
     const batches: string[][] = [];
-    for (let i = 0; i < storedChapters.length; i += 100) {
-      batches.push(storedChapters.slice(i, i + 100));
+    for (
+      let i = 0;
+      i < storedChapters.length;
+      i += MARK_CHAPTERS_READ_MAX_BATCH_SIZE
+    ) {
+      batches.push(
+        storedChapters.slice(
+          i,
+          i + MARK_CHAPTERS_READ_MAX_BATCH_SIZE,
+        ),
+      );
     }
 
     // Sync all batches

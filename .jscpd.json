@@ -1,5 +1,9 @@
 {
-  "path": ["apps/backend/src", "apps/frontend/src"],
+  "path": [
+    "apps/backend/src",
+    "apps/frontend/src",
+    "libs/shared/src"
+  ],
   "format": ["typescript", "tsx", "javascript"],
   "ignore": [
     "**/generated/**",

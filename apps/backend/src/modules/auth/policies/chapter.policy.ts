@@ -1,10 +1,10 @@
 import { subject } from '@casl/ability';
 import { Injectable } from '@nestjs/common';
+import { isAdmin } from '@smart-novel/shared';
 import { CustomLoggerService } from 'nestjs-backend-common';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { Action, CaslAbilityFactory } from '../casl';
-import { isAdmin } from '../utils';
 import {
   IResourcePolicy,
   ResourcePolicyCheckParams,

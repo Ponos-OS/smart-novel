@@ -1,3 +1,7 @@
+import {
+  COVER_CONTENT_TYPE_EXTENSIONS,
+  COVER_MAX_SIZE_BYTES,
+} from '@smart-novel/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { ChangeEvent, useEffect, useRef, useState } from 'react';
 
@@ -9,10 +13,6 @@ import {
   useSearchNovelsQuery,
   useSetNovelCoverMutation,
 } from '../../generated/graphql';
-import {
-  COVER_ALLOWED_CONTENT_TYPES,
-  COVER_MAX_SIZE_BYTES,
-} from './novel-cover.constants';
 import { NovelCoverConfirmForm } from './NovelCoverConfirmForm';
 
 interface NovelCoverUploadProps {
@@ -20,6 +20,10 @@ interface NovelCoverUploadProps {
   novelName: string;
   coverUrl?: string | null;
 }
+
+const COVER_ALLOWED_CONTENT_TYPES = Object.keys(
+  COVER_CONTENT_TYPE_EXTENSIONS,
+);
 
 function getPickError(file: File): string | null {
   if (!COVER_ALLOWED_CONTENT_TYPES.includes(file.type)) {
@@ -31,7 +35,7 @@ function getPickError(file: File): string | null {
   }
 
   if (file.size > COVER_MAX_SIZE_BYTES) {
-    return 'The cover must be 5 MB or smaller.';
+    return `The cover must be ${COVER_MAX_SIZE_BYTES / 1024 / 1024} MB or smaller.`;
   }
 
   return null;

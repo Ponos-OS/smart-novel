@@ -3,8 +3,7 @@ import {
   Injectable,
   PipeTransform,
 } from '@nestjs/common';
-
-import { COVER_CONTENT_TYPE_EXTENSIONS } from '../constants';
+import { COVER_CONTENT_TYPE_EXTENSIONS } from '@smart-novel/shared';
 
 /**
  * @description Validates that the value is one of the allowed cover image MIME types.

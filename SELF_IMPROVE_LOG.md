@@ -76,3 +76,17 @@
 - Split into a presentational `NovelCoverConfirmForm` (props only, so Storybook can show picked/uploading/error without the mock-plugin machinery) and a `NovelCoverUpload` container that owns the file, the three calls and the cache refresh.
 - The preview object URL is created and revoked inside one `useEffect` keyed on the file; creating it in `useMemo` and revoking in an effect cleanup would revoke a URL still in use under React StrictMode's double effect run.
 - Unit specs mock `fetch` and the two mutations, so the real browser `PUT`, CORS and the cover showing on the novel page and the cards are only covered by the Step 10 Cypress journey; nothing here was run in a browser.
+
+## Shared lib `libs/shared`, 2026-10-28
+
+- Moved the cover limits (allowed content types with their extension, 5 MB cap) out of `apps/backend/.../novel-cover.constants.ts` and `apps/frontend/.../novel-cover.constants.ts` into `libs/shared`, imported as `@smart-novel/shared`; the backend keeps only its own `COVER_OBJECT_KEY_PREFIX`. Written by hand, not with `nx g @nx/js:library`, because the generator also rewrites `package.json`, `nx.json`, `.gitignore` and the root ESLint config and adds a vitest workspace.
+- A new lib touches far more than the lib: `tsconfig.base.json` (`baseUrl` + `paths`, plus `ignoreDeprecations: "6.0"` because TypeScript 6 deprecates `baseUrl` but Nx's webpack path plugin ignores `paths` without it), `rootDir: "../.."` in the app/spec tsconfigs (TS6059 otherwise), `COPY libs` in both Dockerfiles, `libs` mounts in `infra/terraform/envs/local` (kind node and the hot-reload pods and Jobs), CI path filters, Sonar and jscpd paths, and `-r tsconfig-paths/register` for the backend `ts-node` schema script (`tsconfig-paths` is now a declared devDependency). Checklist added to CONTRIBUTING.
+- The `prisma seed` script also runs through `ts-node` and imports `src/modules/*`; it does not reach `@smart-novel/shared` today but would fail to resolve it if it ever does.
+- Verified: backend and frontend unit tests, type-checks, backend webpack build (the constants are in the bundle), frontend Vite build, schema generation unchanged; production-image build through the Dockerfiles.
+
+## Shared lib follow-up: roles and the mark-read batch size, 2026-10-28
+
+- After the cover limits, a survey of both apps found two more things duplicated across them and moved them to `libs/shared`: the `Role` enum with `ROLE_HIERARCHY`, `hasMinimumRole`, `isAdmin` and `isWriterOrHigher` (the frontend hook `useCanCreateNovel` hardcoded `'writer' || 'admin'`), and `MARK_CHAPTERS_READ_MAX_BATCH_SIZE = 100` (backend validation and the frontend's batching loop each had their own `100`). Left out on purpose: GraphQL-generated enums (the schema already is the single source) and the explain context size (deployment config read from env vars on each side).
+- The moved role helpers had no unit test, so the lib got its own vitest target (`nx test shared`) and a spec; before this a lib with only constants needed no runner.
+- The backend `auth/enums` and `auth/utils/rbac.util.ts` were deleted and every importer (about 14 files) repointed to `@smart-novel/shared` instead of leaving re-export shims, so the source of the rule is visible at each use.
+- Do not run `pkill -f` with a pattern that also appears in your own command line: `pkill -f start-dev.sh` killed the shell running it (exit 144). Stop a background job with the task tool and `stop-dev.sh` instead.

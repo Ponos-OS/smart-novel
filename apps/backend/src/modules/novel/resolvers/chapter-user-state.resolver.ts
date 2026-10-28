@@ -1,4 +1,5 @@
 import { Args, ID, Mutation, Resolver } from '@nestjs/graphql';
+import { MARK_CHAPTERS_READ_MAX_BATCH_SIZE } from '@smart-novel/shared';
 
 import type { IAuthUser } from '../../auth/interfaces';
 
@@ -17,8 +18,7 @@ export class ChapterUserStateResolver {
   ) {}
 
   @Mutation(() => MarkChaptersReadResponse, {
-    description:
-      'Mark one or more chapters as read for the authenticated user. Maximum 100 chapter IDs per request.',
+    description: `Mark one or more chapters as read for the authenticated user. Maximum ${MARK_CHAPTERS_READ_MAX_BATCH_SIZE} chapter IDs per request.`,
   })
   async markChaptersRead(
     @CurrentUser() user: IAuthUser,

@@ -1,6 +1,7 @@
 import { NovelState } from '@prisma/client';
+import { Role } from '@smart-novel/shared';
 
-import { type IAuthUser, Role } from '../../auth';
+import { type IAuthUser } from '../../auth';
 import { NovelAction } from '../enums';
 import { NovelCoverService, NovelService } from '../services';
 import { Novel } from '../types';

@@ -2,7 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "../../dist/out-tsc",
-    "rootDir": "./src",
+    "rootDir": "../..",
     "module": "nodenext",
     "types": ["node"],
     "experimentalDecorators": true,

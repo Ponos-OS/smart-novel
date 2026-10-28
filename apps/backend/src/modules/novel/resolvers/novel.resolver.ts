@@ -8,6 +8,7 @@ import {
   ResolveField,
   Resolver,
 } from '@nestjs/graphql';
+import { Role } from '@smart-novel/shared';
 import { isNil } from 'nestjs-backend-common';
 
 import { ParseUuidPipe } from '../../../shared';
@@ -17,7 +18,6 @@ import {
   CurrentUserOptional,
   type IAuthUser,
   Public,
-  Role,
 } from '../../auth';
 import { NovelAction } from '../enums';
 import {

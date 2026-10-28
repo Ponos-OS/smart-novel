@@ -6,16 +6,16 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import {
+  COVER_CONTENT_TYPE_EXTENSIONS,
+  COVER_MAX_SIZE_BYTES,
+} from '@smart-novel/shared';
 import { urlBuilder } from 'nestjs-backend-common';
 import { randomUUID } from 'node:crypto';
 
 import { appConfigs } from '../../../app/configs/app.config';
 import { ObjectStorageService } from '../../object-storage';
-import {
-  COVER_CONTENT_TYPE_EXTENSIONS,
-  COVER_MAX_SIZE_BYTES,
-  COVER_OBJECT_KEY_PREFIX,
-} from '../constants';
+import { COVER_OBJECT_KEY_PREFIX } from '../constants';
 import {
   type INovelRepository,
   NOVEL_REPOSITORY,

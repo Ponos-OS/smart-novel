@@ -1,6 +1,6 @@
 import type { JWTPayload } from 'jose';
 
-import { Role } from '../enums';
+import { Role } from '@smart-novel/shared';
 
 export interface ZitadelOpenIdConfigurationResponse {
   issuer: string;
