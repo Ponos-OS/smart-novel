@@ -43,6 +43,34 @@ const UPDATE_NOVEL = `#graphql
   }
 `;
 
+const NOVEL_LICENSE = `#graphql
+  query NovelLicense($id: ID!) {
+    novel(id: $id) {
+      license {
+        id
+        name
+        sourceType
+        text
+      }
+    }
+  }
+`;
+
+const NOVELS_LICENSES = `#graphql
+  query NovelsLicenses {
+    novelsConnection(first: 50) {
+      edges {
+        node {
+          id
+          license {
+            id
+          }
+        }
+      }
+    }
+  }
+`;
+
 async function graphql(
   query: string,
   variables: Record<string, unknown>,
@@ -52,7 +80,7 @@ async function graphql(
     '/graphql',
     { query, variables },
     {
-      headers: { Authorization: authorization },
+      headers: authorization ? { Authorization: authorization } : {},
       validateStatus: () => true,
     },
   );
@@ -231,6 +259,41 @@ describe('Licenses (e2e)', () => {
 
       expect(created.errors).toBeUndefined();
       expect(updated.errors).toBeUndefined();
+    });
+
+    it('should expose the license of a novel on the detail and on the list', async () => {
+      const writer =
+        await AuthorizationFixture.getWriterAuthorizationHeader();
+      const draft = uniqueDraft();
+      const created = await graphql(
+        CREATE_NOVEL,
+        { input: { ...novelInput, licenseDraft: draft } },
+        writer,
+      );
+      const novelId = created.data.createNovel.id;
+
+      const detail = await graphql(
+        NOVEL_LICENSE,
+        { id: novelId },
+        '',
+      );
+      const list = await graphql(NOVELS_LICENSES, {}, '');
+
+      expect(detail.data.novel.license).toEqual(
+        expect.objectContaining({
+          name: draft.title,
+          sourceType: 'CUSTOM',
+          text: draft.text,
+        }),
+      );
+      expect(list.errors).toBeUndefined();
+      expect(list.data.novelsConnection.edges).not.toBeEmpty();
+      expect(
+        list.data.novelsConnection.edges.every(
+          ({ node }: { node: { license: { id: string } } }) =>
+            node.license.id,
+        ),
+      ).toBeTrue();
     });
 
     it.each([

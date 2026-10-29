@@ -294,5 +294,6 @@ function getNovel({ ownerId }: { ownerId: string }): Novel {
     state: NovelState.ONGOING,
     description: 'A test novel',
     ownerId,
+    licenseId: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
   };
 }

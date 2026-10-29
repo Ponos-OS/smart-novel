@@ -21,6 +21,7 @@ export interface INovel {
    * @example "230104087265432001"
    */
   ownerId: string;
+  licenseId: string;
   coverUrl?: string;
   description: string;
 }

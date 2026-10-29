@@ -105,6 +105,7 @@ describe(PrismaNovelRepository.name, () => {
         expect.objectContaining({
           id: novelRecord.id,
           ownerId: '260311094522198751',
+          licenseId,
           category: ['fantasy'],
         }),
       );

@@ -316,6 +316,7 @@ export class PrismaNovelRepository implements INovelRepository {
       description: record.description,
       state: record.state,
       ownerId: record.ownerId,
+      licenseId: record.licenseId,
       coverUrl: record.coverUrl ?? undefined,
       category: record.categories.map((novelCategory) =>
         novelCategory.category.name.toLowerCase(),

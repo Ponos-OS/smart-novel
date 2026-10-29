@@ -68,6 +68,7 @@ describe(NovelService.name, () => {
           'supernatural',
         ],
         ownerId: '224691739954204661',
+        licenseId: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
         description: `Lin Jie is the owner of a bookstore in another world. He's kind and warm-hearted, often recommending healing books to customers who are going through a tough time. From time to time, he secretly promotes his own work too. Over time, these customers begin to respect him greatly, some even frequently bringing local specialties to repay his favor. They often seek his professional opinion when it comes to selecting books, and share their experiences with this ordinary bookstore owner to people around them. They respectfully and intimately refer to him using names such as the "Demon God's Lackey", "Propagator of the Flesh and Blood Gospel", "Corpse Devouring Sect's Rites and Customs' Author" and "Shepherd of the Stars".`,
         id: '3da6f099-50ad-4a57-8a03-188b76ed5e3f',
         name: "I'm Really Not The Demon God's Lackey",
@@ -122,6 +123,7 @@ describe(NovelService.name, () => {
 
       expect(novelRepository.createNovel).toHaveBeenCalledWith({
         ownerId: '260311094522198751',
+        licenseId: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
         licenseId: defaultLicenseId,
         ...input,
       });
@@ -266,6 +268,7 @@ describe(NovelService.name, () => {
             author: 'Author 1',
             category: ['action', 'fantasy'],
             ownerId: '224691739954204673',
+            licenseId: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
             id: '15c0aaee-56e3-45cd-b159-b1fa33f52490',
             name: 'Novel One',
             state: NovelState.ONGOING,
@@ -275,6 +278,7 @@ describe(NovelService.name, () => {
             author: 'Author 2',
             category: ['romance', 'drama'],
             ownerId: '224691739954204674',
+            licenseId: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
             id: '6c439896-3c3b-5c57-a27e-026ebbf9e34c',
             name: 'Novel Two',
             state: NovelState.FINISHED,
@@ -374,6 +378,7 @@ describe(NovelService.name, () => {
             author: 'Author 2',
             category: ['romance', 'drama'],
             ownerId: '224691739954204681',
+            licenseId: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
             id: '9d154762-d77f-42b4-add2-cf1d234d1a21',
             name: 'Novel Two',
             state: NovelState.FINISHED,

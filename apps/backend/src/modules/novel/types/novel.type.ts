@@ -52,6 +52,11 @@ export class Novel implements INovel {
    */
   ownerId: string;
 
+  /**
+   * @internal field — not exposed in the GraphQL schema. Used by the `license` field resolver.
+   */
+  licenseId: string;
+
   @Field(() => [NovelAction], {
     description:
       'Actions the current user is allowed to perform on this novel',

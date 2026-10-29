@@ -26,6 +26,7 @@ import {
   ChapterResolver,
   ChapterUserStateResolver,
   NovelConnectionFieldResolver,
+  NovelLicenseFieldResolver,
   NovelResolver,
 } from './resolvers';
 import {
@@ -43,6 +44,7 @@ import {
   providers: [
     NovelResolver,
     NovelConnectionFieldResolver,
+    NovelLicenseFieldResolver,
     ChapterFieldResolver,
     ChapterNarrationResolver,
     ChapterResolver,

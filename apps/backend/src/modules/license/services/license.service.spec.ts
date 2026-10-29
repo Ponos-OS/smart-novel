@@ -35,6 +35,7 @@ describe(LicenseService.name, () => {
     prisma = {
       license: {
         findFirstOrThrow: vi.fn(),
+        findMany: vi.fn(),
         findUnique: vi.fn(),
         createMany: vi.fn(),
         findUniqueOrThrow: vi.fn(),
@@ -70,6 +71,28 @@ describe(LicenseService.name, () => {
       const result = uut.findOne(ccBy.id);
 
       await expect(result).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('findByIds', () => {
+    it('should return the stored licenses keyed by id, skipping unknown ids', async () => {
+      vi.mocked(prisma.license.findMany).mockResolvedValue([
+        ccBy as any,
+      ]);
+
+      const result = await uut.findByIds([
+        ccBy.id,
+        'b2d9c4aa-18f3-4f0e-9c57-3a6d1e8b7f42',
+      ]);
+
+      expect(result).toEqual(new Map([[ccBy.id, ccBy]]));
+      expect(prisma.license.findMany).toHaveBeenCalledWith({
+        where: {
+          id: {
+            in: [ccBy.id, 'b2d9c4aa-18f3-4f0e-9c57-3a6d1e8b7f42'],
+          },
+        },
+      });
     });
   });
 

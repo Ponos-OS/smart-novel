@@ -6,7 +6,7 @@ import { computePlatformTermsHash, loadPlatformTerms } from './utils';
  * @description Editing `platform-terms.md` without bumping its `version` would change what writers already accepted. Bump the version in the file, then add the new version and the printed hash here, keeping the old ones.
  */
 const HASH_BY_VERSION: Record<number, string> = {
-  1: '82661bf0afbcbd3b8f6827fe11c08c79be025e9feab870f86e1b0d30c624c446',
+  1: '00b278e7e443ee80449d593245a12b6eac9e739e1596b07f6e7913e8c4b98831',
 };
 
 describe('platform-terms.md', () => {

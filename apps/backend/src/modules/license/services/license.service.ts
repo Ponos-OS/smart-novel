@@ -40,6 +40,14 @@ export class LicenseService {
     return license;
   }
 
+  async findByIds(ids: string[]): Promise<Map<string, License>> {
+    const licenses = await this.prisma.license.findMany({
+      where: { id: { in: ids } },
+    });
+
+    return new Map(licenses.map((license) => [license.id, license]));
+  }
+
   /**
    * @description Reuses the stored row when the normalized text is already known (rows are immutable and deduplicated), so the existing row keeps its own name and source.
    * A text that is not stored yet cannot claim to be CANONICAL: only seeded canonical texts are trusted.
