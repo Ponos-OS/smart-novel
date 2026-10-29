@@ -15,6 +15,7 @@ import { OpenTelemetryModule } from 'nestjs-otel';
 import {
   AuthModule,
   BackgroundRunnerModule,
+  LicenseModule,
   LlmModule,
   NovelModule,
   ObjectStorageModule,
@@ -86,6 +87,7 @@ import {
         formatError: createGraphqlErrorFormatter(logger),
       }),
     }),
+    LicenseModule,
     NovelModule,
     LlmModule,
     TtsCallbacksModule,

@@ -1,7 +1,11 @@
 import { CustomLoggerService } from 'nestjs-backend-common';
 
 import type { IAuthUser } from '../interfaces';
-import type { ChapterPolicy, NovelPolicy } from '../policies';
+import type {
+  ChapterPolicy,
+  LicensePolicy,
+  NovelPolicy,
+} from '../policies';
 
 import { RbacAuthorizationProvider } from './rbac-authorization.provider';
 
@@ -9,6 +13,7 @@ describe(RbacAuthorizationProvider.name, () => {
   let uut: RbacAuthorizationProvider;
   let novelPolicy: NovelPolicy;
   let chapterPolicy: ChapterPolicy;
+  let licensePolicy: LicensePolicy;
   let logger: CustomLoggerService;
 
   const principal: IAuthUser = {
@@ -28,12 +33,16 @@ describe(RbacAuthorizationProvider.name, () => {
     chapterPolicy = {
       isAllowed: vi.fn().mockResolvedValue(true),
     } as any;
+    licensePolicy = {
+      isAllowed: vi.fn().mockResolvedValue(true),
+    } as any;
     logger = { log: vi.fn(), debug: vi.fn(), warn: vi.fn() } as any;
 
     uut = new RbacAuthorizationProvider(
       logger,
       novelPolicy,
       chapterPolicy,
+      licensePolicy,
     );
   });
 
@@ -69,6 +78,24 @@ describe(RbacAuthorizationProvider.name, () => {
       userRoles: ['writer'],
       resourceId: 'unknown',
       action: 'create',
+    });
+    expect(novelPolicy.isAllowed).not.toHaveBeenCalled();
+  });
+
+  it("should delegate a 'license' resource check to LicensePolicy", async () => {
+    const result = await uut.isAllowed({
+      principal,
+      resource: 'license',
+      resourceId: 'unknown',
+      action: 'update',
+    });
+
+    expect(result).toBeTrue();
+    expect(licensePolicy.isAllowed).toHaveBeenCalledExactlyOnceWith({
+      userId: 'user-1',
+      userRoles: ['writer'],
+      resourceId: 'unknown',
+      action: 'update',
     });
     expect(novelPolicy.isAllowed).not.toHaveBeenCalled();
   });

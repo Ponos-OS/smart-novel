@@ -8,6 +8,7 @@ import {
 import {
   ChapterPolicy,
   IResourcePolicy,
+  LicensePolicy,
   NovelPolicy,
 } from '../policies';
 
@@ -31,10 +32,12 @@ export class RbacAuthorizationProvider implements IAuthorizationProvider {
     private readonly logger: CustomLoggerService,
     novelPolicy: NovelPolicy,
     chapterPolicy: ChapterPolicy,
+    licensePolicy: LicensePolicy,
   ) {
     this.policiesByResource = new Map<string, IResourcePolicy>([
       ['novel', novelPolicy],
       ['chapter', chapterPolicy],
+      ['license', licensePolicy],
     ]);
     this.logger.log('RBAC authorization provider initialized');
   }

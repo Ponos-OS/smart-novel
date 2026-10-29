@@ -24,6 +24,7 @@ export interface ChapterSubject {
 export type AppSubjects =
   | 'Novel'
   | 'Chapter'
+  | 'License'
   | 'all'
   | NovelSubject
   | ChapterSubject;

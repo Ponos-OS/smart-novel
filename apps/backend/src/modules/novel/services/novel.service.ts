@@ -6,6 +6,7 @@ import {
 import { PageInfo } from 'nestjs-backend-common';
 
 import { OrderDirection } from '../../../shared';
+import { LicenseService } from '../../license';
 import { ChapterOrderField } from '../enums';
 import {
   ChapterFiltersInput,
@@ -39,6 +40,7 @@ export class NovelService {
     @Inject(CHAPTER_REPOSITORY)
     private readonly chapterRepository: IChapterRepository,
     private readonly chapterNarrationService: ChapterNarrationService,
+    private readonly licenseService: LicenseService,
   ) {}
 
   async findOne(id: string): Promise<Novel> {
@@ -55,7 +57,18 @@ export class NovelService {
     ownerId: string,
     input: CreateNovelInput,
   ): Promise<Novel> {
-    return this.novelRepository.createNovel({ ownerId, ...input });
+    const { licenseId, licenseDraft, ...fields } = input;
+    const license =
+      (await this.licenseService.resolve({
+        licenseId,
+        licenseDraft,
+      })) ?? (await this.licenseService.getDefault());
+
+    return this.novelRepository.createNovel({
+      ownerId,
+      ...fields,
+      licenseId: license.id,
+    });
   }
 
   async updateNovel(
@@ -64,7 +77,16 @@ export class NovelService {
   ): Promise<Novel> {
     await this.findOne(id);
 
-    return this.novelRepository.updateNovel(id, input);
+    const { licenseId, licenseDraft, ...fields } = input;
+    const license = await this.licenseService.resolve({
+      licenseId,
+      licenseDraft,
+    });
+
+    return this.novelRepository.updateNovel(id, {
+      ...fields,
+      licenseId: license?.id,
+    });
   }
 
   async deleteNovel(id: string): Promise<{ id: string }> {

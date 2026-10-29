@@ -2,6 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { NarrationStatus, NovelState } from '@prisma/client';
 import { isString } from 'class-validator';
 
+import type { LicenseService } from '../../license';
 import type {
   IChapterRepository,
   INovelRepository,
@@ -18,6 +19,7 @@ describe(NovelService.name, () => {
   let novelRepository: INovelRepository;
   let chapterRepository: IChapterRepository;
   let chapterNarrationService: ChapterNarrationService;
+  let licenseService: LicenseService;
 
   beforeEach(() => {
     novelRepository = {
@@ -39,10 +41,16 @@ describe(NovelService.name, () => {
       deleteAudio: vi.fn().mockResolvedValue(undefined),
     } as any;
 
+    licenseService = {
+      resolve: vi.fn(),
+      getDefault: vi.fn(),
+    } as any;
+
     uut = new NovelService(
       novelRepository,
       chapterRepository,
       chapterNarrationService,
+      licenseService,
     );
   });
 
@@ -87,7 +95,15 @@ describe(NovelService.name, () => {
   });
 
   describe('createNovel', () => {
-    it('should pass the caller as owner together with the input to the repository', async () => {
+    const defaultLicenseId = '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06';
+
+    beforeEach(() => {
+      vi.mocked(licenseService.getDefault).mockResolvedValue({
+        id: defaultLicenseId,
+      } as any);
+    });
+
+    it('should pass the caller as owner and the default license to the repository when none is chosen', async () => {
       const input = {
         name: 'The Journey Begins',
         author: 'Jane Doe',
@@ -106,9 +122,33 @@ describe(NovelService.name, () => {
 
       expect(novelRepository.createNovel).toHaveBeenCalledWith({
         ownerId: '260311094522198751',
+        licenseId: defaultLicenseId,
         ...input,
       });
       expect(result).toBe(created);
+    });
+
+    it('should use the chosen license instead of the default', async () => {
+      const licenseId = 'b2f4c6a8-1d3e-4f50-8a7b-9c0d1e2f3a4b';
+      vi.mocked(licenseService.resolve).mockResolvedValue({
+        id: licenseId,
+      } as any);
+
+      await uut.createNovel('260311094522198751', {
+        name: 'The Journey Begins',
+        author: 'Jane Doe',
+        description: 'A young hero leaves home.',
+        licenseId,
+      });
+
+      expect(licenseService.resolve).toHaveBeenCalledWith({
+        licenseId,
+        licenseDraft: undefined,
+      });
+      expect(licenseService.getDefault).not.toHaveBeenCalled();
+      expect(novelRepository.createNovel).toHaveBeenCalledWith(
+        expect.objectContaining({ licenseId }),
+      );
     });
   });
 
@@ -132,9 +172,27 @@ describe(NovelService.name, () => {
         novelId,
         {
           name: 'Renamed',
+          licenseId: undefined,
         },
       );
       expect(result).toBe(updated);
+    });
+
+    it('should repoint the novel to the resolved license', async () => {
+      const licenseId = 'b2f4c6a8-1d3e-4f50-8a7b-9c0d1e2f3a4b';
+      vi.mocked(novelRepository.findById).mockResolvedValue({
+        id: novelId,
+      } as any);
+      vi.mocked(licenseService.resolve).mockResolvedValue({
+        id: licenseId,
+      } as any);
+
+      await uut.updateNovel(novelId, { licenseId });
+
+      expect(novelRepository.updateNovel).toHaveBeenCalledWith(
+        novelId,
+        { licenseId },
+      );
     });
 
     it('should throw NotFoundException without updating when the novel does not exist', async () => {

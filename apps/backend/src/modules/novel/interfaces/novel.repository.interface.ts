@@ -15,6 +15,7 @@ export interface FindNovelsConnectionArgs {
 
 export interface CreateNovelData {
   ownerId: string;
+  licenseId: string;
   name: string;
   author: string;
   description: string;

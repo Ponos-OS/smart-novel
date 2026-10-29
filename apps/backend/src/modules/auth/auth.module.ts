@@ -11,7 +11,11 @@ import { AuthResolver } from './auth.resolver';
 import { CaslAbilityFactory } from './casl';
 import { JwtAuthGuard, PoliciesGuard, RolesGuard } from './guards';
 import { AUTH_PROVIDER, AUTHORIZATION_PROVIDER } from './interfaces';
-import { ChapterPolicy, NovelPolicy } from './policies';
+import {
+  ChapterPolicy,
+  LicensePolicy,
+  NovelPolicy,
+} from './policies';
 import {
   RbacAuthorizationProvider,
   ZitadelAuthProvider,
@@ -54,6 +58,7 @@ export class AuthModule extends ConfigurableModuleClass {
         CaslAbilityFactory,
         NovelPolicy,
         ChapterPolicy,
+        LicensePolicy,
       ],
     };
   }
@@ -78,6 +83,7 @@ export class AuthModule extends ConfigurableModuleClass {
         CaslAbilityFactory,
         NovelPolicy,
         ChapterPolicy,
+        LicensePolicy,
       ],
     };
   }
@@ -97,6 +103,7 @@ export class AuthModule extends ConfigurableModuleClass {
       CaslAbilityFactory,
       NovelPolicy,
       ChapterPolicy,
+      LicensePolicy,
       RbacAuthorizationProvider,
       {
         provide: AUTHORIZATION_PROVIDER,

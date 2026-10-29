@@ -9,6 +9,7 @@ import { join } from 'path';
 
 import { AppResolver } from './src/app/app.resolver';
 import { AuthResolver } from './src/modules/auth/auth.resolver';
+import { LicenseResolver } from './src/modules/license/license.resolver';
 import { LlmResolver } from './src/modules/llm/llm.resolver';
 import {
   ChapterConnectionFieldResolver,
@@ -30,6 +31,7 @@ async function generateSchema() {
   const schema = await gqlSchemaFactory.create([
     AppResolver,
     AuthResolver,
+    LicenseResolver,
     LlmResolver,
     NovelResolver,
     NovelConnectionFieldResolver,

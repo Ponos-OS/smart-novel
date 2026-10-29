@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { LicenseModule } from '../license';
 import {
   ChapterContentDataLoader,
   ChapterNavigationDataLoader,
@@ -38,6 +39,7 @@ import {
 } from './services';
 
 @Module({
+  imports: [LicenseModule],
   providers: [
     NovelResolver,
     NovelConnectionFieldResolver,

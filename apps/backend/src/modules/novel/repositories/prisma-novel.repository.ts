@@ -125,14 +125,9 @@ export class PrismaNovelRepository implements INovelRepository {
         tx,
         categories ?? [],
       );
-      const { id: licenseId } = await tx.license.findFirstOrThrow({
-        where: { isDefault: true },
-        select: { id: true },
-      });
       const novel = await tx.novel.create({
         data: {
           ...fields,
-          licenseId,
           categories: {
             create: categoryIds.map((categoryId) => ({ categoryId })),
           },
@@ -148,7 +143,14 @@ export class PrismaNovelRepository implements INovelRepository {
     id: string,
     data: UpdateNovelData,
   ): Promise<Novel> {
-    const { name, author, description, state, categories } = data;
+    const {
+      name,
+      author,
+      description,
+      state,
+      categories,
+      licenseId,
+    } = data;
 
     return this.prisma.$transaction(async (tx) => {
       const categoryIds = categories
@@ -161,6 +163,7 @@ export class PrismaNovelRepository implements INovelRepository {
           author: author ?? undefined,
           description: description ?? undefined,
           state: state ?? undefined,
+          licenseId: licenseId ?? undefined,
           categories: categoryIds && {
             deleteMany: {},
             create: categoryIds.map((categoryId) => ({ categoryId })),

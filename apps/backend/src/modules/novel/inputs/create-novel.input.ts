@@ -1,14 +1,17 @@
-import { Field, InputType } from '@nestjs/graphql';
+import { Field, ID, InputType } from '@nestjs/graphql';
 import { NovelState } from '@prisma/client';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
+  ValidateNested,
 } from 'class-validator';
 
+import { LicenseDraftInput } from '../../license/inputs';
 import { normalizeCategoryNames } from '../utils';
 
 @InputType()
@@ -49,4 +52,23 @@ export class CreateNovelInput {
   @IsNotEmpty({ each: true })
   @Transform(({ value }) => normalizeCategoryNames(value))
   categories?: string[];
+
+  @Field(() => ID, {
+    nullable: true,
+    description:
+      'An existing license. Exclusive with `licenseDraft`. Omit both to get the default license.',
+  })
+  @IsOptional()
+  @IsUUID()
+  licenseId?: string;
+
+  @Field(() => LicenseDraftInput, {
+    nullable: true,
+    description:
+      'A license text to store, or reuse when already stored. Exclusive with `licenseId`.',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LicenseDraftInput)
+  licenseDraft?: LicenseDraftInput;
 }

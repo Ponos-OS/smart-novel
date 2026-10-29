@@ -31,7 +31,6 @@ describe(PrismaNovelRepository.name, () => {
         findMany: vi.fn(),
         createMany: vi.fn(),
       },
-      license: { findFirstOrThrow: vi.fn() },
       $transaction: vi.fn((callback) => callback(prismaService)),
     } as any;
 
@@ -39,11 +38,12 @@ describe(PrismaNovelRepository.name, () => {
   });
 
   describe('createNovel', () => {
-    const defaultLicenseId = '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06';
+    const licenseId = '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06';
 
     const novelRecord = {
       id: '78981754-46c4-4521-9216-b9b27dafeab2',
       ownerId: '260311094522198751',
+      licenseId,
       name: 'The Journey Begins',
       author: 'Jane Doe',
       description: 'A young hero leaves home.',
@@ -51,12 +51,6 @@ describe(PrismaNovelRepository.name, () => {
       coverUrl: null,
       categories: [{ category: { name: 'fantasy' } }],
     };
-
-    beforeEach(() => {
-      vi.mocked(
-        prismaService.license.findFirstOrThrow,
-      ).mockResolvedValue({ id: defaultLicenseId } as any);
-    });
 
     it('should link existing categories and create the missing ones', async () => {
       vi.mocked(prismaService.category.findMany)
@@ -75,6 +69,7 @@ describe(PrismaNovelRepository.name, () => {
 
       const result = await uut.createNovel({
         ownerId: '260311094522198751',
+        licenseId,
         name: 'The Journey Begins',
         author: 'Jane Doe',
         description: 'A young hero leaves home.',
@@ -89,7 +84,7 @@ describe(PrismaNovelRepository.name, () => {
         expect.objectContaining({
           data: {
             ownerId: '260311094522198751',
-            licenseId: defaultLicenseId,
+            licenseId,
             name: 'The Journey Begins',
             author: 'Jane Doe',
             description: 'A young hero leaves home.',
@@ -123,6 +118,7 @@ describe(PrismaNovelRepository.name, () => {
 
       await uut.createNovel({
         ownerId: '260311094522198751',
+        licenseId,
         name: 'The Journey Begins',
         author: 'Jane Doe',
         description: 'A young hero leaves home.',
