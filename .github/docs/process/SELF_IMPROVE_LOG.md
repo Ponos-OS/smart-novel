@@ -61,3 +61,16 @@
 - Nx cache trap: an Nx target whose only input is a file that an earlier target downloads is hashed before the download, so a version bump restored the old generated types. Uncache such targets (the Beatrice codegen target has the same shape and is still cached).
 - `openapi-typescript` refused to install (peer `typescript@^5`, repo on 6); the generator is pinned in the Nx target through `npx` instead. A generated, gitignored file must also be excluded from ESLint, or `nx lint` reports hundreds of formatting errors that never appear in a PR.
 - The AC lists no infra, but `draftLicense` cannot work in `start:dev` until a `fithara` Terraform module exists; `FITHARA_URL` points at a service that is not deployed yet.
+
+## F1 - 2026-10-29
+
+- Left uncommitted on request, for review. Unit tests only (`nx test frontend` 207, lint, tsc); no browser check.
+- The step text said "typed client for the three endpoints"; after the gateway rework it is the backend's three GraphQL operations, so F1 is three documents (codegen makes the hooks) plus an error mapper from the backend's codes to UI states, tested over a mocked `fetch` through the generated fetchers.
+- Auditing the earlier steps against the changed plan found one real gap (a canonical draft other than CC BY 4.0 cannot be saved, see B2) and two steps that can now do more than their ACs (F9, F10), because B5 added the canonical list.
+
+## B2 / F9 / F10 follow-up - 2026-10-29
+
+- Left uncommitted on request, with F1, for review. Changes to committed steps after the plan changed: (B2) a `CANONICAL` claim is now accepted only when the text equals the Fithara registry's text word for word (whitespace aside), and the row takes the registry's short name; any other text must come as FORKED or CUSTOM. (B2/B4) `License.officialUrl` is resolved from the registry, cached for an hour, `null` when the registry cannot be reached. (F9/F10) the license field offers the registry's licenses ("Start from"), saves an unmodified pick as canonical and an edited one as forked, and the novel page links the official text.
+- Backend 700 tests, frontend 214, lint, tsc, schema and codegen pass; `LicenseService` resolving with the global Fithara module was checked in a throwaway Nest context, because unit tests mock every dependency.
+- The B2 e2e case "an unknown text claims to be canonical" now needs Fithara in the cluster, which does not exist yet; it was replaced by one that does not (a canonical claim without its id). Verifying a real canonical claim end to end is blocked on the Fithara Terraform module.
+- Found while auditing: when a plan changes mid-feature, grep the earlier steps for the assumption that changed (here "only the seeded text may be canonical") instead of waiting for the new step to hit it.

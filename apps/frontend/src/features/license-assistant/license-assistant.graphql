@@ -1,0 +1,52 @@
+mutation DraftLicense($input: DraftLicenseInput!) {
+  draftLicense(input: $input) {
+    assistantMessage
+    draft {
+      title
+      text
+      source {
+        type
+        canonicalId
+      }
+    }
+    draftChanged
+    recommendations
+    disclaimers
+    isReadyToFinalize
+    conversation {
+      role
+      content
+    }
+  }
+}
+
+query CanonicalLicenses {
+  canonicalLicenses {
+    id
+    name
+    shortName
+    version
+    category
+    officialUrl
+    summary
+    permissions
+    limitations
+    conditions
+  }
+}
+
+query CanonicalLicense($id: ID!) {
+  canonicalLicense(id: $id) {
+    id
+    name
+    shortName
+    version
+    category
+    officialUrl
+    summary
+    permissions
+    limitations
+    conditions
+    body
+  }
+}
