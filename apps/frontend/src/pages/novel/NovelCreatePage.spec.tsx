@@ -10,6 +10,13 @@ import { showApiError } from '../../utils/notification';
 import { NovelCreatePage } from './NovelCreatePage';
 
 const createNovelMutate = vi.fn();
+const defaultLicense = {
+  id: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
+  name: 'CC BY 4.0',
+  sourceType: 'CANONICAL',
+  canonicalId: 'CC-BY-4.0',
+  text: 'Attribution 4.0 International',
+};
 
 vi.mock('../../generated/graphql', async () => {
   const actual = await vi.importActual<
@@ -18,6 +25,7 @@ vi.mock('../../generated/graphql', async () => {
 
   return {
     ...actual,
+    useDefaultLicenseQuery: () => ({ data: { defaultLicense } }),
     useCreateNovelMutation: () => ({
       mutate: createNovelMutate,
       isPending: false,
@@ -120,6 +128,39 @@ describe('NovelCreatePage', () => {
       }),
     );
     expect(await screen.findByText('Novel page')).toBeTruthy();
+  });
+
+  it('preselects the default license and sends a draft only after the text is edited', () => {
+    // Arrange
+    renderPage();
+    fillRequiredFields();
+
+    // Act
+    fireEvent.change(screen.getByLabelText('License text'), {
+      target: { value: 'Attribution 4.0 International, no resale.' },
+    });
+    fireEvent.change(
+      screen.getByLabelText('Name of your modified license'),
+      { target: { value: 'CC BY 4.0 without resale' } },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Create novel' }),
+    );
+
+    // Assert
+    expect(screen.getByText('CC BY 4.0')).toBeTruthy();
+    expect(createNovelMutate).toHaveBeenCalledExactlyOnceWith(
+      {
+        input: expect.objectContaining({
+          licenseDraft: {
+            title: 'CC BY 4.0 without resale',
+            text: 'Attribution 4.0 International, no resale.',
+            source: { type: 'FORKED', canonicalId: 'CC-BY-4.0' },
+          },
+        }),
+      },
+      expect.anything(),
+    );
   });
 
   it('shows an API error and keeps the entered values when the mutation fails', () => {

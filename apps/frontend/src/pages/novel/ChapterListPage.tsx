@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
 import { Button } from '../../components/Button';
+import { NovelLicenseSection } from '../../features/novel-license/NovelLicenseSection';
 import {
   useDeleteChapterMutation,
   useGetNovelQuery,
@@ -160,6 +161,8 @@ export function ChapterListPage() {
           novelId={novel.id}
         />
       </div>
+
+      <NovelLicenseSection license={novel.license} />
     </>
   );
 }

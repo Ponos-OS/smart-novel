@@ -132,6 +132,7 @@ export function NovelEditPage() {
             state: novel.state,
             categories: novel.category,
           }}
+          license={novel.license}
           submitLabel="Save"
           isSubmitting={updateNovelMutation.isPending}
           onSubmit={handleSubmit}

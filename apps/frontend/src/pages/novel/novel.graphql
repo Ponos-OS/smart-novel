@@ -8,6 +8,13 @@ query GetNovel($id: ID!) {
     coverUrl
     description
     allowedActions
+    license {
+      id
+      name
+      sourceType
+      canonicalId
+      text
+    }
     chaptersConnection(
       first: 100
       orderBy: { field: CHAPTER_NUMBER, direction: ASC }

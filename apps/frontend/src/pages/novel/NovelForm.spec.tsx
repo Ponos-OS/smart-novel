@@ -1,6 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 
-import { NovelState } from '../../generated/graphql';
+import {
+  LicenseSourceType,
+  NovelState,
+} from '../../generated/graphql';
 import { NovelForm } from './NovelForm';
 
 function renderForm(
@@ -166,5 +169,55 @@ describe('NovelForm', () => {
     // Assert
     expect(onCancel).toHaveBeenCalledOnce();
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+});
+
+describe('NovelForm license', () => {
+  const license = {
+    id: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
+    name: 'CC BY 4.0',
+    sourceType: LicenseSourceType.Canonical,
+    canonicalId: 'CC-BY-4.0',
+    text: 'Attribution 4.0 International',
+  };
+
+  it('keeps submit disabled while the edited license has no name', () => {
+    // Arrange
+    renderForm({ license });
+    fireEvent.change(screen.getByPlaceholderText('Novel name'), {
+      target: { value: 'The Lantern Keeper' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Author'), {
+      target: { value: 'Jane Doe' },
+    });
+
+    // Act
+    fireEvent.change(screen.getByLabelText('License text'), {
+      target: { value: 'Attribution 4.0 International, no resale.' },
+    });
+
+    // Assert
+    expect(
+      screen.getByRole('button', { name: 'Create novel' }),
+    ).toBeDisabled();
+  });
+
+  it('sends no license draft when the license text was left alone', () => {
+    // Arrange
+    const { onSubmit } = renderForm({ license });
+    fireEvent.change(screen.getByPlaceholderText('Novel name'), {
+      target: { value: 'The Lantern Keeper' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Author'), {
+      target: { value: 'Jane Doe' },
+    });
+
+    // Act
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Create novel' }),
+    );
+
+    // Assert
+    expect(onSubmit.mock.calls[0][0].licenseDraft).toBeUndefined();
   });
 });

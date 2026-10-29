@@ -1,7 +1,12 @@
 import { useState } from 'react';
 
 import { Button } from '../../components/Button';
-import { NovelState } from '../../generated/graphql';
+import { type LicenseSummary } from '../../features/novel-license/license-notice';
+import { LicenseField } from '../../features/novel-license/LicenseField';
+import {
+  type LicenseDraftInput,
+  NovelState,
+} from '../../generated/graphql';
 
 export interface NovelFormValues {
   name: string;
@@ -9,10 +14,14 @@ export interface NovelFormValues {
   description: string;
   state: NovelState;
   categories: string[];
+  licenseDraft?: LicenseDraftInput;
 }
 
 interface NovelFormProps {
   initialValues?: NovelFormValues;
+  /** @description The license the novel has or will get; the field is hidden until it is known. */
+  license?: LicenseSummary;
+  onDraftWithAssistant?: () => void;
   submitLabel: string;
   isSubmitting: boolean;
   onSubmit: (values: NovelFormValues) => void;
@@ -32,6 +41,8 @@ const INPUT_CLASSES =
 
 export function NovelForm({
   initialValues = EMPTY_VALUES,
+  license,
+  onDraftWithAssistant,
   submitLabel,
   isSubmitting,
   onSubmit,
@@ -47,8 +58,13 @@ export function NovelForm({
     initialValues.categories.join(', '),
   );
 
+  const [licenseDraft, setLicenseDraft] = useState<
+    LicenseDraftInput | undefined
+  >();
+
   const canSubmit =
     !isSubmitting &&
+    (!licenseDraft || licenseDraft.title.length > 0) &&
     name.trim().length > 0 &&
     author.trim().length > 0;
 
@@ -66,6 +82,7 @@ export function NovelForm({
         .split(',')
         .map((category) => category.trim())
         .filter(Boolean),
+      licenseDraft,
     });
   };
 
@@ -152,6 +169,16 @@ export function NovelForm({
           Separate with commas. New categories are created.
         </span>
       </label>
+
+      {license && (
+        <LicenseField
+          key={license.id}
+          license={license}
+          disabled={isSubmitting}
+          onDraftChange={setLicenseDraft}
+          onDraftWithAssistant={onDraftWithAssistant}
+        />
+      )}
 
       <div className="flex justify-end gap-3">
         <Button

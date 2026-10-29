@@ -10,7 +10,11 @@ import {
 } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 
-import { NovelAction, NovelState } from '../../generated/graphql';
+import {
+  LicenseSourceType,
+  NovelAction,
+  NovelState,
+} from '../../generated/graphql';
 import { showApiError } from '../../utils/notification';
 import { NovelEditPage } from './NovelEditPage';
 
@@ -52,6 +56,14 @@ vi.mock('../../utils/notification', () => ({
   showApiError: vi.fn(),
 }));
 
+const ccBy = {
+  id: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
+  name: 'CC BY 4.0',
+  sourceType: LicenseSourceType.Canonical,
+  canonicalId: 'CC-BY-4.0',
+  text: 'Attribution 4.0 International',
+};
+
 function novel(allowedActions: NovelAction[]) {
   return {
     novel: {
@@ -62,6 +74,7 @@ function novel(allowedActions: NovelAction[]) {
       state: NovelState.Ongoing,
       category: ['fantasy', 'adventure'],
       allowedActions,
+      license: ccBy,
     },
   };
 }

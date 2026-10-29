@@ -1,0 +1,9 @@
+query DefaultLicense {
+  defaultLicense {
+    id
+    name
+    sourceType
+    canonicalId
+    text
+  }
+}

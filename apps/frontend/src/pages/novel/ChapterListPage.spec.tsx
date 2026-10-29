@@ -5,6 +5,7 @@ import {
 import { fireEvent, render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 
+import { LicenseSourceType } from '../../generated/graphql';
 import { ChapterListPage } from './ChapterListPage';
 import { useNovelOutletContext } from './NovelLayout';
 
@@ -26,6 +27,13 @@ function renderPage(canEditContent: boolean) {
       author: 'Jane Doe',
       description: 'A lighthouse keeper finds a door in the fog.',
       category: [],
+      license: {
+        id: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
+        name: 'CC BY 4.0',
+        sourceType: LicenseSourceType.Canonical,
+        canonicalId: 'CC-BY-4.0',
+        text: 'Attribution 4.0 International',
+      },
       chaptersConnection: { edges: [], totalCount: 0 },
     } as never,
     canEditContent,

@@ -1,6 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 
-import { useCreateNovelMutation } from '../../generated/graphql';
+import {
+  useCreateNovelMutation,
+  useDefaultLicenseQuery,
+} from '../../generated/graphql';
 import { useCanCreateNovel } from '../../hooks/useCanCreateNovel';
 import { showApiError } from '../../utils/notification';
 import { NovelForm, NovelFormValues } from './NovelForm';
@@ -9,6 +12,10 @@ export function NovelCreatePage() {
   const { canCreate, loading } = useCanCreateNovel();
   const navigate = useNavigate();
   const createNovelMutation = useCreateNovelMutation();
+  const { data: licenseData } = useDefaultLicenseQuery(
+    {},
+    { enabled: canCreate },
+  );
 
   const handleSubmit = (input: NovelFormValues) => {
     createNovelMutation.mutate(
@@ -40,6 +47,7 @@ export function NovelCreatePage() {
       </h1>
       <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         <NovelForm
+          license={licenseData?.defaultLicense}
           submitLabel="Create novel"
           isSubmitting={createNovelMutation.isPending}
           onSubmit={handleSubmit}
