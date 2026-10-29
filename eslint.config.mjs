@@ -7,6 +7,20 @@ import perfectionist from 'eslint-plugin-perfectionist';
 import prettierRecommended from 'eslint-plugin-prettier/recommended';
 import unusedImports from 'eslint-plugin-unused-imports';
 
+/**
+ * @description What each frontend feature offers to the others; anything else in a feature is internal. There is no `index.ts` per feature (it hurts Vite's dev server), so the public surface is named here.
+ */
+const featurePublicFiles = {
+  'admin-licenses': ['AdminDefaultLicensePage'],
+  'license-assistant': ['LicenseDraftingAssistant'],
+  'novel-license': [
+    'LicenseField',
+    'license-notice',
+    'OfficialLicenseLink',
+  ],
+  'platform-terms': ['PlatformTermsGate', 'PlatformTermsTab'],
+};
+
 export default [
   ...nx.configs['flat/base'],
   ...nx.configs['flat/typescript'],
@@ -137,6 +151,25 @@ export default [
       ],
     },
   },
+  ...Object.keys(featurePublicFiles).map((feature) => ({
+    files: [`apps/frontend/src/features/${feature}/**/*.{ts,tsx}`],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: Object.entries(featurePublicFiles)
+            .filter(([other]) => other !== feature)
+            .map(([other, publicFiles]) => ({
+              group: [
+                `**/${other}/**`,
+                ...publicFiles.map((file) => `!**/${other}/${file}`),
+              ],
+              message: `A feature does not import another feature's internals: ${other} offers ${publicFiles.join(', ')}.`,
+            })),
+        },
+      ],
+    },
+  })),
   {
     files: ['**/*.config.ts', 'apps/frontend-e2e/src/**/*.ts'],
     rules: {

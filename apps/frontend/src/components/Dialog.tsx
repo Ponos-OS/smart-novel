@@ -13,6 +13,8 @@ interface DialogProps {
   onClose: () => void;
   /** @description The text of the Close button, for a language other than English. */
   closeLabel?: string;
+  /** @description For content that needs the room, such as two panes side by side. */
+  isWide?: boolean;
   children: ReactNode;
 }
 
@@ -26,6 +28,7 @@ export function Dialog({
   title,
   onClose,
   closeLabel = 'Close',
+  isWide = false,
   children,
 }: DialogProps) {
   const titleId = useId();
@@ -86,7 +89,7 @@ export function Dialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="flex max-h-full w-full max-w-2xl flex-col rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800"
+        className={`flex max-h-full w-full ${isWide ? 'max-w-6xl' : 'max-w-2xl'} flex-col rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800`}
       >
         <div
           ref={headerRef}

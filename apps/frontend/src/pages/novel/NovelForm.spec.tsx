@@ -1,10 +1,36 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import {
   LicenseSourceType,
   NovelState,
 } from '../../generated/graphql';
 import { NovelForm } from './NovelForm';
+
+const finalizedLicense = {
+  id: '8d2f6a3c-5e41-4b07-a1c9-7e3b0f9d2a64',
+  name: 'CC BY 4.0 without resale',
+};
+
+vi.mock(
+  '../../features/license-assistant/LicenseDraftingAssistant',
+  () => ({
+    LicenseDraftingAssistant: ({
+      baseLicense,
+      onFinalized,
+    }: {
+      baseLicense: { id: string; name: string };
+      onFinalized: (license: typeof finalizedLicense) => void;
+    }) => (
+      <button
+        type="button"
+        onClick={() => onFinalized(finalizedLicense)}
+      >
+        Finalize from {baseLicense.name}
+      </button>
+    ),
+  }),
+);
 
 vi.mock('../../generated/graphql', async () => ({
   ...(await vi.importActual('../../generated/graphql')),
@@ -227,5 +253,93 @@ describe('NovelForm license', () => {
 
     // Assert
     expect(onSubmit.mock.calls[0][0].licenseDraft).toBeUndefined();
+  });
+
+  describe('license assistant', () => {
+    async function finalizeWithAssistant(
+      user: ReturnType<typeof userEvent.setup>,
+    ) {
+      await user.click(
+        screen.getByRole('button', { name: 'Draft with assistant' }),
+      );
+      await user.click(
+        await screen.findByRole('button', {
+          name: `Finalize from ${license.name}`,
+        }),
+      );
+    }
+
+    function fillRequiredFields() {
+      fireEvent.change(screen.getByPlaceholderText('Novel name'), {
+        target: { value: 'The Lantern Keeper' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('Author'), {
+        target: { value: 'Jane Doe' },
+      });
+    }
+
+    it('opens the assistant on the license of the novel, in a dialog', async () => {
+      // Arrange
+      const user = userEvent.setup();
+      renderForm({ license });
+
+      // Act
+      await user.click(
+        screen.getByRole('button', { name: 'Draft with assistant' }),
+      );
+
+      // Assert
+      expect(
+        await screen.findByRole('dialog', {
+          name: 'Draft a license',
+        }),
+      ).toBeVisible();
+      expect(
+        await screen.findByRole('button', {
+          name: `Finalize from ${license.name}`,
+        }),
+      ).toBeVisible();
+    });
+
+    it('submits the finalized license by id, without a license draft', async () => {
+      // Arrange
+      const user = userEvent.setup();
+      const { onSubmit } = renderForm({ license });
+      fillRequiredFields();
+
+      // Act
+      await finalizeWithAssistant(user);
+      await user.click(
+        screen.getByRole('button', { name: 'Create novel' }),
+      );
+
+      // Assert
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.getByText(finalizedLicense.name)).toBeVisible();
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ licenseId: finalizedLicense.id }),
+      );
+      expect(onSubmit.mock.calls[0][0].licenseDraft).toBeUndefined();
+    });
+
+    it('goes back to the license field when the author wants another license', async () => {
+      // Arrange
+      const user = userEvent.setup();
+      const { onSubmit } = renderForm({ license });
+      fillRequiredFields();
+      await finalizeWithAssistant(user);
+
+      // Act
+      await user.click(
+        screen.getByRole('button', { name: 'Use another license' }),
+      );
+      await user.click(
+        screen.getByRole('button', { name: 'Create novel' }),
+      );
+
+      // Assert
+      expect(screen.getByLabelText('Start from')).toBeVisible();
+      expect(onSubmit.mock.calls[0][0].licenseId).toBeUndefined();
+    });
   });
 });

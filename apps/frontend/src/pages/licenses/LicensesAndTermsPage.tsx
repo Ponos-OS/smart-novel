@@ -1,5 +1,6 @@
 import { isWriterOrHigher } from '@smart-novel/shared';
 import { type KeyboardEvent, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import { DefaultLicenseTab } from '../../features/license-assistant/DefaultLicenseTab';
 import { PlatformTermsTab } from '../../features/platform-terms/PlatformTermsTab';
@@ -49,6 +50,14 @@ export function LicensesAndTermsPage() {
       <h1 className="mb-6 text-3xl font-bold text-gray-900 dark:text-white">
         Licenses and terms
       </h1>
+      <p className="mb-4 text-sm">
+        <Link
+          to="/licenses/draft"
+          className="font-medium text-blue-600 dark:text-blue-400"
+        >
+          Draft a license with the assistant
+        </Link>
+      </p>
       <div
         role="tablist"
         aria-label="Licenses and terms"

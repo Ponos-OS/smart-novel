@@ -134,3 +134,11 @@
 - A11y: axe-core in jsdom on the start panel, a conversation, and the open dialog (colour contrast, and the page-level rules, are switched off because jsdom cannot compute them; the Tailwind pairs were chosen to be at least 4.5:1 by reasoning, not measured). Fixes: Markdown headings of a license are demoted three levels so the pane keeps one outline; only a failed save is a live region (saving and saved ticks would interrupt a screen reader); focus moves to the message box when a draft opens and to the start heading when it is left, but not on first mount.
 - `DefaultLicenseTab` lives in the same folder but is a Licenses-page tab, so it is excluded from the string lint rule; translating it is not part of the assistant.
 - Moving a status line out of `role="status"` broke four specs that located it by role; query by text and assert the role separately.
+
+## F7 - 2026-10-29
+
+- Left uncommitted on request, for review. Frontend 356 tests, lint (baseline 2 warnings), tsc, build; no browser check and no Cypress.
+- Form: assistant in a wide lazy `Dialog` over the form (a route would lose the form's state); finalizing swaps the license field for the chosen license and submits `licenseId`. The submit guard also had to ignore the stale inline-license title once the field is gone, or an unnamed modified license would have blocked the submit invisibly.
+- The AC asked for autosave on the form's own editor; not done on purpose (see REQUIREMENTS F7 note). The route `/licenses/draft` exists as asked, linked from the Licenses page so it is reachable.
+- Boundary rule: D2 asked for an `index.ts` per feature, which AGENTS forbids in the frontend. The public files per feature are a map in the ESLint config. `no-restricted-imports` patterns with negation work on relative imports, checked with a throwaway file and then with `ESLint.lintText` in a spec; that spec needed the default jsdom environment because `vitest.setup.ts` touches `Range`.
+- `DefaultLicenseTab` sits in `features/license-assistant` but is the Licenses page's tab; moving it was out of scope.

@@ -83,6 +83,21 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: '/licenses/draft',
+        lazy: async () => {
+          const { LicenseAssistantPage } =
+            await import('../pages/licenses/LicenseAssistantPage');
+
+          return {
+            element: (
+              <Layout>
+                <LicenseAssistantPage />
+              </Layout>
+            ),
+          };
+        },
+      },
+      {
         path: '/settings',
         element: (
           <Layout>

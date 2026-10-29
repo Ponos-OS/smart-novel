@@ -70,6 +70,18 @@ describe(LicensesAndTermsPage.name, () => {
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
   });
 
+  it('links to the license assistant', () => {
+    // Act
+    renderPage();
+
+    // Assert
+    expect(
+      screen.getByRole('link', {
+        name: 'Draft a license with the assistant',
+      }),
+    ).toHaveAttribute('href', '/licenses/draft');
+  });
+
   it('opens on the platform terms with the date they were accepted', () => {
     // Act
     renderPage();

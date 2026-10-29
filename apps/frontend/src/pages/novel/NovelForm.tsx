@@ -1,12 +1,19 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 
 import { Button } from '../../components/Button';
+import { Dialog } from '../../components/Dialog';
 import { type LicenseSummary } from '../../features/novel-license/license-notice';
 import { LicenseField } from '../../features/novel-license/LicenseField';
 import {
   type LicenseDraftInput,
   NovelState,
 } from '../../generated/graphql';
+
+const LicenseDraftingAssistant = lazy(async () => ({
+  default: (
+    await import('../../features/license-assistant/LicenseDraftingAssistant')
+  ).LicenseDraftingAssistant,
+}));
 
 export interface NovelFormValues {
   name: string;
@@ -15,13 +22,14 @@ export interface NovelFormValues {
   state: NovelState;
   categories: string[];
   licenseDraft?: LicenseDraftInput;
+  /** @description A license the author finalized with the assistant; exclusive with `licenseDraft`. */
+  licenseId?: string;
 }
 
 interface NovelFormProps {
   initialValues?: NovelFormValues;
   /** @description The license the novel has or will get; the field is hidden until it is known. */
   license?: LicenseSummary;
-  onDraftWithAssistant?: () => void;
   submitLabel: string;
   isSubmitting: boolean;
   onSubmit: (values: NovelFormValues) => void;
@@ -42,7 +50,6 @@ const INPUT_CLASSES =
 export function NovelForm({
   initialValues = EMPTY_VALUES,
   license,
-  onDraftWithAssistant,
   submitLabel,
   isSubmitting,
   onSubmit,
@@ -61,10 +68,17 @@ export function NovelForm({
   const [licenseDraft, setLicenseDraft] = useState<
     LicenseDraftInput | undefined
   >();
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [assistantLicense, setAssistantLicense] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const canSubmit =
     !isSubmitting &&
-    (!licenseDraft || licenseDraft.title.length > 0) &&
+    (!!assistantLicense ||
+      !licenseDraft ||
+      licenseDraft.title.length > 0) &&
     name.trim().length > 0 &&
     author.trim().length > 0;
 
@@ -82,7 +96,9 @@ export function NovelForm({
         .split(',')
         .map((category) => category.trim())
         .filter(Boolean),
-      licenseDraft,
+      ...(assistantLicense
+        ? { licenseId: assistantLicense.id }
+        : { licenseDraft }),
     });
   };
 
@@ -170,14 +186,57 @@ export function NovelForm({
         </span>
       </label>
 
-      {license && (
+      {license && assistantLicense && (
+        <div className="space-y-2">
+          <p className="text-sm text-gray-900 dark:text-white">
+            License: <strong>{assistantLicense.name}</strong> (drafted
+            with the assistant)
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            color="gray"
+            disabled={isSubmitting}
+            onClick={() => setAssistantLicense(null)}
+          >
+            Use another license
+          </Button>
+        </div>
+      )}
+      {license && !assistantLicense && (
         <LicenseField
           key={license.id}
           license={license}
           disabled={isSubmitting}
           onDraftChange={setLicenseDraft}
-          onDraftWithAssistant={onDraftWithAssistant}
+          onDraftWithAssistant={() => setIsAssistantOpen(true)}
         />
+      )}
+      {license && isAssistantOpen && (
+        <Dialog
+          title="Draft a license"
+          isWide
+          onClose={() => setIsAssistantOpen(false)}
+        >
+          <Suspense
+            fallback={
+              <p role="status" className="text-sm">
+                Loading the assistant...
+              </p>
+            }
+          >
+            <LicenseDraftingAssistant
+              baseLicense={{ id: license.id, name: license.name }}
+              onFinalized={(finalized) => {
+                setAssistantLicense({
+                  id: finalized.id,
+                  name: finalized.name,
+                });
+                setIsAssistantOpen(false);
+              }}
+            />
+          </Suspense>
+        </Dialog>
       )}
 
       <div className="flex justify-end gap-3">
