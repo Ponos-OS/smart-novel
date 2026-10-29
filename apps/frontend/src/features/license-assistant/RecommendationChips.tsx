@@ -1,5 +1,6 @@
 import { Button } from '../../components/Button';
 import { useCanonicalLicensesQuery } from '../../generated/graphql';
+import { useMessages } from './i18n';
 
 interface RecommendationChipsProps {
   /** @description Canonical license ids the assistant suggests. */
@@ -14,6 +15,7 @@ export function RecommendationChips({
   onPrefill,
   onViewLicense,
 }: RecommendationChipsProps) {
+  const t = useMessages();
   const { data } = useCanonicalLicensesQuery(
     {},
     { enabled: recommendations.length > 0 },
@@ -28,9 +30,9 @@ export function RecommendationChips({
       ?.shortName ?? id;
 
   return (
-    <section aria-label="Suggested licenses" className="mt-4">
+    <section aria-label={t('recommendations.title')} className="mt-4">
       <h3 className="text-sm font-bold text-gray-900 dark:text-white">
-        Suggested licenses
+        {t('recommendations.title')}
       </h3>
       <ul className="mt-2 flex flex-wrap gap-2">
         {recommendations.map((id) => (
@@ -41,11 +43,11 @@ export function RecommendationChips({
               color="blue"
               onClick={() =>
                 onPrefill(
-                  `I would like to use ${nameOf(id)} for my novel.`,
+                  t('recommendations.prefill', { name: nameOf(id) }),
                 )
               }
             >
-              Use {nameOf(id)}
+              {t('recommendations.use', { name: nameOf(id) })}
             </Button>
             <Button
               type="button"
@@ -53,7 +55,7 @@ export function RecommendationChips({
               color="green"
               onClick={() => onViewLicense(id)}
             >
-              Read {nameOf(id)}
+              {t('recommendations.read', { name: nameOf(id) })}
             </Button>
           </li>
         ))}

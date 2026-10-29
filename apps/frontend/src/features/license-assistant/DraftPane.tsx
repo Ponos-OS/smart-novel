@@ -2,11 +2,11 @@ import type { LicenseDraftInput } from '../../generated/graphql';
 import type { AssistantAnswerDetails } from './use-license-assistant';
 import type { DraftSyncStatus } from './use-license-draft-autosave';
 
-import { LICENSE_DISCLAIMER } from '../novel-license/license-notice';
 import { DisclaimerList } from './DisclaimerList';
 import { DraftBody } from './DraftBody';
 import { DraftSourceBadge } from './DraftSourceBadge';
 import { FinalizeButton } from './FinalizeButton';
+import { useMessages } from './i18n';
 import { RecommendationChips } from './RecommendationChips';
 
 interface DraftPaneProps {
@@ -19,13 +19,6 @@ interface DraftPaneProps {
   isFinalizing: boolean;
   syncStatus: DraftSyncStatus;
 }
-
-const SYNC_TEXT: Record<DraftSyncStatus, string> = {
-  saved: 'All changes saved',
-  saving: 'Saving...',
-  unsaved: 'Changes not saved yet, saving soon',
-  failed: 'Not saved. Trying again.',
-};
 
 /**
  * @description The draft stays on screen while the next answer is on its way, and is not rebuilt when the answer left it alone.
@@ -40,26 +33,29 @@ export function DraftPane({
   onViewLicense,
   onFinalize,
 }: DraftPaneProps) {
+  const t = useMessages();
   const hasText = !!draft?.text.trim();
+  const hasFailed = syncStatus === 'failed';
 
   return (
     <section
-      aria-label="Draft license"
+      aria-label={t('draft.title')}
       aria-busy={isPending}
       className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
     >
       <h2 className="mb-1 text-lg font-bold text-gray-900 dark:text-white">
-        Draft license
+        {t('draft.title')}
       </h2>
+      {/* Only a failure is announced: "saving" and "saved" would interrupt a screen reader at every tick. */}
       <p
-        role="status"
+        role={hasFailed ? 'status' : undefined}
         className={`mb-3 text-xs ${
-          syncStatus === 'failed'
+          hasFailed
             ? 'font-semibold text-red-600 dark:text-red-400'
             : 'text-gray-600 dark:text-gray-400'
         }`}
       >
-        {SYNC_TEXT[syncStatus]}
+        {t(`sync.${syncStatus}`)}
       </p>
       {draft && hasText ? (
         <>
@@ -71,8 +67,7 @@ export function DraftPane({
         </>
       ) : (
         <p className="text-sm text-gray-700 dark:text-gray-300">
-          No draft yet. Tell the assistant what you want, and it will
-          propose one here.
+          {t('draft.empty')}
         </p>
       )}
       {details && (
@@ -80,9 +75,11 @@ export function DraftPane({
           role="status"
           className="mt-3 text-xs text-gray-600 dark:text-gray-400"
         >
-          {details.draftChanged
-            ? 'The assistant updated the draft.'
-            : 'The draft did not change in this answer.'}
+          {t(
+            details.draftChanged
+              ? 'draft.updated'
+              : 'draft.unchanged',
+          )}
         </p>
       )}
       {details && (
@@ -102,7 +99,7 @@ export function DraftPane({
         onFinalize={onFinalize}
       />
       <p className="mt-4 border-t border-gray-200 pt-3 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-300">
-        {LICENSE_DISCLAIMER}
+        {t('statement.notLegalAdvice')}
       </p>
     </section>
   );

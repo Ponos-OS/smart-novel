@@ -11,68 +11,28 @@ import {
 import userEvent from '@testing-library/user-event';
 
 import { LicenseDraftingAssistant } from './LicenseDraftingAssistant';
+import {
+  answer,
+  answeredDraft,
+  defaultHandlers,
+  draftId,
+  draftRow,
+  type Handlers,
+  installFetch,
+  requestsFor,
+  storageKey,
+} from './test-support';
 
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ user: { sub: '230104087265432001' } }),
 }));
 
-const userId = '230104087265432001';
-const storageKey = `license-assistant:v1:${userId}`;
-const draftId = '5c1f4d0e-3b6a-4a57-9d3e-0b7a8f2c9e41';
-
-function draftRow(overrides: Record<string, unknown> = {}) {
-  return {
-    id: draftId,
-    title: '',
-    text: '',
-    updatedAt: '2026-10-29T09:30:00.000Z',
-    source: { type: 'CUSTOM', canonicalId: null },
-    ...overrides,
-  };
-}
-
-const answeredDraft = {
-  title: 'CC BY 4.0 without resale',
-  text: 'You may share and adapt this novel. You may not sell it.',
-  source: { type: 'FORKED', canonicalId: 'CC-BY-4.0' },
-};
-
-function answer(overrides: Record<string, unknown> = {}) {
-  return {
-    assistantMessage: 'I forbade resale in section 3.',
-    draft: answeredDraft,
-    draftChanged: true,
-    recommendations: [],
-    disclaimers: ['This is not legal advice.'],
-    isReadyToFinalize: false,
-    conversation: [
-      { role: 'USER', content: 'Forbid resale.' },
-      {
-        role: 'ASSISTANT',
-        content: 'I forbade resale in section 3.',
-      },
-    ],
-    ...overrides,
-  };
-}
-
 describe(LicenseDraftingAssistant.name, () => {
   const fetchMock = vi.fn();
-  let handlers: Record<
-    string,
-    (variables: Record<string, any>) => unknown
-  >;
+  let handlers: Handlers;
 
-  function calls(operation: string) {
-    return fetchMock.mock.calls
-      .map(([, init]) => JSON.parse(init.body))
-      .filter(
-        ({ query }) =>
-          query.includes(`${operation}(`) ||
-          query.includes(`${operation} `),
-      )
-      .map(({ variables }) => variables);
-  }
+  const calls = (operation: string) =>
+    requestsFor(fetchMock, operation);
 
   function renderAssistant(
     props: Parameters<typeof LicenseDraftingAssistant>[0] = {},
@@ -104,53 +64,8 @@ describe(LicenseDraftingAssistant.name, () => {
     vi.stubEnv('VITE_SERVICE_URL', 'http://localhost:3000');
     vi.stubEnv('VITE_LICENSE_DRAFT_AUTOSAVE_SECONDS', '0.05');
     vi.stubGlobal('fetch', fetchMock);
-    handlers = {
-      LicenseDrafts: () => ({
-        data: { licenseDraftsConnection: { edges: [] } },
-      }),
-      CreateLicenseDraft: () => ({
-        data: { createLicenseDraft: draftRow() },
-      }),
-      SaveLicenseDraft: (variables) => ({
-        data: {
-          saveLicenseDraft: draftRow({
-            ...variables.input,
-          }),
-        },
-      }),
-      DraftLicense: () => ({ data: { draftLicense: answer() } }),
-      CanonicalLicenses: () => ({
-        data: {
-          canonicalLicenses: [
-            {
-              id: 'CC-BY-4.0',
-              name: 'Creative Commons Attribution 4.0 International',
-              shortName: 'CC BY 4.0',
-              version: '4.0',
-              category: 'creative_commons',
-              officialUrl:
-                'https://creativecommons.org/licenses/by/4.0/legalcode',
-              summary: 'Share and adapt with credit.',
-              permissions: [],
-              limitations: [],
-              conditions: [],
-            },
-          ],
-        },
-      }),
-    };
-    fetchMock.mockImplementation(async (_url, init) => {
-      const { query, variables } = JSON.parse(init.body);
-      const name =
-        /(?:query|mutation)\s+(\w+)/.exec(query)?.[1] ?? '';
-      const handler = handlers[name];
-
-      if (!handler) {
-        throw new Error(`Nothing serves ${name}`);
-      }
-
-      return { json: async () => handler(variables) };
-    });
+    handlers = defaultHandlers();
+    installFetch(fetchMock, () => handlers);
   });
 
   afterEach(() => {
@@ -416,9 +331,7 @@ describe(LicenseDraftingAssistant.name, () => {
         source: answeredDraft.source,
       });
       await waitFor(() =>
-        expect(
-          screen.getAllByRole('status').map((s) => s.textContent),
-        ).toContain('All changes saved'),
+        expect(screen.getByText('All changes saved')).toBeVisible(),
       );
       await new Promise((resolve) => setTimeout(resolve, 200));
       expect(calls('SaveLicenseDraft')).toHaveLength(1);

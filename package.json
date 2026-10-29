@@ -113,6 +113,7 @@
     "@vitest/eslint-plugin": "^1.6.9",
     "@vitest/ui": "^4.0.18",
     "autoprefixer": "^10.4.24",
+    "axe-core": "4.11.2",
     "cypress": "^15.17.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",

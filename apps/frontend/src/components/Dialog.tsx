@@ -11,6 +11,8 @@ import { Button } from './Button';
 interface DialogProps {
   title: string;
   onClose: () => void;
+  /** @description The text of the Close button, for a language other than English. */
+  closeLabel?: string;
   children: ReactNode;
 }
 
@@ -20,7 +22,12 @@ const FOCUSABLE_SELECTOR =
 /**
  * @description A modal the author can leave: Escape, the Close button or a click outside close it, Tab stays inside it, and focus goes back to what opened it.
  */
-export function Dialog({ title, onClose, children }: DialogProps) {
+export function Dialog({
+  title,
+  onClose,
+  closeLabel = 'Close',
+  children,
+}: DialogProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -97,7 +104,7 @@ export function Dialog({ title, onClose, children }: DialogProps) {
             color="gray"
             onClick={onClose}
           >
-            Close
+            {closeLabel}
           </Button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">

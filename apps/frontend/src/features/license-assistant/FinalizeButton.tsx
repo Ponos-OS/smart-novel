@@ -1,4 +1,5 @@
 import { Button } from '../../components/Button';
+import { useMessages } from './i18n';
 
 interface FinalizeButtonProps {
   /** @description There is a draft with a text and a name to finalize. */
@@ -15,6 +16,8 @@ export function FinalizeButton({
   isReadyToFinalize,
   onFinalize,
 }: FinalizeButtonProps) {
+  const t = useMessages();
+
   return (
     <div className="mt-4 flex flex-wrap items-center gap-3">
       <Button
@@ -24,12 +27,11 @@ export function FinalizeButton({
         disabled={!canFinalize || isFinalizing}
         onClick={onFinalize}
       >
-        {isFinalizing ? 'Finalizing...' : 'Finalize this license'}
+        {t(isFinalizing ? 'finalize.busy' : 'finalize.button')}
       </Button>
       {isReadyToFinalize && (
         <p className="text-sm text-gray-700 dark:text-gray-300">
-          The assistant thinks this draft is ready. It is your
-          decision.
+          {t('finalize.ready')}
         </p>
       )}
     </div>

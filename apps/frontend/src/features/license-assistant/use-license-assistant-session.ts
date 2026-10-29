@@ -14,6 +14,7 @@ import {
 } from '../../generated/graphql';
 import { useAuth } from '../../hooks/useAuth';
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
+import { type Translate, useMessages } from './i18n';
 import { clearSession, saveSession } from './session-storage';
 import { useLicenseAssistant } from './use-license-assistant';
 import { useLicenseDraftAutosave } from './use-license-draft-autosave';
@@ -44,10 +45,10 @@ export function toDraftInput(
   };
 }
 
-function describe(error: unknown): string {
+function describe(error: unknown, t: Translate): string {
   return error instanceof GraphqlRequestError && error.message
     ? error.message
-    : 'Something went wrong. Try again later.';
+    : t('session.generic');
 }
 
 /**
@@ -57,6 +58,7 @@ export function useLicenseAssistantSession({
   initial,
   onFinalized,
 }: Options) {
+  const t = useMessages();
   const { user } = useAuth();
   const userId = user?.sub ?? '';
   const queryClient = useQueryClient();
@@ -126,7 +128,7 @@ export function useLicenseAssistantSession({
         {
           onSuccess: ({ createLicenseDraft }) =>
             begin(createLicenseDraft),
-          onError: (failure) => setError(describe(failure)),
+          onError: (failure) => setError(describe(failure, t)),
         },
       );
     },
@@ -139,7 +141,7 @@ export function useLicenseAssistantSession({
         { id },
         {
           onSuccess: () => void refreshDrafts(),
-          onError: (failure) => setError(describe(failure)),
+          onError: (failure) => setError(describe(failure, t)),
         },
       ),
 
@@ -149,18 +151,14 @@ export function useLicenseAssistantSession({
         if (saved) {
           leave();
         } else {
-          setError(
-            'Your latest changes could not be saved. Try again in a moment.',
-          );
+          setError(t('session.leaveFailed'));
         }
       }),
 
     finalize: () =>
       void autosave.flush().then((saved) => {
         if (!saved || !draftId) {
-          setError(
-            'Your latest changes could not be saved, so the draft was not finalized. Try again in a moment.',
-          );
+          setError(t('session.finalizeFailed'));
           return;
         }
 
@@ -171,7 +169,7 @@ export function useLicenseAssistantSession({
               leave();
               onFinalized?.(finalizeLicenseDraft);
             },
-            onError: (failure) => setError(describe(failure)),
+            onError: (failure) => setError(describe(failure, t)),
           },
         );
       }),

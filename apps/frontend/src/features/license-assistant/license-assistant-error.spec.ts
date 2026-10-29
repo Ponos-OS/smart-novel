@@ -24,7 +24,7 @@ describe(toLicenseAssistantError.name, () => {
 
       // Assert
       expect(result).toMatchObject({ kind, retryable });
-      expect(result.message).not.toBe('upstream detail');
+      expect(result.messageKey).toStartWith('error.');
     },
   );
 

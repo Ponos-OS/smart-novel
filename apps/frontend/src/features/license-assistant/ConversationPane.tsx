@@ -4,6 +4,7 @@ import type { LicenseAssistantError } from './license-assistant-error';
 import type { ConversationMessage } from './use-license-assistant';
 
 import { Composer } from './Composer';
+import { useMessages } from './i18n';
 import { MessageList } from './MessageList';
 
 interface ConversationPaneProps {
@@ -27,14 +28,16 @@ export function ConversationPane({
   error,
   onSend,
 }: ConversationPaneProps) {
+  const t = useMessages();
+
   return (
     <section
-      aria-label="Conversation"
+      aria-label={t('conversation.title')}
       aria-busy={isPending}
       className="flex min-h-[24rem] flex-col rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
     >
       <h2 className="mb-3 text-lg font-bold text-gray-900 dark:text-white">
-        Conversation
+        {t('conversation.title')}
       </h2>
       <MessageList
         messages={messages}
@@ -45,8 +48,12 @@ export function ConversationPane({
           role="alert"
           className="mt-3 text-sm text-red-600 dark:text-red-400"
         >
-          {error.message}
-          {error.requestId && ` (reference: ${error.requestId})`}
+          {error.requestId
+            ? t('error.reference', {
+                message: t(error.messageKey),
+                requestId: error.requestId,
+              })
+            : t(error.messageKey)}
         </p>
       )}
       <Composer

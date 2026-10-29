@@ -7,6 +7,8 @@ import {
   PLATFORM_TERMS_NOT_ACCEPTED,
 } from '@smart-novel/shared';
 
+import type { MessageKey } from './messages';
+
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 
 export type LicenseAssistantErrorKind =
@@ -20,7 +22,8 @@ export type LicenseAssistantErrorKind =
 
 export interface LicenseAssistantError {
   kind: LicenseAssistantErrorKind;
-  message: string;
+  /** @description What to tell the author; the component translates it. */
+  messageKey: MessageKey;
   /** @description Fithara's correlation id, to quote to support. */
   requestId?: string;
   /** @description Only a retry can help; a request that was invalid or refused stays that way. */
@@ -29,58 +32,53 @@ export interface LicenseAssistantError {
 
 const BY_CODE: Record<
   string,
-  Pick<LicenseAssistantError, 'kind' | 'message' | 'retryable'>
+  Pick<LicenseAssistantError, 'kind' | 'messageKey' | 'retryable'>
 > = {
   [PLATFORM_TERMS_NOT_ACCEPTED]: {
     kind: 'terms-not-accepted',
-    message: 'Accept the platform terms to use the assistant.',
+    messageKey: 'error.termsNotAccepted',
     retryable: false,
   },
   [LICENSE_ASSISTANT_RATE_LIMITED]: {
     kind: 'rate-limited',
-    message:
-      'You sent too many messages to the assistant. Try again in a while.',
+    messageKey: 'error.rateLimited',
     retryable: true,
   },
   [LICENSE_ASSISTANT_UNAVAILABLE]: {
     kind: 'unavailable',
-    message:
-      'The assistant is not available right now. Your conversation and draft are kept; try again later.',
+    messageKey: 'error.unavailable',
     retryable: true,
   },
   [LICENSE_ASSISTANT_INVALID_REQUEST]: {
     kind: 'invalid-request',
-    message:
-      'The assistant could not take that message. Shorten it, or the draft, and try again.',
+    messageKey: 'error.invalidRequest',
     retryable: false,
   },
   BAD_REQUEST: {
     kind: 'invalid-request',
-    message:
-      'The assistant could not take that message. Shorten it, or the draft, and try again.',
+    messageKey: 'error.invalidRequest',
     retryable: false,
   },
   [CANONICAL_LICENSE_NOT_FOUND]: {
     kind: 'license-not-found',
-    message: 'That license is not in the list of canonical licenses.',
+    messageKey: 'error.licenseNotFound',
     retryable: false,
   },
   [CANONICAL_LICENSE_RETIRED]: {
     kind: 'license-retired',
-    message:
-      'That license is no longer offered for new drafts. Pick another one.',
+    messageKey: 'error.licenseRetired',
     retryable: false,
   },
 };
 
 const UNKNOWN: LicenseAssistantError = {
   kind: 'unknown',
-  message: 'Something went wrong. Try again later.',
+  messageKey: 'error.unknown',
   retryable: true,
 };
 
 /**
- * @description Maps what the backend answers to a state the assistant UI can render. Canonical ids and codes are language-independent; the messages are plain strings for now.
+ * @description Maps what the backend answers to a state the assistant UI can render. Canonical ids and codes are language-independent; the sentence is a key into the messages, so it is shown in the language of the author.
  */
 export function toLicenseAssistantError(
   error: unknown,

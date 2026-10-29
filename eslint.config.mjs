@@ -114,6 +114,30 @@ export default [
     },
   },
   {
+    files: ['apps/frontend/src/features/license-assistant/**/*.tsx'],
+    ignores: [
+      '**/*.spec.tsx',
+      '**/i18n.tsx',
+      '**/DefaultLicenseTab.tsx',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'JSXText[value=/[A-Za-z]/]',
+          message:
+            'Put the text in messages.ts and render it with t(), so it can be translated.',
+        },
+        {
+          selector:
+            'JSXAttribute[name.name=/^(aria-label|aria-description|placeholder|title|alt)$/] > Literal',
+          message:
+            'Put the text in messages.ts and render it with t(), so it can be translated.',
+        },
+      ],
+    },
+  },
+  {
     files: ['**/*.config.ts', 'apps/frontend-e2e/src/**/*.ts'],
     rules: {
       '@typescript-eslint/no-namespace': 'off',

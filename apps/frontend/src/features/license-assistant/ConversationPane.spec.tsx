@@ -82,7 +82,7 @@ describe(ConversationPane.name, () => {
     renderPane({
       error: {
         kind: 'unavailable',
-        message: 'The assistant is not available right now.',
+        messageKey: 'error.unavailable',
         requestId: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
         retryable: true,
       },
@@ -90,7 +90,7 @@ describe(ConversationPane.name, () => {
 
     // Assert
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'The assistant is not available right now. (reference: f47ac10b-58cc-4372-a567-0e02b2c3d479)',
+      'The assistant is not available right now. Your conversation and draft are kept; try again later. (reference: f47ac10b-58cc-4372-a567-0e02b2c3d479)',
     );
   });
 

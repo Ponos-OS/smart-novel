@@ -5,6 +5,7 @@ import { useLicenseDraftQuery } from '../../generated/graphql';
 import { useAuth } from '../../hooks/useAuth';
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 import { AssistantWorkspace } from './AssistantWorkspace';
+import { useMessages } from './i18n';
 import { loadSession } from './session-storage';
 import {
   type FinalizedLicense,
@@ -26,6 +27,7 @@ export function LicenseDraftingAssistant({
   baseLicense,
   onFinalized,
 }: LicenseDraftingAssistantProps) {
+  const t = useMessages();
   const { user } = useAuth();
   const [stored] = useState(() => loadSession(user?.sub ?? ''));
   const restored = useLicenseDraftQuery(
@@ -39,7 +41,7 @@ export function LicenseDraftingAssistant({
         role="status"
         className="text-sm text-gray-700 dark:text-gray-300"
       >
-        Loading your draft...
+        {t('restore.loading')}
       </p>
     );
   }
@@ -54,14 +56,14 @@ export function LicenseDraftingAssistant({
         role="alert"
         className="space-y-2 text-sm text-red-600 dark:text-red-400"
       >
-        <p>Your draft could not be loaded.</p>
+        <p>{t('restore.failed')}</p>
         <Button
           type="button"
           variant="outline"
           color="gray"
           onClick={() => void restored.refetch()}
         >
-          Try again
+          {t('restore.retry')}
         </Button>
       </div>
     );

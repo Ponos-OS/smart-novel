@@ -1,9 +1,10 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Button } from '../../components/Button';
 import { CanonicalLicenseDialog } from './CanonicalLicenseDialog';
 import { ConversationPane } from './ConversationPane';
 import { DraftPane } from './DraftPane';
+import { useMessages } from './i18n';
 import { StartPanel } from './StartPanel';
 import {
   type FinalizedLicense,
@@ -22,6 +23,7 @@ export function AssistantWorkspace({
   baseLicense,
   onFinalized,
 }: AssistantWorkspaceProps) {
+  const t = useMessages();
   const session = useLicenseAssistantSession({
     initial,
     onFinalized,
@@ -32,6 +34,22 @@ export function AssistantWorkspace({
     string | null
   >(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const startHeadingRef = useRef<HTMLHeadingElement>(null);
+  const previousDraftId = useRef(session.draftId);
+
+  // The view swaps under the writer, so the focus follows; a view that was there at the start keeps it.
+  useEffect(() => {
+    const wasOpen = !!previousDraftId.current;
+
+    previousDraftId.current = session.draftId;
+    if (wasOpen === !!session.draftId) {
+      return;
+    }
+    (session.draftId
+      ? composerRef
+      : startHeadingRef
+    ).current?.focus();
+  }, [session.draftId]);
 
   // Never replaces what the author already wrote: a suggestion goes on a new line.
   const prefill = (message: string) => {
@@ -44,6 +62,7 @@ export function AssistantWorkspace({
   if (!session.draftId) {
     return (
       <StartPanel
+        headingRef={startHeadingRef}
         baseLicense={baseLicense}
         isCreating={session.isCreating}
         error={session.error}
@@ -63,7 +82,7 @@ export function AssistantWorkspace({
           color="gray"
           onClick={session.startOver}
         >
-          Start over
+          {t('start.startOver')}
         </Button>
         {session.error && (
           <p

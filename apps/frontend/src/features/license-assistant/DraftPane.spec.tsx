@@ -240,7 +240,7 @@ describe(DraftPane.name, () => {
     ['unsaved', 'Changes not saved yet, saving soon'],
     ['failed', 'Not saved. Trying again.'],
   ] as const)(
-    'says in words that the draft is %s',
+    'says in words that the draft is %s, announcing only a failure',
     (syncStatus, sentence) => {
       // Act
       render(
@@ -254,7 +254,10 @@ describe(DraftPane.name, () => {
       );
 
       // Assert
-      expect(screen.getByRole('status')).toHaveTextContent(sentence);
+      expect(screen.getByText(sentence)).toBeVisible();
+      expect(screen.queryByRole('status')).toSatisfy(
+        (status) => (status !== null) === (syncStatus === 'failed'),
+      );
     },
   );
 

@@ -1,24 +1,23 @@
 import type { ConversationMessage } from './use-license-assistant';
 
+import { useMessages } from './i18n';
+
 interface MessageListProps {
   messages: ConversationMessage[];
   /** @description What the author just sent, while the answer is on its way. */
   pendingMessage?: string | null;
 }
 
-const LABEL: Record<ConversationMessage['role'], string> = {
-  user: 'You',
-  assistant: 'Assistant',
-};
-
 export function MessageList({
   messages,
   pendingMessage,
 }: MessageListProps) {
+  const t = useMessages();
+
   return (
     <div
       role="log"
-      aria-label="Conversation with the license assistant"
+      aria-label={t('conversation.log')}
       className="min-h-0 flex-1 overflow-y-auto"
     >
       <ol className="flex flex-col gap-3">
@@ -46,7 +45,13 @@ function Message({
   content: string;
   isSending?: boolean;
 }) {
+  const t = useMessages();
   const isUser = author === 'user';
+  let label = t(isUser ? 'message.you' : 'message.assistant');
+
+  if (isSending) {
+    label = t('message.youSending');
+  }
 
   return (
     <li
@@ -57,8 +62,7 @@ function Message({
       }`}
     >
       <span className="mb-1 block text-xs font-semibold text-gray-600 dark:text-gray-400">
-        {LABEL[author]}
-        {isSending && ' (sending...)'}
+        {label}
       </span>
       <span className="whitespace-pre-wrap">{content}</span>
     </li>

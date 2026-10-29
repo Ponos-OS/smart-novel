@@ -2,6 +2,7 @@ import { Dialog } from '../../components/Dialog';
 import { useCanonicalLicenseQuery } from '../../generated/graphql';
 import { OfficialLicenseLink } from '../novel-license/OfficialLicenseLink';
 import { DraftBody } from './DraftBody';
+import { useMessages } from './i18n';
 import { toLicenseAssistantError } from './license-assistant-error';
 
 interface CanonicalLicenseDialogProps {
@@ -13,17 +14,22 @@ export function CanonicalLicenseDialog({
   licenseId,
   onClose,
 }: CanonicalLicenseDialogProps) {
+  const t = useMessages();
   const { data, error } = useCanonicalLicenseQuery({ id: licenseId });
   const license = data?.canonicalLicense;
 
   return (
-    <Dialog title={license?.name ?? licenseId} onClose={onClose}>
+    <Dialog
+      title={license?.name ?? licenseId}
+      onClose={onClose}
+      closeLabel={t('dialog.close')}
+    >
       {!!error && (
         <p
           role="alert"
           className="text-sm text-red-600 dark:text-red-400"
         >
-          {toLicenseAssistantError(error).message}
+          {t(toLicenseAssistantError(error).messageKey)}
         </p>
       )}
       {!license && !error && (
@@ -31,23 +37,40 @@ export function CanonicalLicenseDialog({
           role="status"
           className="text-sm text-gray-700 dark:text-gray-300"
         >
-          Loading the license...
+          {t('license.loading')}
         </p>
       )}
       {license && (
         <div className="space-y-4 text-sm text-gray-800 dark:text-gray-200">
           <p>
-            <strong>{license.shortName}</strong>, version{' '}
-            {license.version}, {license.category}
+            <strong>
+              {t('license.summary', {
+                shortName: license.shortName,
+                version: license.version,
+                category: license.category,
+              })}
+            </strong>
           </p>
           <p>{license.summary}</p>
-          <TermList title="Permissions" items={license.permissions} />
-          <TermList title="Limitations" items={license.limitations} />
-          <TermList title="Conditions" items={license.conditions} />
+          <TermList
+            title={t('license.permissions')}
+            items={license.permissions}
+          />
+          <TermList
+            title={t('license.limitations')}
+            items={license.limitations}
+          />
+          <TermList
+            title={t('license.conditions')}
+            items={license.conditions}
+          />
           <p>
-            <OfficialLicenseLink officialUrl={license.officialUrl} />
+            <OfficialLicenseLink
+              officialUrl={license.officialUrl}
+              label={t('license.officialLink')}
+            />
           </p>
-          <section aria-label="Full text">
+          <section aria-label={t('license.fullText')}>
             <DraftBody text={license.body} />
           </section>
         </div>
