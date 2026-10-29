@@ -18,7 +18,14 @@ module.exports = {
       compiler: 'tsc',
       main: './src/main.ts',
       tsConfig: './tsconfig.app.json',
-      assets: ['./src/assets'],
+      assets: [
+        './src/assets',
+        {
+          input: './src/modules/platform-terms',
+          glob: 'platform-terms.md',
+          output: 'assets',
+        },
+      ],
       optimization: false,
       outputHashing: 'none',
       generatePackageJson: true,

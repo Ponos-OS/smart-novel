@@ -19,6 +19,7 @@ import {
   type IAuthUser,
   Public,
 } from '../../auth';
+import { RequireAcceptedTerms } from '../../platform-terms';
 import { NovelAction } from '../enums';
 import {
   ChapterFiltersInput,
@@ -101,6 +102,7 @@ export class NovelResolver {
     return this.novelService.getCategories();
   }
 
+  @RequireAcceptedTerms()
   @CheckPolicy('novel', 'create')
   @Mutation(() => Novel, {
     description:
@@ -117,6 +119,7 @@ export class NovelResolver {
     return this.novelService.createNovel(user.sub, input);
   }
 
+  @RequireAcceptedTerms()
   @CheckPolicy('novel', 'update')
   @Mutation(() => Novel, {
     description:
@@ -138,6 +141,7 @@ export class NovelResolver {
     return this.novelService.updateNovel(id, input);
   }
 
+  @RequireAcceptedTerms()
   @CheckPolicy('novel', 'update', 'novelId')
   @Mutation(() => NovelCoverUploadUrl, {
     description:
@@ -176,6 +180,7 @@ export class NovelResolver {
     );
   }
 
+  @RequireAcceptedTerms()
   @CheckPolicy('novel', 'update', 'novelId')
   @Mutation(() => Novel, {
     description:

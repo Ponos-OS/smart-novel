@@ -6,6 +6,7 @@ import {
   RequiredStringPipe,
 } from '../../../shared';
 import { AuthHeader, CheckPolicy } from '../../auth';
+import { RequireAcceptedTerms } from '../../platform-terms';
 import { CreateChapterInput, UpdateChapterInput } from '../inputs';
 import { ChapterNarrationService, ChapterService } from '../services';
 import { Chapter, DeleteChapterResponse } from '../types';
@@ -17,6 +18,7 @@ export class ChapterResolver {
     private readonly chapterNarrationService: ChapterNarrationService,
   ) {}
 
+  @RequireAcceptedTerms()
   @CheckPolicy('chapter', 'create', 'novelId')
   @Mutation(() => Chapter, {
     description:
@@ -42,6 +44,7 @@ export class ChapterResolver {
     );
   }
 
+  @RequireAcceptedTerms()
   @CheckPolicy('chapter', 'update')
   @Mutation(() => Chapter, {
     description:
@@ -96,6 +99,7 @@ export class ChapterResolver {
     return chapter;
   }
 
+  @RequireAcceptedTerms()
   @CheckPolicy('chapter', 'update')
   @Mutation(() => Chapter, {
     description: "Update a chapter's metadata, e.g. its title.",

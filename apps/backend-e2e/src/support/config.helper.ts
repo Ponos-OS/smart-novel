@@ -29,7 +29,10 @@ const tokenEndpoint = urlBuilder(
 interface ZitadelOutputs {
   project_id: { value: string };
   user_ids: {
-    value: Record<'admin' | 'user' | 'writer' | 'writer2', string>;
+    value: Record<
+      'admin' | 'user' | 'writer' | 'writer2' | 'writer3',
+      string
+    >;
   };
   integration_test: {
     value: {
@@ -65,6 +68,7 @@ export const config = {
     admin: userIds.admin,
     writer: userIds.writer,
     writer2: userIds.writer2,
+    writer3: userIds.writer3,
   },
   integrationTest: {
     scopes,

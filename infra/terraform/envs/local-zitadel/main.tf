@@ -38,6 +38,13 @@ locals {
       password   = "Writer123!"
       role       = "writer"
     }
+    writer3 = {
+      email      = "writer3@test.com"
+      first_name = "Writer"
+      last_name  = "Three"
+      password   = "Writer123!"
+      role       = "writer"
+    }
     user = {
       email      = "user@test.com"
       first_name = "Regular"

@@ -24,7 +24,10 @@ export class AuthorizationFixture {
       config.userIds.admin,
     );
 
-    return `Bearer ${accessToken}`;
+    return AuthorizationFixture.withAcceptedTerms(
+      config.userIds.admin,
+      `Bearer ${accessToken}`,
+    );
   }
 
   static async getWriterAuthorizationHeader() {
@@ -35,7 +38,10 @@ export class AuthorizationFixture {
       config.userIds.writer,
     );
 
-    return `Bearer ${accessToken}`;
+    return AuthorizationFixture.withAcceptedTerms(
+      config.userIds.writer,
+      `Bearer ${accessToken}`,
+    );
   }
 
   static async getSecondWriterAuthorizationHeader() {
@@ -46,7 +52,73 @@ export class AuthorizationFixture {
       config.userIds.writer2,
     );
 
+    return AuthorizationFixture.withAcceptedTerms(
+      config.userIds.writer2,
+      `Bearer ${accessToken}`,
+    );
+  }
+
+  /**
+   * @description The only writer that never accepts the platform terms on its own, for the specs that test the terms gate itself.
+   */
+  static async getWriterWithoutAcceptedTermsAuthorizationHeader() {
+    const actorToken =
+      await AuthorizationFixture.getActorAccessToken();
+    const accessToken = await AuthorizationFixture.impersonate(
+      actorToken,
+      config.userIds.writer3,
+    );
+
     return `Bearer ${accessToken}`;
+  }
+
+  private static readonly termsAcceptedBy = new Map<
+    string,
+    Promise<void>
+  >();
+
+  /**
+   * @description Writers and admins cannot write before accepting the platform terms, so the fixture accepts them once per user.
+   */
+  private static async withAcceptedTerms(
+    userId: string,
+    authorization: string,
+  ) {
+    if (!AuthorizationFixture.termsAcceptedBy.has(userId)) {
+      AuthorizationFixture.termsAcceptedBy.set(
+        userId,
+        AuthorizationFixture.acceptPlatformTerms(authorization),
+      );
+    }
+
+    await AuthorizationFixture.termsAcceptedBy.get(userId);
+
+    return authorization;
+  }
+
+  private static async acceptPlatformTerms(authorization: string) {
+    const headers = { Authorization: authorization };
+    const { data: terms } = await axios.post(
+      '/graphql',
+      { query: '{ platformTerms { version } }' },
+      { headers },
+    );
+    const { data: accepted } = await axios.post(
+      '/graphql',
+      {
+        query: `mutation ($version: Int!) {
+          acceptPlatformTerms(version: $version) { accepted }
+        }`,
+        variables: { version: terms.data.platformTerms.version },
+      },
+      { headers },
+    );
+
+    if (!accepted.data?.acceptPlatformTerms.accepted) {
+      throw new Error(
+        `Could not accept the platform terms: ${JSON.stringify(accepted)}`,
+      );
+    }
   }
 
   private static async getActorAccessToken() {

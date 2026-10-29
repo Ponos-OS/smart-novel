@@ -145,3 +145,14 @@ model ChapterUserState {
   @@index([novelId, chapterId], name: "IDX_chapter_user_states_novel_chapter")
   @@map("chapter_user_states")
 }
+
+model PlatformTermsAcceptance {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id")
+  termsVersion Int      @map("terms_version")
+  acceptedAt   DateTime @default(now()) @map("accepted_at") @db.Timestamptz
+
+  @@unique([userId, termsVersion])
+  @@index([userId], name: "IDX_platform_terms_acceptances_user")
+  @@map("platform_terms_acceptances")
+}

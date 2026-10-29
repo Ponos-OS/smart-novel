@@ -4,6 +4,7 @@ export * from './license';
 export * from './llm';
 export * from './novel';
 export * from './object-storage';
+export * from './platform-terms';
 export * from './prisma';
 export * from './redis';
 export * from './tts-callbacks';

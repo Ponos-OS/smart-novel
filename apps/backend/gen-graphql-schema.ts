@@ -20,6 +20,7 @@ import {
   NovelConnectionFieldResolver,
   NovelResolver,
 } from './src/modules/novel/resolvers';
+import { PlatformTermsResolver } from './src/modules/platform-terms/platform-terms.resolver';
 
 async function generateSchema() {
   const app = await NestFactory.create(GraphQLSchemaBuilderModule, {
@@ -33,6 +34,7 @@ async function generateSchema() {
     AuthResolver,
     LicenseResolver,
     LlmResolver,
+    PlatformTermsResolver,
     NovelResolver,
     NovelConnectionFieldResolver,
     ChapterResolver,
