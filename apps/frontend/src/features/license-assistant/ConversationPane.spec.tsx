@@ -1,15 +1,31 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 
 import { ConversationPane } from './ConversationPane';
 
-type Props = Parameters<typeof ConversationPane>[0];
+type Props = Omit<
+  Parameters<typeof ConversationPane>[0],
+  'composerText' | 'onComposerTextChange'
+>;
+
+function Harness(props: Props) {
+  const [text, setText] = useState('');
+
+  return (
+    <ConversationPane
+      {...props}
+      composerText={text}
+      onComposerTextChange={setText}
+    />
+  );
+}
 
 function renderPane(props: Partial<Props> = {}) {
   const onSend = vi.fn();
 
   render(
-    <ConversationPane
+    <Harness
       messages={[]}
       pendingMessage={null}
       isPending={false}

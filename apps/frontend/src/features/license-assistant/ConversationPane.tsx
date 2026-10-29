@@ -1,3 +1,5 @@
+import type { Ref } from 'react';
+
 import type { LicenseAssistantError } from './license-assistant-error';
 import type { ConversationMessage } from './use-license-assistant';
 
@@ -5,6 +7,9 @@ import { Composer } from './Composer';
 import { MessageList } from './MessageList';
 
 interface ConversationPaneProps {
+  composerText: string;
+  onComposerTextChange: (text: string) => void;
+  composerRef?: Ref<HTMLTextAreaElement>;
   messages: ConversationMessage[];
   pendingMessage: string | null;
   isPending: boolean;
@@ -13,6 +18,9 @@ interface ConversationPaneProps {
 }
 
 export function ConversationPane({
+  composerText,
+  onComposerTextChange,
+  composerRef,
   messages,
   pendingMessage,
   isPending,
@@ -41,7 +49,13 @@ export function ConversationPane({
           {error.requestId && ` (reference: ${error.requestId})`}
         </p>
       )}
-      <Composer isPending={isPending} onSend={onSend} />
+      <Composer
+        text={composerText}
+        onTextChange={onComposerTextChange}
+        textareaRef={composerRef}
+        isPending={isPending}
+        onSend={onSend}
+      />
     </section>
   );
 }

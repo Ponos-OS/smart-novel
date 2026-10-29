@@ -1,16 +1,25 @@
 import { LICENSE_ASSISTANT_MESSAGE_MAX_LENGTH } from '@smart-novel/shared';
-import { type KeyboardEvent, useId, useState } from 'react';
+import { type KeyboardEvent, type Ref, useId } from 'react';
 
 import { Button } from '../../components/Button';
 
 interface ComposerProps {
+  text: string;
+  onTextChange: (text: string) => void;
+  /** @description To move focus here, e.g. after a suggestion put a sentence in the box. */
+  textareaRef?: Ref<HTMLTextAreaElement>;
   isPending: boolean;
   /** @description Called with the trimmed message; `onSent` clears the box, so a failed send keeps what the author wrote. */
   onSend: (message: string, onSent: () => void) => void;
 }
 
-export function Composer({ isPending, onSend }: ComposerProps) {
-  const [text, setText] = useState('');
+export function Composer({
+  text,
+  onTextChange,
+  textareaRef,
+  isPending,
+  onSend,
+}: ComposerProps) {
   const hintId = useId();
   const message = text.trim();
   const isTooLong =
@@ -22,7 +31,7 @@ export function Composer({ isPending, onSend }: ComposerProps) {
       return;
     }
 
-    onSend(message, () => setText(''));
+    onSend(message, () => onTextChange(''));
   };
 
   const handleKeyDown = (
@@ -49,8 +58,9 @@ export function Composer({ isPending, onSend }: ComposerProps) {
           Your message
         </span>
         <textarea
+          ref={textareaRef}
           value={text}
-          onChange={(event) => setText(event.target.value)}
+          onChange={(event) => onTextChange(event.target.value)}
           onKeyDown={handleKeyDown}
           disabled={isPending}
           rows={3}

@@ -27,6 +27,7 @@ const draft = {
     canonicalId: 'CC-BY-4.0',
   },
 };
+const handlers = { onPrefill: vi.fn(), onViewLicense: vi.fn() };
 const details = {
   disclaimers: ['This is not legal advice.'],
   recommendations: [],
@@ -38,7 +39,12 @@ describe(DraftPane.name, () => {
   it('asks the author to start the conversation when there is no draft yet', () => {
     // Act
     render(
-      <DraftPane draft={null} details={null} isPending={false} />,
+      <DraftPane
+        {...handlers}
+        draft={null}
+        details={null}
+        isPending={false}
+      />,
     );
 
     // Assert
@@ -49,7 +55,12 @@ describe(DraftPane.name, () => {
   it('shows the draft with where it comes from', () => {
     // Act
     render(
-      <DraftPane draft={draft} details={details} isPending={false} />,
+      <DraftPane
+        {...handlers}
+        draft={draft}
+        details={details}
+        isPending={false}
+      />,
     );
 
     // Assert
@@ -70,6 +81,7 @@ describe(DraftPane.name, () => {
     // Act
     render(
       <DraftPane
+        {...handlers}
         draft={null}
         details={{ ...details, draftChanged: false }}
         isPending={false}
@@ -85,7 +97,12 @@ describe(DraftPane.name, () => {
   it('always carries the statement that a license is not legal advice and says nothing of ownership', () => {
     // Act
     render(
-      <DraftPane draft={null} details={null} isPending={false} />,
+      <DraftPane
+        {...handlers}
+        draft={null}
+        details={null}
+        isPending={false}
+      />,
     );
 
     // Assert
@@ -105,6 +122,7 @@ describe(DraftPane.name, () => {
       // Act
       render(
         <DraftPane
+          {...handlers}
           draft={draft}
           details={{ ...details, draftChanged }}
           isPending={false}
@@ -118,7 +136,14 @@ describe(DraftPane.name, () => {
 
   it('keeps the draft on screen while the next answer is on its way', () => {
     // Act
-    render(<DraftPane draft={draft} details={details} isPending />);
+    render(
+      <DraftPane
+        {...handlers}
+        draft={draft}
+        details={details}
+        isPending
+      />,
+    );
 
     // Assert
     expect(
@@ -130,7 +155,12 @@ describe(DraftPane.name, () => {
   it('keeps the very same elements for an answer that left the draft alone', () => {
     // Arrange
     const { rerender } = render(
-      <DraftPane draft={draft} details={details} isPending={false} />,
+      <DraftPane
+        {...handlers}
+        draft={draft}
+        details={details}
+        isPending={false}
+      />,
     );
     const title = screen.getByRole('heading', {
       name: 'CC BY 4.0 without resale',
@@ -140,6 +170,7 @@ describe(DraftPane.name, () => {
     // Act
     rerender(
       <DraftPane
+        {...handlers}
         draft={{ ...draft, source: { ...draft.source } }}
         details={{ ...details, draftChanged: false }}
         isPending={false}
@@ -153,5 +184,42 @@ describe(DraftPane.name, () => {
       }),
     ).toBe(title);
     expect(screen.getByText(/You may not sell it/)).toBe(body);
+  });
+
+  it('offers the licenses the assistant suggests, below the draft', () => {
+    // Act
+    render(
+      <DraftPane
+        {...handlers}
+        draft={draft}
+        details={{ ...details, recommendations: ['CC-BY-4.0'] }}
+        isPending={false}
+      />,
+    );
+
+    // Assert
+    expect(
+      screen.getByRole('region', { name: 'Suggested licenses' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Use CC BY 4.0' }),
+    ).toBeInTheDocument();
+  });
+
+  it('offers nothing when the assistant suggests nothing', () => {
+    // Act
+    render(
+      <DraftPane
+        {...handlers}
+        draft={draft}
+        details={details}
+        isPending={false}
+      />,
+    );
+
+    // Assert
+    expect(
+      screen.queryByRole('region', { name: 'Suggested licenses' }),
+    ).not.toBeInTheDocument();
   });
 });

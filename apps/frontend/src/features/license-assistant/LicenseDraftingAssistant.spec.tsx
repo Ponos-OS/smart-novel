@@ -173,4 +173,131 @@ describe(LicenseDraftingAssistant.name, () => {
       await screen.findByText('Canonical license: CC BY 4.0'),
     ).toBeInTheDocument();
   });
+
+  describe('suggested licenses', () => {
+    const summary = (id: string, shortName: string) => ({
+      id,
+      name: shortName,
+      shortName,
+      version: '4.0',
+      category: 'creative_commons',
+      officialUrl: `https://creativecommons.org/licenses/${id}/legalcode`,
+      summary: 'Share and adapt for non-commercial purposes.',
+      permissions: ['share'],
+      limitations: ['no commercial use'],
+      conditions: ['attribution'],
+    });
+
+    function serve() {
+      fetchMock.mockImplementation(async (_url, init) => {
+        const { query } = JSON.parse(init.body);
+
+        if (query.includes('canonicalLicense(')) {
+          return {
+            json: async () => ({
+              data: {
+                canonicalLicense: {
+                  ...summary('CC-BY-NC-4.0', 'CC BY-NC 4.0'),
+                  body: 'Attribution-NonCommercial 4.0 International, the full legal text.',
+                },
+              },
+            }),
+          };
+        }
+        if (query.includes('canonicalLicenses')) {
+          return {
+            json: async () => ({
+              data: {
+                canonicalLicenses: [
+                  summary('CC-BY-NC-4.0', 'CC BY-NC 4.0'),
+                ],
+              },
+            }),
+          };
+        }
+
+        return {
+          json: async () => ({
+            data: {
+              draftLicense: {
+                assistantMessage:
+                  'CC BY-NC 4.0 fits what you describe.',
+                draft: null,
+                draftChanged: false,
+                recommendations: ['CC-BY-NC-4.0'],
+                disclaimers: ['This is not legal advice.'],
+                isReadyToFinalize: false,
+                conversation: [],
+              },
+            },
+          }),
+        };
+      });
+    }
+
+    async function askAndWaitForChips(
+      user: ReturnType<typeof userEvent.setup>,
+    ) {
+      render(
+        <QueryClientProvider client={new QueryClient()}>
+          <LicenseDraftingAssistant />
+        </QueryClientProvider>,
+      );
+      await user.click(screen.getByLabelText('Your message'));
+      await user.paste('No commercial use, please.');
+      await user.click(screen.getByRole('button', { name: 'Send' }));
+
+      return screen.findByRole('button', {
+        name: 'Use CC BY-NC 4.0',
+      });
+    }
+
+    it('puts a sentence into the composer, on a new line after what the author already wrote, and moves focus there', async () => {
+      // Arrange
+      const user = userEvent.setup();
+      serve();
+      const chip = await askAndWaitForChips(user);
+      const box = screen.getByLabelText('Your message');
+      await user.click(box);
+      await user.paste('Also for translations.');
+
+      // Act
+      await user.click(chip);
+
+      // Assert
+      expect(box).toHaveValue(
+        'Also for translations.\nI would like to use CC BY-NC 4.0 for my novel.',
+      );
+      expect(box).toHaveFocus();
+      expect(
+        fetchMock.mock.calls.filter(([, init]) =>
+          JSON.parse(init.body).query.includes('draftLicense'),
+        ),
+      ).toHaveLength(1);
+    });
+
+    it('opens the license to read, and goes back to the button that opened it when closed', async () => {
+      // Arrange
+      const user = userEvent.setup();
+      serve();
+      await askAndWaitForChips(user);
+      const read = screen.getByRole('button', {
+        name: 'Read CC BY-NC 4.0',
+      });
+
+      // Act
+      await user.click(read);
+      const dialog = await screen.findByRole('dialog');
+      const shown = await within(dialog).findByText(
+        /the full legal text/,
+      );
+      const wasShown = shown.isConnected;
+      await user.keyboard('{Escape}');
+
+      // Assert
+      expect(wasShown).toBeTrue();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(read).toHaveFocus();
+    });
+  });
 });

@@ -109,3 +109,11 @@
 - "Without flicker" is three things, each tested: the pane never blanks while the next answer is pending, the rendered draft is memoized on its text so an answer that left it alone does not rebuild it (a mocked Markdown renderer counts the renders), and the change is announced in words in a status line instead of an animation or colour.
 - Not in this step: editing the draft by hand (the hook can take one through `setDraft`, but no control calls it), the recommendation chips (F4), "Finalize" (F5/F7), saving. The permanent statement lives in the draft pane, which is always on screen; F7 may move it to a page-level banner.
 - Rendering a list inside a pane broke an F2 test that asked for every list item on the page; query inside the region you mean (`within(log)`).
+
+## F4 - 2026-10-29
+
+- Left uncommitted on request, for review. Frontend 273 tests (73 in the assistant feature and the dialog), lint, tsc, build; no browser check and no Cypress.
+- Built as `RecommendationChips` (for every suggested id: "Use <short name>" puts a sentence in the composer and "Read <short name>" opens the license), `CanonicalLicenseDialog` (what the license permits, limits and requires, its official link and its full text, with loading and error states), and a generic `components/Dialog` (a modal with Escape, the Close button and a click outside to close it, Tab kept inside, and focus returned to what opened it). The composer became controlled so a suggestion can fill it: a chip never sends anything, never replaces what the author wrote (the sentence goes on a new line) and moves focus into the box. A route was not needed: a dialog keeps the conversation on screen.
+- Chips fetch the license list only when there is something to name; the first version fetched on every answer and silently ate a queued response in an older integration test.
+- Two replacements of mine did nothing in the first pass and the type check could not tell, because Prettier had already re-wrapped the lines I was matching (props accepted but never used). After a scripted edit, assert the file contains the new text (grep for it) instead of trusting a clean `tsc`.
+- Not in this step: the Finalize button and saving (F5/F7); `PlatformTermsModal` still has its own copy of the Tab-trap logic that `Dialog` now also has; moving it is a separate cleanup.

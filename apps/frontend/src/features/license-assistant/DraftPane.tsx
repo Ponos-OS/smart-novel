@@ -5,8 +5,11 @@ import { LICENSE_DISCLAIMER } from '../novel-license/license-notice';
 import { DisclaimerList } from './DisclaimerList';
 import { DraftBody } from './DraftBody';
 import { DraftSourceBadge } from './DraftSourceBadge';
+import { RecommendationChips } from './RecommendationChips';
 
 interface DraftPaneProps {
+  onPrefill: (message: string) => void;
+  onViewLicense: (licenseId: string) => void;
   draft: LicenseDraftInput | null;
   details: AssistantAnswerDetails | null;
   isPending: boolean;
@@ -19,6 +22,8 @@ export function DraftPane({
   draft,
   details,
   isPending,
+  onPrefill,
+  onViewLicense,
 }: DraftPaneProps) {
   return (
     <section
@@ -52,6 +57,13 @@ export function DraftPane({
             ? 'The assistant updated the draft.'
             : 'The draft did not change in this answer.'}
         </p>
+      )}
+      {details && (
+        <RecommendationChips
+          recommendations={details.recommendations}
+          onPrefill={onPrefill}
+          onViewLicense={onViewLicense}
+        />
       )}
       {details && (
         <DisclaimerList disclaimers={details.disclaimers} />
