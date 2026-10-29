@@ -20,9 +20,31 @@ enum NovelState {
   FINISHED
 }
 
+enum LicenseSourceType {
+  CANONICAL
+  FORKED
+  CUSTOM
+}
+
+model License {
+  id          String            @id @default(uuid()) @db.Uuid
+  name        String
+  text        String            @db.Text
+  textHash    String            @unique @map("text_hash")
+  sourceType  LicenseSourceType @map("source_type")
+  canonicalId String?           @map("canonical_id")
+  isDefault   Boolean           @default(false) @map("is_default")
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz
+
+  novels Novel[]
+
+  @@map("licenses")
+}
+
 model Novel {
-  id      String @id @default(uuid()) @db.Uuid
-  ownerId String @map("owner_id")
+  id        String @id @default(uuid()) @db.Uuid
+  ownerId   String @map("owner_id")
+  licenseId String @map("license_id") @db.Uuid
 
   name        String
   author      String
@@ -32,11 +54,13 @@ model Novel {
   createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz
 
+  license           License            @relation(fields: [licenseId], references: [id], onDelete: Restrict)
   chapters          Chapter[]
   categories        NovelCategory[]
   chapterUserStates ChapterUserState[]
 
   @@index([ownerId], name: "IDX_novels_owner")
+  @@index([licenseId], name: "IDX_novels_license")
   @@map("novels")
 }
 

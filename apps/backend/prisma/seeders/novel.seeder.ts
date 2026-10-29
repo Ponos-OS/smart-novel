@@ -5,6 +5,7 @@ import { join } from 'path';
 
 import { computeContentHash } from '../../src/modules/novel/utils';
 import { PrismaTransactionClient } from '../../src/modules/prisma';
+import { SeededLicenses } from './license.seeder';
 
 interface NovelDetails {
   id: string;
@@ -14,6 +15,7 @@ interface NovelDetails {
   category: string[];
   state: 'ONGOING' | 'FINISHED';
   coverUrl?: string;
+  license?: string;
 }
 
 interface ChapterFrontmatter {
@@ -129,6 +131,7 @@ export async function seedNovels(
   prisma: PrismaClient,
   dataPath: string,
   categoryMap: Map<string, string>,
+  licenses: SeededLicenses,
 ): Promise<void> {
   console.log('\n📚 Processing novels...');
 
@@ -162,6 +165,16 @@ export async function seedNovels(
         console.warn(`   ⚠️  Some categories not found in database`);
       }
 
+      const licenseId = details.license
+        ? licenses.byCanonicalId.get(details.license)
+        : licenses.defaultId;
+
+      if (!licenseId) {
+        throw new Error(
+          `Unknown license "${details.license}" in ${detailsPath}`,
+        );
+      }
+
       await prisma.$transaction(async (tx) => {
         const ownerId = getWriterId();
 
@@ -174,6 +187,7 @@ export async function seedNovels(
             state: details.state,
             coverUrl: details.coverUrl,
             ownerId,
+            licenseId,
           },
         });
 

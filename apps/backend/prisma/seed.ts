@@ -4,6 +4,7 @@ import { join } from 'path';
 import { Pool } from 'pg';
 
 import { seedCategories } from './seeders/category.seeder';
+import { seedLicenses } from './seeders/license.seeder';
 import { seedNovels } from './seeders/novel.seeder';
 
 const pool = new Pool({
@@ -20,7 +21,9 @@ async function main() {
   try {
     const categoryMap = await seedCategories(prisma, DATA_PATH);
 
-    await seedNovels(prisma, DATA_PATH, categoryMap);
+    const licenses = await seedLicenses(prisma);
+
+    await seedNovels(prisma, DATA_PATH, categoryMap, licenses);
 
     console.log('\n✅ Database seeding completed successfully!');
   } catch (error) {

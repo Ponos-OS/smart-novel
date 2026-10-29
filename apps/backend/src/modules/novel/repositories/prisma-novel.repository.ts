@@ -125,9 +125,14 @@ export class PrismaNovelRepository implements INovelRepository {
         tx,
         categories ?? [],
       );
+      const { id: licenseId } = await tx.license.findFirstOrThrow({
+        where: { isDefault: true },
+        select: { id: true },
+      });
       const novel = await tx.novel.create({
         data: {
           ...fields,
+          licenseId,
           categories: {
             create: categoryIds.map((categoryId) => ({ categoryId })),
           },
