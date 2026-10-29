@@ -101,3 +101,11 @@
 - A failed send keeps what the author wrote: the composer clears only through the `onSent` callback the hook calls on success.
 - Not done, belongs to later steps: the draft pane, disclaimers and recommendations (F3, F4; the hook already holds them), saving the conversation in `localStorage` (F5), the route (F7). The assistant's reply is plain text, not Markdown.
 - A component prop named `role` trips `jsx-a11y/aria-role` even on a non-DOM component; name it for what it is (`author`).
+
+## F3 - 2026-10-29
+
+- Left uncommitted on request, for review. Frontend 255 tests (56 in the assistant feature), lint, tsc, build; no browser check and no Cypress.
+- Built as `DraftPane` (title, body, status line, disclaimers, the permanent "not legal advice" statement), `DraftSourceBadge` (canonical: the short name and the official link; modified: "Modified from <short name> - not the same as the canonical license"; custom: "review with a lawyer"), `DraftBody` (memoized Markdown) and `DisclaimerList` (always open, no toggle), and `LicenseDraftingAssistant` now shows the two panes side by side. Short names and links come from the cached `canonicalLicenses` query, with the id as a fallback until it loads.
+- "Without flicker" is three things, each tested: the pane never blanks while the next answer is pending, the rendered draft is memoized on its text so an answer that left it alone does not rebuild it (a mocked Markdown renderer counts the renders), and the change is announced in words in a status line instead of an animation or colour.
+- Not in this step: editing the draft by hand (the hook can take one through `setDraft`, but no control calls it), the recommendation chips (F4), "Finalize" (F5/F7), saving. The permanent statement lives in the draft pane, which is always on screen; F7 may move it to a page-level banner.
+- Rendering a list inside a pane broke an F2 test that asked for every list item on the page; query inside the region you mean (`within(log)`).
