@@ -1,0 +1,9 @@
+mutation SetDefaultLicense($input: SetDefaultLicenseInput!) {
+  setDefaultLicense(input: $input) {
+    id
+    name
+    sourceType
+    canonicalId
+    text
+  }
+}

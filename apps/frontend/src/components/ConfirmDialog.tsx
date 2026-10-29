@@ -8,6 +8,8 @@ interface ConfirmDialogProps {
   confirmLabel: string;
   /** @description When set, the confirm button stays disabled until this exact text is typed. */
   confirmationText?: string;
+  /** @description Shown on the confirm button while loading. */
+  loadingLabel?: string;
   isLoading?: boolean;
   error?: string | null;
   onConfirm: () => void;
@@ -19,6 +21,7 @@ export function ConfirmDialog({
   message,
   confirmLabel,
   confirmationText,
+  loadingLabel = 'Deleting...',
   isLoading = false,
   error,
   onConfirm,
@@ -82,7 +85,7 @@ export function ConfirmDialog({
             onClick={onConfirm}
             disabled={isLoading || isConfirmationMissing}
           >
-            {isLoading ? 'Deleting...' : confirmLabel}
+            {isLoading ? loadingLabel : confirmLabel}
           </Button>
         </div>
       </div>

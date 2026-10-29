@@ -66,6 +66,22 @@ const router = createBrowserRouter([
     ),
   },
 
+  {
+    path: '/admin/licenses',
+    lazy: async () => {
+      const { AdminDefaultLicensePage } =
+        await import('../features/admin-licenses/AdminDefaultLicensePage');
+
+      return {
+        element: (
+          <Layout>
+            <AdminDefaultLicensePage />
+          </Layout>
+        ),
+      };
+    },
+  },
+
   // Auth callback route
   { path: '/auth/callback', element: <CallbackPage /> },
 
