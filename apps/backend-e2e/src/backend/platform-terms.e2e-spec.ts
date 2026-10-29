@@ -31,6 +31,14 @@ const ACCEPT = `#graphql
   }
 `;
 
+const DRAFT_LICENSE = `#graphql
+  mutation DraftLicense($input: DraftLicenseInput!) {
+    draftLicense(input: $input) {
+      assistantMessage
+    }
+  }
+`;
+
 const CREATE_NOVEL = `#graphql
   mutation CreateNovel($input: CreateNovelInput!) {
     createNovel(input: $input) {
@@ -110,6 +118,21 @@ describe('Platform terms (e2e)', () => {
       expect(data.data).toBeNull();
     });
 
+    it('should not be able to use the license assistant, with a typed error and before any Fithara call', async () => {
+      const authorization =
+        await AuthorizationFixture.getWriterWithoutAcceptedTermsAuthorizationHeader();
+
+      const data = await graphql(
+        DRAFT_LICENSE,
+        { input: { message: 'What license fits my novel?' } },
+        authorization,
+      );
+
+      expect(data.errors[0].extensions.code).toBe(
+        'PLATFORM_TERMS_NOT_ACCEPTED',
+      );
+    });
+
     it('should not be able to accept a version other than the current one', async () => {
       const authorization =
         await AuthorizationFixture.getWriterWithoutAcceptedTermsAuthorizationHeader();
@@ -153,6 +176,20 @@ describe('Platform terms (e2e)', () => {
       expect(acceptedAgain.data).toStrictEqual(accepted.data);
       expect(created.errors).toBeUndefined();
     });
+  });
+
+  it('should not let a reader use the license assistant', async () => {
+    const authorization =
+      await AuthorizationFixture.getUserAuthorizationHeader();
+
+    const data = await graphql(
+      DRAFT_LICENSE,
+      { input: { message: 'What license fits my novel?' } },
+      authorization,
+    );
+
+    expect(data.errors).not.toBeEmpty();
+    expect(data.data).toBeNull();
   });
 
   it('should require authentication to read the own status', async () => {

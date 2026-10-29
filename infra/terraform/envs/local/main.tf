@@ -57,7 +57,7 @@ locals {
         image = local.tooling_image
         # Prisma generates into the image's node_modules, so this runs as root; the files written into the mounted sources are handed back to the host user afterwards.
         command     = ["/bin/sh", "-c", "npx nx codegen frontend; status=$?; chown -R ${var.run_as_user} /app/apps; exit $status"]
-        environment = { DATABASE_URL = "postgresql://dummy", BEATRICE_VERSION = local.dotenv["BEATRICE_VERSION"], NX_DAEMON = "false" }
+        environment = { DATABASE_URL = "postgresql://dummy", BEATRICE_VERSION = local.dotenv["BEATRICE_VERSION"], FITHARA_VERSION = local.dotenv["FITHARA_VERSION"], NX_DAEMON = "false" }
         volumes     = [local.apps_volume, local.libs_volume]
       },
     ] : [],

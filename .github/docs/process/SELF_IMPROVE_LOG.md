@@ -52,3 +52,12 @@
 - The terms modal links to `/licenses` and the gate steps aside on that route (writers can read it, the backend guard still blocks writing). That needed the gate inside the router, so `App` now wraps all routes in a root route that renders the gate beside the `Outlet`.
 - Route is `/licenses` (resource path); the admin screen stays at `/admin/licenses`, linked from the default-license tab for admins.
 - A spec that mocks the generated module with a bare factory breaks on any component importing an enum from it; spread `vi.importActual` first.
+
+## B5 - 2026-10-29
+
+- Left uncommitted on request, for review. Built twice: first with the backend storing conversations, then reworked onto Fithara 2.0.0 once it returned the history to send next time. The final shape is a stateless gateway: `draftLicense` takes the conversation and the draft from the client, forwards them, and returns the new `conversation`; the rate limit is a Redis counter (one new `RedisService.increment`, `INCR` plus `EXPIRE NX` in one transaction, checked against a real Redis 7 for the window not resetting). No tables, no conversation id; the JSON body limit is raised to 1mb for the long histories.
+- Substitutes that paid off: a throwaway Postgres plus a fake Fithara server for the first shape, a throwaway Redis for the counter. `nx e2e backend-e2e` is still blocked (see B1), so the e2e cases are typechecked only.
+- The decision moved twice (Postgres, then Redis with a TTL, then the browser) because the requirement text, written before Fithara could return a compacted history, said "stored by the backend". When a requirement implies server state, ask what the state is for before building the store.
+- Nx cache trap: an Nx target whose only input is a file that an earlier target downloads is hashed before the download, so a version bump restored the old generated types. Uncache such targets (the Beatrice codegen target has the same shape and is still cached).
+- `openapi-typescript` refused to install (peer `typescript@^5`, repo on 6); the generator is pinned in the Nx target through `npx` instead. A generated, gitignored file must also be excluded from ESLint, or `nx lint` reports hundreds of formatting errors that never appear in a PR.
+- The AC lists no infra, but `draftLicense` cannot work in `start:dev` until a `fithara` Terraform module exists; `FITHARA_URL` points at a service that is not deployed yet.

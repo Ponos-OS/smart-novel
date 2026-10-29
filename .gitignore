@@ -50,6 +50,8 @@ schema.gql
 apps/frontend/src/generated/
 apps/backend/src/shared/beatrice/graphql-env.d.ts
 apps/backend/src/shared/beatrice/schema.graphql
+apps/backend/src/shared/fithara/openapi.json
+apps/backend/src/shared/fithara/schema.d.ts
 
 # E2E secrets extracted from Docker volume (created by global-setup.ts)
 local-setup/pats/

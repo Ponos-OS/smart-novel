@@ -24,6 +24,16 @@ export interface AppConfig {
    */
   BEATRICE_DEFAULT_VOICE: string;
   /**
+   * @description Base URL of the Fithara license-drafting service, reachable only from inside the cluster.
+   * @example `http://fithara:8000`
+   */
+  FITHARA_URL: string;
+  /**
+   * @description Per-request timeout for calls to Fithara (a draft turn runs an LLM).
+   * Use https://www.npmjs.com/package/ms for human-readable duration
+   */
+  FITHARA_TIMEOUT: StringValue;
+  /**
    * @description This backend's own base URL, as reachable from inside the Docker network — used to build the `genUploadUrl`/`statusCallbackUrl` callbacks passed to Beatrice's `generateAudio`.
    * @example `http://backend:3000`
    */

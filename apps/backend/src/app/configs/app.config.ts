@@ -84,6 +84,14 @@ class EnvironmentVariables implements AppConfig {
 
   @IsNotEmpty()
   @IsString()
+  FITHARA_URL: string;
+
+  @IsNotEmpty()
+  @IsString()
+  FITHARA_TIMEOUT: StringValue;
+
+  @IsNotEmpty()
+  @IsString()
   BACKEND_INTERNAL_URL: string;
 
   @IsNotEmpty()

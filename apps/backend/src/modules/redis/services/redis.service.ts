@@ -191,6 +191,25 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /**
+   * @description Count one more hit on `key`. The expiry is set on the first hit only, so it is a fixed window that starts then.
+   * @returns the count including this hit
+   */
+  async increment(key: string, ttlSeconds: number): Promise<number> {
+    const results = await this.client
+      .multi()
+      .incr(key)
+      .expire(key, ttlSeconds, 'NX')
+      .exec();
+    const [error, count] = results?.[0] ?? [null, 0];
+
+    if (error) {
+      throw error;
+    }
+
+    return count as number;
+  }
+
+  /**
    * @description Evaluate a Lua script in Redis
    * @param script the Lua program as a string
    * @param numKeys how many of the following arguments are keys

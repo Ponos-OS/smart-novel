@@ -200,6 +200,7 @@
     "nestjs-cls": "^6.2.0",
     "nestjs-otel": "^8.1.0",
     "oidc-client-ts": "^3.5.0",
+    "openapi-fetch": "0.17.0",
     "pg": "^8.19.0",
     "react": "^19.2.4",
     "react-codemirror-merge": "^4.25.9",

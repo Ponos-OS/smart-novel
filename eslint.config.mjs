@@ -17,6 +17,7 @@ export default [
       '**/out-tsc',
       '**/vite.config.*.timestamp*',
       '**/storybook-static',
+      '**/shared/fithara/schema.d.ts',
     ],
   },
   {
@@ -106,6 +107,7 @@ export default [
     files: [
       '**/gen-graphql-schema.ts',
       '**/fetch-beatrice-schema.ts',
+      '**/fetch-fithara-openapi.ts',
     ],
     rules: {
       'no-console': 'off',

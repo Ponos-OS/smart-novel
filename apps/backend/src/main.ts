@@ -3,16 +3,22 @@ import './instrumentation.js'; // 👈 MUST be the very first import. Starts the
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 
 import { appConfigs, AppModule } from './app';
 
+const JSON_BODY_LIMIT = '1mb';
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app =
+    await NestFactory.create<NestExpressApplication>(AppModule);
   const { PORT, CORS_ALLOWED_ORIGINS } = app.get<
     ConfigType<typeof appConfigs>
   >(appConfigs.KEY);
 
+  // A license assistant request carries the whole conversation and the draft; express' default of 100kb is too small for them.
+  app.useBodyParser('json', { limit: JSON_BODY_LIMIT });
   app.use(cookieParser());
 
   app.enableCors({

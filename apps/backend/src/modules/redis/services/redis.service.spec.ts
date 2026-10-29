@@ -11,6 +11,7 @@ const mockClient = {
   eval: vi.fn(),
   sendCommand: vi.fn(),
   publish: vi.fn(),
+  multi: vi.fn(),
 };
 
 vi.mock('ioredis', () => {
@@ -114,6 +115,39 @@ describe(RedisService.name, () => {
       '{"a":1}',
     );
     expect(result).toBe(2);
+  });
+
+  it('should count a hit and expire the key only when it is the first one', async () => {
+    const pipeline = {
+      incr: vi.fn().mockReturnThis(),
+      expire: vi.fn().mockReturnThis(),
+      exec: vi.fn().mockResolvedValue([
+        [null, 3],
+        [null, 0],
+      ]),
+    };
+    mockClient.multi.mockReturnValue(pipeline);
+
+    const result = await uut.increment('hits', 3600);
+
+    expect(pipeline.incr).toHaveBeenCalledWith('hits');
+    expect(pipeline.expire).toHaveBeenCalledWith('hits', 3600, 'NX');
+    expect(result).toBe(3);
+  });
+
+  it('should throw when counting a hit fails', async () => {
+    const error = new Error(
+      'READONLY You can not write against a read only replica',
+    );
+    mockClient.multi.mockReturnValue({
+      incr: vi.fn().mockReturnThis(),
+      expire: vi.fn().mockReturnThis(),
+      exec: vi.fn().mockResolvedValue([[error, null]]),
+    });
+
+    const result = uut.increment('hits', 3600);
+
+    await expect(result).rejects.toThrow(error);
   });
 
   it('should evaluate and execute a Lua script server side', () => {

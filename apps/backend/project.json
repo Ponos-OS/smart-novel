@@ -28,9 +28,32 @@
         "cwd": "{projectRoot}"
       }
     },
+    "fithara:fetch-openapi": {
+      "executor": "nx:run-commands",
+      "description": "Download Fithara's openapi.json (pinned by FITHARA_VERSION) if not already present",
+      "cache": false,
+      "options": {
+        "command": "npx ts-node --files --project tsconfig.app.json fetch-fithara-openapi.ts",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "fithara:codegen": {
+      "executor": "nx:run-commands",
+      "description": "Regenerate Fithara's TypeScript types from openapi.json",
+      "dependsOn": ["fithara:fetch-openapi"],
+      "cache": false,
+      "options": {
+        "command": "npx --yes openapi-typescript@7.13.0 src/shared/fithara/openapi.json -o src/shared/fithara/schema.d.ts",
+        "cwd": "{projectRoot}"
+      }
+    },
     "build": {
       "executor": "nx:run-commands",
-      "dependsOn": ["prisma:generate", "beatrice:codegen"],
+      "dependsOn": [
+        "prisma:generate",
+        "beatrice:codegen",
+        "fithara:codegen"
+      ],
       "options": {
         "command": "webpack-cli build",
         "args": ["--node-env=production"],
@@ -90,7 +113,11 @@
     },
     "test": {
       "executor": "@nx/vitest:test",
-      "dependsOn": ["prisma:generate", "beatrice:codegen"],
+      "dependsOn": [
+        "prisma:generate",
+        "beatrice:codegen",
+        "fithara:codegen"
+      ],
       "options": {
         "config": "{projectRoot}/vitest.config.ts",
         "reportsDirectory": "coverage/apps/backend",
@@ -132,7 +159,11 @@
     },
     "gen-graphql-schema": {
       "executor": "nx:run-commands",
-      "dependsOn": ["prisma:generate", "beatrice:codegen"],
+      "dependsOn": [
+        "prisma:generate",
+        "beatrice:codegen",
+        "fithara:codegen"
+      ],
       "description": "Generate the GraphQL SDL schema file on the host",
       "options": {
         "command": "npx ts-node --files -r tsconfig-paths/register --project tsconfig.app.json gen-graphql-schema.ts",

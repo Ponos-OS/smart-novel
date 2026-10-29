@@ -54,6 +54,7 @@ else
          --build-arg "PORT=${backend_port:-3000}" \
          --build-arg "DATABASE_URL=postgresql://dummy" \
          --build-arg "BEATRICE_VERSION=$(env_value BEATRICE_VERSION)" \
+         --build-arg "FITHARA_VERSION=$(env_value FITHARA_VERSION)" \
          -t smart-novel-backend:e2e "$repo_root"
   # The production build compiles the frontend, which needs the generated typed hooks.
   (cd "$repo_root" && npx nx codegen frontend)

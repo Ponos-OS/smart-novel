@@ -1,6 +1,7 @@
 export * from './auth';
 export * from './background-runner';
 export * from './license';
+export * from './license-assistant';
 export * from './llm';
 export * from './novel';
 export * from './object-storage';
