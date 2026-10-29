@@ -59,10 +59,10 @@ export class NovelService {
   ): Promise<Novel> {
     const { licenseId, licenseDraft, ...fields } = input;
     const license =
-      (await this.licenseService.resolve({
-        licenseId,
-        licenseDraft,
-      })) ?? (await this.licenseService.getDefault());
+      (await this.licenseService.resolve(
+        { licenseId, licenseDraft },
+        ownerId,
+      )) ?? (await this.licenseService.getDefault());
 
     return this.novelRepository.createNovel({
       ownerId,
@@ -75,13 +75,13 @@ export class NovelService {
     id: string,
     input: UpdateNovelInput,
   ): Promise<Novel> {
-    await this.findOne(id);
+    const novel = await this.findOne(id);
 
     const { licenseId, licenseDraft, ...fields } = input;
-    const license = await this.licenseService.resolve({
-      licenseId,
-      licenseDraft,
-    });
+    const license = await this.licenseService.resolve(
+      { licenseId, licenseDraft },
+      novel.ownerId,
+    );
 
     return this.novelRepository.updateNovel(id, {
       ...fields,

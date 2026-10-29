@@ -143,10 +143,10 @@ describe(NovelService.name, () => {
         licenseId,
       });
 
-      expect(licenseService.resolve).toHaveBeenCalledWith({
-        licenseId,
-        licenseDraft: undefined,
-      });
+      expect(licenseService.resolve).toHaveBeenCalledWith(
+        { licenseId, licenseDraft: undefined },
+        '260311094522198751',
+      );
       expect(licenseService.getDefault).not.toHaveBeenCalled();
       expect(novelRepository.createNovel).toHaveBeenCalledWith(
         expect.objectContaining({ licenseId }),
@@ -184,12 +184,18 @@ describe(NovelService.name, () => {
       const licenseId = 'b2f4c6a8-1d3e-4f50-8a7b-9c0d1e2f3a4b';
       vi.mocked(novelRepository.findById).mockResolvedValue({
         id: novelId,
+        ownerId: '260311094522198751',
       } as any);
       vi.mocked(licenseService.resolve).mockResolvedValue({
         id: licenseId,
       } as any);
 
       await uut.updateNovel(novelId, { licenseId });
+
+      expect(licenseService.resolve).toHaveBeenCalledWith(
+        { licenseId, licenseDraft: undefined },
+        '260311094522198751',
+      );
 
       expect(novelRepository.updateNovel).toHaveBeenCalledWith(
         novelId,

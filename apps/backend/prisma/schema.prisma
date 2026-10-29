@@ -30,14 +30,22 @@ model License {
   id          String            @id @default(uuid()) @db.Uuid
   name        String
   text        String            @db.Text
-  textHash    String            @unique @map("text_hash")
+  /// Null while the row is a draft: a draft changes on every save and is not deduplicated. Unique per owner.
+  textHash    String?           @map("text_hash")
   sourceType  LicenseSourceType @map("source_type")
   canonicalId String?           @map("canonical_id")
   isDefault   Boolean           @default(false) @map("is_default")
+  /// A license being worked on: mutable, private to `ownerId`, never used by a novel.
+  isDraft     Boolean           @default(false) @map("is_draft")
+  /// The writer who owns the license or draft; "system" for the canonical and default licenses everybody may use.
+  ownerId     String            @default("system") @map("owner_id")
   createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   novels Novel[]
 
+  // Also the index of a writer's licenses and drafts.
+  @@unique([ownerId, textHash])
   @@map("licenses")
 }
 

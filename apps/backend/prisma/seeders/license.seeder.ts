@@ -27,7 +27,12 @@ export async function seedLicenses(
     'utf-8',
   );
   const license = await prisma.license.upsert({
-    where: { textHash: computeLicenseTextHash(text) },
+    where: {
+      ownerId_textHash: {
+        ownerId: 'system',
+        textHash: computeLicenseTextHash(text),
+      },
+    },
     update: {},
     create: {
       name: DEFAULT_LICENSE.name,
