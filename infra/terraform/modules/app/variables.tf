@@ -11,7 +11,7 @@ variable "labels" {
 }
 
 variable "images" {
-  description = "Container images: postgres, redis, object_storage, aws_cli, rabbitmq, beatrice, ollama, openai_compatible_tts, backend and frontend, plus redis_insight, pgadmin and open_webui when enable_devtools is true"
+  description = "Container images: postgres, redis, object_storage, aws_cli, rabbitmq, beatrice, fithara, ollama, openai_compatible_tts, backend and frontend, plus redis_insight, pgadmin and open_webui when enable_devtools is true"
   type        = map(string)
 }
 
@@ -105,6 +105,12 @@ variable "llm_model" {
   description = "LLM model name Beatrice asks for; with run_local_ai_models it is the model baked into the Ollama image"
   type        = string
   default     = "llama3.2:1b"
+}
+
+variable "fithara_llm_model" {
+  description = "LLM model name Fithara asks for; null means the model of Beatrice. It must be one the model capability catalog of Fithara knows, and with run_local_ai_models it must be baked into the Ollama image"
+  type        = string
+  default     = null
 }
 
 variable "tts_model" {

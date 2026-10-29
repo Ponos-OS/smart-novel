@@ -91,6 +91,7 @@ locals {
   )
   third_party_images = merge(var.third_party_images, var.enable_devtools ? var.devtools_images : {}, {
     beatrice = "9109679196/smart-novel-beatrice:${local.dotenv["BEATRICE_VERSION"]}"
+    fithara  = "9109679196/fithara:${local.dotenv["FITHARA_VERSION"]}"
   })
 
   redis_node_port = 30379
@@ -188,6 +189,7 @@ module "app" {
   run_local_ai_models          = var.run_local_ai_models
   llm_base_url                 = var.llm_base_url
   llm_model                    = lookup(local.dotenv, "BEATRICE_LLM_MODEL", "llama3.2:1b")
+  fithara_llm_model            = lookup(local.dotenv, "FITHARA_LLM_MODEL", null)
   tts_model                    = lookup(local.dotenv, "BEATRICE_TTS_MODEL", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice")
   tts_base_url                 = var.tts_base_url
   llm_api_key                  = var.llm_api_key

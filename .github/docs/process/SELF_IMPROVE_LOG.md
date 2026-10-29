@@ -74,3 +74,10 @@
 - Backend 700 tests, frontend 214, lint, tsc, schema and codegen pass; `LicenseService` resolving with the global Fithara module was checked in a throwaway Nest context, because unit tests mock every dependency.
 - The B2 e2e case "an unknown text claims to be canonical" now needs Fithara in the cluster, which does not exist yet; it was replaced by one that does not (a canonical claim without its id). Verifying a real canonical claim end to end is blocked on the Fithara Terraform module.
 - Found while auditing: when a plan changes mid-feature, grep the earlier steps for the assumption that changed (here "only the seeded text may be canonical") instead of waiting for the new step to hit it.
+
+## I1 - 2026-10-29
+
+- Left uncommitted on request, for review. Verified: `terraform test` for the new `fithara` module (5), `app` (24, with new cases) and `ollama` (2); `terraform fmt` and `terraform validate` of `envs/local`; the real image `9109679196/fithara:2.0.0` run with the module's environment answered `/health` (model and the catalog's window) and listed the four licenses. Not run: `npm run start:dev` / `stop:dev` twice and the backend e2e (cluster and memory limits; the PROCESS asks the user for the idempotence runs), so the pod's readiness, the Ollama image with two models and the new e2e cases are unproven in a cluster.
+- Found by running the image: Fithara needs ~15-40 s to answer after its process starts (the catalog is read at boot), so the first readiness probe fails; the probe allows 36 failures at 5 s.
+- A flaky F10 test (typing 40 characters key by key timed out at 5 s on a loaded machine) was changed to paste. A spec that types a long string should paste it.
+- Known mismatch, not solvable in this step: Ollama serves `OLLAMA_CONTEXT_LENGTH` (32768) while Fithara trusts the catalog's window (131072 for llama3.2); it is recorded in `infra/README.md`.

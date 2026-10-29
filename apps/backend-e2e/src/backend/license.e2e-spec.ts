@@ -71,6 +71,26 @@ const NOVELS_LICENSES = `#graphql
   }
 `;
 
+const CANONICAL_LICENSES = `#graphql
+  query CanonicalLicenses {
+    canonicalLicenses {
+      id
+      shortName
+      officialUrl
+    }
+  }
+`;
+
+const CANONICAL_LICENSE = `#graphql
+  query CanonicalLicense($id: ID!) {
+    canonicalLicense(id: $id) {
+      id
+      shortName
+      body
+    }
+  }
+`;
+
 async function graphql(
   query: string,
   variables: Record<string, unknown>,
@@ -336,5 +356,80 @@ describe('Licenses (e2e)', () => {
         expect(data.errors[0].message).toContain(message);
       },
     );
+  });
+
+  describe('canonical licenses of the Fithara registry', () => {
+    const canonicalId = 'CC-BY-NC-4.0';
+
+    async function readCanonicalLicense(writer: string) {
+      const data = await graphql(
+        CANONICAL_LICENSE,
+        { id: canonicalId },
+        writer,
+      );
+
+      return data.data.canonicalLicense;
+    }
+
+    it('should list the registry for a writer', async () => {
+      const writer =
+        await AuthorizationFixture.getWriterAuthorizationHeader();
+
+      const data = await graphql(CANONICAL_LICENSES, {}, writer);
+
+      expect(
+        data.data.canonicalLicenses.map(
+          ({ id }: { id: string }) => id,
+        ),
+      ).toContain(canonicalId);
+    });
+
+    it('should store the registry text as a canonical license, under the name of the registry', async () => {
+      const writer =
+        await AuthorizationFixture.getWriterAuthorizationHeader();
+      const canonical = await readCanonicalLicense(writer);
+
+      const data = await graphql(
+        CREATE_NOVEL,
+        {
+          input: {
+            ...novelInput,
+            licenseDraft: {
+              title: 'Whatever the client calls it',
+              text: canonical.body,
+              source: { type: 'CANONICAL', canonicalId },
+            },
+          },
+        },
+        writer,
+      );
+
+      expect(data.errors).toBeUndefined();
+    });
+
+    it('should refuse a text that claims to be canonical but is not the registry text', async () => {
+      const writer =
+        await AuthorizationFixture.getWriterAuthorizationHeader();
+      const canonical = await readCanonicalLicense(writer);
+
+      const data = await graphql(
+        CREATE_NOVEL,
+        {
+          input: {
+            ...novelInput,
+            licenseDraft: {
+              title: canonical.shortName,
+              text: `${canonical.body}\n\nYou may also sell it.`,
+              source: { type: 'CANONICAL', canonicalId },
+            },
+          },
+        },
+        writer,
+      );
+
+      expect(data.errors[0].message).toContain(
+        `is not the canonical license ${canonicalId}`,
+      );
+    });
   });
 });

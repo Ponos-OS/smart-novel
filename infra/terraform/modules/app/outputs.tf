@@ -36,6 +36,11 @@ output "beatrice_url" {
   value       = one(module.beatrice[*].graphql_url)
 }
 
+output "fithara_url" {
+  description = "In-cluster URL of Fithara, or null when no LLM is available for it"
+  value       = local.fithara_url
+}
+
 output "workloads_enabled" {
   description = "Whether the backend and the frontend are deployed"
   value       = module.backend.enabled && module.frontend.enabled

@@ -8,7 +8,7 @@ enable_devtools = true
 
 <details><summary>To skip the heavy models (Ollama, OpenAI-compatible TTS, and with them Beatrice), set <code>RUN_LOCAL_AI_MODELS=false</code> in the <code>.env</code></summary>
 
-Beatrice talks to an OpenAI-compatible LLM and an OpenAI-compatible speech endpoint.
+Beatrice talks to an OpenAI-compatible LLM and an OpenAI-compatible speech endpoint; Fithara (the license assistant) talks to the same LLM endpoint with its own model, one that the `llmcapa` model catalog knows.
 
 `RUN_LOCAL_AI_MODELS` in `.env`, picks where the requests must go when starting the app (`npm run start:dev`) or running the tests (`nx e2e backend-e2e`).
 
@@ -17,6 +17,7 @@ Local models utilize Ollama and the bundled `local-setup/openai-compatible-tts`.
 ```bash
 RUN_LOCAL_AI_MODELS=false
 BEATRICE_LLM_MODEL=gpt-4o-mini
+FITHARA_LLM_MODEL=gpt-4o-mini
 BEATRICE_TTS_MODEL=gpt-4o-mini-tts
 BEATRICE_DEFAULT_VOICE=alloy
 ```

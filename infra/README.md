@@ -17,6 +17,7 @@ infra/
     │   ├── ollama/     Ollama with the model baked into the image
     │   ├── openai_compatible_tts/   OpenAI-compatible TTS server with the model baked into the image
     │   ├── beatrice/   Beatrice, the audio generation service
+    │   ├── fithara/    Fithara, the license drafting assistant
     │   ├── backend/    NestJS API
     │   ├── frontend/   Vite SPA
     │   ├── job/        A one-shot Job
@@ -32,7 +33,7 @@ infra/
         └── hetzner-zitadel/ Project, roles and client on the shared ZITADEL
 ```
 
-Each component is its own module under `modules/`. `modules/app` is the app layer: data stores, backend, frontend, Beatrice and one `Ingress`. It takes everything about the platform as inputs (`ingress_class_name`, `ingress_host`, `cluster_issuer`, `otlp_endpoint`), so it also deploys onto a shared cluster. `envs/local` creates the kind cluster, points the `kubernetes` provider at it, and calls `module "app"` plus the three modules that stand in for the platform locally: `ingress` (Traefik), `observability` and `zitadel`. Nothing outside `envs/local` calls those three. `envs/local-zitadel` is a second root module that configures ZITADEL once it runs (see Ingress and ZITADEL).
+Each component is its own module under `modules/`. `modules/app` is the app layer: data stores, backend, frontend, Beatrice, Fithara and one `Ingress`. It takes everything about the platform as inputs (`ingress_class_name`, `ingress_host`, `cluster_issuer`, `otlp_endpoint`), so it also deploys onto a shared cluster. `envs/local` creates the kind cluster, points the `kubernetes` provider at it, and calls `module "app"` plus the three modules that stand in for the platform locally: `ingress` (Traefik), `observability` and `zitadel`. Nothing outside `envs/local` calls those three. `envs/local-zitadel` is a second root module that configures ZITADEL once it runs (see Ingress and ZITADEL).
 
 ## Local Environment
 
@@ -89,9 +90,11 @@ Beatrice consumes audio jobs from RabbitMQ, normalizes text with an LLM (Ollama)
 
 `RUN_LOCAL_AI_MODELS=false` (in `.env`) skips building and deploying Ollama and OpenAI-compatible TTS. Beatrice and RabbitMQ then run only if `llm_base_url` and `tts_base_url` point at other services, for example the host or a cloud provider; otherwise they are skipped too. `broker_url` skips RabbitMQ. Beatrice has no health endpoint, so its readiness probe checks that the port is open.
 
+Fithara (the license assistant) needs only an LLM, so it runs whenever Ollama does or `llm_base_url` is set. It asks for its own model (`FITHARA_LLM_MODEL`, baked into the Ollama image next to Beatrice's), which the `llmcapa` model catalog must know, or it refuses to start. It has a Service but no route in the `Ingress`: only the backend reaches it, through `FITHARA_URL`, which `modules/app` fills in. Its readiness probe is `GET /health`, and its first start takes a while because the catalog is read then. Ollama serves only `OLLAMA_CONTEXT_LENGTH` tokens (the `context_length` input of its module, 32768 by default) whatever the model could take, while Fithara trusts the catalog's window; a conversation longer than what Ollama serves is truncated by Ollama before Fithara would condense it.
+
 ## Backend and Frontend
 
-`envs/local` reads `.env` and hands it to `module "app"` as `backend_environment`, `backend_secret_environment` (keys matching `PASSWORD|SECRET|MASTERKEY|ACCESS_KEY`, stored in a Secret) and `frontend_environment` (the `VITE_` keys). Values that depend on the deployed components (database and Redis URLs, object storage endpoint, Beatrice URL, tracing) are filled in by `modules/app` and win over `.env`, so an external `database_url` or a disabled component needs no `.env` edit.
+`envs/local` reads `.env` and hands it to `module "app"` as `backend_environment`, `backend_secret_environment` (keys matching `PASSWORD|SECRET|MASTERKEY|ACCESS_KEY`, stored in a Secret) and `frontend_environment` (the `VITE_` keys). Values that depend on the deployed components (database and Redis URLs, object storage endpoint, Beatrice and Fithara URLs, tracing) are filled in by `modules/app` and win over `.env`, so an external `database_url` or a disabled component needs no `.env` edit.
 
 The modules know nothing about development. `backend` and `frontend` take an image, a port, environment, `volumes` (host path or claim), and the frontend also an optional `command` and `files`. Anything that has to run first, such as applying the database schema, is a `pre_deploy_jobs` entry (`modules/job`): the backend and the frontend start only after all of them completed, and `use_backend_environment` gives a Job the backend's environment, including what `modules/app` fills in.
 

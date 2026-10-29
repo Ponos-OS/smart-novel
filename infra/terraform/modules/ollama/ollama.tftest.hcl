@@ -14,3 +14,12 @@ run "deploys_ollama_and_exposes_its_openai_endpoint" {
     error_message = "consumers must reach Ollama's OpenAI-compatible API by the ollama service name"
   }
 }
+
+run "serves_a_context_long_enough_for_drafting_licenses" {
+  command = plan
+
+  assert {
+    condition     = one([for e in kubernetes_deployment_v1.ollama.spec[0].template[0].spec[0].container[0].env : e.value if e.name == "OLLAMA_CONTEXT_LENGTH"]) == "32768"
+    error_message = "Ollama must be told the context length to serve"
+  }
+}

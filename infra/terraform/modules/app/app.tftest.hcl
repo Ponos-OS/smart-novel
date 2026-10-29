@@ -10,6 +10,7 @@ variables {
     aws_cli               = "amazon/aws-cli:2.38.1"
     rabbitmq              = "rabbitmq:3.13-management-alpine"
     beatrice              = "9109679196/smart-novel-beatrice:5.0.0"
+    fithara               = "9109679196/fithara:2.0.0"
     ollama                = "smart-novel-ollama:dev"
     openai_compatible_tts = "smart-novel-openai-compatible-tts:dev"
     backend               = "smart-novel-backend:1.4.0"
@@ -98,6 +99,34 @@ run "deploys_ai_and_beatrice_by_default" {
   }
 }
 
+run "deploys_fithara_by_default_and_hands_its_url_to_the_backend" {
+  command = plan
+
+  assert {
+    condition     = length(module.fithara) == 1 && output.fithara_url == "http://fithara:8000"
+    error_message = "Fithara must be deployed by default and reached through its in-cluster URL"
+  }
+
+  assert {
+    condition     = module.fithara[0].llm_provider == "ollama"
+    error_message = "Fithara must use the local Ollama when the local models run"
+  }
+}
+
+run "fithara_takes_its_own_model_when_given_one" {
+  command = plan
+
+  variables {
+    llm_model         = "llama3.2:3b"
+    fithara_llm_model = "qwen2.5:7b"
+  }
+
+  assert {
+    condition     = module.fithara[0].llm_model == "qwen2.5:7b"
+    error_message = "Fithara must ask for fithara_llm_model, not for Beatrice's model"
+  }
+}
+
 run "disabling_ai_without_endpoints_skips_beatrice_and_rabbitmq" {
   command = plan
 
@@ -106,7 +135,7 @@ run "disabling_ai_without_endpoints_skips_beatrice_and_rabbitmq" {
   }
 
   assert {
-    condition     = length(module.ollama) == 0 && length(module.openai_compatible_tts) == 0 && length(module.beatrice) == 0 && length(module.rabbitmq) == 0
+    condition     = length(module.ollama) == 0 && length(module.openai_compatible_tts) == 0 && length(module.beatrice) == 0 && length(module.rabbitmq) == 0 && length(module.fithara) == 0 && output.fithara_url == null
     error_message = "without the AI components or external endpoints nothing of the pipeline must remain"
   }
 }
@@ -121,8 +150,8 @@ run "disabling_ai_with_external_endpoints_keeps_beatrice" {
   }
 
   assert {
-    condition     = length(module.ollama) == 0 && length(module.openai_compatible_tts) == 0 && length(module.beatrice) == 1 && length(module.rabbitmq) == 1
-    error_message = "Beatrice must run against the external endpoints"
+    condition     = length(module.ollama) == 0 && length(module.openai_compatible_tts) == 0 && length(module.beatrice) == 1 && length(module.rabbitmq) == 1 && length(module.fithara) == 1
+    error_message = "Beatrice and Fithara must run against the external endpoints"
   }
 }
 

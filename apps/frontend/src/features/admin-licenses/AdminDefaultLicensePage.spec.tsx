@@ -121,11 +121,11 @@ describe(AdminDefaultLicensePage.name, () => {
     renderPage();
     const textarea = screen.getByLabelText('License text');
     await user.clear(textarea);
-    await user.type(textarea, noResale.text);
-    await user.type(
+    await user.paste(noResale.text);
+    await user.click(
       screen.getByLabelText('Name of your modified license'),
-      noResale.name,
     );
+    await user.paste(noResale.name);
 
     // Act
     await user.click(

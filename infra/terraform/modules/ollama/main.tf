@@ -25,6 +25,12 @@ resource "kubernetes_deployment_v1" "ollama" {
           name  = "ollama"
           image = var.image
 
+          # Ollama serves only this much context, whatever the model could take. Fithara drafts with the whole license in the prompt and in the answer, so it needs a window of tens of thousands of tokens.
+          env {
+            name  = "OLLAMA_CONTEXT_LENGTH"
+            value = tostring(var.context_length)
+          }
+
           port {
             name           = "http"
             container_port = 11434

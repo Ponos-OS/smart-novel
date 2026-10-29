@@ -37,8 +37,11 @@ if ! curl -fsS "http://${HOST}:${PORT}/api/version" >/dev/null; then
   exit 1
 fi
 
-log "Daemon is ready. Pulling model: ${MODEL}"
-ollama pull "${MODEL}"
+for model in "${MODEL}" "${FITHARA_LLM_MODEL:-}"; do
+  [ -n "${model}" ] || continue
+  log "Daemon is ready. Pulling model: ${model}"
+  ollama pull "${model}"
+done
 
 log "Listing models:"; ollama list || true
 log "Done."

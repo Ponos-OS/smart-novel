@@ -6,6 +6,8 @@ FROM ollama/ollama:0.17.7
 
 ARG BEATRICE_LLM_MODEL=llama3.2:1b
 ENV BEATRICE_LLM_MODEL=${BEATRICE_LLM_MODEL}
+# Fithara's model, pulled next to Beatrice's; it must be one the llmcapa catalog knows. An empty value pulls nothing extra, and Fithara then asks for Beatrice's model.
+ARG FITHARA_LLM_MODEL=llama3.2:3b
 # CAUTION: 0.0.0.0 means Ollama will listen on all network interfaces. This allows
 # - Internal healthchecks to succeed
 # - Our backend service to connect successfully.
