@@ -39,4 +39,36 @@ describe(NovelLicenseSection.name, () => {
     expect(details).not.toHaveAttribute('open');
     expect(details).toHaveTextContent(license.text);
   });
+
+  it('links the official text of a canonical license, marked as an external link', () => {
+    // Act
+    render(
+      <NovelLicenseSection
+        license={{
+          ...license,
+          officialUrl:
+            'https://creativecommons.org/licenses/by/4.0/legalcode',
+        }}
+      />,
+    );
+
+    // Assert
+    const link = screen.getByRole('link', {
+      name: 'Read the official license text (opens in a new tab)',
+    });
+    expect(link).toHaveAttribute(
+      'href',
+      'https://creativecommons.org/licenses/by/4.0/legalcode',
+    );
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  it('shows no link when the license has none', () => {
+    // Act
+    render(<NovelLicenseSection license={license} />);
+
+    // Assert
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
 });

@@ -3,6 +3,7 @@ import {
   LICENSE_DISCLAIMER,
   type LicenseSummary,
 } from './license-notice';
+import { OfficialLicenseLink } from './OfficialLicenseLink';
 
 interface NovelLicenseSectionProps {
   license: LicenseSummary;
@@ -24,6 +25,9 @@ export function NovelLicenseSection({
       </h2>
       <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
         {getLicenseNotice(license)}
+      </p>
+      <p className="mt-1">
+        <OfficialLicenseLink officialUrl={license.officialUrl} />
       </p>
       <details className="mt-3">
         <summary className="cursor-pointer text-sm font-medium text-blue-600 dark:text-blue-400">

@@ -10,6 +10,7 @@ import { join } from 'path';
 import { AppResolver } from './src/app/app.resolver';
 import { AuthResolver } from './src/modules/auth/auth.resolver';
 import { LicenseAssistantResolver } from './src/modules/license-assistant/license-assistant.resolver';
+import { LicenseFieldResolver } from './src/modules/license/license.field-resolver';
 import { LicenseResolver } from './src/modules/license/license.resolver';
 import { LlmResolver } from './src/modules/llm/llm.resolver';
 import {
@@ -35,6 +36,7 @@ async function generateSchema() {
     AppResolver,
     AuthResolver,
     LicenseResolver,
+    LicenseFieldResolver,
     LicenseAssistantResolver,
     LlmResolver,
     PlatformTermsResolver,

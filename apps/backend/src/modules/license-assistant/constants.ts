@@ -1,3 +1,1 @@
-export const FITHARA_CLIENT = Symbol('FITHARA_CLIENT');
-
 export const MAX_REQUESTS_PER_USER_PER_HOUR = 30;

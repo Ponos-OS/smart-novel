@@ -4,6 +4,7 @@ query DefaultLicense {
     name
     sourceType
     canonicalId
+    officialUrl
     text
   }
 }

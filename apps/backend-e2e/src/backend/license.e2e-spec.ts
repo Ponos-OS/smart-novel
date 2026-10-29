@@ -311,14 +311,15 @@ describe('Licenses (e2e)', () => {
         message: 'not found',
       },
       {
-        scenario: 'an unknown text claims to be canonical',
+        scenario:
+          'a text claims to be canonical without saying which',
         license: {
           licenseDraft: {
             ...uniqueDraft(),
-            source: { type: 'CANONICAL', canonicalId: 'CC-BY-4.0' },
+            source: { type: 'CANONICAL' },
           },
         },
-        message: 'not a known canonical license',
+        message: 'needs its canonicalId',
       },
     ])(
       'should reject creating a novel when $scenario',

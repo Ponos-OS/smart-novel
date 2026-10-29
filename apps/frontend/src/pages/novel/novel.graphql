@@ -13,6 +13,7 @@ query GetNovel($id: ID!) {
       name
       sourceType
       canonicalId
+      officialUrl
       text
     }
     chaptersConnection(

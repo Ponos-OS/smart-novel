@@ -10,11 +10,9 @@ import {
   type FitharaClient,
   FitharaRequestError,
 } from '../../shared';
+import { FITHARA_CLIENT } from '../fithara';
 import { RedisService } from '../redis';
-import {
-  FITHARA_CLIENT,
-  MAX_REQUESTS_PER_USER_PER_HOUR,
-} from './constants';
+import { MAX_REQUESTS_PER_USER_PER_HOUR } from './constants';
 import { DraftLicenseInput } from './inputs';
 import {
   CanonicalLicense,

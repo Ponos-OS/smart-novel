@@ -32,4 +32,14 @@ export class License {
 
   @Field({ description: 'The full license text' })
   text: string;
+
+  /**
+   * Resolved by the `officialUrl` field resolver, never stored.
+   */
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Link to the authoritative text of the canonical license this is, or was modified from. Null for CUSTOM, or when the registry cannot be reached.',
+  })
+  officialUrl?: string | null;
 }

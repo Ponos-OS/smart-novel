@@ -1,9 +1,11 @@
 import {
   BadRequestException,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { LicenseSourceType } from '@prisma/client';
 
+import type { CanonicalLicenseCatalog } from '../../fithara';
 import type { PrismaService } from '../../prisma';
 import type { LicenseDraftInput } from '../inputs';
 
@@ -13,6 +15,7 @@ import { LicenseService } from './license.service';
 describe(LicenseService.name, () => {
   let uut: LicenseService;
   let prisma: PrismaService;
+  let catalog: CanonicalLicenseCatalog;
 
   const ccBy = {
     id: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
@@ -46,7 +49,9 @@ describe(LicenseService.name, () => {
       $transaction: vi.fn((callback) => callback(prisma)),
     } as any;
 
-    uut = new LicenseService(prisma);
+    catalog = { findVerbatim: vi.fn() } as any;
+
+    uut = new LicenseService(prisma, catalog);
   });
 
   describe('getDefault', () => {
@@ -163,11 +168,8 @@ describe(LicenseService.name, () => {
 
     it.each([
       [
-        'an unknown text claiming to be canonical',
-        {
-          type: LicenseSourceType.CANONICAL,
-          canonicalId: 'CC-BY-4.0',
-        },
+        'a canonical text without its canonicalId',
+        { type: LicenseSourceType.CANONICAL },
       ],
       [
         'a forked text without its base',
@@ -184,6 +186,92 @@ describe(LicenseService.name, () => {
 
       await expect(result).rejects.toThrow(BadRequestException);
       expect(prisma.license.createMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getOrCreate with a canonical claim', () => {
+    const ccByNc = {
+      id: 'CC-BY-NC-4.0',
+      shortName: 'CC BY-NC 4.0',
+      body: 'Attribution-NonCommercial 4.0 International\n\n=====\n',
+    };
+    const claim = {
+      title:
+        'Creative Commons Attribution-NonCommercial 4.0 International',
+      text: ccByNc.body.replace(/\n/g, '\r\n'),
+      source: {
+        type: LicenseSourceType.CANONICAL,
+        canonicalId: 'CC-BY-NC-4.0',
+      },
+    } satisfies LicenseDraftInput;
+
+    beforeEach(() => {
+      vi.mocked(prisma.license.findUnique).mockResolvedValue(null);
+    });
+
+    it('should store the text as canonical, under the name of the registry, when it is the registry text word for word', async () => {
+      vi.mocked(catalog.findVerbatim).mockResolvedValue(ccByNc);
+
+      await uut.getOrCreate(claim);
+
+      expect(catalog.findVerbatim).toHaveBeenCalledWith(
+        'CC-BY-NC-4.0',
+      );
+      expect(prisma.license.createMany).toHaveBeenCalledWith({
+        data: [
+          {
+            name: 'CC BY-NC 4.0',
+            text: 'Attribution-NonCommercial 4.0 International\n\n=====',
+            textHash: computeLicenseTextHash(ccByNc.body),
+            sourceType: LicenseSourceType.CANONICAL,
+            canonicalId: 'CC-BY-NC-4.0',
+          },
+        ],
+        skipDuplicates: true,
+      });
+    });
+
+    it.each([
+      ['a text that differs from the registry', ccByNc],
+      ['a license the registry does not know', null],
+    ])('should reject %s', async (_, found) => {
+      vi.mocked(catalog.findVerbatim).mockResolvedValue(
+        found && {
+          ...found,
+          body: `${found.body}But you may sell it.`,
+        },
+      );
+
+      const result = uut.getOrCreate(claim);
+
+      await expect(result).rejects.toThrow(
+        'is not the canonical license CC-BY-NC-4.0',
+      );
+      expect(prisma.license.createMany).not.toHaveBeenCalled();
+    });
+
+    it('should not take a text as canonical when the registry cannot be asked', async () => {
+      vi.mocked(catalog.findVerbatim).mockRejectedValue(
+        new ServiceUnavailableException(),
+      );
+
+      const result = uut.getOrCreate(claim);
+
+      await expect(result).rejects.toThrow(
+        ServiceUnavailableException,
+      );
+      expect(prisma.license.createMany).not.toHaveBeenCalled();
+    });
+
+    it('should not ask the registry about a text that is already stored', async () => {
+      vi.mocked(prisma.license.findUnique).mockResolvedValue(
+        ccBy as any,
+      );
+
+      const result = await uut.getOrCreate(claim);
+
+      expect(result).toBe(ccBy);
+      expect(catalog.findVerbatim).not.toHaveBeenCalled();
     });
   });
 

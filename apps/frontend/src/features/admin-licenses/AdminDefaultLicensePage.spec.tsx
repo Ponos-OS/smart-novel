@@ -18,6 +18,13 @@ const ccBy = {
   canonicalId: 'CC-BY-4.0',
   text: 'Attribution 4.0 International',
 };
+const ccByNc = {
+  id: 'CC-BY-NC-4.0',
+  shortName: 'CC BY-NC 4.0',
+  officialUrl:
+    'https://creativecommons.org/licenses/by-nc/4.0/legalcode',
+  body: 'Attribution-NonCommercial 4.0 International',
+};
 const noResale = {
   ...ccBy,
   id: 'b2d9c4aa-18f3-4f0e-9c57-3a6d1e8b7f42',
@@ -44,6 +51,19 @@ vi.mock('../../generated/graphql', async () => {
   return {
     ...actual,
     useDefaultLicenseQuery,
+    useCanonicalLicensesQuery: () => ({
+      data: {
+        canonicalLicenses: [
+          { id: 'CC-BY-NC-4.0', shortName: 'CC BY-NC 4.0' },
+        ],
+      },
+    }),
+    useCanonicalLicenseQuery: (
+      _variables: unknown,
+      { enabled }: { enabled: boolean },
+    ) => ({
+      data: enabled ? { canonicalLicense: ccByNc } : undefined,
+    }),
     useSetDefaultLicenseMutation: () => ({
       mutate,
       reset: vi.fn(),
@@ -132,6 +152,46 @@ describe(AdminDefaultLicensePage.name, () => {
     );
     await waitFor(() => expect(showSuccess).toHaveBeenCalledOnce());
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('makes a canonical license of the registry the default, after the admin confirms', async () => {
+    // Arrange
+    const user = userEvent.setup();
+    mutate.mockImplementation((_variables, options) =>
+      options.onSuccess({
+        setDefaultLicense: { ...ccByNc, name: 'CC BY-NC 4.0' },
+      }),
+    );
+    renderPage();
+
+    // Act
+    await user.selectOptions(
+      screen.getByLabelText('Start from'),
+      'CC-BY-NC-4.0',
+    );
+    await user.click(
+      screen.getByRole('button', { name: 'Set as default' }),
+    );
+    await user.click(
+      screen.getByRole('button', { name: 'Change default' }),
+    );
+
+    // Assert
+    expect(mutate).toHaveBeenCalledExactlyOnceWith(
+      {
+        input: {
+          licenseDraft: {
+            title: 'CC BY-NC 4.0',
+            text: ccByNc.body,
+            source: {
+              type: 'CANONICAL',
+              canonicalId: 'CC-BY-NC-4.0',
+            },
+          },
+        },
+      },
+      expect.anything(),
+    );
   });
 
   it('leaves the default alone when the confirmation is cancelled', async () => {

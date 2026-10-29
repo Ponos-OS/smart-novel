@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { LicenseSourceType } from '@prisma/client';
 
+import { CanonicalLicenseCatalog } from '../../fithara';
 import { PrismaService } from '../../prisma';
 import { LicenseDraftInput } from '../inputs';
 import { License } from '../types';
@@ -20,7 +21,10 @@ export interface LicenseSelection {
 
 @Injectable()
 export class LicenseService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly canonicalLicenseCatalog: CanonicalLicenseCatalog,
+  ) {}
 
   async getDefault(): Promise<License> {
     return this.prisma.license.findFirstOrThrow({
@@ -65,9 +69,7 @@ export class LicenseService {
     const { type, canonicalId } = draft.source;
 
     if (type === LicenseSourceType.CANONICAL) {
-      throw new BadRequestException(
-        'This text is not a known canonical license, send it as FORKED or CUSTOM',
-      );
+      return this.createVerifiedCanonical(draft, textHash);
     }
     if (type === LicenseSourceType.FORKED && !canonicalId) {
       throw new BadRequestException(
@@ -80,22 +82,66 @@ export class LicenseService {
       );
     }
 
+    return this.insert({
+      name: draft.title,
+      text: draft.text,
+      textHash,
+      sourceType: type,
+      canonicalId: canonicalId ?? null,
+    });
+  }
+
+  /**
+   * @description A text may only claim to be canonical when it is the one of Fithara's registry, word for word (whitespace aside), so a client cannot dress its own text as a well-known license. The row takes its name from the registry.
+   */
+  private async createVerifiedCanonical(
+    draft: LicenseDraftInput,
+    textHash: string,
+  ): Promise<License> {
+    const { canonicalId } = draft.source;
+
+    if (!canonicalId) {
+      throw new BadRequestException(
+        'A CANONICAL license needs its canonicalId',
+      );
+    }
+
+    const canonical =
+      await this.canonicalLicenseCatalog.findVerbatim(canonicalId);
+
+    if (
+      !canonical ||
+      computeLicenseTextHash(canonical.body) !== textHash
+    ) {
+      throw new BadRequestException(
+        `This text is not the canonical license ${canonicalId}, send it as FORKED or CUSTOM`,
+      );
+    }
+
+    return this.insert({
+      name: canonical.shortName,
+      text: draft.text,
+      textHash,
+      sourceType: LicenseSourceType.CANONICAL,
+      canonicalId: canonical.id,
+    });
+  }
+
+  private async insert(data: {
+    name: string;
+    text: string;
+    textHash: string;
+    sourceType: LicenseSourceType;
+    canonicalId: string | null;
+  }): Promise<License> {
     // `upsert` is not atomic, two requests with the same new text would collide on `text_hash`.
     await this.prisma.license.createMany({
-      data: [
-        {
-          name: draft.title,
-          text: normalizeLicenseText(draft.text),
-          textHash,
-          sourceType: type,
-          canonicalId: canonicalId ?? null,
-        },
-      ],
+      data: [{ ...data, text: normalizeLicenseText(data.text) }],
       skipDuplicates: true,
     });
 
     return this.prisma.license.findUniqueOrThrow({
-      where: { textHash },
+      where: { textHash: data.textHash },
     });
   }
 

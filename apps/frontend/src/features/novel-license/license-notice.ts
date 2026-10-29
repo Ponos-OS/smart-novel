@@ -5,6 +5,7 @@ export interface LicenseSummary {
   name: string;
   sourceType: LicenseSourceType;
   canonicalId?: string | null;
+  officialUrl?: string | null;
   text: string;
 }
 

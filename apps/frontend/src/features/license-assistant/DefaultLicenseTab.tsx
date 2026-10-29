@@ -7,6 +7,7 @@ import {
   getLicenseNotice,
   LICENSE_DISCLAIMER,
 } from '../novel-license/license-notice';
+import { OfficialLicenseLink } from '../novel-license/OfficialLicenseLink';
 
 export function DefaultLicenseTab() {
   const { user } = useAuth();
@@ -43,6 +44,9 @@ export function DefaultLicenseTab() {
             </Link>
           </>
         )}
+      </p>
+      <p className="mb-4">
+        <OfficialLicenseLink officialUrl={license.officialUrl} />
       </p>
       <pre className="max-h-96 overflow-y-auto whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200">
         {license.text}

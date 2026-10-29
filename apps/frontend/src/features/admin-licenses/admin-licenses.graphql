@@ -4,6 +4,7 @@ mutation SetDefaultLicense($input: SetDefaultLicenseInput!) {
     name
     sourceType
     canonicalId
+    officialUrl
     text
   }
 }

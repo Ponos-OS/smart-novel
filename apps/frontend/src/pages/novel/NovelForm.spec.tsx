@@ -6,6 +6,14 @@ import {
 } from '../../generated/graphql';
 import { NovelForm } from './NovelForm';
 
+vi.mock('../../generated/graphql', async () => ({
+  ...(await vi.importActual('../../generated/graphql')),
+  useCanonicalLicensesQuery: () => ({
+    data: { canonicalLicenses: [] },
+  }),
+  useCanonicalLicenseQuery: () => ({ data: undefined }),
+}));
+
 function renderForm(
   props: Partial<Parameters<typeof NovelForm>[0]> = {},
 ) {
