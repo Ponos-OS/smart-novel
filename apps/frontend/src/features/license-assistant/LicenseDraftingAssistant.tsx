@@ -1,51 +1,86 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
-import { CanonicalLicenseDialog } from './CanonicalLicenseDialog';
-import { ConversationPane } from './ConversationPane';
-import { DraftPane } from './DraftPane';
-import { useLicenseAssistant } from './use-license-assistant';
+import { Button } from '../../components/Button';
+import { useLicenseDraftQuery } from '../../generated/graphql';
+import { useAuth } from '../../hooks/useAuth';
+import { GraphqlRequestError } from '../../lib/graphql-fetcher';
+import { AssistantWorkspace } from './AssistantWorkspace';
+import { loadSession } from './session-storage';
+import {
+  type FinalizedLicense,
+  type InitialSession,
+  toDraftInput,
+} from './use-license-assistant-session';
 
-export function LicenseDraftingAssistant() {
-  const assistant = useLicenseAssistant();
-  const [composerText, setComposerText] = useState('');
-  const [viewedLicenseId, setViewedLicenseId] = useState<
-    string | null
-  >(null);
-  const composerRef = useRef<HTMLTextAreaElement>(null);
+interface LicenseDraftingAssistantProps {
+  /** @description The license of the novel being edited, which the author can customize. */
+  baseLicense?: { id: string; name: string };
+  /** @description Called with the license to put on the novel once the author finalizes the draft. */
+  onFinalized?: (license: FinalizedLicense) => void;
+}
 
-  // Never replaces what the author already wrote: a suggestion goes on a new line.
-  const prefill = (message: string) => {
-    setComposerText((text) =>
-      text ? `${text}\n${message}` : message,
+/**
+ * @description Picks up where the writer left off: the draft of the stored session is read from the backend first, and the workspace starts only once it has it. A draft that no longer exists ends the stored session.
+ */
+export function LicenseDraftingAssistant({
+  baseLicense,
+  onFinalized,
+}: LicenseDraftingAssistantProps) {
+  const { user } = useAuth();
+  const [stored] = useState(() => loadSession(user?.sub ?? ''));
+  const restored = useLicenseDraftQuery(
+    { id: stored?.draftId ?? '' },
+    { enabled: !!stored, retry: false },
+  );
+
+  if (stored && restored.isLoading) {
+    return (
+      <p
+        role="status"
+        className="text-sm text-gray-700 dark:text-gray-300"
+      >
+        Loading your draft...
+      </p>
     );
-    composerRef.current?.focus();
-  };
+  }
+
+  const isGone =
+    restored.error instanceof GraphqlRequestError &&
+    restored.error.extensions?.code === 'NOT_FOUND';
+
+  if (stored && restored.error && !isGone) {
+    return (
+      <div
+        role="alert"
+        className="space-y-2 text-sm text-red-600 dark:text-red-400"
+      >
+        <p>Your draft could not be loaded.</p>
+        <Button
+          type="button"
+          variant="outline"
+          color="gray"
+          onClick={() => void restored.refetch()}
+        >
+          Try again
+        </Button>
+      </div>
+    );
+  }
+
+  const initial: InitialSession | null =
+    stored && restored.data
+      ? {
+          draftId: stored.draftId,
+          draft: toDraftInput(restored.data.licenseDraft),
+          conversation: stored.conversation,
+        }
+      : null;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <ConversationPane
-        messages={assistant.messages}
-        pendingMessage={assistant.pendingMessage}
-        isPending={assistant.isPending}
-        error={assistant.error}
-        onSend={assistant.send}
-        composerText={composerText}
-        onComposerTextChange={setComposerText}
-        composerRef={composerRef}
-      />
-      <DraftPane
-        draft={assistant.draft}
-        details={assistant.details}
-        isPending={assistant.isPending}
-        onPrefill={prefill}
-        onViewLicense={setViewedLicenseId}
-      />
-      {viewedLicenseId && (
-        <CanonicalLicenseDialog
-          licenseId={viewedLicenseId}
-          onClose={() => setViewedLicenseId(null)}
-        />
-      )}
-    </div>
+    <AssistantWorkspace
+      initial={initial}
+      baseLicense={baseLicense}
+      onFinalized={onFinalized}
+    />
   );
 }

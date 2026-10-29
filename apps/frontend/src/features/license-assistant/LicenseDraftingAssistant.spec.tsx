@@ -12,33 +12,145 @@ import userEvent from '@testing-library/user-event';
 
 import { LicenseDraftingAssistant } from './LicenseDraftingAssistant';
 
+vi.mock('../../hooks/useAuth', () => ({
+  useAuth: () => ({ user: { sub: '230104087265432001' } }),
+}));
+
+const userId = '230104087265432001';
+const storageKey = `license-assistant:v1:${userId}`;
+const draftId = '5c1f4d0e-3b6a-4a57-9d3e-0b7a8f2c9e41';
+
+function draftRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: draftId,
+    title: '',
+    text: '',
+    updatedAt: '2026-10-29T09:30:00.000Z',
+    source: { type: 'CUSTOM', canonicalId: null },
+    ...overrides,
+  };
+}
+
+const answeredDraft = {
+  title: 'CC BY 4.0 without resale',
+  text: 'You may share and adapt this novel. You may not sell it.',
+  source: { type: 'FORKED', canonicalId: 'CC-BY-4.0' },
+};
+
+function answer(overrides: Record<string, unknown> = {}) {
+  return {
+    assistantMessage: 'I forbade resale in section 3.',
+    draft: answeredDraft,
+    draftChanged: true,
+    recommendations: [],
+    disclaimers: ['This is not legal advice.'],
+    isReadyToFinalize: false,
+    conversation: [
+      { role: 'USER', content: 'Forbid resale.' },
+      {
+        role: 'ASSISTANT',
+        content: 'I forbade resale in section 3.',
+      },
+    ],
+    ...overrides,
+  };
+}
+
 describe(LicenseDraftingAssistant.name, () => {
   const fetchMock = vi.fn();
+  let handlers: Record<
+    string,
+    (variables: Record<string, any>) => unknown
+  >;
 
-  function respondWith(
-    assistantMessage: string,
-    conversation: unknown[],
+  function calls(operation: string) {
+    return fetchMock.mock.calls
+      .map(([, init]) => JSON.parse(init.body))
+      .filter(
+        ({ query }) =>
+          query.includes(`${operation}(`) ||
+          query.includes(`${operation} `),
+      )
+      .map(({ variables }) => variables);
+  }
+
+  function renderAssistant(
+    props: Parameters<typeof LicenseDraftingAssistant>[0] = {},
   ) {
-    fetchMock.mockResolvedValueOnce({
-      json: async () => ({
-        data: {
-          draftLicense: {
-            assistantMessage,
-            draft: null,
-            draftChanged: false,
-            recommendations: [],
-            disclaimers: ['This is not legal advice.'],
-            isReadyToFinalize: false,
-            conversation,
-          },
-        },
-      }),
-    });
+    return render(
+      <QueryClientProvider
+        client={
+          new QueryClient({
+            defaultOptions: { mutations: { retry: false } },
+          })
+        }
+      >
+        <LicenseDraftingAssistant {...props} />
+      </QueryClientProvider>,
+    );
+  }
+
+  async function writeMessage(
+    user: ReturnType<typeof userEvent.setup>,
+    text: string,
+  ) {
+    await user.click(screen.getByLabelText('Your message'));
+    await user.paste(text);
+    await user.click(screen.getByRole('button', { name: 'Send' }));
   }
 
   beforeEach(() => {
+    localStorage.clear();
     vi.stubEnv('VITE_SERVICE_URL', 'http://localhost:3000');
+    vi.stubEnv('VITE_LICENSE_DRAFT_AUTOSAVE_SECONDS', '0.05');
     vi.stubGlobal('fetch', fetchMock);
+    handlers = {
+      LicenseDrafts: () => ({
+        data: { licenseDraftsConnection: { edges: [] } },
+      }),
+      CreateLicenseDraft: () => ({
+        data: { createLicenseDraft: draftRow() },
+      }),
+      SaveLicenseDraft: (variables) => ({
+        data: {
+          saveLicenseDraft: draftRow({
+            ...variables.input,
+          }),
+        },
+      }),
+      DraftLicense: () => ({ data: { draftLicense: answer() } }),
+      CanonicalLicenses: () => ({
+        data: {
+          canonicalLicenses: [
+            {
+              id: 'CC-BY-4.0',
+              name: 'Creative Commons Attribution 4.0 International',
+              shortName: 'CC BY 4.0',
+              version: '4.0',
+              category: 'creative_commons',
+              officialUrl:
+                'https://creativecommons.org/licenses/by/4.0/legalcode',
+              summary: 'Share and adapt with credit.',
+              permissions: [],
+              limitations: [],
+              conditions: [],
+            },
+          ],
+        },
+      }),
+    };
+    fetchMock.mockImplementation(async (_url, init) => {
+      const { query, variables } = JSON.parse(init.body);
+      const name =
+        /(?:query|mutation)\s+(\w+)/.exec(query)?.[1] ?? '';
+      const handler = handlers[name];
+
+      if (!handler) {
+        throw new Error(`Nothing serves ${name}`);
+      }
+
+      return { json: async () => handler(variables) };
+    });
   });
 
   afterEach(() => {
@@ -47,257 +159,666 @@ describe(LicenseDraftingAssistant.name, () => {
     fetchMock.mockReset();
   });
 
-  it('carries a conversation over two turns, sending the one the assistant returned', async () => {
-    // Arrange
-    const user = userEvent.setup();
-    const firstConversation = [
-      { role: 'USER', content: 'Can others remix my novel?' },
-      { role: 'ASSISTANT', content: 'Yes, with credit.' },
-    ];
-    respondWith('Yes, with credit.', firstConversation);
-    respondWith('Then CC BY 4.0 fits.', [
-      ...firstConversation,
-      { role: 'USER', content: 'And sell it?' },
-      { role: 'ASSISTANT', content: 'Then CC BY 4.0 fits.' },
-    ]);
-    render(
-      <QueryClientProvider client={new QueryClient()}>
-        <LicenseDraftingAssistant />
-      </QueryClientProvider>,
-    );
-    const box = screen.getByLabelText('Your message');
+  describe('starting', () => {
+    it("writes a draft of the author's own, then shows the conversation and the draft", async () => {
+      // Arrange
+      const user = userEvent.setup();
+      renderAssistant();
 
-    // Act
-    await user.click(box);
-    await user.paste('Can others remix my novel?');
-    await user.click(screen.getByRole('button', { name: 'Send' }));
-    await screen.findByText('Yes, with credit.');
-    await user.click(box);
-    await user.paste('And sell it?');
-    await user.click(screen.getByRole('button', { name: 'Send' }));
-    await screen.findByText('Then CC BY 4.0 fits.');
+      // Act
+      await user.click(
+        await screen.findByRole('button', { name: 'Write my own' }),
+      );
 
-    // Assert
-    const secondRequest = JSON.parse(fetchMock.mock.calls[1][1].body);
-    expect(secondRequest.variables.input.conversation).toEqual(
-      firstConversation,
-    );
-    expect(
-      within(screen.getByRole('log'))
-        .getAllByRole('listitem')
-        .map((item) => item.textContent),
-    ).toEqual([
-      'YouCan others remix my novel?',
-      'AssistantYes, with credit.',
-      'YouAnd sell it?',
-      'AssistantThen CC BY 4.0 fits.',
-    ]);
-    await waitFor(() => expect(box).toHaveValue(''));
+      // Assert
+      expect(
+        await screen.findByRole('region', { name: 'Draft license' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('region', { name: 'Conversation' }),
+      ).toBeInTheDocument();
+      expect(calls('CreateLicenseDraft')).toEqual([{ input: {} }]);
+      expect(
+        JSON.parse(localStorage.getItem(storageKey) ?? '{}'),
+      ).toEqual({
+        draftId,
+        conversation: [],
+      });
+    });
+
+    it('offers to customize the license of the novel, only when there is one', async () => {
+      // Arrange
+      const user = userEvent.setup();
+      const baseLicense = {
+        id: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
+        name: 'CC BY 4.0',
+      };
+      renderAssistant({ baseLicense });
+
+      // Act
+      await user.click(
+        await screen.findByRole('button', {
+          name: 'Customize CC BY 4.0',
+        }),
+      );
+
+      // Assert
+      await screen.findByRole('region', { name: 'Draft license' });
+      expect(calls('CreateLicenseDraft')).toEqual([
+        { input: { licenseId: baseLicense.id } },
+      ]);
+    });
+
+    it('does not offer to customize when no license is given', async () => {
+      // Act
+      renderAssistant();
+
+      // Assert
+      await screen.findByRole('button', { name: 'Write my own' });
+      expect(
+        screen.queryByRole('button', { name: /Customize/ }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('says why a draft could not be started', async () => {
+      // Arrange
+      const user = userEvent.setup();
+      handlers.CreateLicenseDraft = () => ({
+        data: null,
+        errors: [
+          {
+            message:
+              'You have 20 unfinished license drafts. Finish or discard one first.',
+            extensions: { code: 'BAD_REQUEST' },
+          },
+        ],
+      });
+      renderAssistant();
+
+      // Act
+      await user.click(
+        await screen.findByRole('button', { name: 'Write my own' }),
+      );
+
+      // Assert
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Finish or discard one first',
+      );
+      expect(
+        screen.queryByRole('region', { name: 'Draft license' }),
+      ).not.toBeInTheDocument();
+    });
   });
 
-  it('shows the draft of an answer next to the conversation, with its disclaimers', async () => {
-    // Arrange
-    const user = userEvent.setup();
-    fetchMock.mockImplementation(async (_url, init) => {
-      const { query } = JSON.parse(init.body);
+  describe('unfinished drafts', () => {
+    const unfinished = draftRow({
+      title: 'Read it, do not copy it',
+      text: 'You may read this novel. You may not copy it.',
+    });
 
-      if (query.includes('canonicalLicenses')) {
-        return {
-          json: async () => ({
-            data: {
-              canonicalLicenses: [
-                {
-                  id: 'CC-BY-4.0',
-                  name: 'Creative Commons Attribution 4.0 International',
-                  shortName: 'CC BY 4.0',
-                  version: '4.0',
-                  category: 'creative_commons',
-                  officialUrl:
-                    'https://creativecommons.org/licenses/by/4.0/legalcode',
-                  summary: 'Share and adapt with credit.',
-                  permissions: [],
-                  limitations: [],
-                  conditions: [],
-                },
-              ],
-            },
-          }),
-        };
-      }
+    beforeEach(() => {
+      handlers.LicenseDrafts = () => ({
+        data: {
+          licenseDraftsConnection: { edges: [{ node: unfinished }] },
+        },
+      });
+    });
 
-      return {
-        json: async () => ({
+    it('lists them and picks one up again, without its conversation', async () => {
+      // Arrange
+      const user = userEvent.setup();
+      renderAssistant();
+
+      // Act
+      await user.click(
+        await screen.findByRole('button', {
+          name: 'Continue Read it, do not copy it',
+        }),
+      );
+
+      // Assert
+      expect(
+        await screen.findByRole('heading', {
+          name: 'Read it, do not copy it',
+        }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/You may not copy it/),
+      ).toBeInTheDocument();
+      expect(screen.queryAllByRole('listitem')).toHaveLength(0);
+      expect(calls('CreateLicenseDraft')).toEqual([]);
+    });
+
+    it('throws one away and shows the list again', async () => {
+      // Arrange
+      const user = userEvent.setup();
+      handlers.DiscardLicenseDraft = () => ({
+        data: { discardLicenseDraft: true },
+      });
+      renderAssistant();
+      const discard = await screen.findByRole('button', {
+        name: 'Discard Read it, do not copy it',
+      });
+      handlers.LicenseDrafts = () => ({
+        data: { licenseDraftsConnection: { edges: [] } },
+      });
+
+      // Act
+      await user.click(discard);
+
+      // Assert
+      await waitFor(() =>
+        expect(
+          screen.queryByText('Your unfinished drafts'),
+        ).not.toBeInTheDocument(),
+      );
+      expect(calls('DiscardLicenseDraft')).toEqual([{ id: draftId }]);
+    });
+  });
+
+  describe('working on a draft', () => {
+    async function begin(user: ReturnType<typeof userEvent.setup>) {
+      renderAssistant();
+      await user.click(
+        await screen.findByRole('button', { name: 'Write my own' }),
+      );
+      await screen.findByRole('region', { name: 'Draft license' });
+    }
+
+    it('carries the conversation over two turns and keeps it for the next visit', async () => {
+      // Arrange
+      const user = userEvent.setup();
+      const first = answer().conversation;
+      const second = [
+        ...first,
+        { role: 'USER', content: 'And explain section 3.' },
+        { role: 'ASSISTANT', content: 'It covers resale.' },
+      ];
+      handlers.DraftLicense = vi
+        .fn()
+        .mockReturnValueOnce({ data: { draftLicense: answer() } })
+        .mockReturnValueOnce({
           data: {
-            draftLicense: {
-              assistantMessage: 'CC BY 4.0 fits what you describe.',
-              draft: {
-                title:
-                  'Creative Commons Attribution 4.0 International',
-                text: 'Attribution 4.0 International',
-                source: {
-                  type: 'CANONICAL',
-                  canonicalId: 'CC-BY-4.0',
-                },
-              },
-              draftChanged: true,
-              recommendations: [],
-              disclaimers: ['This is not legal advice.'],
-              isReadyToFinalize: false,
-              conversation: [],
+            draftLicense: answer({
+              assistantMessage: 'It covers resale.',
+              conversation: second,
+              draftChanged: false,
+            }),
+          },
+        });
+      await begin(user);
+
+      // Act
+      await writeMessage(user, 'Forbid resale.');
+      await screen.findByText('I forbade resale in section 3.');
+      await writeMessage(user, 'And explain section 3.');
+      await screen.findByText('It covers resale.');
+
+      // Assert
+      expect(calls('DraftLicense')[1].input.conversation).toEqual(
+        first,
+      );
+      expect(
+        within(screen.getByRole('log'))
+          .getAllByRole('listitem')
+          .map((item) => item.textContent),
+      ).toEqual([
+        'YouForbid resale.',
+        'AssistantI forbade resale in section 3.',
+        'YouAnd explain section 3.',
+        'AssistantIt covers resale.',
+      ]);
+      await waitFor(() =>
+        expect(
+          JSON.parse(localStorage.getItem(storageKey) ?? '{}'),
+        ).toEqual({
+          draftId,
+          conversation: second,
+        }),
+      );
+    });
+
+    it('shows the draft of an answer next to the conversation, with its disclaimers', async () => {
+      // Arrange
+      const user = userEvent.setup();
+      await begin(user);
+
+      // Act
+      await writeMessage(user, 'Forbid resale.');
+
+      // Assert
+      expect(
+        await screen.findByRole('heading', {
+          name: answeredDraft.title,
+        }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('This is not legal advice.'),
+      ).toBeVisible();
+    });
+
+    it('saves what the assistant drafted on its own, and says so', async () => {
+      // Arrange
+      const user = userEvent.setup();
+      await begin(user);
+
+      // Act
+      await writeMessage(user, 'Forbid resale.');
+
+      // Assert
+      await waitFor(() =>
+        expect(calls('SaveLicenseDraft')).toHaveLength(1),
+      );
+      expect(calls('SaveLicenseDraft')[0].input).toEqual({
+        id: draftId,
+        title: answeredDraft.title,
+        text: answeredDraft.text,
+        source: answeredDraft.source,
+      });
+      await waitFor(() =>
+        expect(
+          screen.getAllByRole('status').map((s) => s.textContent),
+        ).toContain('All changes saved'),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      expect(calls('SaveLicenseDraft')).toHaveLength(1);
+    });
+
+    it('does not send the draft to the assistant while it has no text', async () => {
+      // Arrange
+      const user = userEvent.setup();
+      await begin(user);
+
+      // Act
+      await writeMessage(user, 'Hello');
+      await screen.findByText('I forbade resale in section 3.');
+
+      // Assert
+      expect(calls('DraftLicense')[0].input.draft).toBeNull();
+    });
+
+    it('starts over after saving what was not saved, keeping the draft among the unfinished ones', async () => {
+      // Arrange
+      const user = userEvent.setup();
+      vi.stubEnv('VITE_LICENSE_DRAFT_AUTOSAVE_SECONDS', '3600');
+      await begin(user);
+      await writeMessage(user, 'Forbid resale.');
+      await screen.findByText('I forbade resale in section 3.');
+
+      // Act
+      await user.click(
+        screen.getByRole('button', { name: 'Start over' }),
+      );
+
+      // Assert
+      expect(
+        await screen.findByRole('region', {
+          name: 'Start a license draft',
+        }),
+      ).toBeInTheDocument();
+      expect(calls('SaveLicenseDraft')).toHaveLength(1);
+      expect(localStorage.getItem(storageKey)).toBeNull();
+      expect(calls('DiscardLicenseDraft')).toEqual([]);
+    });
+
+    it('stays where it is, and says why, when the latest changes cannot be saved', async () => {
+      // Arrange
+      const user = userEvent.setup();
+      vi.stubEnv('VITE_LICENSE_DRAFT_AUTOSAVE_SECONDS', '3600');
+      await begin(user);
+      await writeMessage(user, 'Forbid resale.');
+      await screen.findByText('I forbade resale in section 3.');
+      handlers.SaveLicenseDraft = () => ({
+        data: null,
+        errors: [{ message: 'down', extensions: { code: 'X' } }],
+      });
+
+      // Act
+      await user.click(
+        screen.getByRole('button', { name: 'Start over' }),
+      );
+
+      // Assert
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'latest changes could not be saved',
+      );
+      expect(
+        screen.getByRole('region', { name: 'Draft license' }),
+      ).toBeInTheDocument();
+    });
+
+    describe('finalizing', () => {
+      const license = {
+        id: '9d1c5e7a-2b3f-4a60-8c91-0e2d4f6a8b10',
+        name: 'CC BY 4.0 without resale',
+        text: answeredDraft.text,
+        sourceType: 'FORKED',
+        canonicalId: 'CC-BY-4.0',
+      };
+
+      beforeEach(() => {
+        vi.stubEnv('VITE_LICENSE_DRAFT_AUTOSAVE_SECONDS', '3600');
+      });
+
+      it('saves the draft, finalizes it, hands the license over and goes back to the start', async () => {
+        // Arrange
+        const user = userEvent.setup();
+        const onFinalized = vi.fn();
+        handlers.FinalizeLicenseDraft = () => ({
+          data: { finalizeLicenseDraft: license },
+        });
+        renderAssistant({ onFinalized });
+        await user.click(
+          await screen.findByRole('button', { name: 'Write my own' }),
+        );
+        await writeMessage(user, 'Forbid resale.');
+        await screen.findByText('I forbade resale in section 3.');
+
+        // Act
+        await user.click(
+          screen.getByRole('button', {
+            name: 'Finalize this license',
+          }),
+        );
+
+        // Assert
+        await screen.findByRole('region', {
+          name: 'Start a license draft',
+        });
+        expect(onFinalized).toHaveBeenCalledExactlyOnceWith(license);
+        expect(calls('FinalizeLicenseDraft')).toEqual([
+          { id: draftId },
+        ]);
+        expect(
+          fetchMock.mock.calls
+            .map(([, init]) => JSON.parse(init.body).query)
+            .findIndex((q: string) => q.includes('SaveLicenseDraft')),
+        ).toBeLessThan(
+          fetchMock.mock.calls
+            .map(([, init]) => JSON.parse(init.body).query)
+            .findIndex((q: string) =>
+              q.includes('FinalizeLicenseDraft'),
+            ),
+        );
+        expect(localStorage.getItem(storageKey)).toBeNull();
+      });
+
+      it('does not finalize a draft it could not save', async () => {
+        // Arrange
+        const user = userEvent.setup();
+        const onFinalized = vi.fn();
+        handlers.FinalizeLicenseDraft = () => ({
+          data: { finalizeLicenseDraft: license },
+        });
+        renderAssistant({ onFinalized });
+        await user.click(
+          await screen.findByRole('button', { name: 'Write my own' }),
+        );
+        await writeMessage(user, 'Forbid resale.');
+        await screen.findByText('I forbade resale in section 3.');
+        handlers.SaveLicenseDraft = () => ({
+          data: null,
+          errors: [{ message: 'down', extensions: { code: 'X' } }],
+        });
+
+        // Act
+        await user.click(
+          screen.getByRole('button', {
+            name: 'Finalize this license',
+          }),
+        );
+
+        // Assert
+        expect(await screen.findByRole('alert')).toHaveTextContent(
+          'was not finalized',
+        );
+        expect(calls('FinalizeLicenseDraft')).toEqual([]);
+        expect(onFinalized).not.toHaveBeenCalled();
+      });
+
+      it('shows why the backend refused to finalize, and keeps the draft', async () => {
+        // Arrange
+        const user = userEvent.setup();
+        handlers.FinalizeLicenseDraft = () => ({
+          data: null,
+          errors: [
+            {
+              message:
+                'This text is not the canonical license CC-BY-4.0, send it as FORKED or CUSTOM',
+              extensions: { code: 'BAD_REQUEST' },
+            },
+          ],
+        });
+        renderAssistant();
+        await user.click(
+          await screen.findByRole('button', { name: 'Write my own' }),
+        );
+        await writeMessage(user, 'Forbid resale.');
+        await screen.findByText('I forbade resale in section 3.');
+
+        // Act
+        await user.click(
+          screen.getByRole('button', {
+            name: 'Finalize this license',
+          }),
+        );
+
+        // Assert
+        expect(await screen.findByRole('alert')).toHaveTextContent(
+          'is not the canonical license',
+        );
+        expect(
+          screen.getByRole('region', { name: 'Draft license' }),
+        ).toBeInTheDocument();
+      });
+    });
+
+    describe('suggested licenses', () => {
+      beforeEach(() => {
+        handlers.DraftLicense = () => ({
+          data: {
+            draftLicense: answer({ recommendations: ['CC-BY-4.0'] }),
+          },
+        });
+        handlers.CanonicalLicense = () => ({
+          data: {
+            canonicalLicense: {
+              id: 'CC-BY-4.0',
+              name: 'Creative Commons Attribution 4.0 International',
+              shortName: 'CC BY 4.0',
+              version: '4.0',
+              category: 'creative_commons',
+              officialUrl:
+                'https://creativecommons.org/licenses/by/4.0/legalcode',
+              summary: 'Share and adapt with credit.',
+              permissions: [],
+              limitations: [],
+              conditions: [],
+              body: 'Attribution 4.0 International, the full legal text.',
             },
           },
-        }),
-      };
+        });
+      });
+
+      it('puts a sentence into the composer, after what the author wrote, and moves focus there', async () => {
+        // Arrange
+        const user = userEvent.setup();
+        await begin(user);
+        await writeMessage(user, 'Forbid resale.');
+        const chip = await screen.findByRole('button', {
+          name: 'Use CC BY 4.0',
+        });
+        const box = screen.getByLabelText('Your message');
+        await user.click(box);
+        await user.paste('Also for translations.');
+
+        // Act
+        await user.click(chip);
+
+        // Assert
+        expect(box).toHaveValue(
+          'Also for translations.\nI would like to use CC BY 4.0 for my novel.',
+        );
+        expect(box).toHaveFocus();
+        expect(calls('DraftLicense')).toHaveLength(1);
+      });
+
+      it('opens the license to read, and goes back to the button that opened it', async () => {
+        // Arrange
+        const user = userEvent.setup();
+        await begin(user);
+        await writeMessage(user, 'Forbid resale.');
+        const read = await screen.findByRole('button', {
+          name: 'Read CC BY 4.0',
+        });
+
+        // Act
+        await user.click(read);
+        const dialog = await screen.findByRole('dialog');
+        const shown = await within(dialog).findByText(
+          /the full legal text/,
+        );
+        const wasShown = shown.isConnected;
+        await user.keyboard('{Escape}');
+
+        // Assert
+        expect(wasShown).toBeTrue();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(read).toHaveFocus();
+      });
     });
-    render(
-      <QueryClientProvider client={new QueryClient()}>
-        <LicenseDraftingAssistant />
-      </QueryClientProvider>,
-    );
-
-    // Act
-    await user.click(screen.getByLabelText('Your message'));
-    await user.paste('Can others remix my novel?');
-    await user.click(screen.getByRole('button', { name: 'Send' }));
-
-    // Assert
-    expect(
-      await screen.findByRole('heading', {
-        name: 'Creative Commons Attribution 4.0 International',
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('This is not legal advice.'),
-    ).toBeVisible();
-    expect(
-      await screen.findByText('Canonical license: CC BY 4.0'),
-    ).toBeInTheDocument();
   });
 
-  describe('suggested licenses', () => {
-    const summary = (id: string, shortName: string) => ({
-      id,
-      name: shortName,
-      shortName,
-      version: '4.0',
-      category: 'creative_commons',
-      officialUrl: `https://creativecommons.org/licenses/${id}/legalcode`,
-      summary: 'Share and adapt for non-commercial purposes.',
-      permissions: ['share'],
-      limitations: ['no commercial use'],
-      conditions: ['attribution'],
-    });
+  describe('coming back', () => {
+    const conversation = answer().conversation;
 
-    function serve() {
-      fetchMock.mockImplementation(async (_url, init) => {
-        const { query } = JSON.parse(init.body);
-
-        if (query.includes('canonicalLicense(')) {
-          return {
-            json: async () => ({
-              data: {
-                canonicalLicense: {
-                  ...summary('CC-BY-NC-4.0', 'CC BY-NC 4.0'),
-                  body: 'Attribution-NonCommercial 4.0 International, the full legal text.',
-                },
-              },
-            }),
-          };
-        }
-        if (query.includes('canonicalLicenses')) {
-          return {
-            json: async () => ({
-              data: {
-                canonicalLicenses: [
-                  summary('CC-BY-NC-4.0', 'CC BY-NC 4.0'),
-                ],
-              },
-            }),
-          };
-        }
-
-        return {
-          json: async () => ({
-            data: {
-              draftLicense: {
-                assistantMessage:
-                  'CC BY-NC 4.0 fits what you describe.',
-                draft: null,
-                draftChanged: false,
-                recommendations: ['CC-BY-NC-4.0'],
-                disclaimers: ['This is not legal advice.'],
-                isReadyToFinalize: false,
-                conversation: [],
-              },
-            },
-          }),
-        };
-      });
-    }
-
-    async function askAndWaitForChips(
-      user: ReturnType<typeof userEvent.setup>,
-    ) {
-      render(
-        <QueryClientProvider client={new QueryClient()}>
-          <LicenseDraftingAssistant />
-        </QueryClientProvider>,
+    function remember() {
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({ draftId, conversation }),
       );
-      await user.click(screen.getByLabelText('Your message'));
-      await user.paste('No commercial use, please.');
-      await user.click(screen.getByRole('button', { name: 'Send' }));
-
-      return screen.findByRole('button', {
-        name: 'Use CC BY-NC 4.0',
-      });
     }
 
-    it('puts a sentence into the composer, on a new line after what the author already wrote, and moves focus there', async () => {
+    it('shows the conversation that was kept and the draft the backend has', async () => {
       // Arrange
-      const user = userEvent.setup();
-      serve();
-      const chip = await askAndWaitForChips(user);
-      const box = screen.getByLabelText('Your message');
-      await user.click(box);
-      await user.paste('Also for translations.');
+      remember();
+      handlers.LicenseDraft = () => ({
+        data: { licenseDraft: draftRow(answeredDraft) },
+      });
 
       // Act
-      await user.click(chip);
+      renderAssistant();
 
       // Assert
-      expect(box).toHaveValue(
-        'Also for translations.\nI would like to use CC BY-NC 4.0 for my novel.',
-      );
-      expect(box).toHaveFocus();
       expect(
-        fetchMock.mock.calls.filter(([, init]) =>
-          JSON.parse(init.body).query.includes('draftLicense'),
-        ),
-      ).toHaveLength(1);
+        await screen.findByText('Forbid resale.'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('I forbade resale in section 3.'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: answeredDraft.title }),
+      ).toBeInTheDocument();
+      expect(calls('CreateLicenseDraft')).toEqual([]);
     });
 
-    it('opens the license to read, and goes back to the button that opened it when closed', async () => {
+    it('does not save a draft it has just loaded', async () => {
       // Arrange
-      const user = userEvent.setup();
-      serve();
-      await askAndWaitForChips(user);
-      const read = screen.getByRole('button', {
-        name: 'Read CC BY-NC 4.0',
+      remember();
+      handlers.LicenseDraft = () => ({
+        data: { licenseDraft: draftRow(answeredDraft) },
       });
 
       // Act
-      await user.click(read);
-      const dialog = await screen.findByRole('dialog');
-      const shown = await within(dialog).findByText(
-        /the full legal text/,
-      );
-      const wasShown = shown.isConnected;
-      await user.keyboard('{Escape}');
+      renderAssistant();
+      await screen.findByText('Forbid resale.');
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       // Assert
-      expect(wasShown).toBeTrue();
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-      expect(read).toHaveFocus();
+      expect(calls('SaveLicenseDraft')).toEqual([]);
+    });
+
+    it('goes on from the kept conversation', async () => {
+      // Arrange
+      const user = userEvent.setup();
+      remember();
+      handlers.LicenseDraft = () => ({
+        data: { licenseDraft: draftRow(answeredDraft) },
+      });
+      renderAssistant();
+      await screen.findByText('Forbid resale.');
+
+      // Act
+      await writeMessage(user, 'And explain section 3.');
+
+      // Assert
+      await waitFor(() =>
+        expect(calls('DraftLicense')).toHaveLength(1),
+      );
+      expect(calls('DraftLicense')[0].input.conversation).toEqual(
+        conversation,
+      );
+      expect(calls('DraftLicense')[0].input.draft).toEqual(
+        answeredDraft,
+      );
+    });
+
+    it('starts afresh, and forgets the session, when the draft is gone', async () => {
+      // Arrange
+      remember();
+      handlers.LicenseDraft = () => ({
+        data: null,
+        errors: [
+          {
+            message: `License draft ${draftId} not found`,
+            extensions: { code: 'NOT_FOUND' },
+          },
+        ],
+      });
+
+      // Act
+      renderAssistant();
+
+      // Assert
+      expect(
+        await screen.findByRole('region', {
+          name: 'Start a license draft',
+        }),
+      ).toBeInTheDocument();
+      await waitFor(() =>
+        expect(localStorage.getItem(storageKey)).toBeNull(),
+      );
+    });
+
+    it('keeps the session, and offers to try again, when the draft cannot be loaded for another reason', async () => {
+      // Arrange
+      const user = userEvent.setup();
+      remember();
+      handlers.LicenseDraft = () => ({
+        data: null,
+        errors: [
+          {
+            message: 'down',
+            extensions: { code: 'INTERNAL_SERVER_ERROR' },
+          },
+        ],
+      });
+      renderAssistant();
+      const retry = await screen.findByRole('button', {
+        name: 'Try again',
+      });
+      handlers.LicenseDraft = () => ({
+        data: { licenseDraft: draftRow(answeredDraft) },
+      });
+
+      // Act
+      await user.click(retry);
+
+      // Assert
+      expect(
+        await screen.findByText('Forbid resale.'),
+      ).toBeInTheDocument();
+      expect(localStorage.getItem(storageKey)).not.toBeNull();
     });
   });
 });

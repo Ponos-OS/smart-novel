@@ -1,0 +1,52 @@
+fragment LicenseDraftFields on LicenseDraft {
+  id
+  title
+  text
+  updatedAt
+  source {
+    type
+    canonicalId
+  }
+}
+
+mutation CreateLicenseDraft($input: CreateLicenseDraftInput!) {
+  createLicenseDraft(input: $input) {
+    ...LicenseDraftFields
+  }
+}
+
+mutation SaveLicenseDraft($input: SaveLicenseDraftInput!) {
+  saveLicenseDraft(input: $input) {
+    ...LicenseDraftFields
+  }
+}
+
+mutation FinalizeLicenseDraft($id: ID!) {
+  finalizeLicenseDraft(id: $id) {
+    id
+    name
+    text
+    sourceType
+    canonicalId
+  }
+}
+
+mutation DiscardLicenseDraft($id: ID!) {
+  discardLicenseDraft(id: $id)
+}
+
+query LicenseDraft($id: ID!) {
+  licenseDraft(id: $id) {
+    ...LicenseDraftFields
+  }
+}
+
+query LicenseDrafts {
+  licenseDraftsConnection(first: 20) {
+    edges {
+      node {
+        ...LicenseDraftFields
+      }
+    }
+  }
+}

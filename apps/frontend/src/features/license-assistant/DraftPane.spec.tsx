@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import { LicenseSourceType } from '../../generated/graphql';
 import { DraftPane } from './DraftPane';
@@ -27,7 +28,13 @@ const draft = {
     canonicalId: 'CC-BY-4.0',
   },
 };
-const handlers = { onPrefill: vi.fn(), onViewLicense: vi.fn() };
+const handlers = {
+  onPrefill: vi.fn(),
+  onViewLicense: vi.fn(),
+  onFinalize: vi.fn(),
+  isFinalizing: false,
+  syncStatus: 'saved' as const,
+};
 const details = {
   disclaimers: ['This is not legal advice.'],
   recommendations: [],
@@ -130,7 +137,11 @@ describe(DraftPane.name, () => {
       );
 
       // Assert
-      expect(screen.getByRole('status')).toHaveTextContent(sentence);
+      expect(
+        screen
+          .getAllByRole('status')
+          .map((status) => status.textContent),
+      ).toContain(sentence);
     },
   );
 
@@ -221,5 +232,129 @@ describe(DraftPane.name, () => {
     expect(
       screen.queryByRole('region', { name: 'Suggested licenses' }),
     ).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['saved', 'All changes saved'],
+    ['saving', 'Saving...'],
+    ['unsaved', 'Changes not saved yet, saving soon'],
+    ['failed', 'Not saved. Trying again.'],
+  ] as const)(
+    'says in words that the draft is %s',
+    (syncStatus, sentence) => {
+      // Act
+      render(
+        <DraftPane
+          {...handlers}
+          draft={draft}
+          details={null}
+          isPending={false}
+          syncStatus={syncStatus}
+        />,
+      );
+
+      // Assert
+      expect(screen.getByRole('status')).toHaveTextContent(sentence);
+    },
+  );
+
+  it('shows the placeholder, not an empty license, for a draft that has no text yet', () => {
+    // Act
+    render(
+      <DraftPane
+        {...handlers}
+        draft={{ ...draft, title: '', text: '' }}
+        details={null}
+        isPending={false}
+      />,
+    );
+
+    // Assert
+    expect(screen.getByText(/No draft yet/)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Finalize this license' }),
+    ).toBeDisabled();
+  });
+
+  describe('finalizing', () => {
+    it("is the author's to ask for once the draft has a name and a text", async () => {
+      // Arrange
+      const onFinalize = vi.fn();
+      render(
+        <DraftPane
+          {...handlers}
+          onFinalize={onFinalize}
+          draft={draft}
+          details={details}
+          isPending={false}
+        />,
+      );
+
+      // Act
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Finalize this license' }),
+      );
+
+      // Assert
+      expect(onFinalize).toHaveBeenCalledOnce();
+    });
+
+    it.each([
+      ['a draft with no name', { ...draft, title: '  ' }],
+      ['no draft', null],
+    ])('cannot be asked for with %s', (_, noDraft) => {
+      // Act
+      render(
+        <DraftPane
+          {...handlers}
+          draft={noDraft}
+          details={null}
+          isPending={false}
+        />,
+      );
+
+      // Assert
+      expect(
+        screen.getByRole('button', { name: 'Finalize this license' }),
+      ).toBeDisabled();
+    });
+
+    it("shows the assistant's opinion as a hint only", () => {
+      // Act
+      render(
+        <DraftPane
+          {...handlers}
+          draft={draft}
+          details={{ ...details, isReadyToFinalize: true }}
+          isPending={false}
+        />,
+      );
+
+      // Assert
+      expect(
+        screen.getByText(/The assistant thinks this draft is ready/),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Finalize this license' }),
+      ).toBeEnabled();
+    });
+
+    it('says it is finalizing and cannot be asked twice', () => {
+      // Act
+      render(
+        <DraftPane
+          {...handlers}
+          draft={draft}
+          details={details}
+          isPending={false}
+          isFinalizing
+        />,
+      );
+
+      // Assert
+      expect(
+        screen.getByRole('button', { name: 'Finalizing...' }),
+      ).toBeDisabled();
+    });
   });
 });

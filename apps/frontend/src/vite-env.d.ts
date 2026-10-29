@@ -13,6 +13,7 @@ interface ImportMetaEnv {
   readonly VITE_EXPLAIN_CONTEXT_CHAR_SIZE: string;
   readonly VITE_EXPLAIN_CACHE_MAX_ENTRIES: string;
   readonly VITE_EXPLAIN_SELECTION_DEBOUNCE_MS: string;
+  readonly VITE_LICENSE_DRAFT_AUTOSAVE_SECONDS?: string;
 }
 interface ImportMeta {
   readonly env: ImportMetaEnv;

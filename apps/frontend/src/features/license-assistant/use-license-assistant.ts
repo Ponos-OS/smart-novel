@@ -31,10 +31,17 @@ export interface AssistantAnswerDetails {
 /**
  * @description The state of one conversation with the license assistant. The conversation is whatever the assistant returned last, shown and sent back as it is: a long history comes back condensed, and the summary turn is just another message.
  */
-export function useLicenseAssistant() {
+export function useLicenseAssistant(
+  initialConversation: Conversation = [],
+  initialDraft: LicenseDraftInput | null = null,
+) {
   const mutation = useDraftLicenseMutation();
-  const [conversation, setConversation] = useState<Conversation>([]);
-  const [draft, setDraft] = useState<LicenseDraftInput | null>(null);
+  const [conversation, setConversation] = useState<Conversation>(
+    initialConversation,
+  );
+  const [draft, setDraft] = useState<LicenseDraftInput | null>(
+    initialDraft,
+  );
   const [details, setDetails] =
     useState<AssistantAnswerDetails | null>(null);
   const [pendingMessage, setPendingMessage] = useState<string | null>(
@@ -65,7 +72,14 @@ export function useLicenseAssistant() {
       setError(null);
       setPendingMessage(message);
       mutation.mutate(
-        { input: { conversation, draft, message } },
+        {
+          input: {
+            conversation,
+            // A draft the author has not written anything in yet is not one to send.
+            draft: draft?.text.trim() ? draft : null,
+            message,
+          },
+        },
         {
           onSuccess: ({ draftLicense: answer }) => {
             setConversation(answer.conversation);
@@ -88,7 +102,18 @@ export function useLicenseAssistant() {
     [conversation, draft, mutation],
   );
 
+  /** @description Forget the conversation and the draft, to start another. */
+  const reset = useCallback(() => {
+    setConversation([]);
+    setDraft(null);
+    setDetails(null);
+    setPendingMessage(null);
+    setError(null);
+  }, []);
+
   return {
+    conversation,
+    reset,
     messages,
     pendingMessage,
     isPending: mutation.isPending,
