@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 
 import { PlatformTermsModal } from './PlatformTermsModal';
 
@@ -15,12 +16,14 @@ function renderModal(
   const onLogout = vi.fn();
 
   render(
-    <PlatformTermsModal
-      markdown={markdown}
-      onAccept={onAccept}
-      onLogout={onLogout}
-      {...props}
-    />,
+    <MemoryRouter>
+      <PlatformTermsModal
+        markdown={markdown}
+        onAccept={onAccept}
+        onLogout={onLogout}
+        {...props}
+      />
+    </MemoryRouter>,
   );
 
   return { onAccept, onLogout };
@@ -85,6 +88,18 @@ describe(PlatformTermsModal.name, () => {
     expect(onLogout).not.toHaveBeenCalled();
   });
 
+  it('links to the licenses and terms page', () => {
+    // Act
+    renderModal();
+
+    // Assert
+    expect(
+      screen.getByRole('link', {
+        name: 'Read the licenses and terms',
+      }),
+    ).toHaveAttribute('href', '/licenses');
+  });
+
   it('moves the initial focus into the dialog', () => {
     // Act
     renderModal();
@@ -98,7 +113,9 @@ describe(PlatformTermsModal.name, () => {
     renderModal();
     const user = userEvent.setup();
     await user.click(screen.getByRole('checkbox'));
-    const checkbox = screen.getByRole('checkbox');
+    const licensesLink = screen.getByRole('link', {
+      name: 'Read the licenses and terms',
+    });
     const accept = screen.getByRole('button', { name: 'Accept' });
 
     // Act
@@ -108,7 +125,7 @@ describe(PlatformTermsModal.name, () => {
     await user.tab({ shift: true });
 
     // Assert
-    expect(afterTab).toBe(checkbox);
+    expect(afterTab).toBe(licensesLink);
     expect(accept).toHaveFocus();
   });
 

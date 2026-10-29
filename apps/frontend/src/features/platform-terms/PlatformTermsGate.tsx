@@ -1,5 +1,6 @@
 import { isWriterOrHigher } from '@smart-novel/shared';
 import { useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 
 import {
   useAcceptPlatformTermsMutation,
@@ -9,9 +10,12 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { PlatformTermsModal } from './PlatformTermsModal';
 
+const LICENSES_PATH = '/licenses';
+
 export function PlatformTermsGate() {
   const { user, isAuthenticated, logout } = useAuth();
   const queryClient = useQueryClient();
+  const { pathname } = useLocation();
   const isWriter =
     isAuthenticated && isWriterOrHigher(user?.roles ?? []);
   const { data: statusData } = useMyPlatformTermsStatusQuery(
@@ -19,7 +23,10 @@ export function PlatformTermsGate() {
     { enabled: isWriter },
   );
   const status = statusData?.myPlatformTermsStatus;
-  const mustAccept = isWriter && status?.accepted === false;
+  const mustAccept =
+    isWriter &&
+    status?.accepted === false &&
+    pathname !== LICENSES_PATH;
   const { data: termsData } = usePlatformTermsQuery(
     {},
     { enabled: mustAccept },

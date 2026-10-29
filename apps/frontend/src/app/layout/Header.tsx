@@ -1,3 +1,4 @@
+import { isWriterOrHigher } from '@smart-novel/shared';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -18,6 +19,7 @@ export function Header() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const closeMenu = () => setIsMenuOpen(false);
+  const isWriter = isWriterOrHigher(user?.roles ?? []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -95,6 +97,15 @@ export function Header() {
                         >
                           Manage account
                         </a>
+                        {isWriter && (
+                          <Link
+                            to="/licenses"
+                            className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
+                            onClick={() => setIsDropdownOpen(false)}
+                          >
+                            Licenses and terms
+                          </Link>
+                        )}
                         <Link
                           to="/settings"
                           className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
@@ -223,6 +234,15 @@ export function Header() {
                     >
                       Manage account
                     </a>
+                    {isWriter && (
+                      <Link
+                        to="/licenses"
+                        onClick={closeMenu}
+                        className="rounded-md px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600"
+                      >
+                        Licenses and terms
+                      </Link>
+                    )}
                     <Link
                       to="/settings"
                       onClick={closeMenu}

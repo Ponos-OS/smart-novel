@@ -4,6 +4,7 @@ import {
 } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 import { PlatformTermsGate } from './PlatformTermsGate';
@@ -44,14 +45,16 @@ function respondWith(handlers: Record<string, unknown>) {
   });
 }
 
-function renderGate() {
+function renderGate(path = '/') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
 
   render(
     <QueryClientProvider client={queryClient}>
-      <PlatformTermsGate />
+      <MemoryRouter initialEntries={[path]}>
+        <PlatformTermsGate />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 
@@ -85,6 +88,21 @@ describe(PlatformTermsGate.name, () => {
     expect(
       await screen.findByRole('dialog', { name: 'Platform terms' }),
     ).toBeInTheDocument();
+  });
+
+  it('steps aside on the licenses page so the writer can read it', async () => {
+    // Arrange
+    respondWith({
+      myPlatformTermsStatus: { myPlatformTermsStatus: pending },
+      platformTerms: { platformTerms: terms },
+    });
+
+    // Act
+    renderGate('/licenses');
+
+    // Assert
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('shows nothing when the writer already accepted the terms', async () => {

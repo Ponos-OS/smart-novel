@@ -31,16 +31,20 @@ export class PlatformTermsService {
     const acceptances =
       await this.prisma.platformTermsAcceptance.findMany({
         where: { userId },
-        select: { termsVersion: true },
+        select: { termsVersion: true, acceptedAt: true },
       });
     const versions = acceptances.map(
       ({ termsVersion }) => termsVersion,
+    );
+    const current = acceptances.find(
+      ({ termsVersion }) => termsVersion === this.terms.version,
     );
 
     return {
       requiredVersion: this.terms.version,
       acceptedVersion: versions.length ? Math.max(...versions) : null,
-      accepted: versions.includes(this.terms.version),
+      accepted: !!current,
+      acceptedAt: current?.acceptedAt.toISOString() ?? null,
     };
   }
 

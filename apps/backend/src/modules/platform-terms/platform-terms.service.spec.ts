@@ -39,23 +39,38 @@ describe(PlatformTermsService.name, () => {
       {
         scenario: 'nothing accepted',
         versions: [],
-        expected: { acceptedVersion: null, accepted: false },
+        expected: {
+          acceptedVersion: null,
+          accepted: false,
+          acceptedAt: null,
+        },
       },
       {
         scenario: 'only an older version accepted',
         versions: [1],
-        expected: { acceptedVersion: 1, accepted: false },
+        expected: {
+          acceptedVersion: 1,
+          accepted: false,
+          acceptedAt: null,
+        },
       },
       {
         scenario: 'the current version accepted after an older one',
         versions: [1, 2],
-        expected: { acceptedVersion: 2, accepted: true },
+        expected: {
+          acceptedVersion: 2,
+          accepted: true,
+          acceptedAt: '2026-10-29T09:30:00.000Z',
+        },
       },
     ])('should report $scenario', async ({ versions, expected }) => {
       vi.mocked(
         prisma.platformTermsAcceptance.findMany,
       ).mockResolvedValue(
-        versions.map((termsVersion) => ({ termsVersion })) as any,
+        versions.map((termsVersion) => ({
+          termsVersion,
+          acceptedAt: new Date('2026-10-29T09:30:00.000Z'),
+        })) as any,
       );
 
       const result = await uut.getStatus(userId);
@@ -137,7 +152,12 @@ describe(PlatformTermsService.name, () => {
     it('should record the acceptance idempotently and cache it', async () => {
       vi.mocked(
         prisma.platformTermsAcceptance.findMany,
-      ).mockResolvedValue([{ termsVersion: 2 }] as any);
+      ).mockResolvedValue([
+        {
+          termsVersion: 2,
+          acceptedAt: new Date('2026-10-29T09:30:00.000Z'),
+        },
+      ] as any);
 
       const result = await uut.accept(userId, 2);
 
@@ -156,6 +176,7 @@ describe(PlatformTermsService.name, () => {
         requiredVersion: 2,
         acceptedVersion: 2,
         accepted: true,
+        acceptedAt: '2026-10-29T09:30:00.000Z',
       });
     });
 

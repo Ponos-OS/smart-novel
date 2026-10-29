@@ -10,6 +10,7 @@ query MyPlatformTermsStatus {
     requiredVersion
     acceptedVersion
     accepted
+    acceptedAt
   }
 }
 
@@ -18,5 +19,6 @@ mutation AcceptPlatformTerms($version: Int!) {
     requiredVersion
     acceptedVersion
     accepted
+    acceptedAt
   }
 }

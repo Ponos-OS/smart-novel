@@ -29,4 +29,11 @@ export class PlatformTermsStatus {
     description: 'True when the required version was accepted',
   })
   accepted: boolean;
+
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'ISO date string of when the caller accepted the required version',
+  })
+  acceptedAt: string | null;
 }

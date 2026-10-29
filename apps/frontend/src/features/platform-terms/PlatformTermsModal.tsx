@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { Link } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 
 import { Button } from '../../components/Button';
@@ -24,12 +25,11 @@ export function PlatformTermsModal({
 }: PlatformTermsModalProps) {
   const [hasAgreed, setHasAgreed] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const agreeRef = useRef<HTMLInputElement>(null);
   const titleId = useId();
 
   useEffect(() => {
-    dialogRef.current
-      ?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR)
-      ?.focus();
+    agreeRef.current?.focus();
   }, []);
 
   function trapFocus(event: React.KeyboardEvent) {
@@ -81,8 +81,19 @@ export function PlatformTermsModal({
             {markdown}
           </ReactMarkdown>
         </div>
+        <p className="mb-4 text-sm text-gray-700 dark:text-gray-300">
+          Want to see the default license first?{' '}
+          <Link
+            to="/licenses"
+            className="font-medium text-blue-600 dark:text-blue-400"
+          >
+            Read the licenses and terms
+          </Link>
+          .
+        </p>
         <label className="mb-4 flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200">
           <input
+            ref={agreeRef}
             type="checkbox"
             checked={hasAgreed}
             onChange={(event) => setHasAgreed(event.target.checked)}
