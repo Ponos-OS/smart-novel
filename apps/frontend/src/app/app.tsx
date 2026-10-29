@@ -4,6 +4,7 @@ import {
 } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
+import { PlatformTermsGate } from '../features/platform-terms/PlatformTermsGate';
 import { ThemeProvider } from '../hooks/useTheme';
 import { CallbackPage } from '../pages/auth/CallbackPage';
 import { HomePage } from '../pages/home/HomePage';
@@ -89,6 +90,7 @@ export function App() {
     <ThemeProvider>
       <Toaster position="top-right" richColors />
       <RouterProvider router={router} />
+      <PlatformTermsGate />
     </ThemeProvider>
   );
 }

@@ -1,0 +1,22 @@
+query PlatformTerms {
+  platformTerms {
+    version
+    markdown
+  }
+}
+
+query MyPlatformTermsStatus {
+  myPlatformTermsStatus {
+    requiredVersion
+    acceptedVersion
+    accepted
+  }
+}
+
+mutation AcceptPlatformTerms($version: Int!) {
+  acceptPlatformTerms(version: $version) {
+    requiredVersion
+    acceptedVersion
+    accepted
+  }
+}

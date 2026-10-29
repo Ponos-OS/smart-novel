@@ -1,6 +1,7 @@
 import {
   graphqlFetcher,
   GraphqlRequestError,
+  isPlatformTermsNotAcceptedError,
 } from './graphql-fetcher';
 
 describe(graphqlFetcher.name, () => {
@@ -58,5 +59,27 @@ describe(graphqlFetcher.name, () => {
         status: 409,
       });
     });
+  });
+});
+
+describe(isPlatformTermsNotAcceptedError.name, () => {
+  it.each([
+    [
+      new GraphqlRequestError('Forbidden', {
+        code: 'PLATFORM_TERMS_NOT_ACCEPTED',
+      }),
+      true,
+    ],
+    [
+      new GraphqlRequestError('Conflict', { code: 'CONFLICT' }),
+      false,
+    ],
+    [new Error('PLATFORM_TERMS_NOT_ACCEPTED'), false],
+  ])('classifies %o as %s', (error, expected) => {
+    // Act
+    const result = isPlatformTermsNotAcceptedError(error);
+
+    // Assert
+    expect(result).toBe(expected);
   });
 });

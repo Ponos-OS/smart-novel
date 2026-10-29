@@ -1,6 +1,7 @@
 import './instrumentation';
 
 import {
+  MutationCache,
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query';
@@ -11,6 +12,7 @@ import * as ReactDOM from 'react-dom/client';
 import { AuthProvider, AuthProviderProps } from 'react-oidc-context';
 
 import App from './app/app';
+import { reopenOnTermsError } from './features/platform-terms/reopen-on-terms-error';
 import './styles.css';
 
 /**
@@ -42,7 +44,10 @@ const oidcConfig: AuthProviderProps = {
   },
 };
 
-const queryClient = new QueryClient({
+const queryClient: QueryClient = new QueryClient({
+  mutationCache: new MutationCache({
+    onError: (error) => reopenOnTermsError(queryClient, error),
+  }),
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60, // 1 minute

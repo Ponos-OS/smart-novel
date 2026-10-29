@@ -1,3 +1,5 @@
+import { PLATFORM_TERMS_NOT_ACCEPTED } from '@smart-novel/shared';
+
 /**
  * @description Thrown by {@link graphqlFetcher} for a GraphQL-level error response
  */
@@ -15,6 +17,15 @@ export function isConflictError(error: unknown): boolean {
   return (
     error instanceof GraphqlRequestError &&
     error.extensions?.code === 'CONFLICT'
+  );
+}
+
+export function isPlatformTermsNotAcceptedError(
+  error: unknown,
+): boolean {
+  return (
+    error instanceof GraphqlRequestError &&
+    error.extensions?.code === PLATFORM_TERMS_NOT_ACCEPTED
   );
 }
 
