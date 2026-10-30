@@ -2,6 +2,8 @@ import { Field, InputType } from '@nestjs/graphql';
 import { CategoryStatus } from '@prisma/client';
 import { Transform } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsEnum,
   IsOptional,
   IsString,
@@ -21,12 +23,14 @@ export class CategoryFiltersInput {
   @Transform(({ value }) => value?.trim())
   search?: string;
 
-  @Field(() => CategoryStatus, {
+  @Field(() => [CategoryStatus], {
     nullable: true,
     description:
-      'Defaults to APPROVED. Only admins can ask for anything else; for everybody else it is ignored.',
+      'Defaults to [APPROVED]. Only admins can ask for others: [PENDING], or both for every category. For everybody else it is ignored.',
   })
   @IsOptional()
-  @IsEnum(CategoryStatus)
-  status?: CategoryStatus;
+  @IsArray()
+  @ArrayMaxSize(Object.keys(CategoryStatus).length)
+  @IsEnum(CategoryStatus, { each: true })
+  statuses?: CategoryStatus[];
 }

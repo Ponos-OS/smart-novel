@@ -34,6 +34,16 @@ const config: StorybookConfig = {
             '../src/pages/novel/RequestCategoryDialog.tsx',
           mockPath: './mocks/request-category-dialog.mock.ts',
         },
+        {
+          importerPath:
+            '../src/features/admin-categories/AdminCategoriesPage.tsx',
+          mockPath: './mocks/admin-categories.mock.ts',
+        },
+        {
+          importerPath:
+            '../src/features/admin-categories/CategoryRow.tsx',
+          mockPath: './mocks/admin-categories.mock.ts',
+        },
       ]),
     );
     return viteConfig;

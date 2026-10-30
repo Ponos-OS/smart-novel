@@ -41,7 +41,8 @@ describe('Manage a novel (e2e)', () => {
         description,
       );
       cy.contains('label', 'State').find('select').select('Finished');
-      cy.get('input[role="combobox"]').click();
+      // Search for it: the first page of suggestions is alphabetical
+      cy.get('input[role="combobox"]').type('fantasy');
       cy.contains('[role="option"]', 'fantasy').click();
       cy.contains('button', 'Save').click();
       cy.url().should(

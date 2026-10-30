@@ -41,7 +41,7 @@ describe(CategoryResolver.name, () => {
         '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10',
       ).toString('base64');
       const connection = new CategoryConnection();
-      const filters = { status: CategoryStatus.PENDING };
+      const filters = { statuses: [CategoryStatus.PENDING] };
       vi.mocked(categoryService.findConnection).mockResolvedValue(
         connection,
       );

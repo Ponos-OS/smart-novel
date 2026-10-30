@@ -121,6 +121,22 @@ const router = createBrowserRouter([
         },
       },
 
+      {
+        path: '/admin/categories',
+        lazy: async () => {
+          const { AdminCategoriesPage } =
+            await import('../features/admin-categories/AdminCategoriesPage');
+
+          return {
+            element: (
+              <Layout>
+                <AdminCategoriesPage />
+              </Layout>
+            ),
+          };
+        },
+      },
+
       // Auth callback route
       { path: '/auth/callback', element: <CallbackPage /> },
 

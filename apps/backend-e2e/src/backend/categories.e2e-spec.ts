@@ -1,7 +1,11 @@
 import axios from 'axios';
 import { randomUUID } from 'node:crypto';
 
-import { AuthorizationFixture, ClusterFixture } from '../support';
+import {
+  AuthorizationFixture,
+  ClusterFixture,
+  config,
+} from '../support';
 
 const CATEGORIES = `#graphql
   query Categories($first: Int, $after: String, $filters: CategoryFiltersInput) {
@@ -141,7 +145,7 @@ describe('Categories (e2e)', () => {
       const authorization = await getAuthorizationHeader();
 
       const data = await categories(
-        { first: 5, filters: { status: 'PENDING' } },
+        { first: 5, filters: { statuses: ['PENDING'] } },
         authorization,
       );
 
@@ -222,7 +226,10 @@ describe('Category requests and management (e2e)', () => {
 
   async function pendingNames(authorization?: string) {
     const data = await categories(
-      { first: 100, filters: { status: 'PENDING', search: 'e2e-' } },
+      {
+        first: 100,
+        filters: { statuses: ['PENDING'], search: 'e2e-' },
+      },
       authorization,
     );
 
@@ -339,6 +346,74 @@ describe('Category requests and management (e2e)', () => {
       expect(asAdmin).toContain(name);
       expect(asWriter).not.toContain(name);
       expect(asAnonymous).not.toContain(name);
+    });
+
+    it('should list approved and pending categories together for the admin, and the requester only to the admin', async () => {
+      const name = uniqueName('both');
+      await requestAsWriter(name);
+      const query = `#graphql
+        query Both($filters: CategoryFiltersInput) {
+          categoriesConnection(first: 100, filters: $filters) {
+            edges { node { name status requesterUserId } }
+          }
+        }
+      `;
+      const filters = {
+        statuses: ['APPROVED', 'PENDING'],
+        search: 'e2e-both',
+      };
+
+      const asAdmin = await graphql(query, { filters }, admin);
+      const asWriter = await graphql(query, { filters }, writer);
+      const everything = await graphql(
+        query,
+        { filters: { statuses: ['APPROVED', 'PENDING'] } },
+        admin,
+      );
+
+      expect(asAdmin.data.categoriesConnection.edges).toContainEqual({
+        node: {
+          name,
+          status: 'PENDING',
+          requesterUserId: config.userIds.writer,
+        },
+      });
+      expect(asWriter.data.categoriesConnection.edges).toBeEmpty();
+      expect(
+        everything.data.categoriesConnection.edges.map(
+          ({ node }: { node: { status: string } }) => node.status,
+        ),
+      ).toIncludeAllMembers(['APPROVED', 'PENDING']);
+    });
+
+    it('should never show the requester to anybody but the admin', async () => {
+      const { id, name } = await requestAsWriter(
+        uniqueName('requester'),
+      );
+      await graphql(APPROVE_CATEGORY, { id }, admin);
+      const query = `#graphql
+        query Requester($filters: CategoryFiltersInput) {
+          categoriesConnection(first: 10, filters: $filters) {
+            edges { node { requesterUserId } }
+          }
+        }
+      `;
+
+      const asWriter = await graphql(
+        query,
+        { filters: { search: name } },
+        writer,
+      );
+      const asAnonymous = await graphql(query, {
+        filters: { search: name },
+      });
+
+      expect(asWriter.data.categoriesConnection.edges).toEqual([
+        { node: { requesterUserId: null } },
+      ]);
+      expect(asAnonymous.data.categoriesConnection.edges).toEqual([
+        { node: { requesterUserId: null } },
+      ]);
     });
 
     it('should NOT allow a novel to use it until an admin approves it', async () => {

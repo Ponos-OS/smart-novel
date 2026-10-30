@@ -71,9 +71,14 @@ describe(CategoryService.name, () => {
       const result = await uut.findConnection(false, { first: 2 });
 
       expect(prisma.category.findMany).toHaveBeenCalledWith({
-        where: { status: CategoryStatus.APPROVED },
+        where: { status: { in: [CategoryStatus.APPROVED] } },
         orderBy: { name: 'asc' },
-        select: { id: true, name: true, status: true },
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          requesterUserId: true,
+        },
         cursor: undefined,
         skip: undefined,
         take: 3,
@@ -227,7 +232,7 @@ describe(CategoryService.name, () => {
       expect(prisma.category.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
-            status: CategoryStatus.APPROVED,
+            status: { in: [CategoryStatus.APPROVED] },
             name: { contains: 'FAN', mode: 'insensitive' },
           },
         }),
@@ -238,24 +243,46 @@ describe(CategoryService.name, () => {
       {
         role: 'an admin',
         isAdmin: true,
-        expected: CategoryStatus.PENDING,
+        asked: [CategoryStatus.PENDING],
+        expected: [CategoryStatus.PENDING],
+      },
+      {
+        role: 'an admin',
+        isAdmin: true,
+        asked: [CategoryStatus.APPROVED, CategoryStatus.PENDING],
+        expected: [CategoryStatus.APPROVED, CategoryStatus.PENDING],
+      },
+      {
+        role: 'an admin',
+        isAdmin: true,
+        asked: [],
+        expected: [CategoryStatus.APPROVED],
       },
       {
         role: 'a non-admin',
         isAdmin: false,
-        expected: CategoryStatus.APPROVED,
+        asked: [CategoryStatus.PENDING],
+        expected: [CategoryStatus.APPROVED],
+      },
+      {
+        role: 'a non-admin',
+        isAdmin: false,
+        asked: [CategoryStatus.APPROVED, CategoryStatus.PENDING],
+        expected: [CategoryStatus.APPROVED],
       },
     ])(
-      'should give $role the status $expected when PENDING is asked for',
-      async ({ isAdmin, expected }) => {
+      'should filter $asked as $expected for $role',
+      async ({ isAdmin, asked, expected }) => {
         await uut.findConnection(
           isAdmin,
           { first: 10 },
-          { status: CategoryStatus.PENDING },
+          { statuses: asked },
         );
 
         expect(prisma.category.findMany).toHaveBeenCalledWith(
-          expect.objectContaining({ where: { status: expected } }),
+          expect.objectContaining({
+            where: { status: { in: expected } },
+          }),
         );
       },
     );
@@ -265,14 +292,14 @@ describe(CategoryService.name, () => {
 
       expect(prisma.category.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { status: CategoryStatus.APPROVED },
+          where: { status: { in: [CategoryStatus.APPROVED] } },
         }),
       );
     });
   });
 
   describe('request', () => {
-    const requestedById = '300311094522198754';
+    const requesterUserId = '300311094522198754';
 
     it('should store the normalized name as PENDING for the requester', async () => {
       const pending = {
@@ -284,7 +311,7 @@ describe(CategoryService.name, () => {
       prisma.category.findUniqueOrThrow.mockResolvedValue(pending);
 
       const result = await uut.request(
-        requestedById,
+        requesterUserId,
         '  Slice Of LIFE ',
       );
 
@@ -293,7 +320,7 @@ describe(CategoryService.name, () => {
           {
             name: 'slice of life',
             status: CategoryStatus.PENDING,
-            requestedById,
+            requesterUserId,
           },
         ],
         skipDuplicates: true,
@@ -302,7 +329,7 @@ describe(CategoryService.name, () => {
     });
 
     it('should reject a name longer than 50 characters', async () => {
-      const result = uut.request(requestedById, 'a'.repeat(51));
+      const result = uut.request(requesterUserId, 'a'.repeat(51));
 
       await expect(result).rejects.toThrow('at most 50 characters');
       expect(prisma.category.createMany).not.toHaveBeenCalled();
@@ -311,7 +338,7 @@ describe(CategoryService.name, () => {
     it('should reject a name that exists, naming its normalized form', async () => {
       prisma.category.createMany.mockResolvedValue({ count: 0 });
 
-      const result = uut.request(requestedById, 'FANTASY');
+      const result = uut.request(requesterUserId, 'FANTASY');
 
       await expect(result).rejects.toThrow(
         expect.objectContaining({
@@ -363,7 +390,12 @@ describe(CategoryService.name, () => {
       expect(prisma.category.update).toHaveBeenCalledWith({
         where: { id: fantasy.id },
         data: { name: 'high fantasy' },
-        select: { id: true, name: true, status: true },
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          requesterUserId: true,
+        },
       });
       expect(result).toBe(renamed);
     });

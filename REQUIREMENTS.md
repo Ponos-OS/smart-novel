@@ -33,7 +33,7 @@ DO NOT COMMIT EACH STEP, let me review it first.
 
 **AC**
 
-- `Category` gets `status` (enum `CategoryStatus`: `APPROVED`, `PENDING`, default `APPROVED`) and nullable `requestedById` (the writer's `sub`), with an index on `(status, name)`.
+- `Category` gets `status` (enum `CategoryStatus`: `APPROVED`, `PENDING`, default `APPROVED`) and nullable `requesterUserId` (the writer's `sub`), with an index on `(status, name)`.
 - The migration leaves every existing category `APPROVED`.
 - The seed keeps working unchanged.
 
@@ -58,7 +58,7 @@ DO NOT COMMIT EACH STEP, let me review it first.
 
 **AC**
 
-- `requestCategory(name)`: writer or admin only; creates a `PENDING` category with `requestedById` set to the caller. If the normalized name already exists (approved or pending) it throws a 400 `BadRequestException` whose message contains the normalized name (D5). Empty or whitespace names are rejected.
+- `requestCategory(name)`: writer or admin only; creates a `PENDING` category with `requesterUserId` set to the caller. If the normalized name already exists (approved or pending) it throws a 400 `BadRequestException` whose message contains the normalized name (D5). Empty or whitespace names are rejected.
 - `approveCategory(id)`: admin only; `PENDING` becomes `APPROVED`. Approving an approved category is a no-op.
 - `updateCategory(id, name)`: admin only; renames a category of any status (D10, D11). The name is normalized; an empty name, or one that belongs to another category, is a 400 with the normalized name in the message. Renaming to its own current name is a no-op.
 - `deleteCategory(id)`: admin only; deletes a category of any status and returns its id (D10, D11). The frontend uses it for both "Reject" on a pending request and "Delete" on an approved one.

@@ -1,0 +1,46 @@
+query AdminCategories(
+  $search: String
+  $statuses: [CategoryStatus!]
+  $first: Int!
+  $after: String
+) {
+  categoriesConnection(
+    first: $first
+    after: $after
+    filters: { search: $search, statuses: $statuses }
+  ) {
+    edges {
+      node {
+        id
+        name
+        status
+        requesterUserId
+        approximateNovelCount
+      }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+  }
+}
+
+mutation ApproveCategory($id: ID!) {
+  approveCategory(id: $id) {
+    id
+    status
+  }
+}
+
+mutation UpdateCategory($id: ID!, $name: String!) {
+  updateCategory(id: $id, name: $name) {
+    id
+    name
+  }
+}
+
+mutation DeleteCategory($id: ID!) {
+  deleteCategory(id: $id) {
+    id
+  }
+}

@@ -22,4 +22,7 @@ export class Category {
 
   @Field(() => CategoryStatus)
   status: CategoryStatus;
+
+  /** @description Exposed only to admins, by `CategoryFieldResolver`. */
+  requesterUserId?: string | null;
 }

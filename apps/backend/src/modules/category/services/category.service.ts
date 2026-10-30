@@ -35,6 +35,7 @@ const CATEGORY_SELECT = {
   id: true,
   name: true,
   status: true,
+  requesterUserId: true,
 } satisfies Prisma.CategorySelect;
 
 /**
@@ -57,11 +58,12 @@ export class CategoryService {
     filters?: CategoryFiltersInput,
   ): Promise<CategoryConnection> {
     const page = this.toBoundedPage(pagination);
-    const status = isAdmin
-      ? (filters?.status ?? CategoryStatus.APPROVED)
-      : CategoryStatus.APPROVED;
+    const statuses =
+      isAdmin && filters?.statuses?.length
+        ? filters.statuses
+        : [CategoryStatus.APPROVED];
     const where: Prisma.CategoryWhereInput = {
-      status,
+      status: { in: statuses },
       ...(filters?.search && {
         name: {
           contains: escapeLikePattern(filters.search),
@@ -104,7 +106,7 @@ export class CategoryService {
   }
 
   async request(
-    requestedById: string,
+    requesterUserId: string,
     name: string,
   ): Promise<Category> {
     const normalized = this.normalize(name);
@@ -114,7 +116,7 @@ export class CategoryService {
         {
           name: normalized,
           status: CategoryStatus.PENDING,
-          requestedById,
+          requesterUserId,
         },
       ],
       skipDuplicates: true,
