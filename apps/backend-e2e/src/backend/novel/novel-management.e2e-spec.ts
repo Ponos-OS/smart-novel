@@ -49,8 +49,35 @@ async function graphql(
 }
 
 // Novels cannot be deleted yet and categories are shared with the other specs' filters, so every run uses its own category names.
-function uniqueCategory(label: string) {
-  return `e2e-${label}-${randomUUID().slice(0, 8)}`;
+const REQUEST_CATEGORY = `
+  mutation RequestCategory($name: String!) {
+    requestCategory(name: $name) { id }
+  }
+`;
+const APPROVE_CATEGORY = `
+  mutation ApproveCategory($id: ID!) {
+    approveCategory(id: $id) { id }
+  }
+`;
+
+/**
+ * @description Novels can only use approved categories, so each one goes through the request and the admin's approval first.
+ */
+async function approvedCategory(label: string) {
+  const name = `e2e-${label}-${randomUUID().slice(0, 8)}`;
+  const writer =
+    await AuthorizationFixture.getWriterAuthorizationHeader();
+  const admin =
+    await AuthorizationFixture.getAdminAuthorizationHeader();
+  const requested = await graphql(REQUEST_CATEGORY, { name }, writer);
+
+  await graphql(
+    APPROVE_CATEGORY,
+    { id: requested.data.requestCategory.id },
+    admin,
+  );
+
+  return name;
 }
 
 describe('Novel management (e2e)', () => {
@@ -88,7 +115,7 @@ describe('Novel management (e2e)', () => {
     ])(
       'should allow $role to create a novel, with defaults and categories',
       async ({ author, getAuthorizationHeader }) => {
-        const category = uniqueCategory('create');
+        const category = await approvedCategory('create');
         const authorization = await getAuthorizationHeader();
 
         const data = await graphql(
@@ -192,7 +219,7 @@ describe('Novel management (e2e)', () => {
     ])(
       'should allow the $role to update only the passed fields',
       async ({ getAuthorizationHeader }) => {
-        const category = uniqueCategory('keep');
+        const category = await approvedCategory('keep');
         const novel = await createNovelAsWriter([category]);
         const authorization = await getAuthorizationHeader();
 
@@ -218,8 +245,8 @@ describe('Novel management (e2e)', () => {
     );
 
     it('should replace the categories when passed and clear them for an empty list', async () => {
-      const before = uniqueCategory('before');
-      const after = uniqueCategory('after');
+      const before = await approvedCategory('before');
+      const after = await approvedCategory('after');
       const novel = await createNovelAsWriter([before]);
       const writer =
         await AuthorizationFixture.getWriterAuthorizationHeader();

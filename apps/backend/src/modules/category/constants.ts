@@ -1,2 +1,3 @@
 export const CATEGORIES_PAGE_SIZE_DEFAULT = 20;
 export const CATEGORIES_PAGE_SIZE_MAX = 100;
+export const CATEGORY_NAME_MAX_LENGTH = 50;

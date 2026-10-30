@@ -40,7 +40,7 @@ export class UpdateNovelInput {
   @Field(() => [String], {
     nullable: true,
     description:
-      'Replaces the current categories; omit to keep them. Created when missing.',
+      'Replaces the current categories; omit to keep them. Names must be approved categories.',
   })
   @IsOptional()
   @IsArray()

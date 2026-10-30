@@ -1,20 +1,37 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CategoryStatus, Prisma } from '@prisma/client';
 import { isUUID } from 'class-validator';
-import { PageInfo } from 'nestjs-backend-common';
+import { PageInfo, retryAsync } from 'nestjs-backend-common';
 
 import {
   buildCursorPaginationParams,
   PaginationArgs,
   trimCursorPaginationResults,
 } from '../../../shared';
+import { normalizeCategoryName } from '../../novel/utils';
 import { PrismaService } from '../../prisma';
 import {
   CATEGORIES_PAGE_SIZE_DEFAULT,
   CATEGORIES_PAGE_SIZE_MAX,
+  CATEGORY_NAME_MAX_LENGTH,
 } from '../constants';
 import { CategoryFiltersInput } from '../inputs';
-import { CategoryConnection, CategoryEdge } from '../types';
+import {
+  Category,
+  CategoryConnection,
+  CategoryEdge,
+  DeleteCategoryResponse,
+} from '../types';
+
+const CATEGORY_SELECT = {
+  id: true,
+  name: true,
+  status: true,
+} satisfies Prisma.CategorySelect;
 
 /**
  * @description Prisma's `contains` hands the text to `LIKE` as is, so `%` and `_` in it would be wildcards.
@@ -50,7 +67,7 @@ export class CategoryService {
     const rows = await this.prisma.category.findMany({
       where,
       orderBy: { name: shouldReverse ? 'desc' : 'asc' },
-      select: { id: true, name: true, status: true },
+      select: CATEGORY_SELECT,
       cursor,
       skip,
       take,
@@ -77,6 +94,119 @@ export class CategoryService {
     connection.pageInfo = pageInfo;
 
     return connection;
+  }
+
+  async request(
+    requestedById: string,
+    name: string,
+  ): Promise<Category> {
+    const normalized = this.normalize(name);
+    // `skipDuplicates` (ON CONFLICT DO NOTHING) keeps two concurrent requests for one name from failing on the unique index.
+    const { count } = await this.prisma.category.createMany({
+      data: [
+        {
+          name: normalized,
+          status: CategoryStatus.PENDING,
+          requestedById,
+        },
+      ],
+      skipDuplicates: true,
+    });
+
+    if (count === 0) {
+      throw this.toAlreadyExists(normalized);
+    }
+
+    return this.prisma.category.findUniqueOrThrow({
+      where: { name: normalized },
+      select: CATEGORY_SELECT,
+    });
+  }
+
+  async approve(id: string): Promise<Category> {
+    await this.prisma.category.updateMany({
+      where: { id, status: CategoryStatus.PENDING },
+      data: { status: CategoryStatus.APPROVED },
+    });
+
+    const category = await this.prisma.category.findUnique({
+      where: { id },
+      select: CATEGORY_SELECT,
+    });
+
+    if (!category) {
+      throw new NotFoundException('Category not found');
+    }
+
+    return category;
+  }
+
+  async rename(id: string, name: string): Promise<Category> {
+    const normalized = this.normalize(name);
+    const [error, category] = await retryAsync(
+      () =>
+        this.prisma.category.update({
+          where: { id },
+          data: { name: normalized },
+          select: CATEGORY_SELECT,
+        }),
+      { retry: 0 },
+    );
+
+    if (error) {
+      throw this.toKnownError(error, normalized);
+    }
+
+    return category;
+  }
+
+  async delete(id: string): Promise<DeleteCategoryResponse> {
+    const [error] = await retryAsync(
+      () => this.prisma.category.delete({ where: { id } }),
+      { retry: 0 },
+    );
+
+    if (error) {
+      throw this.toKnownError(error);
+    }
+
+    return { id };
+  }
+
+  private normalize(name: string): string {
+    const normalized = normalizeCategoryName(name);
+
+    if (normalized.length > CATEGORY_NAME_MAX_LENGTH) {
+      throw new BadRequestException(
+        `A category name can have at most ${CATEGORY_NAME_MAX_LENGTH} characters`,
+      );
+    }
+
+    return normalized;
+  }
+
+  private toKnownError(error: unknown, name?: string): unknown {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+      return error;
+    }
+
+    if (error.code === 'P2025') {
+      return new NotFoundException('Category not found');
+    }
+
+    if (error.code === 'P2002' && name) {
+      return this.toAlreadyExists(name);
+    }
+
+    return error;
+  }
+
+  private toAlreadyExists(
+    normalizedName: string,
+  ): BadRequestException {
+    return new BadRequestException(
+      `The category "${normalizedName}" already exists or was already requested. Search for "${normalizedName}" instead.`,
+    );
   }
 
   /**

@@ -62,7 +62,7 @@ DO NOT COMMIT EACH STEP, let me review it first.
 - `approveCategory(id)`: admin only; `PENDING` becomes `APPROVED`. Approving an approved category is a no-op.
 - `updateCategory(id, name)`: admin only; renames a category of any status (D10, D11). The name is normalized; an empty name, or one that belongs to another category, is a 400 with the normalized name in the message. Renaming to its own current name is a no-op.
 - `deleteCategory(id)`: admin only; deletes a category of any status and returns its id (D10, D11). The frontend uses it for both "Reject" on a pending request and "Delete" on an approved one.
-- The new resolver is added to `apps/backend/gen-graphql-schema.ts`; the permissions live in `CaslAbilityFactory` like the other resources.
+- The new resolver is added to `apps/backend/gen-graphql-schema.ts`; the roles are enforced with `@RequireRole` (writer for the request, admin for the rest) plus `@RequireAcceptedTerms`, as in the license resolvers (there is no per-category ownership, so no CASL rule is needed).
 - `createNovel` / `updateNovel` reject categories that are not `APPROVED` with an error naming them (D2).
 
 **Test:** Unit tests for the service and policy. `backend-e2e`: the permission matrix (user, writer, admin) for the four mutations; renaming to an existing name is a 400 and the novels follow a successful rename; deleting an approved category removes it from its novels and leaves them in place; a duplicate request with a differently cased name gets a 400 that contains the normalized name; a novel cannot use a pending category and can after approval.

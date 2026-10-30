@@ -1,4 +1,4 @@
-import { CategoryStatus } from '@prisma/client';
+import { CategoryStatus, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../prisma';
 import { CategoryService } from './category.service';
@@ -23,11 +23,30 @@ const toCursor = (id: string) => Buffer.from(id).toString('base64');
 
 describe(CategoryService.name, () => {
   let uut: CategoryService;
-  let prisma: { category: { findMany: ReturnType<typeof vi.fn> } };
+  let prisma: {
+    category: Record<
+      | 'findMany'
+      | 'createMany'
+      | 'findUniqueOrThrow'
+      | 'findUnique'
+      | 'updateMany'
+      | 'update'
+      | 'delete',
+      ReturnType<typeof vi.fn>
+    >;
+  };
 
   beforeEach(() => {
     prisma = {
-      category: { findMany: vi.fn().mockResolvedValue([]) },
+      category: {
+        findMany: vi.fn().mockResolvedValue([]),
+        createMany: vi.fn(),
+        findUniqueOrThrow: vi.fn(),
+        findUnique: vi.fn(),
+        updateMany: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+      },
     };
     uut = new CategoryService(prisma as unknown as PrismaService);
   });
@@ -240,6 +259,166 @@ describe(CategoryService.name, () => {
           where: { status: CategoryStatus.APPROVED },
         }),
       );
+    });
+  });
+
+  describe('request', () => {
+    const requestedById = '300311094522198754';
+
+    it('should store the normalized name as PENDING for the requester', async () => {
+      const pending = {
+        id: fantasy.id,
+        name: 'slice of life',
+        status: CategoryStatus.PENDING,
+      };
+      prisma.category.createMany.mockResolvedValue({ count: 1 });
+      prisma.category.findUniqueOrThrow.mockResolvedValue(pending);
+
+      const result = await uut.request(
+        requestedById,
+        '  Slice Of LIFE ',
+      );
+
+      expect(prisma.category.createMany).toHaveBeenCalledWith({
+        data: [
+          {
+            name: 'slice of life',
+            status: CategoryStatus.PENDING,
+            requestedById,
+          },
+        ],
+        skipDuplicates: true,
+      });
+      expect(result).toBe(pending);
+    });
+
+    it('should reject a name longer than 50 characters', async () => {
+      const result = uut.request(requestedById, 'a'.repeat(51));
+
+      await expect(result).rejects.toThrow('at most 50 characters');
+      expect(prisma.category.createMany).not.toHaveBeenCalled();
+    });
+
+    it('should reject a name that exists, naming its normalized form', async () => {
+      prisma.category.createMany.mockResolvedValue({ count: 0 });
+
+      const result = uut.request(requestedById, 'FANTASY');
+
+      await expect(result).rejects.toThrow(
+        expect.objectContaining({
+          status: 400,
+          message: expect.stringContaining('"fantasy"'),
+        }),
+      );
+      expect(
+        prisma.category.findUniqueOrThrow,
+      ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('approve', () => {
+    it('should turn a pending category into an approved one', async () => {
+      prisma.category.findUnique.mockResolvedValue(fantasy);
+
+      const result = await uut.approve(fantasy.id);
+
+      expect(prisma.category.updateMany).toHaveBeenCalledWith({
+        where: { id: fantasy.id, status: CategoryStatus.PENDING },
+        data: { status: CategoryStatus.APPROVED },
+      });
+      expect(result).toBe(fantasy);
+    });
+
+    it('should answer 404 when the category does not exist', async () => {
+      prisma.category.findUnique.mockResolvedValue(null);
+
+      const result = uut.approve(fantasy.id);
+
+      await expect(result).rejects.toThrow('Category not found');
+    });
+  });
+
+  describe('rename', () => {
+    const knownError = (code: string) =>
+      new Prisma.PrismaClientKnownRequestError('boom', {
+        code,
+        clientVersion: 'test',
+      });
+
+    it('should store the normalized name', async () => {
+      const renamed = { ...fantasy, name: 'high fantasy' };
+      prisma.category.update.mockResolvedValue(renamed);
+
+      const result = await uut.rename(fantasy.id, ' High Fantasy ');
+
+      expect(prisma.category.update).toHaveBeenCalledWith({
+        where: { id: fantasy.id },
+        data: { name: 'high fantasy' },
+        select: { id: true, name: true, status: true },
+      });
+      expect(result).toBe(renamed);
+    });
+
+    it('should reject a name longer than 50 characters', async () => {
+      const result = uut.rename(fantasy.id, 'a'.repeat(51));
+
+      await expect(result).rejects.toThrow('at most 50 characters');
+      expect(prisma.category.update).not.toHaveBeenCalled();
+    });
+
+    it('should reject a name another category has, naming its normalized form', async () => {
+      prisma.category.update.mockRejectedValue(knownError('P2002'));
+
+      const result = uut.rename(fantasy.id, 'Mystery');
+
+      await expect(result).rejects.toThrow(
+        expect.objectContaining({
+          status: 400,
+          message: expect.stringContaining('"mystery"'),
+        }),
+      );
+    });
+
+    it('should answer 404 when the category does not exist', async () => {
+      prisma.category.update.mockRejectedValue(knownError('P2025'));
+
+      const result = uut.rename(fantasy.id, 'epic');
+
+      await expect(result).rejects.toThrow('Category not found');
+    });
+
+    it('should let an unknown error through', async () => {
+      prisma.category.update.mockRejectedValue(new Error('db down'));
+
+      const result = uut.rename(fantasy.id, 'epic');
+
+      await expect(result).rejects.toThrow('db down');
+    });
+  });
+
+  describe('delete', () => {
+    it('should delete the category and return its id', async () => {
+      prisma.category.delete.mockResolvedValue(fantasy);
+
+      const result = await uut.delete(fantasy.id);
+
+      expect(prisma.category.delete).toHaveBeenCalledWith({
+        where: { id: fantasy.id },
+      });
+      expect(result).toEqual({ id: fantasy.id });
+    });
+
+    it('should answer 404 when the category does not exist', async () => {
+      prisma.category.delete.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('boom', {
+          code: 'P2025',
+          clientVersion: 'test',
+        }),
+      );
+
+      const result = uut.delete(fantasy.id);
+
+      await expect(result).rejects.toThrow('Category not found');
     });
   });
 });

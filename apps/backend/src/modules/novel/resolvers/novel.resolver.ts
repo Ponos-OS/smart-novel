@@ -98,7 +98,7 @@ export class NovelResolver {
   @CheckPolicy('novel', 'create')
   @Mutation(() => Novel, {
     description:
-      'Create a novel owned by the caller. Categories that do not exist yet are created.',
+      'Create a novel owned by the caller. Categories must already be approved.',
   })
   async createNovel(
     @Args('input', {

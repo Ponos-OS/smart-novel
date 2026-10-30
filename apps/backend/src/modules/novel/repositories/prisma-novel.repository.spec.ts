@@ -52,17 +52,17 @@ describe(PrismaNovelRepository.name, () => {
       categories: [{ category: { name: 'fantasy' } }],
     };
 
-    it('should link existing categories and create the missing ones', async () => {
-      vi.mocked(prismaService.category.findMany)
-        .mockResolvedValueOnce([
-          {
-            id: '6e0b6b86-8b2d-4d9a-8d7e-0c1a2b3c4d5e',
-            name: 'Fantasy',
-          },
-        ] as any)
-        .mockResolvedValueOnce([
-          { id: 'a5b1f3c2-71d4-4f0e-9a3b-2d6c8e1f7a90' },
-        ] as any);
+    it('should link the approved categories', async () => {
+      vi.mocked(prismaService.category.findMany).mockResolvedValue([
+        {
+          id: '6e0b6b86-8b2d-4d9a-8d7e-0c1a2b3c4d5e',
+          name: 'Fantasy',
+        },
+        {
+          id: 'a5b1f3c2-71d4-4f0e-9a3b-2d6c8e1f7a90',
+          name: 'sci-fi',
+        },
+      ] as any);
       vi.mocked(prismaService.novel.create).mockResolvedValue(
         novelRecord as any,
       );
@@ -76,10 +76,16 @@ describe(PrismaNovelRepository.name, () => {
         categories: ['fantasy', 'sci-fi'],
       });
 
-      expect(prismaService.category.createMany).toHaveBeenCalledWith({
-        data: [{ name: 'sci-fi' }],
-        skipDuplicates: true,
+      expect(prismaService.category.findMany).toHaveBeenCalledWith({
+        where: {
+          name: { in: ['fantasy', 'sci-fi'], mode: 'insensitive' },
+          status: 'APPROVED',
+        },
+        select: { id: true, name: true },
       });
+      expect(
+        prismaService.category.createMany,
+      ).not.toHaveBeenCalled();
       expect(prismaService.novel.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: {
@@ -109,6 +115,29 @@ describe(PrismaNovelRepository.name, () => {
           category: ['fantasy'],
         }),
       );
+    });
+
+    it('should reject categories that are not approved, naming them', async () => {
+      vi.mocked(prismaService.category.findMany).mockResolvedValue([
+        {
+          id: '6e0b6b86-8b2d-4d9a-8d7e-0c1a2b3c4d5e',
+          name: 'fantasy',
+        },
+      ] as any);
+
+      const result = uut.createNovel({
+        ownerId: '260311094522198751',
+        licenseId,
+        name: 'The Journey Begins',
+        author: 'Jane Doe',
+        description: 'A young hero leaves home.',
+        categories: ['fantasy', 'slice of life', 'steampunk'],
+      });
+
+      await expect(result).rejects.toThrow(
+        'These categories are not available: slice of life, steampunk.',
+      );
+      expect(prismaService.novel.create).not.toHaveBeenCalled();
     });
 
     it('should not touch the categories table when none are passed', async () => {

@@ -1,5 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma, Novel as PrismaNovel } from '@prisma/client';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  CategoryStatus,
+  Prisma,
+  Novel as PrismaNovel,
+} from '@prisma/client';
 
 import {
   buildCursorPaginationParams,
@@ -239,30 +243,27 @@ export class PrismaNovelRepository implements INovelRepository {
       return [];
     }
 
-    const existing = await tx.category.findMany({
-      where: { name: { in: names, mode: 'insensitive' } },
+    const approved = await tx.category.findMany({
+      where: {
+        name: { in: names, mode: 'insensitive' },
+        status: CategoryStatus.APPROVED,
+      },
       select: { id: true, name: true },
     });
-    const existingNames = new Set(
-      existing.map((category) => category.name.toLowerCase()),
+    const approvedNames = new Set(
+      approved.map((category) => category.name.toLowerCase()),
     );
-    const missing = names.filter((name) => !existingNames.has(name));
+    const unavailable = names.filter(
+      (name) => !approvedNames.has(name),
+    );
 
-    if (missing.length === 0) {
-      return existing.map((category) => category.id);
+    if (unavailable.length > 0) {
+      throw new BadRequestException(
+        `These categories are not available: ${unavailable.join(', ')}. Request a new category and add it once an admin approved it.`,
+      );
     }
 
-    // `skipDuplicates` keeps two concurrent requests creating the same category from failing on the unique name.
-    await tx.category.createMany({
-      data: missing.map((name) => ({ name })),
-      skipDuplicates: true,
-    });
-    const created = await tx.category.findMany({
-      where: { name: { in: missing, mode: 'insensitive' } },
-      select: { id: true },
-    });
-
-    return [...existing, ...created].map((category) => category.id);
+    return approved.map((category) => category.id);
   }
 
   private buildNovelWhereClause(

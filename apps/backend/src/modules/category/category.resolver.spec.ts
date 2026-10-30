@@ -12,7 +12,13 @@ describe(CategoryResolver.name, () => {
   let categoryService: CategoryService;
 
   beforeEach(() => {
-    categoryService = { findConnection: vi.fn() } as any;
+    categoryService = {
+      findConnection: vi.fn(),
+      request: vi.fn(),
+      approve: vi.fn(),
+      rename: vi.fn(),
+      delete: vi.fn(),
+    } as any;
     uut = new CategoryResolver(categoryService);
   });
 
@@ -64,4 +70,61 @@ describe(CategoryResolver.name, () => {
       expect(result).toBe(connection);
     },
   );
+
+  describe('mutations', () => {
+    const id = '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10';
+    const category = {
+      id,
+      name: 'fantasy',
+      status: CategoryStatus.APPROVED,
+    };
+
+    it('should request the category for the caller', async () => {
+      vi.mocked(categoryService.request).mockResolvedValue(category);
+
+      const result = await uut.requestCategory('Fantasy', {
+        sub: '300311094522198754',
+      } as IAuthUser);
+
+      expect(categoryService.request).toHaveBeenCalledExactlyOnceWith(
+        '300311094522198754',
+        'Fantasy',
+      );
+      expect(result).toBe(category);
+    });
+
+    it('should approve by id', async () => {
+      vi.mocked(categoryService.approve).mockResolvedValue(category);
+
+      const result = await uut.approveCategory(id);
+
+      expect(categoryService.approve).toHaveBeenCalledExactlyOnceWith(
+        id,
+      );
+      expect(result).toBe(category);
+    });
+
+    it('should rename by id', async () => {
+      vi.mocked(categoryService.rename).mockResolvedValue(category);
+
+      const result = await uut.updateCategory(id, 'epic');
+
+      expect(categoryService.rename).toHaveBeenCalledExactlyOnceWith(
+        id,
+        'epic',
+      );
+      expect(result).toBe(category);
+    });
+
+    it('should delete by id', async () => {
+      vi.mocked(categoryService.delete).mockResolvedValue({ id });
+
+      const result = await uut.deleteCategory(id);
+
+      expect(categoryService.delete).toHaveBeenCalledExactlyOnceWith(
+        id,
+      );
+      expect(result).toEqual({ id });
+    });
+  });
 });

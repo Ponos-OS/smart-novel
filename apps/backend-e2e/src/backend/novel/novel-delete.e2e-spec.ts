@@ -29,6 +29,33 @@ describe('Novel deletion (e2e)', () => {
   async function createNovelWithChapters(chapterCount: number) {
     const writer =
       await AuthorizationFixture.getWriterAuthorizationHeader();
+    const admin =
+      await AuthorizationFixture.getAdminAuthorizationHeader();
+    const requested = await graphql(
+      `
+        #graphql
+        mutation RequestCategory($name: String!) {
+          requestCategory(name: $name) {
+            id
+            name
+          }
+        }
+      `,
+      { name: `e2e-delete-${randomUUID().slice(0, 8)}` },
+      writer,
+    );
+    await graphql(
+      `
+        #graphql
+        mutation ApproveCategory($id: ID!) {
+          approveCategory(id: $id) {
+            id
+          }
+        }
+      `,
+      { id: requested.data.requestCategory.id },
+      admin,
+    );
     const created = await graphql(
       `
         #graphql
@@ -42,7 +69,7 @@ describe('Novel deletion (e2e)', () => {
         input: {
           name: 'The Lantern Keeper',
           description: 'A lighthouse keeper finds a door in the fog.',
-          categories: [`e2e-delete-${randomUUID().slice(0, 8)}`],
+          categories: [requested.data.requestCategory.name],
         },
       },
       writer,

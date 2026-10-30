@@ -1,10 +1,29 @@
-import { Args, Int, Query, Resolver } from '@nestjs/graphql';
-import { isAdmin } from '@smart-novel/shared';
+import {
+  Args,
+  ID,
+  Int,
+  Mutation,
+  Query,
+  Resolver,
+} from '@nestjs/graphql';
+import { isAdmin, Role } from '@smart-novel/shared';
 
-import { CurrentUserOptional, type IAuthUser, Public } from '../auth';
+import { ParseUuidPipe, RequiredStringPipe } from '../../shared';
+import {
+  CurrentUser,
+  CurrentUserOptional,
+  type IAuthUser,
+  Public,
+  RequireRole,
+} from '../auth';
+import { RequireAcceptedTerms } from '../platform-terms';
 import { CategoryFiltersInput } from './inputs';
 import { CategoryService } from './services';
-import { CategoryConnection } from './types';
+import {
+  Category,
+  CategoryConnection,
+  DeleteCategoryResponse,
+} from './types';
 
 @Resolver()
 export class CategoryResolver {
@@ -35,5 +54,72 @@ export class CategoryResolver {
       { first, last, after, before },
       filters,
     );
+  }
+
+  @RequireRole(Role.writer)
+  @RequireAcceptedTerms()
+  @Mutation(() => Category, {
+    description:
+      'Ask for a category that does not exist yet. It is PENDING, and cannot be put on novels, until an admin approves it. A name that already exists, even in another case, is a 400 that names the existing category.',
+  })
+  async requestCategory(
+    @Args('name', { type: () => String }, RequiredStringPipe)
+    name: string,
+    @CurrentUser() user: IAuthUser,
+  ): Promise<Category> {
+    return this.categoryService.request(user.sub, name);
+  }
+
+  @RequireRole(Role.admin)
+  @RequireAcceptedTerms()
+  @Mutation(() => Category, {
+    description:
+      'Admin only. Approve a pending category; approving an approved one changes nothing.',
+  })
+  async approveCategory(
+    @Args(
+      'id',
+      { type: () => ID, description: 'The ID of the category' },
+      ParseUuidPipe,
+    )
+    id: string,
+  ): Promise<Category> {
+    return this.categoryService.approve(id);
+  }
+
+  @RequireRole(Role.admin)
+  @RequireAcceptedTerms()
+  @Mutation(() => Category, {
+    description:
+      'Admin only. Rename a category of any status; the novels that have it follow. A name that already exists is a 400.',
+  })
+  async updateCategory(
+    @Args(
+      'id',
+      { type: () => ID, description: 'The ID of the category' },
+      ParseUuidPipe,
+    )
+    id: string,
+    @Args('name', { type: () => String }, RequiredStringPipe)
+    name: string,
+  ): Promise<Category> {
+    return this.categoryService.rename(id, name);
+  }
+
+  @RequireRole(Role.admin)
+  @RequireAcceptedTerms()
+  @Mutation(() => DeleteCategoryResponse, {
+    description:
+      'Admin only. Delete a category of any status, which also rejects a pending request. It is removed from every novel that has it; the novels stay.',
+  })
+  async deleteCategory(
+    @Args(
+      'id',
+      { type: () => ID, description: 'The ID of the category' },
+      ParseUuidPipe,
+    )
+    id: string,
+  ): Promise<DeleteCategoryResponse> {
+    return this.categoryService.delete(id);
   }
 }

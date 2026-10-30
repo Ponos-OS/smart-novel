@@ -38,7 +38,7 @@ export class CreateNovelInput {
   @Field(() => [String], {
     nullable: true,
     description:
-      'Category names, created when missing. Compared case-insensitively.',
+      'Names of approved categories, compared case-insensitively. Unknown or pending ones are rejected.',
   })
   @IsOptional()
   @IsArray()
