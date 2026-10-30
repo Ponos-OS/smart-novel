@@ -12,3 +12,13 @@ output "llm_model" {
   description = "Model Fithara asks its LLM for"
   value       = var.llm_model
 }
+
+output "llm_base_url" {
+  description = "Base URL Fithara talks to its LLM at"
+  value       = var.llm_base_url
+}
+
+output "llm_timeout_ms" {
+  description = "Timeout of a single LLM call of Fithara"
+  value       = var.llm_timeout_ms
+}

@@ -103,13 +103,13 @@ run "deploys_fithara_by_default_and_hands_its_url_to_the_backend" {
   command = plan
 
   assert {
-    condition     = length(module.fithara) == 1 && output.fithara_url == "http://fithara:8000"
+    condition     = output.fithara_url == "http://fithara:8000"
     error_message = "Fithara must be deployed by default and reached through its in-cluster URL"
   }
 
   assert {
-    condition     = module.fithara[0].llm_provider == "ollama"
-    error_message = "Fithara must use the local Ollama when the local models run"
+    condition     = module.fithara.llm_provider == null && module.fithara.llm_base_url == null
+    error_message = "Fithara must not borrow Beatrice's LLM settings; left unset it refuses to start"
   }
 }
 
@@ -122,8 +122,28 @@ run "fithara_takes_its_own_model_when_given_one" {
   }
 
   assert {
-    condition     = module.fithara[0].llm_model == "qwen2.5:7b"
+    condition     = module.fithara.llm_model == "qwen2.5:7b"
     error_message = "Fithara must ask for fithara_llm_model, not for Beatrice's model"
+  }
+}
+
+run "fithara_takes_its_own_endpoint_provider_key_and_timeout" {
+  command = plan
+
+  variables {
+    fithara_llm_provider   = "anthropic"
+    fithara_llm_base_url   = "https://api.anthropic.com/v1"
+    fithara_llm_api_key    = "sk-ant-api03-0f1e2d3c4b5a"
+    fithara_llm_timeout_ms = 45000
+  }
+
+  assert {
+    condition = (
+      module.fithara.llm_provider == "anthropic"
+      && module.fithara.llm_base_url == "https://api.anthropic.com/v1"
+      && module.fithara.llm_timeout_ms == 45000
+    )
+    error_message = "Fithara must use its own provider, endpoint and timeout, not Beatrice's"
   }
 }
 
@@ -135,7 +155,7 @@ run "disabling_ai_without_endpoints_skips_beatrice_and_rabbitmq" {
   }
 
   assert {
-    condition     = length(module.ollama) == 0 && length(module.openai_compatible_tts) == 0 && length(module.beatrice) == 0 && length(module.rabbitmq) == 0 && length(module.fithara) == 0 && output.fithara_url == null
+    condition     = length(module.ollama) == 0 && length(module.openai_compatible_tts) == 0 && length(module.beatrice) == 0 && length(module.rabbitmq) == 0 && output.fithara_url == "http://fithara:8000"
     error_message = "without the AI components or external endpoints nothing of the pipeline must remain"
   }
 }
@@ -150,7 +170,7 @@ run "disabling_ai_with_external_endpoints_keeps_beatrice" {
   }
 
   assert {
-    condition     = length(module.ollama) == 0 && length(module.openai_compatible_tts) == 0 && length(module.beatrice) == 1 && length(module.rabbitmq) == 1 && length(module.fithara) == 1
+    condition     = length(module.ollama) == 0 && length(module.openai_compatible_tts) == 0 && length(module.beatrice) == 1 && length(module.rabbitmq) == 1
     error_message = "Beatrice and Fithara must run against the external endpoints"
   }
 }

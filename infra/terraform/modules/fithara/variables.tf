@@ -15,31 +15,34 @@ variable "image" {
 }
 
 variable "llm_provider" {
-  description = "PydanticAI provider id Fithara uses to talk to the LLM, e.g. ollama or openai"
+  description = "PydanticAI provider id Fithara uses to talk to the LLM, e.g. ollama or openai; null leaves it unset and Fithara refuses to start"
   type        = string
+  default     = null
 }
 
 variable "llm_base_url" {
-  description = "OpenAI-compatible base URL of the LLM"
+  description = "OpenAI-compatible base URL of the LLM; null leaves it unset"
   type        = string
+  default     = null
 }
 
 variable "llm_model" {
-  description = "Name of the LLM model; the model capability catalog Fithara reads its limits from must know it, or Fithara refuses to start"
+  description = "Name of the LLM model; the model capability catalog Fithara reads its limits from must know it, or Fithara refuses to start; null leaves it unset and Fithara refuses to start"
   type        = string
+  default     = null
 }
 
 variable "llm_api_key" {
-  description = "API key for the LLM; Ollama ignores it, Fithara only requires it to be non-empty"
+  description = "API key for the LLM; Ollama ignores it, Fithara only requires it to be non-empty; null leaves it unset and Fithara refuses to start"
   type        = string
-  default     = "ollama"
+  default     = null
   sensitive   = true
 }
 
 variable "llm_timeout_ms" {
-  description = "Timeout of a single LLM call; a draft turn can run a long generation and CPU-only hosts are slow"
+  description = "Timeout of a single LLM call; a draft turn can run a long generation and CPU-only hosts are slow; null leaves Fithara's own default"
   type        = number
-  default     = 120000
+  default     = null
 }
 
 variable "rate_limit_per_minute" {

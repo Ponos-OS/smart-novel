@@ -108,8 +108,33 @@ variable "llm_model" {
 }
 
 variable "fithara_llm_model" {
-  description = "LLM model name Fithara asks for; null means the model of Beatrice. It must be one the model capability catalog of Fithara knows, and with run_local_ai_models it must be baked into the Ollama image"
+  description = "LLM model name Fithara asks for"
   type        = string
+  default     = null
+}
+
+variable "fithara_llm_provider" {
+  description = "PydanticAI provider id of Fithara's LLM, e.g. ollama or openai; null leaves it unset and Fithara refuses to start"
+  type        = string
+  default     = null
+}
+
+variable "fithara_llm_base_url" {
+  description = "OpenAI-compatible base URL of Fithara's LLM; independent of Beatrice's. With run_local_ai_models it is the in-cluster Ollama, http://ollama:11434/v1"
+  type        = string
+  default     = null
+}
+
+variable "fithara_llm_api_key" {
+  description = "API key of Fithara's LLM; independent of Beatrice's. null leaves it unset and Fithara refuses to start"
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
+variable "fithara_llm_timeout_ms" {
+  description = "Timeout of a single LLM call of Fithara; a draft turn can run a long generation and CPU-only hosts are slow; null leaves Fithara's own default"
+  type        = number
   default     = null
 }
 

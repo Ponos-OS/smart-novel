@@ -76,3 +76,25 @@ run "it_is_reached_inside_the_cluster_only" {
     error_message = "readiness must be answered by /health"
   }
 }
+
+run "an_unset_llm_setting_is_not_passed_on" {
+  command = plan
+
+  variables {
+    llm_provider   = null
+    llm_base_url   = null
+    llm_model      = null
+    llm_api_key    = null
+    llm_timeout_ms = null
+  }
+
+  assert {
+    condition     = length([for e in kubernetes_deployment_v1.fithara.spec[0].template[0].spec[0].container[0].env : e if startswith(e.name, "LLM__")]) == 0
+    error_message = "an unset LLM setting must be left out so that Fithara refuses to start, not replaced by a default"
+  }
+
+  assert {
+    condition     = length(kubernetes_secret_v1.fithara.data) == 0
+    error_message = "an unset API key must not end up in the secret"
+  }
+}

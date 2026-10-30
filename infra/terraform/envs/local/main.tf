@@ -12,7 +12,7 @@ locals {
   secret_key_pattern = "PASSWORD|SECRET|MASTERKEY|ACCESS_KEY"
   backend_environment = {
     for key, value in local.dotenv : key => value
-    if !startswith(key, "VITE_") && !can(regex(local.secret_key_pattern, key))
+    if !startswith(key, "VITE_") && !can(regex(local.secret_key_pattern, key)) && key != "FITHARA_LLM_API_KEY"
   }
   backend_secret_environment = {
     for key, value in local.dotenv : key => value
@@ -189,7 +189,11 @@ module "app" {
   run_local_ai_models          = var.run_local_ai_models
   llm_base_url                 = var.llm_base_url
   llm_model                    = lookup(local.dotenv, "BEATRICE_LLM_MODEL", "llama3.2:1b")
+  fithara_llm_provider         = lookup(local.dotenv, "FITHARA_LLM_PROVIDER", null)
   fithara_llm_model            = lookup(local.dotenv, "FITHARA_LLM_MODEL", null)
+  fithara_llm_base_url         = lookup(local.dotenv, "FITHARA_LLM_BASE_URL", null)
+  fithara_llm_api_key          = lookup(local.dotenv, "FITHARA_LLM_API_KEY", null)
+  fithara_llm_timeout_ms       = tonumber(lookup(local.dotenv, "FITHARA_LLM_TIMEOUT_MS", null))
   tts_model                    = lookup(local.dotenv, "BEATRICE_TTS_MODEL", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice")
   tts_base_url                 = var.tts_base_url
   llm_api_key                  = var.llm_api_key

@@ -9,9 +9,7 @@ resource "kubernetes_secret_v1" "fithara" {
     labels    = var.labels
   }
 
-  data = {
-    LLM__API_KEY = var.llm_api_key
-  }
+  data = var.llm_api_key == null ? {} : { LLM__API_KEY = var.llm_api_key }
 }
 
 resource "kubernetes_deployment_v1" "fithara" {
@@ -48,19 +46,19 @@ resource "kubernetes_deployment_v1" "fithara" {
           }
 
           dynamic "env" {
-            for_each = {
+            for_each = { for name, value in {
               PORT                         = "8000"
               SERVICE_NAME                 = "fithara"
               LLM__PROVIDER                = var.llm_provider
               LLM__MODEL                   = var.llm_model
               LLM__BASE_URL                = var.llm_base_url
-              LLM__TIMEOUT_MS              = tostring(var.llm_timeout_ms)
+              LLM__TIMEOUT_MS              = var.llm_timeout_ms == null ? null : tostring(var.llm_timeout_ms)
               RATE_LIMIT__PER_MINUTE       = tostring(var.rate_limit_per_minute)
               LOGGING__MODE                = "JSON"
               LOGGING__LEVEL               = var.log_level
               OTEL__ENABLED                = tostring(local.tracing_enabled)
               OTEL__EXPORTER_OTLP_ENDPOINT = local.tracing_enabled ? var.otlp_http_endpoint : ""
-            }
+            } : name => value if value != null }
             content {
               name  = env.key
               value = env.value

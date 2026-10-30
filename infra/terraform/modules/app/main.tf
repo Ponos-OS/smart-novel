@@ -51,15 +51,13 @@ locals {
   deploy_beatrice = local.llm_base_url != null && local.tts_base_url != null
   otlp_endpoint   = var.otlp_endpoint
   beatrice_url    = one(module.beatrice[*].graphql_url)
-  # Fithara needs only an LLM: the local Ollama, or the external endpoint Beatrice would use.
-  deploy_fithara = local.llm_base_url != null
-  fithara_url    = one(module.fithara[*].url)
+  fithara_url     = module.fithara.url
 
   backend_environment = merge(
     var.backend_environment,
     { OBJECT_STORAGE_ENDPOINT = module.object_storage.endpoint },
     local.beatrice_url == null ? {} : { BEATRICE_URL = local.beatrice_url },
-    local.fithara_url == null ? {} : { FITHARA_URL = local.fithara_url },
+    { FITHARA_URL = local.fithara_url },
     local.otlp_endpoint == null ? { OTEL_ENABLED = "false" } : { OTEL_ENABLED = "true", OTEL_EXPORTER_OTLP_ENDPOINT = local.otlp_endpoint },
   )
   backend_secret_environment = merge(
@@ -120,15 +118,15 @@ module "beatrice" {
 
 module "fithara" {
   source = "../fithara"
-  count  = local.deploy_fithara ? 1 : 0
 
   namespace          = module.namespace.name
   labels             = var.labels
   image              = var.images["fithara"]
-  llm_provider       = var.run_local_ai_models ? "ollama" : "openai"
-  llm_base_url       = local.llm_base_url
-  llm_model          = coalesce(var.fithara_llm_model, var.llm_model)
-  llm_api_key        = coalesce(var.llm_api_key, "ollama")
+  llm_provider       = var.fithara_llm_provider
+  llm_base_url       = var.fithara_llm_base_url
+  llm_model          = var.fithara_llm_model
+  llm_api_key        = var.fithara_llm_api_key
+  llm_timeout_ms     = var.fithara_llm_timeout_ms
   otlp_http_endpoint = local.otlp_endpoint
 
   depends_on = [module.ollama]
