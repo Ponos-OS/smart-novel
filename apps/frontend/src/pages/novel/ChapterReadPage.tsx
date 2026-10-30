@@ -70,7 +70,7 @@ export function ChapterReadPage() {
       </button>
 
       {/* Chapter Content */}
-      <div className="rounded-lg border p-6 border-gray-700 bg-gray-800">
+      <div className="rounded-xl border border-gray-700/70 bg-gray-800 p-6">
         {chapterLoading || !currentChapter ? (
           <LoadingSpinner label="Loading chapter..." />
         ) : (

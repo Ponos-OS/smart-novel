@@ -64,7 +64,9 @@ describe('ChapterList delete', () => {
     renderList(props);
 
     // Assert
-    expect(screen.queryByTitle('Delete chapter')).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Delete' }),
+    ).toBeNull();
   });
 
   it('changes nothing when the dialog is cancelled', () => {
@@ -72,7 +74,9 @@ describe('ChapterList delete', () => {
     const { onDelete } = renderList();
 
     // Act
-    fireEvent.click(screen.getAllByTitle('Delete chapter')[0]);
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Delete' })[0],
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
     // Assert
@@ -85,7 +89,9 @@ describe('ChapterList delete', () => {
     const { onDelete } = renderList();
 
     // Act
-    fireEvent.click(screen.getAllByTitle('Delete chapter')[1]);
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Delete' })[1],
+    );
     fireEvent.click(
       within(screen.getByRole('dialog')).getByRole('button', {
         name: 'Delete',
@@ -113,7 +119,9 @@ describe('ChapterList delete', () => {
     renderList({ onDelete });
 
     // Act
-    fireEvent.click(screen.getAllByTitle('Delete chapter')[0]);
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Delete' })[0],
+    );
     fireEvent.click(
       within(screen.getByRole('dialog')).getByRole('button', {
         name: 'Delete',

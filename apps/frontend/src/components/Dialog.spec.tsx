@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 
@@ -37,10 +37,16 @@ describe(Dialog.name, () => {
     // Assert
     expect(
       screen.getByRole('dialog', { name: 'CC BY 4.0' }),
-    ).toHaveAttribute('aria-modal', 'true');
+    ).toBeInTheDocument();
+    // Modal: everything behind it is hidden from assistive technology.
     expect(
-      screen.getByRole('button', { name: 'Close' }),
-    ).toHaveFocus();
+      screen.queryByRole('button', { name: 'Open' }),
+    ).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Close' }),
+      ).toHaveFocus(),
+    );
   });
 
   it.each([
@@ -69,9 +75,11 @@ describe(Dialog.name, () => {
       // Assert
       expect(onClose).toHaveBeenCalledOnce();
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-      expect(
-        screen.getByRole('button', { name: 'Open' }),
-      ).toHaveFocus();
+      await waitFor(() =>
+        expect(
+          screen.getByRole('button', { name: 'Open' }),
+        ).toHaveFocus(),
+      );
     },
   );
 
@@ -83,13 +91,16 @@ describe(Dialog.name, () => {
     await user.click(screen.getByRole('button', { name: 'Open' }));
 
     // Act
-    fireEvent.mouseDown(screen.getByRole('dialog'));
+    await user.click(screen.getByText('CC BY 4.0'));
     const insideCalls = onClose.mock.calls.length;
-    fireEvent.mouseDown(screen.getByRole('dialog').parentElement!);
+    // Everything behind a modal dialog is unclickable, which is the point.
+    await userEvent
+      .setup({ pointerEventsCheck: 0 })
+      .click(document.body);
 
     // Assert
     expect(insideCalls).toBe(0);
-    expect(onClose).toHaveBeenCalledOnce();
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   });
 
   it('keeps Tab and Shift+Tab inside the dialog', async () => {

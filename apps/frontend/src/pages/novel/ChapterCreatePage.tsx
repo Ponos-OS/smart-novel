@@ -43,7 +43,7 @@ export function ChapterCreatePage() {
 
   if (!canEditContent) {
     return (
-      <div className="rounded-lg border p-6 border-gray-700 bg-gray-800">
+      <div className="rounded-xl border border-gray-700/70 bg-gray-800 p-6">
         <div className="text-center text-red-400">
           <p>You don't have permission to create a chapter.</p>
         </div>
@@ -52,7 +52,7 @@ export function ChapterCreatePage() {
   }
 
   return (
-    <div className="rounded-lg border p-6 border-gray-700 bg-gray-800">
+    <div className="rounded-xl border border-gray-700/70 bg-gray-800 p-6">
       <div className="border-b pb-4 border-gray-700">
         <input
           type="text"

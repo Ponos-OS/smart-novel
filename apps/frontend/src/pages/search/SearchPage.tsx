@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { NovelCard } from '../../components/NovelCard';
@@ -6,6 +6,7 @@ import {
   NovelFiltersInput,
   useSearchNovelsQuery,
 } from '../../generated/graphql';
+import { showApiError } from '../../utils/notification';
 import { CategoryFilter } from './CategoryFilter';
 import { useFilterCategories } from './use-filter-categories';
 
@@ -34,6 +35,14 @@ export function SearchPage() {
   const [searchTriggered, setSearchTriggered] = useState(false);
 
   const categories = useFilterCategories();
+
+  useEffect(() => {
+    if (categories.isError) {
+      showApiError(
+        'The categories could not be loaded. Try again later.',
+      );
+    }
+  }, [categories.isError]);
 
   const {
     data: searchData,
@@ -91,14 +100,10 @@ export function SearchPage() {
       </h1>
 
       {/* Filter Section */}
-      <div className="mb-8 rounded-lg border p-6 border-gray-700 bg-gray-800">
+      <div className="mb-8 rounded-xl border border-gray-700/70 bg-gray-800 p-6">
         {categories.isLoading ? (
           <div className="text-center text-gray-400">
             <p>Loading categories...</p>
-          </div>
-        ) : categories.isError ? (
-          <div className="text-center text-red-400">
-            <p>Failed to load categories</p>
           </div>
         ) : (
           <CategoryFilter

@@ -15,7 +15,7 @@ export function NovelLicenseSection({
   return (
     <section
       aria-labelledby="novel-license-heading"
-      className="mt-6 rounded-lg border p-6 border-gray-700 bg-gray-800"
+      className="mt-6 rounded-xl border border-gray-700/70 bg-gray-800 p-6"
     >
       <h2
         id="novel-license-heading"

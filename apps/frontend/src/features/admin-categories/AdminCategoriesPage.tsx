@@ -1,5 +1,6 @@
 import { Role } from '@smart-novel/shared';
 import { useQueryClient } from '@tanstack/react-query';
+import { ToggleGroup } from 'radix-ui';
 import { useState } from 'react';
 
 import { ConfirmDialog } from '../../components/ConfirmDialog';
@@ -130,32 +131,33 @@ export function AdminCategoriesPage() {
           onChange={(event) => setSearch(event.target.value)}
           className="w-full max-w-xs rounded-lg border border-gray-600 bg-gray-900 px-3 py-2 text-sm text-white"
         />
-        <div
-          role="group"
+        <ToggleGroup.Root
+          type="single"
+          value={statusFilter}
+          // Pressing the selected item again would leave nothing selected.
+          onValueChange={(value) => {
+            if (value) {
+              setStatusFilter(value as StatusFilter);
+            }
+          }}
           aria-label="Filter by status"
           className="flex gap-2"
         >
           {STATUS_FILTERS.map(({ value, label }) => (
-            <button
+            <ToggleGroup.Item
               key={value}
-              type="button"
-              aria-pressed={statusFilter === value}
-              onClick={() => setStatusFilter(value)}
-              className={`cursor-pointer rounded-lg border px-3 py-1.5 text-sm transition-colors ${
-                statusFilter === value
-                  ? 'border-blue-500 bg-blue-900 text-blue-100'
-                  : 'border-gray-600 text-gray-300 hover:bg-gray-700'
-              }`}
+              value={value}
+              className="cursor-pointer rounded-lg border border-gray-600 px-3 py-1.5 text-sm text-gray-300 outline-none transition-colors hover:bg-gray-700 focus-visible:ring-2 focus-visible:ring-blue-500 data-[state=on]:border-blue-500 data-[state=on]:bg-blue-900 data-[state=on]:text-blue-100"
             >
               {label}
-            </button>
+            </ToggleGroup.Item>
           ))}
-        </div>
+        </ToggleGroup.Root>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-gray-700 bg-gray-800">
         <table className="w-full text-left">
-          <thead className="text-xs uppercase text-gray-400">
+          <thead className="text-xs text-gray-400">
             <tr>
               <th scope="col" className="px-4 py-3 font-medium">
                 Name

@@ -539,7 +539,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
       <div
         ref={containerRef}
         onClick={handlePowerClick}
-        className="prose prose-slate max-w-none selection:bg-transparent selection:text-inherit prose-invert prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:text-base prose-p:leading-7 prose-a:text-blue-400 hover:prose-a:text-blue-300"
+        className="prose prose-slate max-w-none font-serif selection:bg-transparent selection:text-inherit prose-invert prose-headings:font-semibold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:text-[1.0625rem] prose-p:leading-8 prose-a:text-blue-300 hover:prose-a:text-blue-200"
       >
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}

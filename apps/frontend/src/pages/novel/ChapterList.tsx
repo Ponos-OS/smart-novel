@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { GenerateTtsButton } from '../../components/GenerateTtsButton';
+import { Tooltip } from '../../components/Tooltip';
 import { NarrationStatus } from '../../generated/graphql';
 import { useReadChapters } from '../../hooks/useReadChapters';
 
@@ -120,24 +121,26 @@ export function ChapterList({
                 />
               )}
               {canEditContent && (
-                <Button
-                  variant="chip"
-                  color="blue"
-                  onClick={() => onEditClick(chapter.id)}
-                  title="Edit chapter title/content"
-                >
-                  Edit
-                </Button>
+                <Tooltip content="Edit chapter title/content">
+                  <Button
+                    variant="chip"
+                    color="blue"
+                    onClick={() => onEditClick(chapter.id)}
+                  >
+                    Edit
+                  </Button>
+                </Tooltip>
               )}
               {canEditContent && onDelete && (
-                <Button
-                  variant="chip"
-                  color="red"
-                  onClick={() => setChapterToDelete(chapter)}
-                  title="Delete chapter"
-                >
-                  Delete
-                </Button>
+                <Tooltip content="Delete chapter">
+                  <Button
+                    variant="chip"
+                    color="red"
+                    onClick={() => setChapterToDelete(chapter)}
+                  >
+                    Delete
+                  </Button>
+                </Tooltip>
               )}
             </div>
           </div>

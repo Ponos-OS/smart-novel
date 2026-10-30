@@ -45,7 +45,7 @@ export function NovelCreatePage() {
       <h1 className="mb-6 text-3xl font-bold text-white">
         New novel
       </h1>
-      <div className="rounded-lg border p-6 border-gray-700 bg-gray-800">
+      <div className="rounded-xl border border-gray-700/70 bg-gray-800 p-6">
         <NovelForm
           license={licenseData?.defaultLicense}
           submitLabel="Create novel"

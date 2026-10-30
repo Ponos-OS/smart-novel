@@ -16,3 +16,14 @@ Range.prototype.getBoundingClientRect = vi.fn(() => ({
   left: 0,
   toJSON: () => {},
 }));
+
+// jsdom lacks what Radix primitives use for pointer handling and scrolling.
+Element.prototype.hasPointerCapture ??= () => false;
+Element.prototype.setPointerCapture ??= () => undefined;
+Element.prototype.releasePointerCapture ??= () => undefined;
+Element.prototype.scrollIntoView ??= () => undefined;
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};

@@ -123,7 +123,7 @@ export function NovelEditPage() {
           coverUrl={novel.coverUrl}
         />
       </div>
-      <div className="rounded-lg border p-6 border-gray-700 bg-gray-800">
+      <div className="rounded-xl border border-gray-700/70 bg-gray-800 p-6">
         <NovelForm
           initialValues={{
             name: novel.name,
@@ -139,7 +139,7 @@ export function NovelEditPage() {
         />
       </div>
 
-      <div className="mt-6 flex items-center justify-between rounded-lg border p-6 border-red-900 bg-gray-800">
+      <div className="mt-6 flex items-center justify-between rounded-xl border border-red-900/70 bg-gray-800 p-6">
         <div>
           <h2 className="font-bold text-white">Delete this novel</h2>
           <p className="text-sm text-gray-400">

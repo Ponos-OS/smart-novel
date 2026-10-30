@@ -3,8 +3,8 @@ import {
   Outlet,
   RouterProvider,
 } from 'react-router-dom';
-import { Toaster } from 'sonner';
 
+import { Toaster } from '../components/Toaster';
 import { PlatformTermsGate } from '../features/platform-terms/PlatformTermsGate';
 import { CallbackPage } from '../pages/auth/CallbackPage';
 import { HomePage } from '../pages/home/HomePage';
@@ -164,7 +164,7 @@ const router = createBrowserRouter([
 export function App() {
   return (
     <>
-      <Toaster position="top-right" richColors />
+      <Toaster />
       <RouterProvider router={router} />
     </>
   );

@@ -203,7 +203,9 @@ Cypress.Commands.add('logout', () => {
     cy.get('button[aria-label="User menu"]').click();
 
     log('Clicking Sign out...');
-    cy.contains('button', 'Sign out').should('be.visible').click();
+    cy.contains('[role="menuitem"]', 'Sign out')
+      .should('be.visible')
+      .click();
 
     cy.get('button[aria-label="Login"]', { timeout: 15000 }).should(
       'be.visible',

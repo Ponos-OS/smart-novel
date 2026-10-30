@@ -158,7 +158,7 @@ export function NovelCoverUpload({
   };
 
   return (
-    <div className="rounded-lg border p-6 border-gray-700 bg-gray-800">
+    <div className="rounded-xl border border-gray-700/70 bg-gray-800 p-6">
       <h2 className="mb-4 text-lg font-bold text-white">Cover</h2>
       {file ? (
         <NovelCoverConfirmForm

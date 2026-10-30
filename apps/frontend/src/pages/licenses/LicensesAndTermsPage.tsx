@@ -1,5 +1,5 @@
 import { isWriterOrHigher } from '@smart-novel/shared';
-import { type KeyboardEvent, useState } from 'react';
+import { Tabs } from 'radix-ui';
 import { Link } from 'react-router-dom';
 
 import { DefaultLicenseTab } from '../../features/license-assistant/DefaultLicenseTab';
@@ -17,7 +17,6 @@ const TABS = [
 
 export function LicensesAndTermsPage() {
   const { user, loading } = useAuth();
-  const [activeIndex, setActiveIndex] = useState(0);
 
   if (loading) {
     return null;
@@ -30,20 +29,6 @@ export function LicensesAndTermsPage() {
       </div>
     );
   }
-
-  const moveTab = (event: KeyboardEvent, index: number) => {
-    const step = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
-
-    if (!step) {
-      return;
-    }
-
-    const next = (index + step + TABS.length) % TABS.length;
-    setActiveIndex(next);
-    document.getElementById(`tab-${TABS[next].id}`)?.focus();
-  };
-
-  const { Panel } = TABS[activeIndex];
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
@@ -58,40 +43,31 @@ export function LicensesAndTermsPage() {
           Draft a license with the assistant
         </Link>
       </p>
-      <div
-        role="tablist"
-        aria-label="Licenses and terms"
-        className="mb-4 flex gap-4 border-b border-gray-700"
-      >
-        {TABS.map((tab, index) => (
-          <button
-            key={tab.id}
-            id={`tab-${tab.id}`}
-            role="tab"
-            type="button"
-            aria-selected={index === activeIndex}
-            aria-controls={`panel-${tab.id}`}
-            tabIndex={index === activeIndex ? 0 : -1}
-            onClick={() => setActiveIndex(index)}
-            onKeyDown={(event) => moveTab(event, index)}
-            className={`cursor-pointer border-b-2 px-1 pb-2 text-sm font-medium ${
-              index === activeIndex
-                ? 'border-blue-400 text-blue-400'
-                : 'border-transparent text-gray-300'
-            }`}
+      <Tabs.Root defaultValue={TABS[0].id}>
+        <Tabs.List
+          aria-label="Licenses and terms"
+          className="mb-4 flex gap-4 border-b border-gray-700"
+        >
+          {TABS.map((tab) => (
+            <Tabs.Trigger
+              key={tab.id}
+              value={tab.id}
+              className="cursor-pointer border-b-2 border-transparent px-1 pb-2 text-sm font-medium text-gray-300 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 data-[state=active]:border-blue-400 data-[state=active]:text-blue-400"
+            >
+              {tab.label}
+            </Tabs.Trigger>
+          ))}
+        </Tabs.List>
+        {TABS.map(({ id, Panel }) => (
+          <Tabs.Content
+            key={id}
+            value={id}
+            className="rounded-xl border border-gray-700/70 bg-gray-800 p-6"
           >
-            {tab.label}
-          </button>
+            <Panel />
+          </Tabs.Content>
         ))}
-      </div>
-      <div
-        role="tabpanel"
-        id={`panel-${TABS[activeIndex].id}`}
-        aria-labelledby={`tab-${TABS[activeIndex].id}`}
-        className="rounded-lg border p-6 border-gray-700 bg-gray-800"
-      >
-        <Panel />
-      </div>
+      </Tabs.Root>
     </div>
   );
 }

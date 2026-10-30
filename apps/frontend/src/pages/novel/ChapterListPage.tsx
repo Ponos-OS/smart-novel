@@ -133,7 +133,7 @@ export function ChapterListPage() {
       </div>
 
       {/* Chapters Tab */}
-      <div className="rounded-lg border p-6 border-gray-700 bg-gray-800">
+      <div className="rounded-xl border border-gray-700/70 bg-gray-800 p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-white">
             Chapters ({totalChapters})

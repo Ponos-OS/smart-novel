@@ -1,5 +1,7 @@
+import { Dialog as RadixDialog } from 'radix-ui';
 import { ReactNode, useState } from 'react';
 
+import { useRestoreFocus } from '../hooks/useRestoreFocus';
 import { Button } from './Button';
 
 interface ConfirmDialogProps {
@@ -16,6 +18,9 @@ interface ConfirmDialogProps {
   onCancel: () => void;
 }
 
+/**
+ * @description Asks before something destructive. Escape and Cancel decline it; a click outside does not, so a stray click never loses the choice, and nothing closes while it is loading.
+ */
 export function ConfirmDialog({
   title,
   message,
@@ -27,63 +32,74 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const restoreFocus = useRestoreFocus();
   const [typedText, setTypedText] = useState('');
   const isConfirmationMissing =
     confirmationText !== undefined && typedText !== confirmationText;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="confirm-dialog-title"
+    <RadixDialog.Root
+      open
+      onOpenChange={(open) => {
+        if (!open && !isLoading) {
+          onCancel();
+        }
+      }}
     >
-      <div className="w-full max-w-md rounded-lg p-6 shadow-xl bg-gray-800">
-        <h2
-          id="confirm-dialog-title"
-          className="mb-2 text-lg font-bold text-white"
+      <RadixDialog.Portal>
+        <RadixDialog.Overlay className="fixed inset-0 z-50 bg-gray-950/70 backdrop-blur-sm" />
+        <RadixDialog.Content
+          onCloseAutoFocus={restoreFocus}
+          onPointerDownOutside={(event) => event.preventDefault()}
+          className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-gray-700/70 bg-gray-800 p-6 shadow-2xl shadow-black/40"
         >
-          {title}
-        </h2>
-        <div className="mb-4 text-sm text-gray-300">{message}</div>
-        {confirmationText !== undefined && (
-          <label className="mb-4 block text-sm text-gray-300">
-            <span className="mb-1 block">
-              Type <strong>{confirmationText}</strong> to confirm
-            </span>
-            <input
-              type="text"
-              value={typedText}
-              onChange={(event) => setTypedText(event.target.value)}
+          <RadixDialog.Title className="mb-2 text-lg font-bold text-white">
+            {title}
+          </RadixDialog.Title>
+          <RadixDialog.Description asChild>
+            <div className="mb-4 text-sm text-gray-300">
+              {message}
+            </div>
+          </RadixDialog.Description>
+          {confirmationText !== undefined && (
+            <label className="mb-4 block text-sm text-gray-300">
+              <span className="mb-1 block">
+                Type <strong>{confirmationText}</strong> to confirm
+              </span>
+              <input
+                type="text"
+                value={typedText}
+                onChange={(event) => setTypedText(event.target.value)}
+                disabled={isLoading}
+                className="w-full rounded-lg border px-3 py-2 disabled:opacity-50 border-gray-600 bg-gray-900 text-white"
+              />
+            </label>
+          )}
+          {error && (
+            <p role="alert" className="mb-4 text-sm text-red-400">
+              {error}
+            </p>
+          )}
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="outline"
+              color="gray"
+              onClick={onCancel}
               disabled={isLoading}
-              className="w-full rounded-lg border px-3 py-2 disabled:opacity-50 border-gray-600 bg-gray-900 text-white"
-            />
-          </label>
-        )}
-        {error && (
-          <p role="alert" className="mb-4 text-sm text-red-400">
-            {error}
-          </p>
-        )}
-        <div className="flex justify-end gap-3">
-          <Button
-            variant="outline"
-            color="gray"
-            onClick={onCancel}
-            disabled={isLoading}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="solid"
-            color="red"
-            onClick={onConfirm}
-            disabled={isLoading || isConfirmationMissing}
-          >
-            {isLoading ? loadingLabel : confirmLabel}
-          </Button>
-        </div>
-      </div>
-    </div>
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="solid"
+              color="red"
+              onClick={onConfirm}
+              disabled={isLoading || isConfirmationMissing}
+            >
+              {isLoading ? loadingLabel : confirmLabel}
+            </Button>
+          </div>
+        </RadixDialog.Content>
+      </RadixDialog.Portal>
+    </RadixDialog.Root>
   );
 }

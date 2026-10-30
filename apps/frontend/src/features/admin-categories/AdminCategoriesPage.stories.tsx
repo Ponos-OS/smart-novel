@@ -130,7 +130,7 @@ export const PendingOnly: Story = {
     const canvas = within(canvasElement);
 
     await userEvent.click(
-      canvas.getByRole('button', { name: 'Pending' }),
+      canvas.getByRole('radio', { name: 'Pending' }),
     );
 
     await expect(

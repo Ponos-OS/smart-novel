@@ -108,7 +108,7 @@ describe('Manage a novel (e2e)', () => {
           request.alias = 'getNovelAfterDelete';
         }
       });
-      cy.get('button[title="Delete chapter"]').first().click();
+      cy.contains('button', 'Delete').first().click();
       cy.get('[role="dialog"]').within(() => {
         cy.contains('button', 'Delete').click();
       });

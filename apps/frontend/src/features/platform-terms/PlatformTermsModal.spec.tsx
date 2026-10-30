@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -37,7 +37,8 @@ describe(PlatformTermsModal.name, () => {
     // Assert
     expect(
       screen.getByRole('dialog', { name: 'Platform terms' }),
-    ).toHaveAttribute('aria-modal', 'true');
+    ).toBeInTheDocument();
+    expect(screen.getByRole('checkbox')).toHaveFocus();
     expect(
       screen.getByText(/license to host and display/),
     ).toBeInTheDocument();
@@ -80,7 +81,9 @@ describe(PlatformTermsModal.name, () => {
 
     // Act
     await user.keyboard('{Escape}');
-    await user.click(screen.getByRole('dialog').parentElement!);
+    // The page behind a modal dialog is unclickable, so press on it directly.
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    fireEvent.pointerDown(document.body);
 
     // Assert
     expect(screen.getByRole('dialog')).toBeInTheDocument();

@@ -78,7 +78,7 @@ describe('Manage the categories (e2e)', () => {
     openCategoriesPage();
     cy.get('input[aria-label="Search categories"]').type(category);
     cy.contains('tr', category, { timeout: 15000 }).within(() => {
-      cy.get('button[title="Delete category"]').click();
+      cy.get('button[aria-label^="Delete category"]').click();
     });
     cy.contains(
       '[role="dialog"]',

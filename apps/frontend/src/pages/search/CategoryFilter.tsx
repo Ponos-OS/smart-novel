@@ -1,3 +1,7 @@
+import { Toggle } from 'radix-ui';
+
+import { Tooltip } from '../../components/Tooltip';
+
 export interface FilterCategory {
   name: string;
   /** @description An estimate from the database planner, never an exact count. */
@@ -19,6 +23,39 @@ const countFormat = new Intl.NumberFormat('en-US', {
   notation: 'compact',
 });
 
+interface CategoryChipProps {
+  category: FilterCategory;
+  isSelected: boolean;
+  selectedClasses: string;
+  onToggle: () => void;
+}
+
+function CategoryChip({
+  category,
+  isSelected,
+  selectedClasses,
+  onToggle,
+}: CategoryChipProps) {
+  return (
+    <Tooltip content="About how many novels have this category">
+      <Toggle.Root
+        pressed={isSelected}
+        onPressedChange={onToggle}
+        className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 ${
+          isSelected
+            ? selectedClasses
+            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+        }`}
+      >
+        {category.name}
+        <span className="ml-2 text-xs opacity-70">
+          ~{countFormat.format(category.approximateNovelCount)}
+        </span>
+      </Toggle.Root>
+    </Tooltip>
+  );
+}
+
 export function CategoryFilter({
   availableCategories,
   includeCategories,
@@ -37,30 +74,15 @@ export function CategoryFilter({
           Include Categories
         </h3>
         <div className="flex flex-wrap gap-2">
-          {availableCategories.map(
-            ({ name: category, approximateNovelCount }) => {
-              const isSelected = includeCategories.includes(category);
-              return (
-                <button
-                  key={`include-${category}`}
-                  onClick={() => onToggleInclude(category)}
-                  className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                    isSelected
-                      ? 'bg-green-600 text-white hover:bg-green-700'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  {category}
-                  <span
-                    className="ml-2 text-xs opacity-70"
-                    title="About how many novels have this category"
-                  >
-                    ~{countFormat.format(approximateNovelCount)}
-                  </span>
-                </button>
-              );
-            },
-          )}
+          {availableCategories.map((category) => (
+            <CategoryChip
+              key={`include-${category.name}`}
+              category={category}
+              isSelected={includeCategories.includes(category.name)}
+              selectedClasses="bg-green-600 text-white hover:bg-green-700"
+              onToggle={() => onToggleInclude(category.name)}
+            />
+          ))}
         </div>
       </div>
 
@@ -70,30 +92,15 @@ export function CategoryFilter({
           Exclude Categories
         </h3>
         <div className="flex flex-wrap gap-2">
-          {availableCategories.map(
-            ({ name: category, approximateNovelCount }) => {
-              const isSelected = excludeCategories.includes(category);
-              return (
-                <button
-                  key={`exclude-${category}`}
-                  onClick={() => onToggleExclude(category)}
-                  className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                    isSelected
-                      ? 'bg-red-600 text-white hover:bg-red-700'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  {category}
-                  <span
-                    className="ml-2 text-xs opacity-70"
-                    title="About how many novels have this category"
-                  >
-                    ~{countFormat.format(approximateNovelCount)}
-                  </span>
-                </button>
-              );
-            },
-          )}
+          {availableCategories.map((category) => (
+            <CategoryChip
+              key={`exclude-${category.name}`}
+              category={category}
+              isSelected={excludeCategories.includes(category.name)}
+              selectedClasses="bg-red-600 text-white hover:bg-red-700"
+              onToggle={() => onToggleExclude(category.name)}
+            />
+          ))}
         </div>
       </div>
 

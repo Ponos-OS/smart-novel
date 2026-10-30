@@ -2,13 +2,18 @@ import {
   isAdmin as hasAdminRole,
   isWriterOrHigher,
 } from '@smart-novel/shared';
-import { useEffect, useRef, useState } from 'react';
+import { DropdownMenu } from 'radix-ui';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { Tooltip } from '../../components/Tooltip';
 import { useAuth } from '../../hooks/useAuth';
 import { getInitials } from '../../utils/get-initials';
 
 const ZITADEL_CONSOLE_URL = `${window.location.origin}/ui/console/`;
+
+const MENU_ITEM_CLASSES =
+  'block w-full cursor-pointer px-4 py-2 text-left text-sm text-gray-200 outline-none transition-colors data-[highlighted]:bg-gray-600';
 
 const navItems = [
   { to: '/', label: 'Home' },
@@ -18,42 +23,23 @@ const navItems = [
 export function Header() {
   const { user, isAuthenticated, loading, login, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const closeMenu = () => setIsMenuOpen(false);
   const isWriter = isWriterOrHigher(user?.roles ?? []);
   const isAdmin = hasAdminRole(user?.roles ?? []);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsDropdownOpen(false);
-      }
-    }
-
-    if (isDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isDropdownOpen]);
 
   const initials = user
     ? getInitials(user.name, user.preferredUsername, user.email)
     : '?';
 
   return (
-    <header className="border-b shadow-sm border-gray-700 bg-gray-800">
+    <header className="sticky top-0 z-40 border-b border-gray-700/60 bg-gray-900/80 backdrop-blur">
       <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-8">
-            <Link to="/" className="text-xl font-bold text-white">
+            <Link
+              to="/"
+              className="font-serif text-xl font-semibold tracking-tight text-white"
+            >
               Smart Novel
             </Link>
             <nav className="hidden space-x-4 md:flex">
@@ -73,91 +59,93 @@ export function Header() {
             <div className="hidden md:flex md:items-center md:space-x-3">
               {!loading &&
                 (isAuthenticated ? (
-                  <div className="relative" ref={dropdownRef}>
-                    <button
-                      onClick={() =>
-                        setIsDropdownOpen(!isDropdownOpen)
-                      }
-                      className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 bg-blue-500 hover:bg-blue-600 focus:ring-offset-gray-800"
-                      aria-label="User menu"
-                      aria-expanded={isDropdownOpen}
-                      aria-haspopup="true"
-                    >
-                      {initials}
-                    </button>
-
-                    {isDropdownOpen && (
-                      <div className="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-md border py-1 shadow-lg border-gray-600 bg-gray-700">
-                        <a
-                          href={ZITADEL_CONSOLE_URL}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block px-4 py-2 text-sm transition-colors text-gray-200 hover:bg-gray-600"
-                          onClick={() => setIsDropdownOpen(false)}
+                  <DropdownMenu.Root>
+                    <DropdownMenu.Trigger asChild>
+                      <button
+                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-sm font-semibold text-white transition-colors bg-blue-600 hover:bg-blue-500"
+                        aria-label="User menu"
+                      >
+                        {initials}
+                      </button>
+                    </DropdownMenu.Trigger>
+                    <DropdownMenu.Portal>
+                      <DropdownMenu.Content
+                        align="end"
+                        sideOffset={8}
+                        className="z-50 w-48 rounded-md border py-1 shadow-lg border-gray-600 bg-gray-700"
+                      >
+                        <DropdownMenu.Item
+                          asChild
+                          className={MENU_ITEM_CLASSES}
                         >
-                          Manage account
-                        </a>
-                        {isWriter && (
-                          <Link
-                            to="/licenses"
-                            className="block px-4 py-2 text-sm transition-colors text-gray-200 hover:bg-gray-600"
-                            onClick={() => setIsDropdownOpen(false)}
+                          <a
+                            href={ZITADEL_CONSOLE_URL}
+                            target="_blank"
+                            rel="noopener noreferrer"
                           >
-                            Licenses and terms
-                          </Link>
+                            Manage account
+                          </a>
+                        </DropdownMenu.Item>
+                        {isWriter && (
+                          <DropdownMenu.Item
+                            asChild
+                            className={MENU_ITEM_CLASSES}
+                          >
+                            <Link to="/licenses">
+                              Licenses and terms
+                            </Link>
+                          </DropdownMenu.Item>
                         )}
                         {isAdmin && (
-                          <Link
-                            to="/admin/categories"
-                            className="block px-4 py-2 text-sm transition-colors text-gray-200 hover:bg-gray-600"
-                            onClick={() => setIsDropdownOpen(false)}
+                          <DropdownMenu.Item
+                            asChild
+                            className={MENU_ITEM_CLASSES}
                           >
-                            Manage categories
-                          </Link>
+                            <Link to="/admin/categories">
+                              Manage categories
+                            </Link>
+                          </DropdownMenu.Item>
                         )}
-                        <Link
-                          to="/settings"
-                          className="block px-4 py-2 text-sm transition-colors text-gray-200 hover:bg-gray-600"
-                          onClick={() => setIsDropdownOpen(false)}
+                        <DropdownMenu.Item
+                          asChild
+                          className={MENU_ITEM_CLASSES}
                         >
-                          Settings
-                        </Link>
-                        <hr className="my-1 border-gray-600" />
-                        <button
-                          onClick={() => {
-                            setIsDropdownOpen(false);
-                            logout();
-                          }}
-                          className="block w-full cursor-pointer px-4 py-2 text-left text-sm transition-colors text-red-400 hover:bg-gray-600"
+                          <Link to="/settings">Settings</Link>
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Separator className="my-1 h-px bg-gray-600" />
+                        <DropdownMenu.Item
+                          onSelect={logout}
+                          className={`${MENU_ITEM_CLASSES} text-red-400`}
                         >
                           Sign out
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                        </DropdownMenu.Item>
+                      </DropdownMenu.Content>
+                    </DropdownMenu.Portal>
+                  </DropdownMenu.Root>
                 ) : (
-                  <button
-                    onClick={login}
-                    title="Login"
-                    aria-label="Login"
-                    className="cursor-pointer rounded-md p-2 text-white transition-colors bg-blue-500 hover:bg-blue-600"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      aria-hidden="true"
+                  <Tooltip content="Log in">
+                    <button
+                      onClick={login}
+                      aria-label="Login"
+                      className="cursor-pointer rounded-md p-2 text-white transition-colors bg-blue-500 hover:bg-blue-600"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1"
-                      />
-                    </svg>
-                  </button>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1"
+                        />
+                      </svg>
+                    </button>
+                  </Tooltip>
                 ))}
             </div>
             {/* Hamburger button - mobile only */}

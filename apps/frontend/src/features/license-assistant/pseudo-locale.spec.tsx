@@ -151,9 +151,11 @@ describe('license assistant in another language', () => {
       { input: {} },
     ]);
     expect(screen.getByRole('dialog')).toBeVisible();
+    // The page behind the modal dialog is hidden from assistive technology.
     expect(
       screen.getByRole('button', {
         name: p('recommendations.use', { name: 'CC BY 4.0' }),
+        hidden: true,
       }),
     ).toBeVisible();
   });

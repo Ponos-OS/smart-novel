@@ -3,6 +3,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { type KeyboardEvent, useState } from 'react';
 
 import { Button } from '../../components/Button';
+import { Tooltip } from '../../components/Tooltip';
 import {
   type AdminCategoriesQuery,
   CategoryStatus,
@@ -151,7 +152,7 @@ export function CategoryRow({
             )}
           </form>
         ) : (
-          <span className="font-medium capitalize text-white">
+          <span className="font-medium text-white">
             {category.name}
           </span>
         )}
@@ -174,11 +175,12 @@ export function CategoryRow({
           '-'
         )}
       </td>
-      <td
-        className="px-4 py-3 text-right align-top text-sm text-gray-300"
-        title="An estimate, not an exact count"
-      >
-        ~{category.approximateNovelCount.toLocaleString('en-US')}
+      <td className="px-4 py-3 text-right align-top text-sm text-gray-300">
+        <Tooltip content="An estimate, not an exact count">
+          <span tabIndex={0} className="cursor-help">
+            ~{category.approximateNovelCount.toLocaleString('en-US')}
+          </span>
+        </Tooltip>
       </td>
       <td className="px-4 py-3 align-top">
         <div className="flex items-center justify-end gap-1">
@@ -193,26 +195,28 @@ export function CategoryRow({
               Approve
             </Button>
           )}
-          <button
-            type="button"
-            title="Edit category"
-            aria-label={`Edit category ${category.name}`}
-            disabled={isBusy || isEditing}
-            onClick={() => setDraft(category.name)}
-            className={`${ICON_BUTTON_CLASSES} hover:text-blue-300`}
-          >
-            <Pencil aria-hidden="true" className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            title="Delete category"
-            aria-label={`Delete category ${category.name}`}
-            disabled={isBusy}
-            onClick={() => onDelete(category)}
-            className={`${ICON_BUTTON_CLASSES} hover:text-red-400`}
-          >
-            <Trash2 aria-hidden="true" className="h-4 w-4" />
-          </button>
+          <Tooltip content="Edit category">
+            <button
+              type="button"
+              aria-label={`Edit category ${category.name}`}
+              disabled={isBusy || isEditing}
+              onClick={() => setDraft(category.name)}
+              className={`${ICON_BUTTON_CLASSES} hover:text-blue-300`}
+            >
+              <Pencil aria-hidden="true" className="h-4 w-4" />
+            </button>
+          </Tooltip>
+          <Tooltip content="Delete category">
+            <button
+              type="button"
+              aria-label={`Delete category ${category.name}`}
+              disabled={isBusy}
+              onClick={() => onDelete(category)}
+              className={`${ICON_BUTTON_CLASSES} hover:text-red-400`}
+            >
+              <Trash2 aria-hidden="true" className="h-4 w-4" />
+            </button>
+          </Tooltip>
         </div>
       </td>
     </tr>

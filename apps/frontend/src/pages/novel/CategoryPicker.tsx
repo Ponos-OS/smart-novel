@@ -1,3 +1,4 @@
+import { X } from 'lucide-react';
 import { useId, useState } from 'react';
 
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
@@ -118,14 +119,7 @@ export function CategoryPicker({
                 onClick={() => remove(name)}
                 className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full text-blue-200 transition-colors hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  className="h-3.5 w-3.5"
-                >
-                  <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
-                </svg>
+                <X aria-hidden="true" className="h-3.5 w-3.5" />
               </button>
             </li>
           ))}

@@ -1,12 +1,15 @@
+import { Dialog as RadixDialog } from 'radix-ui';
 import { useState } from 'react';
 
 import { useDeleteReadHistoryMutation } from '../../generated/graphql';
 import { useAuth } from '../../hooks/useAuth';
+import { useRestoreFocus } from '../../hooks/useRestoreFocus';
 import { showApiError, showSuccess } from '../../utils/notification';
 
 export function SettingsPage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const restoreFocus = useRestoreFocus();
 
   const { mutate: deleteReadHistory, isPending } =
     useDeleteReadHistoryMutation({
@@ -121,14 +124,21 @@ export function SettingsPage() {
       </section>
 
       {/* Confirmation dialog */}
-      {showConfirmDialog && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="confirm-dialog-title"
-        >
-          <div className="w-full max-w-md rounded-xl p-6 shadow-xl bg-gray-800">
+      <RadixDialog.Root
+        open={showConfirmDialog}
+        onOpenChange={(open) => {
+          if (!open && !isPending) {
+            setShowConfirmDialog(false);
+          }
+        }}
+      >
+        <RadixDialog.Portal>
+          <RadixDialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
+          <RadixDialog.Content
+            onCloseAutoFocus={restoreFocus}
+            onPointerDownOutside={(event) => event.preventDefault()}
+            className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl p-6 shadow-xl bg-gray-800"
+          >
             <div className="mb-4 flex items-center gap-3">
               <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-red-900/30">
                 <svg
@@ -147,17 +157,14 @@ export function SettingsPage() {
                   />
                 </svg>
               </div>
-              <h3
-                id="confirm-dialog-title"
-                className="text-lg font-semibold text-white"
-              >
+              <RadixDialog.Title className="text-lg font-semibold text-white">
                 Are you sure?
-              </h3>
+              </RadixDialog.Title>
             </div>
-            <p className="mb-6 text-sm text-gray-400">
+            <RadixDialog.Description className="mb-6 text-sm text-gray-400">
               This will permanently delete all your reading history
               from our servers. This action cannot be undone.
-            </p>
+            </RadixDialog.Description>
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button
                 onClick={() => setShowConfirmDialog(false)}
@@ -198,9 +205,9 @@ export function SettingsPage() {
                 )}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </RadixDialog.Content>
+        </RadixDialog.Portal>
+      </RadixDialog.Root>
     </div>
   );
 }

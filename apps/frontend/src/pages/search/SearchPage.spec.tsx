@@ -6,11 +6,15 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
+import { showApiError } from '../../utils/notification';
 import { SearchPage } from './SearchPage';
 import { useFilterCategories } from './use-filter-categories';
 
 const search = vi.hoisted(() => ({ useSearchNovelsQuery: vi.fn() }));
 
+vi.mock('../../utils/notification', () => ({
+  showApiError: vi.fn(),
+}));
 vi.mock('./use-filter-categories', () => ({
   useFilterCategories: vi.fn(),
 }));
@@ -63,6 +67,7 @@ function renderPage(url = '/search') {
 describe('SearchPage', () => {
   beforeEach(() => {
     mockCategories();
+    vi.mocked(showApiError).mockReset();
     search.useSearchNovelsQuery.mockReset();
     search.useSearchNovelsQuery.mockReturnValue({
       data: undefined,
@@ -92,14 +97,20 @@ describe('SearchPage', () => {
     expect(screen.getByText('Loading categories...')).toBeVisible();
   });
 
-  it('shows when the categories could not be loaded', () => {
+  it('notifies when the categories could not be loaded, once', () => {
     mockCategories({ categories: [], isError: true });
 
     renderPage();
 
-    expect(
-      screen.getByText('Failed to load categories'),
-    ).toBeVisible();
+    expect(showApiError).toHaveBeenCalledExactlyOnceWith(
+      'The categories could not be loaded. Try again later.',
+    );
+  });
+
+  it('does not notify when the categories were loaded', () => {
+    renderPage();
+
+    expect(showApiError).not.toHaveBeenCalled();
   });
 
   it('loads more categories on demand', async () => {

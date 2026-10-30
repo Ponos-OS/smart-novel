@@ -62,54 +62,49 @@ export function NovelCard({ novel }: NovelCardProps) {
   return (
     <Link
       to={`/novel/${novel.id}`}
-      className="block overflow-hidden rounded-lg border shadow-sm transition-shadow hover:shadow-md border-gray-700 bg-gray-800"
+      className="group flex gap-5 rounded-xl border border-gray-700/70 bg-gray-800 p-4 transition-colors hover:border-blue-500/50 hover:bg-gray-800/60"
     >
-      <div className="flex gap-4 p-4">
-        {/* Cover Image */}
-        <div className="flex-shrink-0">
-          {novel.coverUrl ? (
-            <img
-              src={novel.coverUrl}
-              alt={novel.name}
-              className="h-32 w-24 rounded object-cover"
-            />
-          ) : (
-            <NovelCoverPlaceholder title={novel.name} />
-          )}
-        </div>
+      {/* A cover with the shadow of a spine on its left edge */}
+      <div className="relative h-40 w-28 shrink-0 overflow-hidden rounded-l-sm rounded-r-md shadow-lg shadow-black/40 ring-1 ring-white/10 after:absolute after:inset-y-0 after:left-0 after:w-2.5 after:bg-linear-to-r after:from-black/40 after:to-transparent">
+        {novel.coverUrl ? (
+          <img
+            src={novel.coverUrl}
+            alt={novel.name}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <NovelCoverPlaceholder
+            title={novel.name}
+            className="h-full w-full rounded-none"
+          />
+        )}
+      </div>
 
-        {/* Content */}
-        <div className="flex flex-1 flex-col">
-          {/* Last Update & Categories */}
-          <div className="mb-2">
-            <p className="mb-2 text-xs text-gray-400">
-              {getLastUpdateDate(novel)}
-            </p>
-            <div className="flex flex-wrap gap-1">
-              {novel.category.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={(e) => handleCategoryClick(e, cat)}
-                  className="rounded-full px-2 py-1 text-xs font-medium transition-colors bg-blue-900 text-blue-200 hover:bg-blue-800"
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <h3 className="font-serif text-xl font-semibold leading-snug text-white">
+          {novel.name}
+        </h3>
+        <p className="mt-0.5 text-sm text-gray-400">
+          By: {novel.author}
+        </p>
+        <p className="mt-3 flex-1 text-sm leading-relaxed text-gray-300">
+          {truncateText(novel.description, 300)}
+        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="flex flex-wrap gap-1.5">
+            {novel.category.map((cat) => (
+              <button
+                key={cat}
+                onClick={(e) => handleCategoryClick(e, cat)}
+                className="cursor-pointer rounded-full bg-blue-950 px-2.5 py-1 text-xs font-medium text-blue-200 ring-1 ring-blue-800/60 transition-colors hover:bg-blue-900"
+              >
+                {cat}
+              </button>
+            ))}
           </div>
-
-          {/* Novel Name */}
-          <h3 className="mb-2 text-lg font-semibold text-white">
-            {novel.name}
-          </h3>
-
-          {/* Description */}
-          <p className="mb-2 flex-1 text-sm text-gray-300">
-            {truncateText(novel.description, 300)}
+          <p className="text-xs text-gray-500">
+            {getLastUpdateDate(novel)}
           </p>
-
-          {/* Author */}
-          <p className="text-sm text-gray-400">By: {novel.author}</p>
         </div>
       </div>
     </Link>

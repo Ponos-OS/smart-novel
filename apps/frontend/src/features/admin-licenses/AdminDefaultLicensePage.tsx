@@ -88,7 +88,7 @@ export function AdminDefaultLicensePage() {
         New novels get this license unless their author picks another.
         Existing novels keep theirs.
       </p>
-      <div className="rounded-lg border p-6 border-gray-700 bg-gray-800">
+      <div className="rounded-xl border border-gray-700/70 bg-gray-800 p-6">
         <LicenseField
           key={`${license.id}-${formVersion}`}
           license={license}

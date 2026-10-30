@@ -85,11 +85,19 @@ describe('CategoryFilter', () => {
       excludeCategories: ['Mystery'],
     });
 
+    const included = groupOf('Include Categories').getByRole(
+      'button',
+      {
+        name: /Fantasy/,
+      },
+    );
+    expect(included).toHaveClass('bg-green-600');
+    expect(included).toHaveAttribute('aria-pressed', 'true');
     expect(
       groupOf('Include Categories').getByRole('button', {
-        name: /Fantasy/,
+        name: /Mystery/,
       }),
-    ).toHaveClass('bg-green-600');
+    ).toHaveAttribute('aria-pressed', 'false');
     expect(
       groupOf('Exclude Categories').getByRole('button', {
         name: /Mystery/,

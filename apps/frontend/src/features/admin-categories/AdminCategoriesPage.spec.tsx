@@ -166,19 +166,28 @@ describe('AdminCategoriesPage', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('gives every row an edit and a delete button with a tooltip', () => {
-      renderPage();
+    it.each([
+      { action: 'Edit category', button: 'Edit category fantasy' },
+      {
+        action: 'Delete category',
+        button: 'Delete category fantasy',
+      },
+    ])(
+      'gives every row a "$action" button with a tooltip',
+      async ({ action, button }) => {
+        const { user } = renderPage();
 
-      const edit = within(rowOf('fantasy')).getByRole('button', {
-        name: 'Edit category fantasy',
-      });
-      const remove = within(rowOf('fantasy')).getByRole('button', {
-        name: 'Delete category fantasy',
-      });
+        await user.hover(
+          within(rowOf('fantasy')).getByRole('button', {
+            name: button,
+          }),
+        );
 
-      expect(edit).toHaveAttribute('title', 'Edit category');
-      expect(remove).toHaveAttribute('title', 'Delete category');
-    });
+        expect(await screen.findByRole('tooltip')).toHaveTextContent(
+          action,
+        );
+      },
+    );
 
     it('shows an empty state', () => {
       mockCategories({ categories: [] });
@@ -207,12 +216,12 @@ describe('AdminCategoriesPage', () => {
       );
 
       await user.click(
-        screen.getByRole('button', { name: 'Pending' }),
+        screen.getByRole('radio', { name: 'Pending' }),
       );
 
       expect(
-        screen.getByRole('button', { name: 'Pending' }),
-      ).toHaveAttribute('aria-pressed', 'true');
+        screen.getByRole('radio', { name: 'Pending' }),
+      ).toBeChecked();
       expect(useAdminCategories).toHaveBeenLastCalledWith(
         '',
         [CategoryStatus.Pending],
@@ -220,7 +229,7 @@ describe('AdminCategoriesPage', () => {
       );
 
       await user.click(
-        screen.getByRole('button', { name: 'Approved' }),
+        screen.getByRole('radio', { name: 'Approved' }),
       );
 
       expect(useAdminCategories).toHaveBeenLastCalledWith(
