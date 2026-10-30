@@ -99,6 +99,7 @@ locals {
   # The collector's Service name is fixed, and the app is created before the observability module because it provides the namespace.
   ingress_class_name = "traefik"
   otlp_endpoint      = var.enable_observability ? "http://otel-collector:4318" : null
+  log_shipping       = lookup(local.dotenv, "OTEL_LOGS_EXPORTER", "otlp") == "otlp" ? "otlp" : "stdout"
 }
 
 check "otlp_endpoint_matches_the_collector" {
@@ -216,6 +217,7 @@ module "app" {
   pre_deploy_jobs            = local.pre_deploy_jobs
   object_storage_seed_volume = { host_path = "${local.node_apps}/backend/data" }
   otlp_endpoint              = local.otlp_endpoint
+  log_shipping               = local.log_shipping
   ingress_class_name         = local.ingress_class_name
 
   redis_node_port = local.redis_node_port
@@ -238,6 +240,15 @@ module "observability" {
   }
   sampling_ratio   = var.trace_sampling_ratio
   grafana_root_url = "http://grafana.localhost:${var.host_port}"
+}
+
+module "alloy" {
+  source = "../../modules/alloy"
+  count  = var.enable_observability && local.log_shipping == "stdout" ? 1 : 0
+
+  namespace = module.app.namespace
+  labels    = var.tags
+  image     = local.third_party_images["alloy"]
 }
 
 module "zitadel" {

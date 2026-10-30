@@ -74,13 +74,11 @@ The state of stage 2 lives next to `envs/local-zitadel` and is git-ignored. `sto
 
 ## Observability
 
-The OpenTelemetry Collector (tail sampling config in `modules/observability`) receives OTLP on `otel-collector:4318` (HTTP) and `:4317` (gRPC) and forwards the traces to Tempo. Prometheus scrapes RabbitMQ, and Loki is deployed for the logs the apps do not ship yet. Browsers export to the same origin at `http://localhost:8080/v1/traces`, which the module routes through the ingress. Grafana is on `http://grafana.localhost:8080`, routed by host through the same ingress, and loads the datasources, the RabbitMQ dashboard and the alert rules from `observability/grafana/provisioning`. Sign in as `admin` with the generated password:
-
-```bash
-kubectl --kubeconfig infra/terraform/envs/local/smart-novel-config -n smart-novel get secret grafana-admin -o jsonpath='{.data.password}' | base64 -d
-```
+The OpenTelemetry Collector (tail sampling config in `modules/observability`) receives OTLP on `otel-collector:4318` (HTTP) and `:4317` (gRPC) and forwards the traces to Tempo. Prometheus scrapes RabbitMQ, and Loki is deployed for the logs the apps do not ship yet. Browsers export to the same origin at `http://localhost:8080/v1/traces`, which the module routes through the ingress. Grafana is on `http://grafana.localhost:8080`, routed by host through the same ingress, and loads the datasources, the RabbitMQ dashboard and the alert rules from `observability/grafana/provisioning`.
 
 `enable_observability = false` skips the stack; `trace_sampling_ratio` (1.0 locally) sets the share of non-noisy traces kept, errors are always kept. The stores write to `emptyDir`, so the data goes away with the pods.
+
+`OTEL_LOGS_EXPORTER` in `.env` picks how logs reach Loki. `otlp` (default): the backend, Beatrice and Fithara push them to the collector, so a hard crash can lose the last seconds. `none`: `modules/alloy` tails the three services' stdout through the Kubernetes API and the services stop pushing (`OTEL__LOG_SHIPPING=stdout` for Beatrice and Fithara). Pick one, both would store every line twice. Logs are labelled with `service_name` from the pod's `app` label.
 
 On Hetzner the shared Grafana serves both apps, and `envs/hetzner` sets `publish_grafana_configmaps` to publish the RabbitMQ dashboard and the alert rules (two on the audio queues, one on failed removals of narration audio and covers from the bucket) from `observability/grafana/provisioning` as ConfigMaps in the `smart-novel` namespace. Their names carry the app name (UIDs, rule group, folders) and every query filters on `namespace="smart-novel"`, because the shared Prometheus holds both apps' series. Datasources are referenced by the UIDs `prometheus`, `tempo` and `loki`. Locally the same files are mounted into the stack above. smart-novel exports traces only, so there are no app metrics yet; the dashboard and the queue alerts use RabbitMQ's. The removal alert is the exception: it counts `Failed to delete narration audio` lines in Loki (`{namespace="smart-novel", app="backend"}`), and the backend's logs do not reach Loki yet, so it stays healthy until a log shipper does.
 

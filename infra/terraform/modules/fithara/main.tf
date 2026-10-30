@@ -58,6 +58,7 @@ resource "kubernetes_deployment_v1" "fithara" {
               LOGGING__LEVEL               = var.log_level
               OTEL__ENABLED                = tostring(local.tracing_enabled)
               OTEL__EXPORTER_OTLP_ENDPOINT = local.tracing_enabled ? var.otlp_http_endpoint : ""
+              OTEL__LOG_SHIPPING           = var.log_shipping
             } : name => value if value != null }
             content {
               name  = env.key

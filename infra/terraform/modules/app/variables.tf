@@ -77,6 +77,17 @@ variable "otlp_endpoint" {
   default     = null
 }
 
+variable "log_shipping" {
+  description = "How the application logs reach Loki: otlp (each service pushes them to the collector) or stdout (a node-level shipper collects them, so the services stop pushing)"
+  type        = string
+  default     = "otlp"
+
+  validation {
+    condition     = contains(["otlp", "stdout"], var.log_shipping)
+    error_message = "log_shipping must be otlp or stdout."
+  }
+}
+
 variable "publish_grafana_configmaps" {
   description = "Ship the dashboards and alert rules as ConfigMaps labelled grafana_dashboard=1 and grafana_alert=1, for a Grafana whose sidecars copy them in. Their alert rules query the datasources with UIDs prometheus, tempo and loki"
   type        = bool

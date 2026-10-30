@@ -84,6 +84,17 @@ variable "otlp_http_endpoint" {
   default     = null
 }
 
+variable "log_shipping" {
+  description = "How logs reach Loki: otlp has the service push them to the collector, stdout has a node-level shipper tail them"
+  type        = string
+  default     = "otlp"
+
+  validation {
+    condition     = contains(["otlp", "stdout"], var.log_shipping)
+    error_message = "log_shipping must be otlp or stdout."
+  }
+}
+
 variable "traces_sampler" {
   description = "OpenTelemetry head sampler"
   type        = string

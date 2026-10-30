@@ -119,5 +119,8 @@ Everything is behind Traefik on port 8080:
 Beatrice is cluster-internal, forward it to reach http://localhost:3001/graphql:
 
   kubectl --kubeconfig infra/terraform/envs/local/smart-novel-config -n smart-novel port-forward deploy/beatrice 3001:3000
+
+To login Grafana you can use "admin" as username and password:
+  kubectl --kubeconfig infra/terraform/envs/local/smart-novel-config -n smart-novel get secret grafana-admin -o jsonpath='{.data.password}' | base64 -d; echo
 EOT
 fi

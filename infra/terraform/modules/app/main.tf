@@ -50,6 +50,7 @@ locals {
   tts_base_url    = var.run_local_ai_models ? module.openai_compatible_tts[0].base_url : var.tts_base_url
   deploy_beatrice = local.llm_base_url != null && local.tts_base_url != null
   otlp_endpoint   = var.otlp_endpoint
+  otlp_logs       = var.log_shipping == "otlp"
   beatrice_url    = one(module.beatrice[*].graphql_url)
   fithara_url     = module.fithara.url
 
@@ -59,6 +60,7 @@ locals {
     local.beatrice_url == null ? {} : { BEATRICE_URL = local.beatrice_url },
     { FITHARA_URL = local.fithara_url },
     local.otlp_endpoint == null ? { OTEL_ENABLED = "false" } : { OTEL_ENABLED = "true", OTEL_EXPORTER_OTLP_ENDPOINT = local.otlp_endpoint },
+    { OTEL_LOGS_EXPORTER = local.otlp_logs ? "otlp" : "none" },
   )
   backend_secret_environment = merge(
     var.backend_secret_environment,
@@ -111,6 +113,7 @@ module "beatrice" {
   tts_api_key        = coalesce(var.tts_api_key, "local-dev-key")
   tts_voices         = coalesce(var.tts_voices, "default")
   otlp_http_endpoint = local.otlp_endpoint
+  log_shipping       = var.log_shipping
 
   # Beatrice does not reconnect when the broker is unreachable at startup.
   depends_on = [module.rabbitmq, module.ollama, module.openai_compatible_tts]
@@ -128,6 +131,7 @@ module "fithara" {
   llm_api_key        = var.fithara_llm_api_key
   llm_timeout_ms     = var.fithara_llm_timeout_ms
   otlp_http_endpoint = local.otlp_endpoint
+  log_shipping       = var.log_shipping
 
   depends_on = [module.ollama]
 }

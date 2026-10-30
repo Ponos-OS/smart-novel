@@ -98,3 +98,25 @@ run "an_unset_llm_setting_is_not_passed_on" {
     error_message = "an unset API key must not end up in the secret"
   }
 }
+
+run "logs_are_pushed_over_otlp_by_default" {
+  command = plan
+
+  assert {
+    condition     = one([for e in kubernetes_deployment_v1.fithara.spec[0].template[0].spec[0].container[0].env : e.value if e.name == "OTEL__LOG_SHIPPING"]) == "otlp"
+    error_message = "logs must be pushed over OTLP unless a shipper collects stdout"
+  }
+}
+
+run "logs_stay_on_stdout_for_a_node_level_shipper" {
+  command = plan
+
+  variables {
+    log_shipping = "stdout"
+  }
+
+  assert {
+    condition     = one([for e in kubernetes_deployment_v1.fithara.spec[0].template[0].spec[0].container[0].env : e.value if e.name == "OTEL__LOG_SHIPPING"]) == "stdout"
+    error_message = "the service must stop pushing logs when log_shipping is stdout"
+  }
+}

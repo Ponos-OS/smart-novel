@@ -39,6 +39,7 @@ variable "third_party_images" {
     prometheus     = "prom/prometheus:v3.15.0"
     grafana        = "grafana/grafana:13.2.2"
     rabbitmq       = "rabbitmq:3.13-management-alpine"
+    alloy          = "grafana/alloy:v1.21.3"
   }
 }
 

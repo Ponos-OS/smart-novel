@@ -57,6 +57,7 @@ resource "kubernetes_deployment_v1" "beatrice" {
               LOGGING__LEVEL                          = var.log_level
               OTEL__ENABLED                           = tostring(local.tracing_enabled)
               OTEL__EXPORTER_OTLP_ENDPOINT            = local.tracing_enabled ? var.otlp_http_endpoint : ""
+              OTEL__LOG_SHIPPING                      = var.log_shipping
               OTEL__TRACES_SAMPLER                    = var.traces_sampler
               GENERATE_AUDIO__CALLBACK__ALLOWED_HOSTS = var.callback_allowed_hosts
               TTS__BASE_URL                           = var.tts_base_url

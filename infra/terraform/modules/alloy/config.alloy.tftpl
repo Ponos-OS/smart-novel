@@ -1,0 +1,51 @@
+discovery.kubernetes "pods" {
+  role = "pod"
+
+  namespaces {
+    names = ["${namespace}"]
+  }
+}
+
+discovery.relabel "apps" {
+  targets = discovery.kubernetes.pods.targets
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_app"]
+    regex         = "${apps_regex}"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_app"]
+    target_label  = "service_name"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_name"]
+    target_label  = "pod"
+  }
+}
+
+loki.source.kubernetes "apps" {
+  targets    = discovery.relabel.apps.output
+  forward_to = [loki.process.apps.receiver]
+}
+
+// Services log JSON with the trace and span id of the request; lines that are not JSON pass through untouched.
+loki.process "apps" {
+  stage.json {
+    expressions = { trace_id = "trace_id", span_id = "span_id" }
+  }
+
+  stage.structured_metadata {
+    values = { trace_id = "", span_id = "" }
+  }
+
+  forward_to = [loki.write.loki.receiver]
+}
+
+loki.write "loki" {
+  endpoint {
+    url = "${loki_push_url}"
+  }
+}

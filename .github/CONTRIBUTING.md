@@ -17,7 +17,7 @@ Local models utilize Ollama and the bundled `local-setup/openai-compatible-tts`.
 ```bash
 RUN_LOCAL_AI_MODELS=false
 BEATRICE_LLM_MODEL=gpt-4o-mini
-FITHARA_LLM_MODEL=gpt-4o-mini
+FITHARA_LLM_MODEL=gpt-4.1-mini
 BEATRICE_TTS_MODEL=gpt-4o-mini-tts
 BEATRICE_DEFAULT_VOICE=alloy
 ```

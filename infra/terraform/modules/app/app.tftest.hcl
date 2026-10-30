@@ -345,3 +345,40 @@ run "routes_the_in_cluster_tools_by_host" {
     error_message = "the S3 API and the console must be routed"
   }
 }
+
+run "logs_are_pushed_over_otlp_by_default" {
+  command = plan
+
+  assert {
+    condition     = local.backend_environment["OTEL_LOGS_EXPORTER"] == "otlp"
+    error_message = "the backend must export logs over OTLP by default"
+  }
+}
+
+run "stdout_log_shipping_stops_every_service_pushing_logs" {
+  command = plan
+
+  variables {
+    log_shipping = "stdout"
+  }
+
+  assert {
+    condition     = local.backend_environment["OTEL_LOGS_EXPORTER"] == "none"
+    error_message = "the backend must not push logs when stdout is collected"
+  }
+
+  assert {
+    condition     = local.otlp_logs == false
+    error_message = "the services handed local.otlp_logs (backend, Beatrice, Fithara) must not push logs when stdout is collected"
+  }
+}
+
+run "log_shipping_rejects_unknown_modes" {
+  command = plan
+
+  variables {
+    log_shipping = "syslog"
+  }
+
+  expect_failures = [var.log_shipping]
+}
