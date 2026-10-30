@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 
 import { Novel } from '../generated/graphql';
+import { NovelCoverPlaceholder } from './NovelCoverPlaceholder';
 
 type NovelCardData = Pick<
   Novel,
@@ -73,9 +74,7 @@ export function NovelCard({ novel }: NovelCardProps) {
               className="h-32 w-24 rounded object-cover"
             />
           ) : (
-            <div className="flex h-32 w-24 items-center justify-center rounded bg-gray-700">
-              <span className="text-xs text-gray-400">No Cover</span>
-            </div>
+            <NovelCoverPlaceholder title={novel.name} />
           )}
         </div>
 
