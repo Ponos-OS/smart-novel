@@ -204,3 +204,12 @@
 - Found by Cypress, not fixed: the ingress sends the `/admin` prefix to ZITADEL's admin API (`modules/zitadel/outputs.tf`), so loading or refreshing `/admin/categories` (and the existing `/admin/licenses`) gives ZITADEL's 404; only in-app navigation reaches the app. The Cypress journey therefore opens the page through the user menu. Needs a decision: move both pages to a prefix the ingress does not claim, or route those paths to the frontend.
 - Cypress lessons: two users in one test make ZITADEL show a hybrid login page (one `it` per user, `cy.login()` restores the cached session); a Cypress run that picks a category from the first page of the picker depends on how many categories earlier runs created (search for it instead); the dev stack's frontend image must be rebuilt (`stop:dev`, `start:dev`) after adding an npm dependency, or the page fails to import it.
 - A temporary `composeStories` spec that mocks `generated/graphql` with a module that itself re-exports `generated/graphql` loops forever; mock with `importActual` plus overrides in the temporary spec.
+
+## Categories feature, Step 8 (2026-10-30)
+
+- Left uncommitted on request, for review. Frontend only.
+- `SearchPage` reads `FilterCategories` (30 per page, `approximateNovelCount`) through `useFilterCategories` (`useInfiniteQuery` over the generated fetcher); `CategoryFilter` takes `{ name, approximateNovelCount }[]`, shows `~N` (compact: 1203 as ~1.2K) on every chip, and a single "Show more categories" button under both groups, so `search.cy.ts`'s "first button after the heading" selectors still hold. The old `GetCategories` document is gone. The picker's hook and the admin page's hook were not reused (different fields and page sizes; counts cost an `EXPLAIN` each, so the picker does not ask for them).
+- New unit specs for `CategoryFilter` and `SearchPage` (there was none for the page), a `CategoryFilter` story file (4 stories, run through a temporary `composeStories` spec), Storybook builds, `search.cy.ts` passes against `start:dev` and a screenshot of the page was checked by eye.
+- Seed data shows `~7` for both categories before an `ANALYZE`: the planner estimate on a table that was never analyzed is a guess. Expected, and what the "approximate" wording is for.
+- No browser check of "Show more" itself: the dev database has far fewer than 30 categories. Paging is covered by the unit specs and, at the API, by `categories.e2e-spec.ts`.
+- `feature-boundaries.spec.ts` failed once in the full run and passed alone: the known flaky one.

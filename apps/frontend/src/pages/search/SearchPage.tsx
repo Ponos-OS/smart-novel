@@ -4,10 +4,10 @@ import { useSearchParams } from 'react-router-dom';
 import { NovelCard } from '../../components/NovelCard';
 import {
   NovelFiltersInput,
-  useGetCategoriesQuery,
   useSearchNovelsQuery,
 } from '../../generated/graphql';
 import { CategoryFilter } from './CategoryFilter';
+import { useFilterCategories } from './use-filter-categories';
 
 const capitalizeCategory = (category: string): string => {
   return category.charAt(0).toUpperCase() + category.slice(1);
@@ -33,11 +33,7 @@ export function SearchPage() {
   >(undefined);
   const [searchTriggered, setSearchTriggered] = useState(false);
 
-  const {
-    data: categoriesData,
-    isLoading: categoriesLoading,
-    error: categoriesError,
-  } = useGetCategoriesQuery({});
+  const categories = useFilterCategories();
 
   const {
     data: searchData,
@@ -81,9 +77,12 @@ export function SearchPage() {
     [];
 
   // Transform categories from lowercase to capitalized for display
-  const availableCategories = (
-    categoriesData?.categoriesConnection.edges ?? []
-  ).map(({ node }) => capitalizeCategory(node.name));
+  const availableCategories = categories.categories.map(
+    ({ name, approximateNovelCount }) => ({
+      name: capitalizeCategory(name),
+      approximateNovelCount,
+    }),
+  );
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -93,11 +92,11 @@ export function SearchPage() {
 
       {/* Filter Section */}
       <div className="mb-8 rounded-lg border p-6 border-gray-700 bg-gray-800">
-        {categoriesLoading ? (
+        {categories.isLoading ? (
           <div className="text-center text-gray-400">
             <p>Loading categories...</p>
           </div>
-        ) : categoriesError ? (
+        ) : categories.isError ? (
           <div className="text-center text-red-400">
             <p>Failed to load categories</p>
           </div>
@@ -108,6 +107,9 @@ export function SearchPage() {
             excludeCategories={excludeCategories}
             onToggleInclude={handleToggleInclude}
             onToggleExclude={handleToggleExclude}
+            hasMore={categories.hasMore}
+            isLoadingMore={categories.isLoadingMore}
+            onShowMore={() => categories.loadMore()}
           />
         )}
 
