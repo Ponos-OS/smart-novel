@@ -74,6 +74,11 @@ jobs:
       - name: Check formatting
         run: npm run format:check
 
+      - name: Project structure has not drifted away
+        run: |
+          npm run docs:structure
+          git diff --exit-code .github/README.md
+
   test:
     name: unit-tests
     runs-on: ubuntu-latest

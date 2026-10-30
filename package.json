@@ -63,6 +63,7 @@
     "lint-staged": "lint-staged",
     "cypress:open": "cypress open --project apps/frontend-e2e",
     "clean": "rm -rf apps/frontend-e2e/cypress apps/frontend/src/generated apps/backend/schema.gql dist Diffs.txt local-setup/client local-setup/logs local-setup/pats local-setup/user-ids",
+    "docs:structure": "python3 scripts/update_project_structure.py",
     "init": "npm ci && cp --update=none .env.example .env || true"
   },
   "private": true,
