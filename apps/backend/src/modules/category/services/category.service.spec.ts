@@ -196,7 +196,23 @@ describe(CategoryService.name, () => {
         expect(prisma.category.findMany).toHaveBeenCalledWith(
           expect.objectContaining({
             where: expect.objectContaining({
-              name: { contains: escaped, mode: 'insensitive' },
+              OR: [
+                {
+                  name: { startsWith: escaped, mode: 'insensitive' },
+                },
+                {
+                  name: {
+                    contains: ` ${escaped}`,
+                    mode: 'insensitive',
+                  },
+                },
+                {
+                  name: {
+                    contains: `-${escaped}`,
+                    mode: 'insensitive',
+                  },
+                },
+              ],
             }),
           }),
         );
@@ -222,7 +238,7 @@ describe(CategoryService.name, () => {
       },
     );
 
-    it('should search the name case-insensitively', async () => {
+    it('should match the start of the name or of one of its words, case-insensitively', async () => {
       await uut.findConnection(
         false,
         { first: 10 },
@@ -233,7 +249,11 @@ describe(CategoryService.name, () => {
         expect.objectContaining({
           where: {
             status: { in: [CategoryStatus.APPROVED] },
-            name: { contains: 'FAN', mode: 'insensitive' },
+            OR: [
+              { name: { startsWith: 'FAN', mode: 'insensitive' } },
+              { name: { contains: ' FAN', mode: 'insensitive' } },
+              { name: { contains: '-FAN', mode: 'insensitive' } },
+            ],
           },
         }),
       );

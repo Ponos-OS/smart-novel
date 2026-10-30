@@ -4,8 +4,8 @@ import { Tooltip } from '../../components/Tooltip';
 
 export interface FilterCategory {
   name: string;
-  /** @description An estimate from the database planner, never an exact count. */
-  approximateNovelCount: number;
+  /** @description An estimate from the database planner, never an exact count. Missing for a selected category the search no longer lists. */
+  approximateNovelCount?: number;
 }
 
 interface CategoryFilterProps {
@@ -14,6 +14,9 @@ interface CategoryFilterProps {
   excludeCategories: string[];
   onToggleInclude: (category: string) => void;
   onToggleExclude: (category: string) => void;
+  searchText?: string;
+  onSearchTextChange?: (text: string) => void;
+  isSearching?: boolean;
   hasMore?: boolean;
   isLoadingMore?: boolean;
   onShowMore?: () => void;
@@ -48,9 +51,11 @@ function CategoryChip({
         }`}
       >
         {category.name}
-        <span className="ml-2 text-xs opacity-70">
-          ~{countFormat.format(category.approximateNovelCount)}
-        </span>
+        {category.approximateNovelCount !== undefined && (
+          <span className="ml-2 text-xs opacity-70">
+            ~{countFormat.format(category.approximateNovelCount)}
+          </span>
+        )}
       </Toggle.Root>
     </Tooltip>
   );
@@ -62,12 +67,35 @@ export function CategoryFilter({
   excludeCategories,
   onToggleInclude,
   onToggleExclude,
+  searchText = '',
+  onSearchTextChange,
+  isSearching = false,
   hasMore = false,
   isLoadingMore = false,
   onShowMore,
 }: CategoryFilterProps) {
   return (
     <div className="space-y-6">
+      {onSearchTextChange && (
+        <div>
+          <input
+            type="search"
+            aria-label="Search categories"
+            placeholder="Search categories"
+            value={searchText}
+            onChange={(event) =>
+              onSearchTextChange(event.target.value)
+            }
+            className="w-full max-w-sm rounded-lg border border-gray-600 bg-gray-900 px-3 py-2 text-sm text-white"
+          />
+          {isSearching && (
+            <p role="status" className="mt-2 text-xs text-gray-400">
+              Searching...
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Include Categories */}
       <div>
         <h3 className="mb-3 text-lg font-semibold text-white">

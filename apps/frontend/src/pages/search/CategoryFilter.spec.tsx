@@ -130,4 +130,43 @@ describe('CategoryFilter', () => {
       screen.getByRole('button', { name: 'Loading...' }),
     ).toBeDisabled();
   });
+
+  describe('search', () => {
+    it('shows the search field only when it can search', () => {
+      renderFilter();
+
+      expect(
+        screen.queryByLabelText('Search categories'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('reports what is typed', async () => {
+      const onSearchTextChange = vi.fn();
+      const { user } = renderFilter({
+        searchText: '',
+        onSearchTextChange,
+      });
+
+      await user.type(
+        screen.getByLabelText('Search categories'),
+        'sci',
+      );
+
+      expect(onSearchTextChange).toHaveBeenLastCalledWith('i');
+      expect(onSearchTextChange).toHaveBeenCalledTimes(3);
+    });
+
+    it('shows a selected category without a count', () => {
+      renderFilter({
+        availableCategories: [{ name: 'Fantasy' }],
+        includeCategories: ['Fantasy'],
+      });
+
+      expect(
+        groupOf('Include Categories').getByRole('button', {
+          name: 'Fantasy',
+        }),
+      ).toBeVisible();
+    });
+  });
 });

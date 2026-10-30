@@ -6,9 +6,12 @@ import {
   NovelFiltersInput,
   useSearchNovelsQuery,
 } from '../../generated/graphql';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { showApiError } from '../../utils/notification';
 import { CategoryFilter } from './CategoryFilter';
 import { useFilterCategories } from './use-filter-categories';
+
+const CATEGORY_SEARCH_DEBOUNCE_MS = 300;
 
 const capitalizeCategory = (category: string): string => {
   return category.charAt(0).toUpperCase() + category.slice(1);
@@ -34,7 +37,13 @@ export function SearchPage() {
   >(undefined);
   const [searchTriggered, setSearchTriggered] = useState(false);
 
-  const categories = useFilterCategories();
+  const [categorySearch, setCategorySearch] = useState('');
+  // The request waits until the user pauses typing.
+  const debouncedCategorySearch = useDebouncedValue(
+    categorySearch.trim(),
+    CATEGORY_SEARCH_DEBOUNCE_MS,
+  );
+  const categories = useFilterCategories(debouncedCategorySearch);
 
   useEffect(() => {
     if (categories.isError) {
@@ -86,12 +95,25 @@ export function SearchPage() {
     [];
 
   // Transform categories from lowercase to capitalized for display
-  const availableCategories = categories.categories.map(
+  const listedCategories = categories.categories.map(
     ({ name, approximateNovelCount }) => ({
       name: capitalizeCategory(name),
       approximateNovelCount,
     }),
   );
+  // A category picked earlier stays visible when a later search no longer lists it.
+  const listedNames = new Set(
+    listedCategories.map(({ name }) => name),
+  );
+  const hiddenSelected = [
+    ...new Set([...includeCategories, ...excludeCategories]),
+  ]
+    .filter((name) => !listedNames.has(name))
+    .map((name) => ({ name }));
+  const availableCategories = [
+    ...hiddenSelected,
+    ...listedCategories,
+  ];
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -112,6 +134,11 @@ export function SearchPage() {
             excludeCategories={excludeCategories}
             onToggleInclude={handleToggleInclude}
             onToggleExclude={handleToggleExclude}
+            searchText={categorySearch}
+            onSearchTextChange={setCategorySearch}
+            isSearching={
+              categories.isFetching && !categories.isLoadingMore
+            }
             hasMore={categories.hasMore}
             isLoadingMore={categories.isLoadingMore}
             onShowMore={() => categories.loadMore()}

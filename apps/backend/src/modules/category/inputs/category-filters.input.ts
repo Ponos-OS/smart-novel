@@ -15,7 +15,7 @@ export class CategoryFiltersInput {
   @Field(() => String, {
     nullable: true,
     description:
-      'Categories whose name contains this text, case-insensitively',
+      'Categories whose name, or any word in it (after a space or a hyphen), starts with this text, case-insensitively',
   })
   @IsOptional()
   @IsString()

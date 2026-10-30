@@ -39,10 +39,24 @@ const CATEGORY_SELECT = {
 } satisfies Prisma.CategorySelect;
 
 /**
- * @description Prisma's `contains` hands the text to `LIKE` as is, so `%` and `_` in it would be wildcards.
+ * @description Prisma's `startsWith` hands the text to `LIKE` as is, so `%` and `_` in it would be wildcards.
  */
 function escapeLikePattern(text: string): string {
   return text.replace(/[\\%_]/g, '\\$&');
+}
+
+/**
+ * @description
+ * A name matches when it, or one of its words, starts with the text: `life` finds `slice of life` and `sci` finds `hard sci-fi`, but `ntas` does not find `fantasy`. Words are split by a space or a hyphen.
+ */
+function wordStartMatches(
+  escapedText: string,
+): Prisma.CategoryWhereInput[] {
+  return [
+    { name: { startsWith: escapedText, mode: 'insensitive' } },
+    { name: { contains: ` ${escapedText}`, mode: 'insensitive' } },
+    { name: { contains: `-${escapedText}`, mode: 'insensitive' } },
+  ];
 }
 
 @Injectable()
@@ -65,10 +79,7 @@ export class CategoryService {
     const where: Prisma.CategoryWhereInput = {
       status: { in: statuses },
       ...(filters?.search && {
-        name: {
-          contains: escapeLikePattern(filters.search),
-          mode: 'insensitive',
-        },
+        OR: wordStartMatches(escapeLikePattern(filters.search)),
       }),
     };
     const { cursor, skip, take, shouldReverse } =

@@ -12,6 +12,9 @@ import { useFilterCategories } from './use-filter-categories';
 
 const search = vi.hoisted(() => ({ useSearchNovelsQuery: vi.fn() }));
 
+vi.mock('../../hooks/useDebouncedValue', () => ({
+  useDebouncedValue: <T,>(value: T) => value,
+}));
 vi.mock('../../utils/notification', () => ({
   showApiError: vi.fn(),
 }));
@@ -43,6 +46,7 @@ function mockCategories(
     ],
     isLoading: false,
     isError: false,
+    isFetching: false,
     hasMore: false,
     isLoadingMore: false,
     loadMore,
@@ -156,5 +160,64 @@ describe('SearchPage', () => {
       { filters: undefined },
       { enabled: false },
     );
+  });
+
+  describe('searching the categories', () => {
+    it('asks for all of them first, then for the ones matching what is typed', async () => {
+      const user = renderPage();
+      expect(useFilterCategories).toHaveBeenLastCalledWith('');
+
+      await user.type(
+        screen.getByLabelText('Search categories'),
+        '  sci ',
+      );
+
+      expect(useFilterCategories).toHaveBeenLastCalledWith('sci');
+    });
+
+    it('says it is searching while the next list loads', () => {
+      mockCategories({ isFetching: true });
+
+      renderPage();
+
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Searching',
+      );
+    });
+
+    it('keeps a picked category visible when a later search does not list it', async () => {
+      const user = renderPage();
+      await user.click(
+        within(
+          screen.getByRole('heading', { name: 'Include Categories' })
+            .parentElement!,
+        ).getByRole('button', { name: /Fantasy/ }),
+      );
+      mockCategories({
+        categories: [
+          {
+            id: '3c1d9a52-7e08-4f6b-b2a4-91d05c7e6f13',
+            name: 'sci-fi',
+            approximateNovelCount: 54,
+          },
+        ],
+      });
+
+      await user.type(
+        screen.getByLabelText('Search categories'),
+        'sci',
+      );
+
+      const include = within(
+        screen.getByRole('heading', { name: 'Include Categories' })
+          .parentElement!,
+      );
+      expect(
+        include.getByRole('button', { name: 'Fantasy' }),
+      ).toHaveAttribute('aria-pressed', 'true');
+      expect(
+        include.getByRole('button', { name: /Sci-fi/ }),
+      ).toHaveTextContent('~54');
+    });
   });
 });

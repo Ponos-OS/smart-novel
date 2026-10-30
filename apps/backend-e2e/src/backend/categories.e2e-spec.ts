@@ -71,7 +71,7 @@ describe('Categories (e2e)', () => {
     expect(new Set(names).size).toBe(names.length);
   });
 
-  it('should search the name case-insensitively', async () => {
+  it('should find the categories whose name starts with the text, case-insensitively', async () => {
     const data = await categories({
       first: 10,
       filters: { search: 'FANT' },
@@ -81,7 +81,16 @@ describe('Categories (e2e)', () => {
       ({ node }: { node: { name: string } }) => node,
     );
     expect(nodes.length).toBeGreaterThan(0);
-    expect(nodes).toSatisfyAll(({ name }) => name.includes('fant'));
+    expect(nodes).toSatisfyAll(({ name }) => name.startsWith('fant'));
+  });
+
+  it('should not find a category by a part from the middle of its name', async () => {
+    const data = await categories({
+      first: 10,
+      filters: { search: 'ntas' },
+    });
+
+    expect(data.data.categoriesConnection.edges).toBeEmpty();
   });
 
   it.each(['%', '_', '\\'])(
@@ -331,6 +340,32 @@ describe('Category requests and management (e2e)', () => {
       );
 
       expect(data.errors[0].message).toContain('cannot be empty');
+    });
+  });
+
+  describe('searching the names', () => {
+    it('should find a category by the start of any of its words, but not by a part from the middle', async () => {
+      const token = `zebra${randomUUID().replace(/-/g, '').slice(0, 8)}`;
+      const spaced = await requestAsWriter(`e2e-alpha ${token}`);
+      const hyphenated = await requestAsWriter(`e2e-beta-${token}`);
+      await graphql(APPROVE_CATEGORY, { id: spaced.id }, admin);
+      await graphql(APPROVE_CATEGORY, { id: hyphenated.id }, admin);
+
+      const byWord = await categories({
+        first: 10,
+        filters: { search: token.toUpperCase() },
+      });
+      const byMiddle = await categories({
+        first: 10,
+        filters: { search: token.slice(1) },
+      });
+
+      expect(
+        byWord.data.categoriesConnection.edges
+          .map(({ node }: { node: { name: string } }) => node.name)
+          .sort(),
+      ).toEqual([`e2e-alpha ${token}`, `e2e-beta-${token}`]);
+      expect(byMiddle.data.categoriesConnection.edges).toBeEmpty();
     });
   });
 

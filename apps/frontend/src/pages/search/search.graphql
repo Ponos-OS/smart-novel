@@ -22,8 +22,16 @@ query SearchNovels($filters: NovelFiltersInput) {
   }
 }
 
-query FilterCategories($first: Int!, $after: String) {
-  categoriesConnection(first: $first, after: $after) {
+query FilterCategories(
+  $search: String
+  $first: Int!
+  $after: String
+) {
+  categoriesConnection(
+    first: $first
+    after: $after
+    filters: { search: $search }
+  ) {
     edges {
       node {
         id
