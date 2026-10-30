@@ -24,7 +24,6 @@ describe('Manage a novel (e2e)', () => {
     cy.contains('button', 'New novel', { timeout: 15000 }).click();
     cy.url().should('match', /\/novels\/new$/);
     cy.get('input[placeholder="Novel name"]').type(novelName);
-    cy.get('input[placeholder="Author"]').type('Jane Doe');
     cy.contains('button', 'Create novel').click();
     cy.url().should('match', /\/novel\/[^/]+$/);
     cy.contains('h1', novelName, { timeout: 15000 }).should(

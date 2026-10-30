@@ -19,6 +19,8 @@ export interface ZitadelUserInfoResponse {
   email?: string;
   email_verified?: boolean;
   name?: string;
+  given_name?: string;
+  family_name?: string;
   roles?: Role[];
   preferred_username?: string;
   /** @description Organization / tenant the user belongs to */

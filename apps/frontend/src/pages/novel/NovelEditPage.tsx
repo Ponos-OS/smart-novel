@@ -127,7 +127,6 @@ export function NovelEditPage() {
         <NovelForm
           initialValues={{
             name: novel.name,
-            author: novel.author,
             description: novel.description,
             state: novel.state,
             categories: novel.category,

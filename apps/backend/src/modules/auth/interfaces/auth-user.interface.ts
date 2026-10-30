@@ -15,6 +15,14 @@ export interface IAuthUser {
    */
   name: string;
   /**
+   * @description User's given (first) name
+   */
+  givenName: string;
+  /**
+   * @description User's family (last) name
+   */
+  familyName: string;
+  /**
    * @description User's preferred username / login name
    */
   preferredUsername: string;

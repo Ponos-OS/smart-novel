@@ -17,7 +17,6 @@ const LicenseDraftingAssistant = lazy(async () => ({
 
 export interface NovelFormValues {
   name: string;
-  author: string;
   description: string;
   state: NovelState;
   categories: string[];
@@ -38,7 +37,6 @@ interface NovelFormProps {
 
 const EMPTY_VALUES: NovelFormValues = {
   name: '',
-  author: '',
   description: '',
   state: NovelState.Ongoing,
   categories: [],
@@ -56,7 +54,6 @@ export function NovelForm({
   onCancel,
 }: NovelFormProps) {
   const [name, setName] = useState(initialValues.name);
-  const [author, setAuthor] = useState(initialValues.author);
   const [description, setDescription] = useState(
     initialValues.description,
   );
@@ -79,8 +76,7 @@ export function NovelForm({
     (!!assistantLicense ||
       !licenseDraft ||
       licenseDraft.title.length > 0) &&
-    name.trim().length > 0 &&
-    author.trim().length > 0;
+    name.trim().length > 0;
 
   const handleSubmit = () => {
     if (!canSubmit) {
@@ -89,7 +85,6 @@ export function NovelForm({
 
     onSubmit({
       name: name.trim(),
-      author: author.trim(),
       description: description.trim(),
       state,
       categories: categories
@@ -121,20 +116,6 @@ export function NovelForm({
             onChange={(event) => setName(event.target.value)}
             disabled={isSubmitting}
             placeholder="Novel name"
-            className={INPUT_CLASSES}
-          />
-        </label>
-
-        <label className="block">
-          <span className="mb-1 block text-sm font-medium text-gray-300">
-            Author
-          </span>
-          <input
-            type="text"
-            value={author}
-            onChange={(event) => setAuthor(event.target.value)}
-            disabled={isSubmitting}
-            placeholder="Author"
             className={INPUT_CLASSES}
           />
         </label>

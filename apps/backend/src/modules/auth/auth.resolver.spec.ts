@@ -16,6 +16,8 @@ describe(AuthResolver.name, () => {
     const result = uut.whoAmI({
       sub: '234980127461293847',
       name: 'Admin User',
+      givenName: 'Admin',
+      familyName: 'Useri',
       preferredUsername: 'admin@admin.com',
       email: 'admin@admin.com',
       emailVerified: true,

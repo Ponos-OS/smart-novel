@@ -107,7 +107,6 @@ describe(NovelService.name, () => {
     it('should pass the caller as owner and the default license to the repository when none is chosen', async () => {
       const input = {
         name: 'The Journey Begins',
-        author: 'Jane Doe',
         description: 'A young hero leaves home.',
         categories: ['fantasy'],
       };
@@ -118,11 +117,13 @@ describe(NovelService.name, () => {
 
       const result = await uut.createNovel(
         '260311094522198751',
+        'Jane Doe',
         input,
       );
 
       expect(novelRepository.createNovel).toHaveBeenCalledWith({
         ownerId: '260311094522198751',
+        author: 'Jane Doe',
         licenseId: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
         licenseId: defaultLicenseId,
         ...input,
@@ -136,9 +137,8 @@ describe(NovelService.name, () => {
         id: licenseId,
       } as any);
 
-      await uut.createNovel('260311094522198751', {
+      await uut.createNovel('260311094522198751', 'Jane Doe', {
         name: 'The Journey Begins',
-        author: 'Jane Doe',
         description: 'A young hero leaves home.',
         licenseId,
       });

@@ -27,7 +27,6 @@ export const Prefilled: Story = {
     submitLabel: 'Save',
     initialValues: {
       name: 'The Lantern Keeper',
-      author: 'Jane Doe',
       description: 'A lighthouse keeper finds a door in the fog.',
       state: NovelState.Finished,
       categories: ['fantasy', 'adventure'],
@@ -40,7 +39,6 @@ export const Submitting: Story = {
     isSubmitting: true,
     initialValues: {
       name: 'The Lantern Keeper',
-      author: 'Jane Doe',
       description: 'A lighthouse keeper finds a door in the fog.',
       state: NovelState.Ongoing,
       categories: ['fantasy'],

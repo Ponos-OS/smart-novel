@@ -60,7 +60,7 @@ function renderForm(
 }
 
 describe('NovelForm', () => {
-  it('disables submit until both name and author are filled in', () => {
+  it('disables submit until the name is filled in', () => {
     // Arrange
     renderForm();
 
@@ -77,26 +77,6 @@ describe('NovelForm', () => {
     // Assert
     expect(
       screen.getByRole('button', { name: 'Create novel' }),
-    ).toBeDisabled();
-
-    // Act
-    fireEvent.change(screen.getByPlaceholderText('Author'), {
-      target: { value: '   ' },
-    });
-
-    // Assert
-    expect(
-      screen.getByRole('button', { name: 'Create novel' }),
-    ).toBeDisabled();
-
-    // Act
-    fireEvent.change(screen.getByPlaceholderText('Author'), {
-      target: { value: 'Jane Doe' },
-    });
-
-    // Assert
-    expect(
-      screen.getByRole('button', { name: 'Create novel' }),
     ).toBeEnabled();
   });
 
@@ -105,9 +85,6 @@ describe('NovelForm', () => {
     const { onSubmit } = renderForm();
     fireEvent.change(screen.getByPlaceholderText('Novel name'), {
       target: { value: '  The Lantern Keeper ' },
-    });
-    fireEvent.change(screen.getByPlaceholderText('Author'), {
-      target: { value: ' Jane Doe ' },
     });
     fireEvent.change(
       screen.getByPlaceholderText('A short description'),
@@ -135,7 +112,6 @@ describe('NovelForm', () => {
     // Assert
     expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
       name: 'The Lantern Keeper',
-      author: 'Jane Doe',
       description: 'A lighthouse keeper finds a door in the fog.',
       state: NovelState.Finished,
       categories: ['fantasy', 'adventure'],
@@ -147,7 +123,6 @@ describe('NovelForm', () => {
     renderForm({
       initialValues: {
         name: 'The Lantern Keeper',
-        author: 'Jane Doe',
         description: 'A lighthouse keeper finds a door in the fog.',
         state: NovelState.Finished,
         categories: ['fantasy', 'adventure'],
@@ -176,7 +151,6 @@ describe('NovelForm', () => {
       isSubmitting: true,
       initialValues: {
         name: 'The Lantern Keeper',
-        author: 'Jane Doe',
         description: '',
         state: NovelState.Ongoing,
         categories: [],
@@ -221,9 +195,6 @@ describe('NovelForm license', () => {
     fireEvent.change(screen.getByPlaceholderText('Novel name'), {
       target: { value: 'The Lantern Keeper' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Author'), {
-      target: { value: 'Jane Doe' },
-    });
 
     // Act
     fireEvent.change(screen.getByLabelText('License text'), {
@@ -241,9 +212,6 @@ describe('NovelForm license', () => {
     const { onSubmit } = renderForm({ license });
     fireEvent.change(screen.getByPlaceholderText('Novel name'), {
       target: { value: 'The Lantern Keeper' },
-    });
-    fireEvent.change(screen.getByPlaceholderText('Author'), {
-      target: { value: 'Jane Doe' },
     });
 
     // Act
@@ -272,9 +240,6 @@ describe('NovelForm license', () => {
     function fillRequiredFields() {
       fireEvent.change(screen.getByPlaceholderText('Novel name'), {
         target: { value: 'The Lantern Keeper' },
-      });
-      fireEvent.change(screen.getByPlaceholderText('Author'), {
-        target: { value: 'Jane Doe' },
       });
     }
 

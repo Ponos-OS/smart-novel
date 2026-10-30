@@ -285,6 +285,8 @@ export class ZitadelAuthProvider
     info: ZitadelUserInfoResponse,
   ): IAuthUser {
     const name = info.name ?? '';
+    const givenName = info.given_name ?? '';
+    const familyName = info.family_name ?? '';
     const preferredUsername = info.preferred_username ?? '';
     const email = info.email ?? '';
     const emailVerified = info.email_verified ?? false;
@@ -306,6 +308,8 @@ export class ZitadelAuthProvider
     return {
       sub,
       name,
+      givenName,
+      familyName,
       preferredUsername,
       email,
       emailVerified,

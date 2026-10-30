@@ -34,19 +34,24 @@ describe(NovelResolver.name, () => {
       const novel = getNovel({ ownerId: '260311094522198751' });
       const input = {
         name: 'The Journey Begins',
-        author: 'Jane Doe',
         description: 'A young hero leaves home.',
       };
       vi.mocked(novelService.createNovel).mockResolvedValue(novel);
 
       const result = await uut.createNovel(input, {
         sub: '260311094522198751',
+        givenName: 'Jane',
+        familyName: 'Doe',
         roles: [Role.writer],
       } as IAuthUser);
 
       expect(
         novelService.createNovel,
-      ).toHaveBeenCalledExactlyOnceWith('260311094522198751', input);
+      ).toHaveBeenCalledExactlyOnceWith(
+        '260311094522198751',
+        'Jane Doe',
+        input,
+      );
       expect(result).toBe(novel);
     });
   });
@@ -243,6 +248,8 @@ describe(NovelResolver.name, () => {
         const user: IAuthUser = {
           sub: '240311094522198754',
           name: 'Owner',
+          givenName: 'Owner',
+          familyName: 'Doe',
           preferredUsername: 'owner',
           email: 'owner@test.com',
           emailVerified: true,
@@ -269,6 +276,8 @@ describe(NovelResolver.name, () => {
         const user: IAuthUser = {
           sub: '300311094522198754',
           name: 'Reader',
+          givenName: 'Reader',
+          familyName: 'Doe',
           preferredUsername: 'reader',
           email: 'reader@test.com',
           emailVerified: true,

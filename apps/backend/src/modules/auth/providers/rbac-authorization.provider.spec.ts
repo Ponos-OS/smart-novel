@@ -19,6 +19,8 @@ describe(RbacAuthorizationProvider.name, () => {
   const principal: IAuthUser = {
     sub: 'user-1',
     name: 'Test User',
+    givenName: 'Test',
+    familyName: 'Testi',
     preferredUsername: 'testuser',
     email: 'test@example.com',
     emailVerified: true,

@@ -25,16 +25,6 @@ export class UpdateNovelInput {
 
   @Field(() => String, {
     nullable: true,
-    description: 'Novel author',
-  })
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty()
-  @Transform(({ value }) => value?.trim())
-  author?: string;
-
-  @Field(() => String, {
-    nullable: true,
     description: 'A short description',
   })
   @IsOptional()

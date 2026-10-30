@@ -56,7 +56,6 @@ function uniqueCategory(label: string) {
 describe('Novel management (e2e)', () => {
   const novelInput = {
     name: 'The Lantern Keeper',
-    author: 'Jane Doe',
     description: 'A lighthouse keeper finds a door in the fog.',
   };
 
@@ -76,17 +75,19 @@ describe('Novel management (e2e)', () => {
     it.each([
       {
         role: 'writer',
+        author: 'Writer User',
         getAuthorizationHeader:
           AuthorizationFixture.getWriterAuthorizationHeader,
       },
       {
         role: 'admin',
+        author: 'Admin User',
         getAuthorizationHeader:
           AuthorizationFixture.getAdminAuthorizationHeader,
       },
     ])(
       'should allow $role to create a novel, with defaults and categories',
-      async ({ getAuthorizationHeader }) => {
+      async ({ author, getAuthorizationHeader }) => {
         const category = uniqueCategory('create');
         const authorization = await getAuthorizationHeader();
 
@@ -95,7 +96,6 @@ describe('Novel management (e2e)', () => {
           {
             input: {
               name: '  The Lantern Keeper  ',
-              author: 'Jane Doe',
               description:
                 'A lighthouse keeper finds a door in the fog.',
               categories: [category.toUpperCase(), category],
@@ -108,7 +108,7 @@ describe('Novel management (e2e)', () => {
         expect(data.data.createNovel).toStrictEqual({
           id: expect.toBeString(),
           name: 'The Lantern Keeper',
-          author: 'Jane Doe',
+          author,
           description: 'A lighthouse keeper finds a door in the fog.',
           state: 'ONGOING',
           category: [category],
@@ -158,7 +158,6 @@ describe('Novel management (e2e)', () => {
 
     it.each([
       { field: 'name', value: '   ' },
-      { field: 'author', value: '' },
       { field: 'categories', value: ['fantasy-ish', '  '] },
     ])(
       'should reject an invalid $field',
@@ -210,7 +209,7 @@ describe('Novel management (e2e)', () => {
         expect(data.data.updateNovel).toStrictEqual({
           id: novel.id,
           name: 'Renamed',
-          author: novelInput.author,
+          author: 'Writer User',
           description: novelInput.description,
           state: 'FINISHED',
           category: [category],

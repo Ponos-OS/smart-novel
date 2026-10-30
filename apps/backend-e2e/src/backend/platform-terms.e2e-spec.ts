@@ -67,7 +67,6 @@ async function graphql(
 describe('Platform terms (e2e)', () => {
   const novelInput = {
     name: 'The Lantern Keeper',
-    author: 'Jane Doe',
     description: 'A lighthouse keeper finds a door in the fog.',
   };
   let version: number;

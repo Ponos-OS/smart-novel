@@ -53,6 +53,8 @@ describe(RolesGuard.name, () => {
     return {
       sub: 'user-123',
       name: 'Test User',
+      givenName: 'Test',
+      familyName: 'Testi',
       preferredUsername: 'testuser',
       email: 'test@example.com',
       emailVerified: true,

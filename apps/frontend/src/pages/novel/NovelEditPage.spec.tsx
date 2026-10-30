@@ -161,7 +161,6 @@ describe('NovelEditPage', () => {
         id: novelId,
         input: {
           name: 'The Lantern Keeper II',
-          author: 'Jane Doe',
           description: 'A lighthouse keeper finds a door in the fog.',
           state: NovelState.Ongoing,
           categories: ['fantasy', 'adventure'],

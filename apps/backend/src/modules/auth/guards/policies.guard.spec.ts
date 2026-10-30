@@ -194,6 +194,8 @@ function buildUser(overrides: Partial<IAuthUser> = {}): IAuthUser {
   return {
     sub: '234980127461293841',
     name: 'Test User',
+    givenName: 'Test',
+    familyName: 'Testi',
     preferredUsername: 'testuser',
     email: 'test@example.com',
     emailVerified: true,

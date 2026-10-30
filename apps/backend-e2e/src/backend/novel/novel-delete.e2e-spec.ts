@@ -41,7 +41,6 @@ describe('Novel deletion (e2e)', () => {
       {
         input: {
           name: 'The Lantern Keeper',
-          author: 'Jane Doe',
           description: 'A lighthouse keeper finds a door in the fog.',
           categories: [`e2e-delete-${randomUUID().slice(0, 8)}`],
         },

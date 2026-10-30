@@ -152,6 +152,8 @@ describe(ZitadelAuthProvider.name, () => {
       expect(result).toEqual({
         sub,
         name: 'Admin User',
+        givenName: 'Admin',
+        familyName: 'Useri',
         preferredUsername: 'admin@smart-novel.localhost',
         email: 'admin@smart-novel.localhost',
         emailVerified: true,
@@ -425,6 +427,8 @@ describe(ZitadelAuthProvider.name, () => {
       expect(result).toEqual({
         sub,
         name: '',
+        givenName: '',
+        familyName: '',
         preferredUsername: '',
         email: '',
         emailVerified: false,
@@ -547,6 +551,8 @@ function getTestData() {
   const userInfoResponse: ZitadelUserInfoResponse = {
     sub,
     name: 'Admin User',
+    given_name: 'Admin',
+    family_name: 'Useri',
     preferred_username: 'admin@smart-novel.localhost',
     email: 'admin@smart-novel.localhost',
     email_verified: true,

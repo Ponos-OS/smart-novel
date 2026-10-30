@@ -68,9 +68,6 @@ function fillRequiredFields() {
   fireEvent.change(screen.getByPlaceholderText('Novel name'), {
     target: { value: 'The Lantern Keeper' },
   });
-  fireEvent.change(screen.getByPlaceholderText('Author'), {
-    target: { value: 'Jane Doe' },
-  });
 }
 
 describe('NovelCreatePage', () => {
@@ -120,7 +117,6 @@ describe('NovelCreatePage', () => {
       {
         input: {
           name: 'The Lantern Keeper',
-          author: 'Jane Doe',
           description: '',
           state: 'ONGOING',
           categories: [],
@@ -184,9 +180,6 @@ describe('NovelCreatePage', () => {
     expect(showApiError).toHaveBeenCalledOnce();
     expect(screen.getByPlaceholderText('Novel name')).toHaveValue(
       'The Lantern Keeper',
-    );
-    expect(screen.getByPlaceholderText('Author')).toHaveValue(
-      'Jane Doe',
     );
   });
 });

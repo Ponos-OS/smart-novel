@@ -9,7 +9,6 @@ describe('Novel inputs', () => {
     it('should trim the text fields and normalize the categories', async () => {
       const input = plainToInstance(CreateNovelInput, {
         name: '  The Journey Begins ',
-        author: ' Jane Doe ',
         description: ' A young hero leaves home. ',
         categories: [' Fantasy', 'fantasy'],
       });
@@ -20,7 +19,6 @@ describe('Novel inputs', () => {
       expect(input).toEqual(
         expect.objectContaining({
           name: 'The Journey Begins',
-          author: 'Jane Doe',
           description: 'A young hero leaves home.',
           categories: ['fantasy'],
         }),
@@ -29,7 +27,6 @@ describe('Novel inputs', () => {
 
     it.each([
       { field: 'name', value: '   ' },
-      { field: 'author', value: '' },
       { field: 'state', value: 'ABANDONED' },
       { field: 'categories', value: ['fantasy', '  '] },
     ])(
@@ -37,7 +34,6 @@ describe('Novel inputs', () => {
       async ({ field, value }) => {
         const input = plainToInstance(CreateNovelInput, {
           name: 'The Journey Begins',
-          author: 'Jane Doe',
           description: 'A young hero leaves home.',
           [field]: value,
         });
@@ -62,7 +58,6 @@ describe('Novel inputs', () => {
 
     it.each([
       { field: 'name', value: '   ' },
-      { field: 'author', value: '' },
       { field: 'state', value: 'ABANDONED' },
     ])(
       'should reject an invalid $field',

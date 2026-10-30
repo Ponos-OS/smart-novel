@@ -22,12 +22,6 @@ export class CreateNovelInput {
   @Transform(({ value }) => value?.trim())
   name!: string;
 
-  @Field(() => String, { description: 'Novel author' })
-  @IsString()
-  @IsNotEmpty()
-  @Transform(({ value }) => value?.trim())
-  author!: string;
-
   @Field(() => String, { description: 'A short description' })
   @IsString()
   @Transform(({ value }) => value?.trim())
