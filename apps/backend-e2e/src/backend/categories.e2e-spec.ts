@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { randomUUID } from 'node:crypto';
 
-import { AuthorizationFixture } from '../support';
+import { AuthorizationFixture, ClusterFixture } from '../support';
 
 const CATEGORIES = `#graphql
   query Categories($first: Int, $after: String, $filters: CategoryFiltersInput) {
@@ -517,5 +517,36 @@ describe('Category requests and management (e2e)', () => {
 
       expect(await pendingNames(admin)).not.toContain(name);
     });
+  });
+});
+
+describe('Category approximateNovelCount (e2e)', () => {
+  const WITH_COUNT = `#graphql
+    query WithCount {
+      categoriesConnection(first: 100) {
+        edges { node { name approximateNovelCount } }
+      }
+    }
+  `;
+
+  it('should estimate the novels of each category from the planner once the table is analyzed', async () => {
+    ClusterFixture.queryDatabase('ANALYZE novel_categories;');
+
+    const { data } = await axios.post('/graphql', {
+      query: WITH_COUNT,
+    });
+
+    const nodes: { name: string; approximateNovelCount: number }[] =
+      data.data.categoriesConnection.edges.map(
+        ({ node }: { node: object }) => node,
+      );
+    const fantasy = nodes.find(({ name }) => name === 'fantasy');
+    expect(data.errors).toBeUndefined();
+    expect(nodes).toSatisfyAll(
+      ({ approximateNovelCount }) =>
+        Number.isInteger(approximateNovelCount) &&
+        approximateNovelCount >= 0,
+    );
+    expect(fantasy?.approximateNovelCount).toBeGreaterThan(0);
   });
 });

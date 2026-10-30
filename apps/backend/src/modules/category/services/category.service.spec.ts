@@ -1,3 +1,5 @@
+import type { CustomLoggerService } from 'nestjs-backend-common';
+
 import { CategoryStatus, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../prisma';
@@ -23,7 +25,9 @@ const toCursor = (id: string) => Buffer.from(id).toString('base64');
 
 describe(CategoryService.name, () => {
   let uut: CategoryService;
+  let logger: { warn: ReturnType<typeof vi.fn> };
   let prisma: {
+    $queryRaw: ReturnType<typeof vi.fn>;
     category: Record<
       | 'findMany'
       | 'createMany'
@@ -37,7 +41,9 @@ describe(CategoryService.name, () => {
   };
 
   beforeEach(() => {
+    logger = { warn: vi.fn() };
     prisma = {
+      $queryRaw: vi.fn(),
       category: {
         findMany: vi.fn().mockResolvedValue([]),
         createMany: vi.fn(),
@@ -48,7 +54,10 @@ describe(CategoryService.name, () => {
         delete: vi.fn(),
       },
     };
-    uut = new CategoryService(prisma as unknown as PrismaService);
+    uut = new CategoryService(
+      prisma as unknown as PrismaService,
+      logger as unknown as CustomLoggerService,
+    );
   });
 
   describe('findConnection', () => {
@@ -419,6 +428,72 @@ describe(CategoryService.name, () => {
       const result = uut.delete(fantasy.id);
 
       await expect(result).rejects.toThrow('Category not found');
+    });
+  });
+
+  describe('estimateNovelCounts', () => {
+    const plan = (rows: number) => [
+      { 'QUERY PLAN': [{ Plan: { 'Plan Rows': rows } }] },
+    ];
+
+    it('should read the row estimate of the plan, one EXPLAIN per category', async () => {
+      prisma.$queryRaw
+        .mockResolvedValueOnce(plan(1203.4))
+        .mockResolvedValueOnce(plan(7));
+
+      const result = await uut.estimateNovelCounts([
+        fantasy.id,
+        mystery.id,
+      ]);
+
+      expect(result).toEqual(
+        new Map([
+          [fantasy.id, 1203],
+          [mystery.id, 7],
+        ]),
+      );
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
+      const [statement] = prisma.$queryRaw.mock.calls[0];
+      expect(statement.sql).toContain('EXPLAIN (FORMAT JSON)');
+      expect(statement.sql).not.toMatch(/count\(/i);
+      expect(statement.values).toEqual([fantasy.id]);
+    });
+
+    it.each([
+      { name: 'no rows', plan: [] },
+      {
+        name: 'a plan without an estimate',
+        plan: [{ 'QUERY PLAN': [{ Plan: {} }] }],
+      },
+      { name: 'a malformed plan', plan: [{ 'QUERY PLAN': 'nope' }] },
+    ])('should answer 0 and log for $name', async ({ plan }) => {
+      prisma.$queryRaw.mockResolvedValue(plan);
+
+      const result = await uut.estimateNovelCounts([fantasy.id]);
+
+      expect(result).toEqual(new Map([[fantasy.id, 0]]));
+      expect(logger.warn).toHaveBeenCalledOnce();
+    });
+
+    it('should answer 0 for the category whose EXPLAIN failed and keep the others', async () => {
+      prisma.$queryRaw
+        .mockRejectedValueOnce(new Error('connection reset'))
+        .mockResolvedValueOnce(plan(12));
+
+      const result = await uut.estimateNovelCounts([
+        fantasy.id,
+        mystery.id,
+      ]);
+
+      expect(result).toEqual(
+        new Map([
+          [fantasy.id, 0],
+          [mystery.id, 12],
+        ]),
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('connection reset'),
+      );
     });
   });
 });

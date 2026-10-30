@@ -170,3 +170,11 @@
 - Not fixed, outside this step: a service-thrown `NotFoundException` reaches clients with `extensions.code = INTERNAL_SERVER_ERROR` (status 404 only in `extensions.status`); `novel(id)` does the same.
 - backend-e2e specs do have database access (`ClusterFixture.queryDatabase`, used by `novel-delete`), contrary to what the Step 2 note assumed.
 - Same frontend-image `schema.gql` problem as Step 2 blocks `nx e2e`, so the affected specs ran against `start:dev`: 88 pass (categories, novel/\*, novels, platform-terms). Left uncommitted until the user's review, then committed on request.
+
+## Categories feature, Step 4 (2026-10-30)
+
+- Left uncommitted on request, for review.
+- `Category.approximateNovelCount`: `EXPLAIN (FORMAT JSON)` through `$queryRaw` with the id as a bound parameter (Postgres accepts parameters inside EXPLAIN over the extended protocol; the e2e proved it), a request-scoped DataLoader, a field resolver that only runs when selected. A failed or malformed plan is logged and counted as 0, so the list never fails.
+- graphql-api-tester with `log_statement='all'` confirmed 0 `EXPLAIN` without the field and exactly one per category with it, and 20 parallel requests gave no errors. Cost is about one round trip per category (35 categories: +15 ms). The planner never estimates below 1 row, so a category with no novels shows 1; for `fantasy` the estimate equalled the real count (2) after `ANALYZE`.
+- The tester's "item 2 fails" was only my wording ("not slower"); no code change was warranted. Next time phrase such a requirement as a bound.
+- The tester needed fresh tokens after the cluster was recreated between runs; stale tokens are the first thing to rule out when a tester reports 401s.

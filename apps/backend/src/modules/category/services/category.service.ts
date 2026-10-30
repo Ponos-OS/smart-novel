@@ -5,7 +5,11 @@ import {
 } from '@nestjs/common';
 import { CategoryStatus, Prisma } from '@prisma/client';
 import { isUUID } from 'class-validator';
-import { PageInfo, retryAsync } from 'nestjs-backend-common';
+import {
+  CustomLoggerService,
+  PageInfo,
+  retryAsync,
+} from 'nestjs-backend-common';
 
 import {
   buildCursorPaginationParams,
@@ -42,7 +46,10 @@ function escapeLikePattern(text: string): string {
 
 @Injectable()
 export class CategoryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly logger: CustomLoggerService,
+  ) {}
 
   async findConnection(
     isAdmin: boolean,
@@ -171,6 +178,51 @@ export class CategoryService {
     }
 
     return { id };
+  }
+
+  /**
+   * @description
+   * The planner's row estimate for the novels of each category, from `EXPLAIN` instead of `COUNT(*)`. `EXPLAIN` only plans the query, so its cost stays flat (about 0.2 ms) however many novels a category has, while `COUNT(*)` has to visit every matching row and grows with the category: orders of magnitude slower once categories hold hundreds of thousands of novels or more. The price is accuracy: the estimate is only as fresh as the table statistics (`ANALYZE`), and the planner never goes below 1. A category whose estimate cannot be read gets 0.
+   */
+  async estimateNovelCounts(
+    categoryIds: string[],
+  ): Promise<Map<string, number>> {
+    const counts = await Promise.all(
+      categoryIds.map(async (categoryId) => {
+        const [error, count] = await retryAsync(
+          () => this.explainNovelCount(categoryId),
+          { retry: 0 },
+        );
+
+        if (error) {
+          this.logger.warn(
+            `Could not estimate the novels of category ${categoryId}: ${error}`,
+          );
+        }
+
+        return [categoryId, error ? 0 : count] as const;
+      }),
+    );
+
+    return new Map(counts);
+  }
+
+  private async explainNovelCount(
+    categoryId: string,
+  ): Promise<number> {
+    const rows = await this.prisma.$queryRaw<
+      { 'QUERY PLAN': { Plan: { 'Plan Rows': number } }[] }[]
+    >(
+      Prisma.sql`EXPLAIN (FORMAT JSON) SELECT 1 FROM novel_categories WHERE category_id = ${categoryId}::uuid`,
+    );
+    const estimate =
+      rows[0]?.['QUERY PLAN']?.[0]?.Plan?.['Plan Rows'];
+
+    if (typeof estimate !== 'number' || !Number.isFinite(estimate)) {
+      throw new Error('The query plan has no row estimate');
+    }
+
+    return Math.max(0, Math.round(estimate));
   }
 
   private normalize(name: string): string {
