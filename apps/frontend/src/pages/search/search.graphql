@@ -23,5 +23,11 @@ query SearchNovels($filters: NovelFiltersInput) {
 }
 
 query GetCategories {
-  categories
+  categoriesConnection(first: 100) {
+    edges {
+      node {
+        name
+      }
+    }
+  }
 }

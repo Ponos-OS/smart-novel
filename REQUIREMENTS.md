@@ -46,7 +46,7 @@ DO NOT COMMIT EACH STEP, let me review it first.
 **AC**
 
 - `categoriesConnection(first, after, filters: { search, status })` returns `CategoryConnection` (`edges { cursor node { id name status } } pageInfo`), ordered by name, and is `@Public`.
-- `search` is a case-insensitive prefix/contains match on `name`; `first` is capped by the same rule as `novelsConnection`.
+- `search` is a case-insensitive prefix/contains match on `name`; without `first` or `last` a page of 20 is returned, and a `first`/`last` below 1 or above 100 is a 400 (`novelsConnection` has no cap, so this is new). A malformed `after`/`before` cursor is a 400 "Invalid cursor", and `%`, `_` and `\` in `search` are plain text, not `LIKE` wildcards.
 - `status` defaults to `APPROVED`. For a caller who is not an admin, any other value is ignored (D6).
 - The old `categories` query is removed; `search.graphql` is updated minimally so `frontend:codegen` stays green (the real UI work is in Step 8).
 

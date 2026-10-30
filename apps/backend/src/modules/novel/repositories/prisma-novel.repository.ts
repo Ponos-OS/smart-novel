@@ -108,15 +108,6 @@ export class PrismaNovelRepository implements INovelRepository {
     return this.toNovel(novel);
   }
 
-  async getCategories(): Promise<string[]> {
-    const categories = await this.prisma.category.findMany({
-      select: { name: true },
-      orderBy: { name: 'asc' },
-    });
-
-    return categories.map((category) => category.name.toLowerCase());
-  }
-
   async createNovel(data: CreateNovelData): Promise<Novel> {
     const { categories, ...fields } = data;
 

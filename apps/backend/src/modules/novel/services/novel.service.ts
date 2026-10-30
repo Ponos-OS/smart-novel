@@ -212,8 +212,4 @@ export class NovelService {
   async getLastChapter(novelId: string): Promise<Chapter | null> {
     return this.chapterRepository.getLastChapter(novelId);
   }
-
-  async getCategories(): Promise<string[]> {
-    return this.novelRepository.getCategories();
-  }
 }

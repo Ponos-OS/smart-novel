@@ -15,6 +15,7 @@ import { OpenTelemetryModule } from 'nestjs-otel';
 import {
   AuthModule,
   BackgroundRunnerModule,
+  CategoryModule,
   FitharaModule,
   LicenseAssistantModule,
   LicenseModule,
@@ -91,6 +92,7 @@ import {
       }),
     }),
     FitharaModule,
+    CategoryModule,
     LicenseModule,
     LicenseAssistantModule,
     PlatformTermsModule,

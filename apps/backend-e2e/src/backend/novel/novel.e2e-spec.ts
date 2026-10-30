@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { isString } from 'class-validator';
 
 describe('Novel (e2e)', () => {
   const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829'; // example-novel from seed data
@@ -119,17 +118,4 @@ describe('Novel (e2e)', () => {
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toBe('image/png');
   }, 120_000);
-
-  it('should return all categories', async () => {
-    const res = await axios.post('/graphql', {
-      query: `#graphql
-        query {
-          categories
-        }
-      `,
-    });
-
-    expect(res.data.data.categories).toBeArray();
-    expect(res.data.data.categories).toSatisfyAll(isString);
-  });
 });

@@ -44,7 +44,6 @@ export interface INovelRepository {
   ): Promise<TrimmedResult<INovel>>;
   countNovels(filters?: NovelConnectionFilters): Promise<number>;
   findById(id: string): Promise<INovel | null>;
-  getCategories(): Promise<string[]>;
   createNovel(data: CreateNovelData): Promise<INovel>;
   updateNovel(id: string, data: UpdateNovelData): Promise<INovel>;
   deleteNovel(id: string): Promise<DeletedNovel | null>;

@@ -94,14 +94,6 @@ export class NovelResolver {
     );
   }
 
-  @Public()
-  @Query(() => [String], {
-    description: 'Get all available novel categories',
-  })
-  async categories(): Promise<string[]> {
-    return this.novelService.getCategories();
-  }
-
   @RequireAcceptedTerms()
   @CheckPolicy('novel', 'create')
   @Mutation(() => Novel, {

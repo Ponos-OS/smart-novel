@@ -587,47 +587,6 @@ describe(PrismaNovelRepository.name, () => {
       await expect(result).rejects.toThrow('Database error');
     });
   });
-
-  describe('getCategories', () => {
-    it('should return lowercased category names', async () => {
-      const mockCategories = [
-        { name: 'Fantasy' },
-        { name: 'Adventure' },
-        { name: 'SCI-FI' },
-      ];
-      vi.mocked(prismaService.category.findMany).mockResolvedValue(
-        mockCategories as any,
-      );
-
-      const result = await uut.getCategories();
-
-      expect(result).toEqual(['fantasy', 'adventure', 'sci-fi']);
-      expect(prismaService.category.findMany).toHaveBeenCalledWith({
-        select: { name: true },
-        orderBy: { name: 'asc' },
-      });
-    });
-
-    it('should return empty array when no categories exist', async () => {
-      vi.mocked(prismaService.category.findMany).mockResolvedValue(
-        [],
-      );
-
-      const result = await uut.getCategories();
-
-      expect(result).toEqual([]);
-    });
-
-    it('should propagate the error when database fails', async () => {
-      vi.mocked(prismaService.category.findMany).mockRejectedValue(
-        new Error('Database error'),
-      );
-
-      const result = uut.getCategories();
-
-      await expect(result).rejects.toThrow('Database error');
-    });
-  });
 });
 
 function getMockedData() {

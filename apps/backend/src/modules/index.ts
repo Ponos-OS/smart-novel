@@ -1,5 +1,6 @@
 export * from './auth';
 export * from './background-runner';
+export * from './category';
 export * from './fithara';
 export * from './license';
 export * from './license-assistant';

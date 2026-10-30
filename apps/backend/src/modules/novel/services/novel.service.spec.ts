@@ -1,6 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
 import { NarrationStatus, NovelState } from '@prisma/client';
-import { isString } from 'class-validator';
 
 import type { LicenseService } from '../../license';
 import type {
@@ -25,7 +24,6 @@ describe(NovelService.name, () => {
     novelRepository = {
       findNovelsConnection: vi.fn(),
       findById: vi.fn(),
-      getCategories: vi.fn(),
       createNovel: vi.fn(),
       updateNovel: vi.fn(),
       deleteNovel: vi.fn(),
@@ -576,38 +574,6 @@ describe(NovelService.name, () => {
           orderByDirection: OrderDirection.ASC,
         }),
       );
-    });
-  });
-
-  describe('getCategories', () => {
-    it('should return categories from repository', async () => {
-      const categories = [
-        'fantasy',
-        'action',
-        'adventure',
-        'romance',
-        'mystery',
-      ];
-      vi.mocked(novelRepository.getCategories).mockResolvedValue(
-        categories,
-      );
-
-      const result = await uut.getCategories();
-
-      expect(result).toIncludeSameMembers(categories);
-      expect(novelRepository.getCategories).toHaveBeenCalledOnce();
-    });
-
-    it('should return an array of strings', async () => {
-      const categories = ['fantasy', 'sci-fi', 'horror'];
-      vi.mocked(novelRepository.getCategories).mockResolvedValue(
-        categories,
-      );
-
-      const result = await uut.getCategories();
-
-      expect(result).toBeArray();
-      expect(result).toSatisfyAll(isString);
     });
   });
 });
