@@ -104,9 +104,7 @@ if (!OTEL_ENABLED) {
         '@opentelemetry/instrumentation-redis': { enabled: false },
         '@opentelemetry/instrumentation-dns': { enabled: false },
         '@opentelemetry/instrumentation-net': { enabled: false },
-        '@opentelemetry/instrumentation-winston': {
-          disableLogSending: true, // 👈 We use winston (via `nestjs-backend-common` → `nest-winston`). The auto-instrumentation injects `trace_id`/`span_id`/`trace_flags` into every log record (great for correlation), but it also tries to attach an `OpenTelemetryTransportV3` from `@opentelemetry/winston-transport` to ship log records to the OpenTelemetry Collector as OTLP logs. That package is optional and not installed — without `disableLogSending: true` the instrumentation prints `@opentelemetry/winston-transport is not available, log records will not be automatically sent.` on application bootstrap. We only want trace correlation, not OTLP log shipping, so disable log sending explicitly.
-        },
+        // Winston records get `trace_id`/`span_id` injected and, with `@opentelemetry/winston-transport` installed, are shipped as OTLP logs through the collector to Loki (see `OTEL_LOGS_EXPORTER`).
         '@opentelemetry/instrumentation-bunyan': {
           enabled: false, // 👈 This is not used in this codebase, so skip them entirely to avoid spurious warnings if they ever get pulled in transitively.
         },

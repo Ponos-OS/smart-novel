@@ -35,6 +35,15 @@ run "the_collector_sends_traces_to_tempo" {
   }
 }
 
+run "the_collector_sends_logs_to_loki" {
+  command = plan
+
+  assert {
+    condition     = strcontains(kubernetes_config_map_v1.stack["otel-collector"].data["config.yaml"], "exporters: [otlphttp/loki]")
+    error_message = "the logs pipeline must export to Loki"
+  }
+}
+
 run "samples_everything_by_default" {
   command = plan
 

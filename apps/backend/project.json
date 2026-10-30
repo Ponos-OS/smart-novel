@@ -41,7 +41,12 @@
       "executor": "nx:run-commands",
       "description": "Regenerate Fithara's TypeScript types from openapi.json",
       "dependsOn": ["fithara:fetch-openapi"],
-      "cache": false,
+      "cache": true,
+      "inputs": [
+        "{projectRoot}/src/shared/fithara/openapi.json",
+        { "env": "FITHARA_VERSION" }
+      ],
+      "outputs": ["{projectRoot}/src/shared/fithara/schema.d.ts"],
       "options": {
         "command": "npx --yes openapi-typescript@7.13.0 src/shared/fithara/openapi.json -o src/shared/fithara/schema.d.ts",
         "cwd": "{projectRoot}"
