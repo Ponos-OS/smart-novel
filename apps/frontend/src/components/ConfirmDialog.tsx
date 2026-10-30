@@ -38,18 +38,16 @@ export function ConfirmDialog({
       aria-modal="true"
       aria-labelledby="confirm-dialog-title"
     >
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
+      <div className="w-full max-w-md rounded-lg p-6 shadow-xl bg-gray-800">
         <h2
           id="confirm-dialog-title"
-          className="mb-2 text-lg font-bold text-gray-900 dark:text-white"
+          className="mb-2 text-lg font-bold text-white"
         >
           {title}
         </h2>
-        <div className="mb-4 text-sm text-gray-700 dark:text-gray-300">
-          {message}
-        </div>
+        <div className="mb-4 text-sm text-gray-300">{message}</div>
         {confirmationText !== undefined && (
-          <label className="mb-4 block text-sm text-gray-700 dark:text-gray-300">
+          <label className="mb-4 block text-sm text-gray-300">
             <span className="mb-1 block">
               Type <strong>{confirmationText}</strong> to confirm
             </span>
@@ -58,15 +56,12 @@ export function ConfirmDialog({
               value={typedText}
               onChange={(event) => setTypedText(event.target.value)}
               disabled={isLoading}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              className="w-full rounded-lg border px-3 py-2 disabled:opacity-50 border-gray-600 bg-gray-900 text-white"
             />
           </label>
         )}
         {error && (
-          <p
-            role="alert"
-            className="mb-4 text-sm text-red-600 dark:text-red-400"
-          >
+          <p role="alert" className="mb-4 text-sm text-red-400">
             {error}
           </p>
         )}

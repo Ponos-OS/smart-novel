@@ -25,23 +25,17 @@ export function CanonicalLicenseDialog({
       closeLabel={t('dialog.close')}
     >
       {!!error && (
-        <p
-          role="alert"
-          className="text-sm text-red-600 dark:text-red-400"
-        >
+        <p role="alert" className="text-sm text-red-400">
           {t(toLicenseAssistantError(error).messageKey)}
         </p>
       )}
       {!license && !error && (
-        <p
-          role="status"
-          className="text-sm text-gray-700 dark:text-gray-300"
-        >
+        <p role="status" className="text-sm text-gray-300">
           {t('license.loading')}
         </p>
       )}
       {license && (
-        <div className="space-y-4 text-sm text-gray-800 dark:text-gray-200">
+        <div className="space-y-4 text-sm text-gray-200">
           <p>
             <strong>
               {t('license.summary', {
@@ -92,9 +86,7 @@ function TermList({
 
   return (
     <section aria-label={title}>
-      <h3 className="font-bold text-gray-900 dark:text-white">
-        {title}
-      </h3>
+      <h3 className="font-bold text-white">{title}</h3>
       <ul className="list-disc pl-5">
         {items.map((item) => (
           <li key={item}>{item}</li>

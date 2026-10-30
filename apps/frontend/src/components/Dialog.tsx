@@ -89,16 +89,13 @@ export function Dialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={`flex max-h-full w-full ${isWide ? 'max-w-6xl' : 'max-w-2xl'} flex-col rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800`}
+        className={`flex max-h-full w-full ${isWide ? 'max-w-6xl' : 'max-w-2xl'} flex-col rounded-lg bg-gray-800 p-6 shadow-xl`}
       >
         <div
           ref={headerRef}
           className="mb-4 flex items-start justify-between gap-4"
         >
-          <h2
-            id={titleId}
-            className="text-lg font-bold text-gray-900 dark:text-white"
-          >
+          <h2 id={titleId} className="text-lg font-bold text-white">
             {title}
           </h2>
           <Button

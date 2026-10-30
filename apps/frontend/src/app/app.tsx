@@ -6,7 +6,6 @@ import {
 import { Toaster } from 'sonner';
 
 import { PlatformTermsGate } from '../features/platform-terms/PlatformTermsGate';
-import { ThemeProvider } from '../hooks/useTheme';
 import { CallbackPage } from '../pages/auth/CallbackPage';
 import { HomePage } from '../pages/home/HomePage';
 import { LicensesAndTermsPage } from '../pages/licenses/LicensesAndTermsPage';
@@ -125,7 +124,7 @@ const router = createBrowserRouter([
       // Auth callback route
       { path: '/auth/callback', element: <CallbackPage /> },
 
-      // Novel pages without Layout (have their own theme toggle)
+      // Novel pages without Layout
       {
         path: '/novel/:id',
         element: <NovelLayout />,
@@ -148,10 +147,10 @@ const router = createBrowserRouter([
 
 export function App() {
   return (
-    <ThemeProvider>
+    <>
       <Toaster position="top-right" richColors />
       <RouterProvider router={router} />
-    </ThemeProvider>
+    </>
   );
 }
 

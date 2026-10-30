@@ -60,7 +60,7 @@ export function Composer({
       }}
     >
       <label className="block">
-        <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <span className="mb-1 block text-sm font-medium text-gray-300">
           {t('composer.label')}
         </span>
         <textarea
@@ -73,16 +73,14 @@ export function Composer({
           aria-describedby={hintId}
           aria-invalid={isTooLong}
           placeholder={t('composer.placeholder')}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+          className="w-full rounded-lg border px-3 py-2 disabled:opacity-50 border-gray-600 bg-gray-900 text-white"
         />
       </label>
       <div className="flex items-center justify-between gap-3">
         <p
           id={hintId}
           className={`text-xs ${
-            isTooLong
-              ? 'font-semibold text-red-600 dark:text-red-400'
-              : 'text-gray-600 dark:text-gray-400'
+            isTooLong ? 'font-semibold text-red-400' : 'text-gray-400'
           }`}
         >
           {t(

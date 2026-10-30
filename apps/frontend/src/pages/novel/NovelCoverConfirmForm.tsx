@@ -37,17 +37,14 @@ export function NovelCoverConfirmForm({
       )}
       <div className="flex flex-1 flex-col justify-between gap-4">
         <div>
-          <p className="break-all font-medium text-gray-900 dark:text-white">
+          <p className="break-all font-medium text-white">
             {fileName}
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-gray-400">
             {formatFileSize(fileSize)}
           </p>
           {error && (
-            <p
-              role="alert"
-              className="mt-3 text-sm text-red-600 dark:text-red-400"
-            >
+            <p role="alert" className="mt-3 text-sm text-red-400">
               {error}
             </p>
           )}

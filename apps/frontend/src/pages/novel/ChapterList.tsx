@@ -88,23 +88,19 @@ export function ChapterList({
             key={chapter.id}
             className={`flex w-full items-stretch rounded-lg border transition-colors ${
               isActive
-                ? 'border-blue-600 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/30'
-                : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'
+                ? 'border-blue-500 bg-blue-900/30'
+                : 'border-gray-700 bg-gray-800'
             }`}
           >
             <button
               onClick={() => onChapterClick(chapter.id)}
               className={`flex flex-1 cursor-pointer items-center rounded-l-lg py-3 pl-3 text-left transition-colors ${
-                isActive
-                  ? ''
-                  : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                isActive ? '' : 'hover:bg-gray-700'
               }`}
             >
               <h3
                 className={`text-sm font-medium ${
-                  read
-                    ? 'text-gray-500 dark:text-gray-400'
-                    : 'text-gray-900 dark:text-white'
+                  read ? 'text-gray-400' : 'text-white'
                 }`}
               >
                 Chapter {index + 1}
@@ -112,7 +108,7 @@ export function ChapterList({
               </h3>
             </button>
             <div className="ml-4 flex items-center gap-3 py-3 pr-3">
-              <span className="text-xs text-gray-500 dark:text-gray-400">
+              <span className="text-xs text-gray-400">
                 {formatDate(chapter.createdAt)}
               </span>
               {canManageTts && novelId && (

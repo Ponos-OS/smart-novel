@@ -25,8 +25,8 @@ export function ChapterEditPage() {
 
   if (!canEditContent) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-        <div className="text-center text-red-600 dark:text-red-400">
+      <div className="rounded-lg border p-6 border-gray-700 bg-gray-800">
+        <div className="text-center text-red-400">
           <p>You don't have permission to edit this chapter.</p>
         </div>
       </div>
@@ -34,7 +34,7 @@ export function ChapterEditPage() {
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+    <div className="rounded-lg border p-6 border-gray-700 bg-gray-800">
       {chapterLoading || !currentChapter ? (
         <LoadingSpinner label="Loading chapter..." />
       ) : (

@@ -45,7 +45,7 @@ const EMPTY_VALUES: NovelFormValues = {
 };
 
 const INPUT_CLASSES =
-  'w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-white';
+  'w-full rounded-lg border px-3 py-2 disabled:opacity-50 border-gray-600 bg-gray-900 text-white';
 
 export function NovelForm({
   initialValues = EMPTY_VALUES,
@@ -112,7 +112,7 @@ export function NovelForm({
         }}
       >
         <label className="block">
-          <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <span className="mb-1 block text-sm font-medium text-gray-300">
             Name
           </span>
           <input
@@ -126,7 +126,7 @@ export function NovelForm({
         </label>
 
         <label className="block">
-          <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <span className="mb-1 block text-sm font-medium text-gray-300">
             Author
           </span>
           <input
@@ -140,7 +140,7 @@ export function NovelForm({
         </label>
 
         <label className="block">
-          <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <span className="mb-1 block text-sm font-medium text-gray-300">
             Description
           </span>
           <textarea
@@ -154,7 +154,7 @@ export function NovelForm({
         </label>
 
         <label className="block">
-          <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <span className="mb-1 block text-sm font-medium text-gray-300">
             State
           </span>
           <select
@@ -171,7 +171,7 @@ export function NovelForm({
         </label>
 
         <label className="block">
-          <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <span className="mb-1 block text-sm font-medium text-gray-300">
             Categories
           </span>
           <input
@@ -182,14 +182,14 @@ export function NovelForm({
             placeholder="fantasy, adventure"
             className={INPUT_CLASSES}
           />
-          <span className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
+          <span className="mt-1 block text-xs text-gray-400">
             Separate with commas. New categories are created.
           </span>
         </label>
 
         {license && assistantLicense && (
           <div className="space-y-2">
-            <p className="text-sm text-gray-900 dark:text-white">
+            <p className="text-sm text-white">
               License: <strong>{assistantLicense.name}</strong>{' '}
               (drafted with the assistant)
             </p>

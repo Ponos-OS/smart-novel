@@ -60,9 +60,7 @@ export function HomePage() {
       <div className="flex min-h-[50vh] items-center justify-center">
         <div className="text-center">
           <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-          <p className="text-gray-600 dark:text-gray-400">
-            Loading novels...
-          </p>
+          <p className="text-gray-400">Loading novels...</p>
         </div>
       </div>
     );
@@ -71,7 +69,7 @@ export function HomePage() {
   if (error) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="text-center text-red-600 dark:text-red-400">
+        <div className="text-center text-red-400">
           <p>Failed to fetch novels</p>
         </div>
       </div>
@@ -86,7 +84,7 @@ export function HomePage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+        <h1 className="text-3xl font-bold text-white">
           Discover Novels
         </h1>
         {canCreate && (
@@ -101,7 +99,7 @@ export function HomePage() {
       </div>
 
       {novels.length === 0 ? (
-        <div className="text-center text-gray-600 dark:text-gray-400">
+        <div className="text-center text-gray-400">
           <p>No novels found.</p>
         </div>
       ) : (

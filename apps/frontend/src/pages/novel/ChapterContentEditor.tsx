@@ -256,7 +256,7 @@ export function ChapterContentEditor({
 
   return (
     <>
-      <div className="border-b border-gray-200 pb-4 dark:border-gray-700">
+      <div className="border-b pb-4 border-gray-700">
         {isEditing ? (
           <input
             type="text"
@@ -264,23 +264,23 @@ export function ChapterContentEditor({
             onChange={(event) => setTitle(event.target.value)}
             disabled={isBusy}
             placeholder="Chapter title"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-2xl font-bold text-gray-900 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+            className="w-full rounded-lg border px-3 py-2 text-2xl font-bold disabled:opacity-50 border-gray-600 bg-gray-900 text-white"
           />
         ) : (
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h2 className="text-2xl font-bold text-white">
             {chapter.title || `Chapter ${chapter.id}`}
           </h2>
         )}
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        <p className="mt-1 text-sm text-gray-400">
           Updated: {new Date(chapter.updatedAt).toLocaleDateString()}
         </p>
       </div>
 
       {(canManageTts || canEdit) && (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border p-4 border-amber-800 bg-amber-900/20">
           <div className="flex items-center gap-2">
             <svg
-              className="h-5 w-5 text-amber-600 dark:text-amber-400"
+              className="h-5 w-5 text-amber-400"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.5}
@@ -292,7 +292,7 @@ export function ChapterContentEditor({
                 d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z"
               />
             </svg>
-            <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
+            <span className="text-sm font-medium text-amber-200">
               Writer Tools
             </span>
           </div>
@@ -349,8 +349,8 @@ export function ChapterContentEditor({
       )}
 
       {hasConflict && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
-          <p className="mb-3 text-sm text-red-800 dark:text-red-200">
+        <div className="rounded-lg border p-4 border-red-800 bg-red-900/20">
+          <p className="mb-3 text-sm text-red-200">
             This chapter was updated by someone else. Reload to see
             the latest version.
           </p>
@@ -365,7 +365,7 @@ export function ChapterContentEditor({
       )}
 
       {isReloading && (
-        <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
+        <div className="flex items-center gap-2 rounded-lg border p-4 text-sm border-blue-800 bg-blue-900/20 text-blue-200">
           <span
             aria-hidden="true"
             className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
@@ -384,7 +384,7 @@ export function ChapterContentEditor({
               onChange={(event) => setContent(event.target.value)}
               disabled={isBusy}
               rows={20}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm text-gray-900 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              className="w-full rounded-lg border px-3 py-2 font-mono text-sm disabled:opacity-50 border-gray-600 bg-gray-900 text-white"
             />
           )
         ) : (
@@ -394,11 +394,11 @@ export function ChapterContentEditor({
 
       {blocker.state === 'blocked' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="mx-4 max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
-            <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+          <div className="mx-4 max-w-md rounded-lg p-6 shadow-xl bg-gray-800">
+            <h3 className="mb-2 text-lg font-semibold text-white">
               Discard unsaved changes?
             </h3>
-            <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+            <p className="mb-4 text-sm text-gray-400">
               You have unsaved title/content edits. Leaving now will
               discard them. This action cannot be undone.
             </p>

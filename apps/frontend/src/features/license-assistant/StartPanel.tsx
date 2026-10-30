@@ -37,12 +37,12 @@ export function StartPanel({
   return (
     <section
       aria-label={t('start.title')}
-      className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
+      className="rounded-lg border p-4 border-gray-700 bg-gray-800"
     >
       <h2
         ref={headingRef}
         tabIndex={-1}
-        className="mb-3 outline-none text-lg font-bold text-gray-900 dark:text-white"
+        className="mb-3 outline-none text-lg font-bold text-white"
       >
         {t('start.title')}
       </h2>
@@ -69,29 +69,26 @@ export function StartPanel({
         </Button>
       </div>
       {error && (
-        <p
-          role="alert"
-          className="mt-3 text-sm text-red-600 dark:text-red-400"
-        >
+        <p role="alert" className="mt-3 text-sm text-red-400">
           {error}
         </p>
       )}
       {drafts.length > 0 && (
         <section aria-label={t('start.unfinished')} className="mt-6">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+          <h3 className="text-sm font-bold text-white">
             {t('start.unfinished')}
           </h3>
-          <ul className="mt-2 divide-y divide-gray-200 dark:divide-gray-700">
+          <ul className="mt-2 divide-y divide-gray-700">
             {drafts.map((draft) => (
               <li
                 key={draft.id}
-                className="flex items-center justify-between gap-3 py-2 text-sm text-gray-800 dark:text-gray-200"
+                className="flex items-center justify-between gap-3 py-2 text-sm text-gray-200"
               >
                 <span>
                   <strong>
                     {draft.title || t('start.untitled')}
                   </strong>
-                  <span className="block text-xs text-gray-600 dark:text-gray-400">
+                  <span className="block text-xs text-gray-400">
                     {t('start.saved', {
                       date: new Date(
                         draft.updatedAt,

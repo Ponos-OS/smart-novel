@@ -28,7 +28,7 @@ interface LicenseBase extends LicenseSummary {
 }
 
 const INPUT_CLASSES =
-  'w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-white';
+  'w-full rounded-lg border px-3 py-2 disabled:opacity-50 border-gray-600 bg-gray-900 text-white';
 
 function buildDraft(
   base: LicenseBase,
@@ -103,11 +103,11 @@ export function LicenseField({
 
   return (
     <fieldset className="space-y-3" disabled={disabled}>
-      <legend className="mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+      <legend className="mb-1 text-sm font-medium text-gray-300">
         License
       </legend>
       <label className="block">
-        <span className="mb-1 block text-sm text-gray-700 dark:text-gray-300">
+        <span className="mb-1 block text-sm text-gray-300">
           Start from
         </span>
         <select
@@ -124,10 +124,7 @@ export function LicenseField({
         </select>
       </label>
       {isLoadingPick ? (
-        <p
-          role="status"
-          className="text-sm text-gray-700 dark:text-gray-300"
-        >
+        <p role="status" className="text-sm text-gray-300">
           Loading the license...
         </p>
       ) : (
@@ -140,15 +137,13 @@ export function LicenseField({
       {onDraftWithAssistant && (
         <button
           type="button"
-          className="cursor-pointer text-sm font-medium text-blue-600 dark:text-blue-400"
+          className="cursor-pointer text-sm font-medium text-blue-400"
           onClick={onDraftWithAssistant}
         >
           Draft with assistant
         </button>
       )}
-      <p className="text-xs text-gray-600 dark:text-gray-400">
-        {LICENSE_DISCLAIMER}
-      </p>
+      <p className="text-xs text-gray-400">{LICENSE_DISCLAIMER}</p>
     </fieldset>
   );
 }
@@ -191,19 +186,19 @@ function LicenseTextEditor({
 
   return (
     <>
-      <p className="text-sm text-gray-900 dark:text-white">
+      <p className="text-sm text-white">
         <strong>{base.name}</strong>
-        <span className="block text-gray-700 dark:text-gray-300">
+        <span className="block text-gray-300">
           {getLicenseNotice(base)}
         </span>
       </p>
       <OfficialLicenseLink officialUrl={base.officialUrl} />
       <details>
-        <summary className="cursor-pointer text-sm font-medium text-blue-600 dark:text-blue-400">
+        <summary className="cursor-pointer text-sm font-medium text-blue-400">
           Read and edit the license text
         </summary>
         <label className="mt-2 block">
-          <span className="mb-1 block text-sm text-gray-700 dark:text-gray-300">
+          <span className="mb-1 block text-sm text-gray-300">
             License text
           </span>
           <textarea
@@ -217,7 +212,7 @@ function LicenseTextEditor({
         </label>
         <button
           type="button"
-          className="mt-1 cursor-pointer text-sm text-blue-600 disabled:opacity-50 dark:text-blue-400"
+          className="mt-1 cursor-pointer text-sm disabled:opacity-50 text-blue-400"
           disabled={!isModified}
           onClick={() => handleChange(base.text, '')}
         >
@@ -226,7 +221,7 @@ function LicenseTextEditor({
       </details>
       {isModified && (
         <label className="block">
-          <span className="mb-1 block text-sm text-gray-700 dark:text-gray-300">
+          <span className="mb-1 block text-sm text-gray-300">
             Name of your modified license
           </span>
           <input

@@ -37,17 +37,4 @@ describe('Home Page', () => {
       }
     });
   });
-
-  it('should toggle theme when theme toggle is clicked', () => {
-    cy.get('html').then(($html) => {
-      const initialClass = $html.attr('class');
-
-      cy.get('button[aria-label="Toggle theme"]').first().click();
-
-      cy.get('html').should(($newHtml) => {
-        const newClass = $newHtml.attr('class');
-        expect(newClass).to.not.equal(initialClass);
-      });
-    });
-  });
 });

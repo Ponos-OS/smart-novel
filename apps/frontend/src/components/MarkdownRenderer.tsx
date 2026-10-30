@@ -497,31 +497,29 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
     <div aria-live="polite" className="space-y-3">
       {loading ? (
         <div className="space-y-2">
-          <div className="h-4 w-1/3 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
-          <div className="h-4 w-full animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
-          <div className="h-4 w-5/6 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+          <div className="h-4 w-1/3 animate-pulse rounded bg-gray-700" />
+          <div className="h-4 w-full animate-pulse rounded bg-gray-700" />
+          <div className="h-4 w-5/6 animate-pulse rounded bg-gray-700" />
         </div>
       ) : errorMessage ? (
-        <p className="text-sm text-red-600 dark:text-red-400">
-          {errorMessage}
-        </p>
+        <p className="text-sm text-red-400">{errorMessage}</p>
       ) : result ? (
         <>
-          <p className="text-sm text-gray-700 dark:text-gray-200">
+          <p className="text-sm text-gray-200">
             <span className="font-semibold">Meaning: </span>
             {result.meaning}
           </p>
-          <p className="text-sm text-gray-700 dark:text-gray-200">
+          <p className="text-sm text-gray-200">
             <span className="font-semibold">Simple: </span>
             {result.simplifiedExplanation}
           </p>
-          <p className="text-xs text-gray-600 dark:text-gray-300">
+          <p className="text-xs text-gray-300">
             <span className="font-medium">Synonyms:</span>{' '}
             {result.synonyms.length
               ? result.synonyms.join(', ')
               : 'None'}
           </p>
-          <p className="text-xs text-gray-600 dark:text-gray-300">
+          <p className="text-xs text-gray-300">
             <span className="font-medium">Antonyms:</span>{' '}
             {result.antonyms.length
               ? result.antonyms.join(', ')
@@ -529,7 +527,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
           </p>
         </>
       ) : (
-        <p className="text-sm text-gray-600 dark:text-gray-300">
+        <p className="text-sm text-gray-300">
           Select a word and press Explain.
         </p>
       )}
@@ -541,7 +539,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
       <div
         ref={containerRef}
         onClick={handlePowerClick}
-        className="prose prose-slate max-w-none selection:bg-transparent selection:text-inherit dark:prose-invert prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:text-base prose-p:leading-7 prose-a:text-blue-600 hover:prose-a:text-blue-500 dark:prose-a:text-blue-400 dark:hover:prose-a:text-blue-300"
+        className="prose prose-slate max-w-none selection:bg-transparent selection:text-inherit prose-invert prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:text-base prose-p:leading-7 prose-a:text-blue-400 hover:prose-a:text-blue-300"
       >
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
@@ -574,7 +572,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
               openDialog(activeTarget);
             }
           }}
-          className="fixed z-40 rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-md transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+          className="fixed z-40 rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-md transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
           style={bubbleStyle}
         >
           Explain
@@ -592,19 +590,19 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
               role="dialog"
               aria-modal="true"
               aria-labelledby="word-explain-title"
-              className="w-full rounded-t-2xl border border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-900"
+              className="w-full rounded-t-2xl border p-4 shadow-xl border-gray-700 bg-gray-900"
             >
               <div className="mb-3 flex items-center justify-between">
                 <h3
                   id="word-explain-title"
-                  className="text-base font-semibold text-gray-900 dark:text-gray-100"
+                  className="text-base font-semibold text-gray-100"
                 >
                   Explain “{activeTarget?.word}”
                 </h3>
                 <button
                   type="button"
                   aria-label="Close"
-                  className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                  className="rounded p-1 hover:text-gray-700 text-gray-300 hover:bg-gray-800"
                   onClick={closeDialog}
                 >
                   ✕
@@ -619,20 +617,20 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
             role="dialog"
             aria-modal="false"
             aria-labelledby="word-explain-title"
-            className="fixed z-50 w-[340px] rounded-xl border border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-900"
+            className="fixed z-50 w-[340px] rounded-xl border p-4 shadow-xl border-gray-700 bg-gray-900"
             style={popoverStyle}
           >
             <div className="mb-3 flex items-center justify-between">
               <h3
                 id="word-explain-title"
-                className="text-base font-semibold text-gray-900 dark:text-gray-100"
+                className="text-base font-semibold text-gray-100"
               >
                 Explain “{activeTarget?.word}”
               </h3>
               <button
                 type="button"
                 aria-label="Close"
-                className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                className="rounded p-1 hover:text-gray-700 text-gray-300 hover:bg-gray-800"
                 onClick={closeDialog}
               >
                 ✕

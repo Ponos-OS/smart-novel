@@ -37,10 +37,7 @@ export function LicenseDraftingAssistant({
 
   if (stored && restored.isLoading) {
     return (
-      <p
-        role="status"
-        className="text-sm text-gray-700 dark:text-gray-300"
-      >
+      <p role="status" className="text-sm text-gray-300">
         {t('restore.loading')}
       </p>
     );
@@ -52,10 +49,7 @@ export function LicenseDraftingAssistant({
 
   if (stored && restored.error && !isGone) {
     return (
-      <div
-        role="alert"
-        className="space-y-2 text-sm text-red-600 dark:text-red-400"
-      >
+      <div role="alert" className="space-y-2 text-sm text-red-400">
         <p>{t('restore.failed')}</p>
         <Button
           type="button"

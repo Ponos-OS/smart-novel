@@ -17,7 +17,7 @@ export function CategoryFilter({
     <div className="space-y-6">
       {/* Include Categories */}
       <div>
-        <h3 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
+        <h3 className="mb-3 text-lg font-semibold text-white">
           Include Categories
         </h3>
         <div className="flex flex-wrap gap-2">
@@ -30,7 +30,7 @@ export function CategoryFilter({
                 className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   isSelected
                     ? 'bg-green-600 text-white hover:bg-green-700'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
               >
                 {category}
@@ -42,7 +42,7 @@ export function CategoryFilter({
 
       {/* Exclude Categories */}
       <div>
-        <h3 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
+        <h3 className="mb-3 text-lg font-semibold text-white">
           Exclude Categories
         </h3>
         <div className="flex flex-wrap gap-2">
@@ -55,7 +55,7 @@ export function CategoryFilter({
                 className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   isSelected
                     ? 'bg-red-600 text-white hover:bg-red-700'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
               >
                 {category}

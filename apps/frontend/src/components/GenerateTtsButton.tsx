@@ -129,7 +129,7 @@ export function GenerateTtsButton({
   return (
     <>
       {isProcessing ? (
-        <div className="flex items-center gap-2 rounded bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+        <div className="flex items-center gap-2 rounded px-3 py-1.5 text-xs font-medium bg-blue-900 text-blue-200">
           <span
             aria-hidden="true"
             className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent"
@@ -155,18 +155,18 @@ export function GenerateTtsButton({
       )}
 
       {failed && !isProcessing && (
-        <span className="text-xs text-red-600 dark:text-red-400">
+        <span className="text-xs text-red-400">
           Audio generation failed.
         </span>
       )}
 
       {showRegenerateConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="mx-4 max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
-            <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+          <div className="mx-4 max-w-md rounded-lg p-6 shadow-xl bg-gray-800">
+            <h3 className="mb-2 text-lg font-semibold text-white">
               Regenerate Audio Narration?
             </h3>
-            <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+            <p className="mb-4 text-sm text-gray-400">
               This chapter already has an audio narration.
               Regenerating will permanently replace the existing audio
               file with a new one. This action cannot be undone.

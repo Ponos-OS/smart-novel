@@ -57,11 +57,11 @@ function Message({
     <li
       className={`max-w-[85%] rounded-lg border px-3 py-2 text-sm ${
         isUser
-          ? 'self-end border-blue-200 bg-blue-50 text-gray-900 dark:border-blue-800 dark:bg-blue-950 dark:text-gray-100'
-          : 'self-start border-gray-200 bg-white text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100'
+          ? 'self-end border-blue-800 bg-blue-950 text-gray-100'
+          : 'self-start border-gray-700 bg-gray-800 text-gray-100'
       }`}
     >
-      <span className="mb-1 block text-xs font-semibold text-gray-600 dark:text-gray-400">
+      <span className="mb-1 block text-xs font-semibold text-gray-400">
         {label}
       </span>
       <span className="whitespace-pre-wrap">{content}</span>

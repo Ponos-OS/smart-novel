@@ -34,7 +34,7 @@ export function NovelCreatePage() {
 
   if (!canCreate) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-8 text-center text-red-600 dark:text-red-400">
+      <div className="mx-auto max-w-3xl px-4 py-8 text-center text-red-400">
         <p>You don't have permission to create a novel.</p>
       </div>
     );
@@ -42,10 +42,10 @@ export function NovelCreatePage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-      <h1 className="mb-6 text-3xl font-bold text-gray-900 dark:text-white">
+      <h1 className="mb-6 text-3xl font-bold text-white">
         New novel
       </h1>
-      <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+      <div className="rounded-lg border p-6 border-gray-700 bg-gray-800">
         <NovelForm
           license={licenseData?.defaultLicense}
           submitLabel="Create novel"

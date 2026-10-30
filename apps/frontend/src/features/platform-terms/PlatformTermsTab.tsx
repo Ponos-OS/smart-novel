@@ -23,7 +23,7 @@ export function PlatformTermsTab() {
 
   return (
     <div>
-      <p className="mb-4 text-sm text-gray-700 dark:text-gray-300">
+      <p className="mb-4 text-sm text-gray-300">
         Version {terms.version}.{' '}
         {status?.acceptedAt ? (
           <>
@@ -37,7 +37,7 @@ export function PlatformTermsTab() {
           'You have not accepted this version yet.'
         )}
       </p>
-      <div className="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
+      <div className="prose prose-sm prose-invert max-w-none text-gray-200">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
           {terms.markdown}
         </ReactMarkdown>

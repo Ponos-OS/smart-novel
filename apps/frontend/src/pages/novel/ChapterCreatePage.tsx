@@ -43,8 +43,8 @@ export function ChapterCreatePage() {
 
   if (!canEditContent) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-        <div className="text-center text-red-600 dark:text-red-400">
+      <div className="rounded-lg border p-6 border-gray-700 bg-gray-800">
+        <div className="text-center text-red-400">
           <p>You don't have permission to create a chapter.</p>
         </div>
       </div>
@@ -52,15 +52,15 @@ export function ChapterCreatePage() {
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-      <div className="border-b border-gray-200 pb-4 dark:border-gray-700">
+    <div className="rounded-lg border p-6 border-gray-700 bg-gray-800">
+      <div className="border-b pb-4 border-gray-700">
         <input
           type="text"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           disabled={createChapterMutation.isPending}
           placeholder="Chapter title"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-2xl font-bold text-gray-900 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+          className="w-full rounded-lg border px-3 py-2 text-2xl font-bold disabled:opacity-50 border-gray-600 bg-gray-900 text-white"
         />
       </div>
 
@@ -71,7 +71,7 @@ export function ChapterCreatePage() {
           disabled={createChapterMutation.isPending}
           rows={20}
           placeholder="Chapter content in markdown format"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm text-gray-900 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+          className="w-full rounded-lg border px-3 py-2 font-mono text-sm disabled:opacity-50 border-gray-600 bg-gray-900 text-white"
         />
       </div>
 

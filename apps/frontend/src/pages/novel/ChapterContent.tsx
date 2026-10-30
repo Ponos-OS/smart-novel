@@ -66,10 +66,10 @@ export function ChapterContent({
 
       {/* Audio Narration Section */}
       {hasNarrationUrl && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+        <div className="rounded-lg border p-4 border-blue-800 bg-blue-900/20">
           <div className="mb-2 flex items-center gap-2">
             <svg
-              className="h-5 w-5 text-blue-600 dark:text-blue-400"
+              className="h-5 w-5 text-blue-400"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.5}
@@ -81,7 +81,7 @@ export function ChapterContent({
                 d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z"
               />
             </svg>
-            <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+            <span className="text-sm font-medium text-blue-200">
               Audio Narration
             </span>
           </div>
@@ -106,7 +106,7 @@ export function ChapterContent({
       />
 
       {/* Navigation Buttons - Bottom */}
-      <div className="flex justify-between border-t border-gray-200 pt-6 dark:border-gray-700">
+      <div className="flex justify-between border-t pt-6 border-gray-700">
         <Button
           variant="solid"
           color="gray"

@@ -158,10 +158,8 @@ export function NovelCoverUpload({
   };
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-      <h2 className="mb-4 text-lg font-bold text-gray-900 dark:text-white">
-        Cover
-      </h2>
+    <div className="rounded-lg border p-6 border-gray-700 bg-gray-800">
+      <h2 className="mb-4 text-lg font-bold text-white">Cover</h2>
       {file ? (
         <NovelCoverConfirmForm
           previewUrl={previewUrl}
@@ -181,7 +179,7 @@ export function NovelCoverUpload({
               className="h-64 w-48 rounded-lg object-cover shadow"
             />
           ) : (
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-400">
               This novel has no cover yet.
             </p>
           )}
@@ -202,10 +200,7 @@ export function NovelCoverUpload({
               Change cover
             </Button>
             {pickError && (
-              <p
-                role="alert"
-                className="mt-3 text-sm text-red-600 dark:text-red-400"
-              >
+              <p role="alert" className="mt-3 text-sm text-red-400">
                 {pickError}
               </p>
             )}

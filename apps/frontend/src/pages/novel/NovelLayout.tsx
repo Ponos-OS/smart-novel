@@ -4,7 +4,6 @@ import {
   useParams,
 } from 'react-router-dom';
 
-import { ThemeToggle } from '../../components/ThemeToggle';
 import {
   GetNovelQuery,
   NovelAction,
@@ -42,12 +41,10 @@ export function NovelLayout() {
 
   if (novelLoading && !novel) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="flex min-h-screen items-center justify-center bg-gray-900">
         <div className="text-center">
           <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-          <p className="text-gray-600 dark:text-gray-400">
-            Loading novel...
-          </p>
+          <p className="text-gray-400">Loading novel...</p>
         </div>
       </div>
     );
@@ -55,8 +52,8 @@ export function NovelLayout() {
 
   if (novelError || !novel) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center text-red-600 dark:text-red-400">
+      <div className="flex min-h-screen items-center justify-center bg-gray-900">
+        <div className="text-center text-red-400">
           <p>
             {novelError ? 'Failed to fetch novel' : 'Novel not found'}
           </p>
@@ -71,12 +68,7 @@ export function NovelLayout() {
     novel.allowedActions?.includes(NovelAction.EditContent) ?? false;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Theme Toggle - Fixed top-right */}
-      <div className="fixed right-4 top-4 z-10">
-        <ThemeToggle />
-      </div>
-
+    <div className="min-h-screen bg-gray-900">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <Breadcrumbs novelId={novel.id} novelName={novel.name} />
 

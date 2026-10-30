@@ -32,7 +32,7 @@ export function DraftSourceBadge({ source }: DraftSourceBadgeProps) {
   }
 
   return (
-    <div className="mb-3 rounded border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100">
+    <div className="mb-3 rounded border px-3 py-2 text-sm border-gray-600 bg-gray-900 text-gray-100">
       <p className="font-semibold">{sentence}</p>
       {source.type !== LicenseSourceType.Custom && (
         <p className="mt-1">

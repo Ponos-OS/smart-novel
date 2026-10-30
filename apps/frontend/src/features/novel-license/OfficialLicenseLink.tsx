@@ -17,7 +17,7 @@ export function OfficialLicenseLink({
       href={officialUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-sm font-medium text-blue-600 underline dark:text-blue-400"
+      className="text-sm font-medium underline text-blue-400"
     >
       {label}
     </a>

@@ -31,7 +31,7 @@ export function RecommendationChips({
 
   return (
     <section aria-label={t('recommendations.title')} className="mt-4">
-      <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+      <h3 className="text-sm font-bold text-white">
         {t('recommendations.title')}
       </h3>
       <ul className="mt-2 flex flex-wrap gap-2">

@@ -25,7 +25,7 @@ export function LicensesAndTermsPage() {
 
   if (!isWriterOrHigher(user?.roles ?? [])) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-8 text-center text-red-600 dark:text-red-400">
+      <div className="mx-auto max-w-3xl px-4 py-8 text-center text-red-400">
         <p>Only writers can see the licenses and terms.</p>
       </div>
     );
@@ -47,13 +47,13 @@ export function LicensesAndTermsPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-      <h1 className="mb-6 text-3xl font-bold text-gray-900 dark:text-white">
+      <h1 className="mb-6 text-3xl font-bold text-white">
         Licenses and terms
       </h1>
       <p className="mb-4 text-sm">
         <Link
           to="/licenses/draft"
-          className="font-medium text-blue-600 dark:text-blue-400"
+          className="font-medium text-blue-400"
         >
           Draft a license with the assistant
         </Link>
@@ -61,7 +61,7 @@ export function LicensesAndTermsPage() {
       <div
         role="tablist"
         aria-label="Licenses and terms"
-        className="mb-4 flex gap-4 border-b border-gray-200 dark:border-gray-700"
+        className="mb-4 flex gap-4 border-b border-gray-700"
       >
         {TABS.map((tab, index) => (
           <button
@@ -76,8 +76,8 @@ export function LicensesAndTermsPage() {
             onKeyDown={(event) => moveTab(event, index)}
             className={`cursor-pointer border-b-2 px-1 pb-2 text-sm font-medium ${
               index === activeIndex
-                ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
-                : 'border-transparent text-gray-700 dark:text-gray-300'
+                ? 'border-blue-400 text-blue-400'
+                : 'border-transparent text-gray-300'
             }`}
           >
             {tab.label}
@@ -88,7 +88,7 @@ export function LicensesAndTermsPage() {
         role="tabpanel"
         id={`panel-${TABS[activeIndex].id}`}
         aria-labelledby={`tab-${TABS[activeIndex].id}`}
-        className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800"
+        className="rounded-lg border p-6 border-gray-700 bg-gray-800"
       >
         <Panel />
       </div>

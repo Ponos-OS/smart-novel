@@ -68,30 +68,27 @@ export function PlatformTermsModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="flex max-h-full w-full max-w-2xl flex-col rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800"
+        className="flex max-h-full w-full max-w-2xl flex-col rounded-lg p-6 shadow-xl bg-gray-800"
       >
         <h2
           id={titleId}
-          className="mb-4 text-lg font-bold text-gray-900 dark:text-white"
+          className="mb-4 text-lg font-bold text-white"
         >
           Platform terms
         </h2>
-        <div className="prose prose-sm dark:prose-invert mb-4 min-h-0 flex-1 overflow-y-auto text-gray-800 dark:text-gray-200">
+        <div className="prose prose-sm prose-invert mb-4 min-h-0 flex-1 overflow-y-auto text-gray-200">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {markdown}
           </ReactMarkdown>
         </div>
-        <p className="mb-4 text-sm text-gray-700 dark:text-gray-300">
+        <p className="mb-4 text-sm text-gray-300">
           Want to see the default license first?{' '}
-          <Link
-            to="/licenses"
-            className="font-medium text-blue-600 dark:text-blue-400"
-          >
+          <Link to="/licenses" className="font-medium text-blue-400">
             Read the licenses and terms
           </Link>
           .
         </p>
-        <label className="mb-4 flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200">
+        <label className="mb-4 flex items-center gap-2 text-sm text-gray-200">
           <input
             ref={agreeRef}
             type="checkbox"
@@ -102,10 +99,7 @@ export function PlatformTermsModal({
           I have read and agree to the platform terms
         </label>
         {error && (
-          <p
-            role="alert"
-            className="mb-4 text-sm text-red-600 dark:text-red-400"
-          >
+          <p role="alert" className="mb-4 text-sm text-red-400">
             {error}
           </p>
         )}

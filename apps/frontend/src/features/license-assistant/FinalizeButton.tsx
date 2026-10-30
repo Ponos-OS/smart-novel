@@ -30,9 +30,7 @@ export function FinalizeButton({
         {t(isFinalizing ? 'finalize.busy' : 'finalize.button')}
       </Button>
       {isReadyToFinalize && (
-        <p className="text-sm text-gray-700 dark:text-gray-300">
-          {t('finalize.ready')}
-        </p>
+        <p className="text-sm text-gray-300">{t('finalize.ready')}</p>
       )}
     </div>
   );

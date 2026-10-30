@@ -36,10 +36,8 @@ export function SettingsPage() {
   if (!isAuthenticated) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12 text-center sm:px-6 lg:px-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Settings
-        </h1>
-        <p className="mt-4 text-gray-600 dark:text-gray-400">
+        <h1 className="text-2xl font-bold text-white">Settings</h1>
+        <p className="mt-4 text-gray-400">
           You need to be logged in to access settings.
         </p>
       </div>
@@ -50,20 +48,20 @@ export function SettingsPage() {
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Page header */}
       <div className="mb-8">
-        <h1 className="mt-3 text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">
+        <h1 className="mt-3 text-2xl font-bold text-white sm:text-3xl">
           Settings
         </h1>
-        <p className="mt-1 text-gray-600 dark:text-gray-400">
+        <p className="mt-1 text-gray-400">
           Manage your account preferences and data.
         </p>
       </div>
 
       {/* Data & Privacy section */}
       <section>
-        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5 text-gray-500 dark:text-gray-400"
+            className="h-5 w-5 text-gray-400"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -79,17 +77,17 @@ export function SettingsPage() {
           Data &amp; Privacy
         </h2>
 
-        <div className="rounded-lg border border-red-200 bg-white p-4 shadow-sm dark:border-red-800/50 dark:bg-gray-800 sm:p-6">
+        <div className="rounded-lg border p-4 shadow-sm border-red-800/50 bg-gray-800 sm:p-6">
           <div className="sm:flex sm:items-start sm:justify-between">
             <div className="mb-4 sm:mb-0 sm:mr-6">
-              <h3 className="text-base font-medium text-gray-900 dark:text-white">
+              <h3 className="text-base font-medium text-white">
                 Delete Read History
               </h3>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              <p className="mt-1 text-sm text-gray-400">
                 Permanently remove all your chapter reading history
                 from our servers. This action cannot be undone.
               </p>
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-500">
+              <p className="mt-2 text-xs text-gray-500">
                 This is provided for GDPR compliance. Your local
                 reading data will not be affected.
               </p>
@@ -98,7 +96,7 @@ export function SettingsPage() {
               <button
                 onClick={() => setShowConfirmDialog(true)}
                 disabled={isPending}
-                className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-700 dark:bg-gray-800 dark:text-red-400 dark:hover:bg-red-900/20 dark:focus:ring-offset-gray-800 sm:w-auto"
+                className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 border-red-700 bg-gray-800 text-red-400 hover:bg-red-900/20 focus:ring-offset-gray-800 sm:w-auto"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -130,12 +128,12 @@ export function SettingsPage() {
           aria-modal="true"
           aria-labelledby="confirm-dialog-title"
         >
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800">
+          <div className="w-full max-w-md rounded-xl p-6 shadow-xl bg-gray-800">
             <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-red-900/30">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-red-600 dark:text-red-400"
+                  className="h-5 w-5 text-red-400"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -151,12 +149,12 @@ export function SettingsPage() {
               </div>
               <h3
                 id="confirm-dialog-title"
-                className="text-lg font-semibold text-gray-900 dark:text-white"
+                className="text-lg font-semibold text-white"
               >
                 Are you sure?
               </h3>
             </div>
-            <p className="mb-6 text-sm text-gray-600 dark:text-gray-400">
+            <p className="mb-6 text-sm text-gray-400">
               This will permanently delete all your reading history
               from our servers. This action cannot be undone.
             </p>
@@ -164,14 +162,14 @@ export function SettingsPage() {
               <button
                 onClick={() => setShowConfirmDialog(false)}
                 disabled={isPending}
-                className="cursor-pointer rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-800"
+                className="cursor-pointer rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 focus:ring-offset-gray-800"
               >
                 Cancel
               </button>
               <button
                 onClick={() => deleteReadHistory({})}
                 disabled={isPending}
-                className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:focus:ring-offset-gray-800"
+                className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 focus:ring-offset-gray-800"
               >
                 {isPending ? (
                   <>

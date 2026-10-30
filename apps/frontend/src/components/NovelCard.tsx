@@ -61,7 +61,7 @@ export function NovelCard({ novel }: NovelCardProps) {
   return (
     <Link
       to={`/novel/${novel.id}`}
-      className="block overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+      className="block overflow-hidden rounded-lg border shadow-sm transition-shadow hover:shadow-md border-gray-700 bg-gray-800"
     >
       <div className="flex gap-4 p-4">
         {/* Cover Image */}
@@ -73,10 +73,8 @@ export function NovelCard({ novel }: NovelCardProps) {
               className="h-32 w-24 rounded object-cover"
             />
           ) : (
-            <div className="flex h-32 w-24 items-center justify-center rounded bg-gray-200 dark:bg-gray-700">
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                No Cover
-              </span>
+            <div className="flex h-32 w-24 items-center justify-center rounded bg-gray-700">
+              <span className="text-xs text-gray-400">No Cover</span>
             </div>
           )}
         </div>
@@ -85,7 +83,7 @@ export function NovelCard({ novel }: NovelCardProps) {
         <div className="flex flex-1 flex-col">
           {/* Last Update & Categories */}
           <div className="mb-2">
-            <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+            <p className="mb-2 text-xs text-gray-400">
               {getLastUpdateDate(novel)}
             </p>
             <div className="flex flex-wrap gap-1">
@@ -93,7 +91,7 @@ export function NovelCard({ novel }: NovelCardProps) {
                 <button
                   key={cat}
                   onClick={(e) => handleCategoryClick(e, cat)}
-                  className="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 transition-colors hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:hover:bg-blue-800"
+                  className="rounded-full px-2 py-1 text-xs font-medium transition-colors bg-blue-900 text-blue-200 hover:bg-blue-800"
                 >
                   {cat}
                 </button>
@@ -102,19 +100,17 @@ export function NovelCard({ novel }: NovelCardProps) {
           </div>
 
           {/* Novel Name */}
-          <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+          <h3 className="mb-2 text-lg font-semibold text-white">
             {novel.name}
           </h3>
 
           {/* Description */}
-          <p className="mb-2 flex-1 text-sm text-gray-600 dark:text-gray-300">
+          <p className="mb-2 flex-1 text-sm text-gray-300">
             {truncateText(novel.description, 300)}
           </p>
 
           {/* Author */}
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            By: {novel.author}
-          </p>
+          <p className="text-sm text-gray-400">By: {novel.author}</p>
         </div>
       </div>
     </Link>

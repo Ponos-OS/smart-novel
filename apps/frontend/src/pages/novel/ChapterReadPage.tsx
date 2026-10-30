@@ -64,13 +64,13 @@ export function ChapterReadPage() {
       {/* Back Button */}
       <button
         onClick={() => navigate(`/novel/${novel.id}`)}
-        className="cursor-pointer mb-4 text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+        className="cursor-pointer mb-4 transition-colors text-blue-400 hover:text-blue-300"
       >
         ← Back to Novel
       </button>
 
       {/* Chapter Content */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+      <div className="rounded-lg border p-6 border-gray-700 bg-gray-800">
         {chapterLoading || !currentChapter ? (
           <LoadingSpinner label="Loading chapter..." />
         ) : (

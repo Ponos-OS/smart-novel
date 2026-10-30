@@ -39,7 +39,7 @@ export const DraftBody = memo(function DraftBody({
   text,
 }: DraftBodyProps) {
   return (
-    <div className="prose prose-sm dark:prose-invert max-h-[32rem] max-w-none overflow-y-auto text-gray-800 dark:text-gray-200">
+    <div className="prose prose-sm prose-invert max-h-[32rem] max-w-none overflow-y-auto text-gray-200">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={components}

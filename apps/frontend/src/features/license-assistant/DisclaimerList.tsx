@@ -15,13 +15,10 @@ export function DisclaimerList({ disclaimers }: DisclaimerListProps) {
 
   return (
     <section aria-labelledby={headingId} className="mt-4">
-      <h3
-        id={headingId}
-        className="text-sm font-bold text-gray-900 dark:text-white"
-      >
+      <h3 id={headingId} className="text-sm font-bold text-white">
         {t('disclaimers.title')}
       </h3>
-      <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-gray-800 dark:text-gray-200">
+      <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-gray-200">
         {disclaimers.map((disclaimer, index) => (
           <li key={`${index}-${disclaimer}`}>{disclaimer}</li>
         ))}

@@ -2,7 +2,6 @@ import { isWriterOrHigher } from '@smart-novel/shared';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { ThemeToggle } from '../../components/ThemeToggle';
 import { useAuth } from '../../hooks/useAuth';
 import { getInitials } from '../../utils/get-initials';
 
@@ -46,14 +45,11 @@ export function Header() {
     : '?';
 
   return (
-    <header className="border-b border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+    <header className="border-b shadow-sm border-gray-700 bg-gray-800">
       <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-8">
-            <Link
-              to="/"
-              className="text-xl font-bold text-gray-900 dark:text-white"
-            >
+            <Link to="/" className="text-xl font-bold text-white">
               Smart Novel
             </Link>
             <nav className="hidden space-x-4 md:flex">
@@ -61,7 +57,7 @@ export function Header() {
                 <Link
                   key={item.to}
                   to={item.to}
-                  className="text-gray-700 transition-colors hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                  className="transition-colors text-gray-300 hover:text-white"
                 >
                   {item.label}
                 </Link>
@@ -78,7 +74,7 @@ export function Header() {
                       onClick={() =>
                         setIsDropdownOpen(!isDropdownOpen)
                       }
-                      className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-offset-gray-800"
+                      className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 bg-blue-500 hover:bg-blue-600 focus:ring-offset-gray-800"
                       aria-label="User menu"
                       aria-expanded={isDropdownOpen}
                       aria-haspopup="true"
@@ -87,12 +83,12 @@ export function Header() {
                     </button>
 
                     {isDropdownOpen && (
-                      <div className="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-700">
+                      <div className="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-md border py-1 shadow-lg border-gray-600 bg-gray-700">
                         <a
                           href={ZITADEL_CONSOLE_URL}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
+                          className="block px-4 py-2 text-sm transition-colors text-gray-200 hover:bg-gray-600"
                           onClick={() => setIsDropdownOpen(false)}
                         >
                           Manage account
@@ -100,7 +96,7 @@ export function Header() {
                         {isWriter && (
                           <Link
                             to="/licenses"
-                            className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
+                            className="block px-4 py-2 text-sm transition-colors text-gray-200 hover:bg-gray-600"
                             onClick={() => setIsDropdownOpen(false)}
                           >
                             Licenses and terms
@@ -108,18 +104,18 @@ export function Header() {
                         )}
                         <Link
                           to="/settings"
-                          className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
+                          className="block px-4 py-2 text-sm transition-colors text-gray-200 hover:bg-gray-600"
                           onClick={() => setIsDropdownOpen(false)}
                         >
                           Settings
                         </Link>
-                        <hr className="my-1 border-gray-200 dark:border-gray-600" />
+                        <hr className="my-1 border-gray-600" />
                         <button
                           onClick={() => {
                             setIsDropdownOpen(false);
                             logout();
                           }}
-                          className="block w-full cursor-pointer px-4 py-2 text-left text-sm text-red-600 transition-colors hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600"
+                          className="block w-full cursor-pointer px-4 py-2 text-left text-sm transition-colors text-red-400 hover:bg-gray-600"
                         >
                           Sign out
                         </button>
@@ -131,7 +127,7 @@ export function Header() {
                     onClick={login}
                     title="Login"
                     aria-label="Login"
-                    className="cursor-pointer rounded-md bg-blue-600 p-2 text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                    className="cursor-pointer rounded-md p-2 text-white transition-colors bg-blue-500 hover:bg-blue-600"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -151,11 +147,10 @@ export function Header() {
                   </button>
                 ))}
             </div>
-            <ThemeToggle />
             {/* Hamburger button - mobile only */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="cursor-pointer rounded-md p-2 text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 md:hidden"
+              className="cursor-pointer rounded-md p-2 transition-colors text-gray-300 hover:bg-gray-700 md:hidden"
               aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={isMenuOpen}
             >
@@ -198,28 +193,28 @@ export function Header() {
 
         {/* Mobile menu */}
         {isMenuOpen && (
-          <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700 md:hidden">
+          <div className="mt-4 border-t pt-4 border-gray-700 md:hidden">
             <nav className="flex flex-col space-y-3">
               {navItems.map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
                   onClick={closeMenu}
-                  className="rounded-md px-3 py-2 text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
+                  className="rounded-md px-3 py-2 transition-colors text-gray-300 hover:bg-gray-700 hover:text-white"
                 >
                   {item.label}
                 </Link>
               ))}
             </nav>
             {!loading && (
-              <div className="mt-3 border-t border-gray-200 pt-3 dark:border-gray-700">
+              <div className="mt-3 border-t pt-3 border-gray-700">
                 {isAuthenticated ? (
                   <div className="flex flex-col space-y-2 px-3">
                     <div className="flex items-center space-x-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white dark:bg-blue-500">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white bg-blue-500">
                         {initials}
                       </div>
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <span className="text-sm font-medium text-gray-300">
                         {user?.name ||
                           user?.preferredUsername ||
                           user?.email}
@@ -230,7 +225,7 @@ export function Header() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={closeMenu}
-                      className="rounded-md px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600"
+                      className="rounded-md px-3 py-2 text-sm transition-colors text-gray-300 hover:bg-gray-600"
                     >
                       Manage account
                     </a>
@@ -238,7 +233,7 @@ export function Header() {
                       <Link
                         to="/licenses"
                         onClick={closeMenu}
-                        className="rounded-md px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600"
+                        className="rounded-md px-3 py-2 text-sm transition-colors text-gray-300 hover:bg-gray-600"
                       >
                         Licenses and terms
                       </Link>
@@ -246,7 +241,7 @@ export function Header() {
                     <Link
                       to="/settings"
                       onClick={closeMenu}
-                      className="rounded-md px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600"
+                      className="rounded-md px-3 py-2 text-sm transition-colors text-gray-300 hover:bg-gray-600"
                     >
                       Settings
                     </Link>
@@ -255,7 +250,7 @@ export function Header() {
                         closeMenu();
                         logout();
                       }}
-                      className="cursor-pointer rounded-md px-3 py-2 text-left text-sm text-red-600 transition-colors hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600"
+                      className="cursor-pointer rounded-md px-3 py-2 text-left text-sm transition-colors text-red-400 hover:bg-gray-600"
                     >
                       Sign out
                     </button>
@@ -269,7 +264,7 @@ export function Header() {
                       }}
                       title="Login"
                       aria-label="Login"
-                      className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                      className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 text-white transition-colors bg-blue-500 hover:bg-blue-600"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"

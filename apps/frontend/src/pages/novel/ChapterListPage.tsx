@@ -84,7 +84,7 @@ export function ChapterListPage() {
         {/* Novel Info */}
         <div className="flex-1">
           <div className="mb-2 flex items-start justify-between gap-4">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-3xl font-bold text-white">
               {novel.name}
             </h1>
             {canEditContent && (
@@ -97,17 +97,15 @@ export function ChapterListPage() {
               </Button>
             )}
           </div>
-          <p className="mb-4 text-lg text-gray-600 dark:text-gray-400">
+          <p className="mb-4 text-lg text-gray-400">
             By {novel.author}
           </p>
-          <p className="mb-4 text-gray-700 dark:text-gray-300">
-            {novel.description}
-          </p>
+          <p className="mb-4 text-gray-300">{novel.description}</p>
           <div className="mb-4 flex flex-wrap gap-2">
             {novel.category.map((cat) => (
               <span
                 key={cat}
-                className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                className="rounded-full px-3 py-1 text-sm font-medium bg-blue-900 text-blue-200"
               >
                 {cat}
               </span>
@@ -126,7 +124,7 @@ export function ChapterListPage() {
             <button
               onClick={handleReadLatestChapter}
               disabled={!hasChapters}
-              className="cursor-pointer rounded-lg border border-blue-600 px-6 py-3 font-medium text-blue-600 transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent dark:border-blue-500 dark:text-blue-400 dark:hover:bg-blue-900/30 dark:disabled:hover:bg-transparent"
+              className="cursor-pointer rounded-lg border px-6 py-3 font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 border-blue-500 text-blue-400 hover:bg-blue-900/30 disabled:hover:bg-transparent"
             >
               Read Latest Chapter
             </button>
@@ -135,9 +133,9 @@ export function ChapterListPage() {
       </div>
 
       {/* Chapters Tab */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+      <div className="rounded-lg border p-6 border-gray-700 bg-gray-800">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+          <h2 className="text-xl font-bold text-white">
             Chapters ({totalChapters})
           </h2>
           {canEditContent && (

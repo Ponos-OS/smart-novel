@@ -41,18 +41,16 @@ export function DraftPane({
     <section
       aria-label={t('draft.title')}
       aria-busy={isPending}
-      className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
+      className="rounded-lg border p-4 border-gray-700 bg-gray-800"
     >
-      <h2 className="mb-1 text-lg font-bold text-gray-900 dark:text-white">
+      <h2 className="mb-1 text-lg font-bold text-white">
         {t('draft.title')}
       </h2>
       {/* Only a failure is announced: "saving" and "saved" would interrupt a screen reader at every tick. */}
       <p
         role={hasFailed ? 'status' : undefined}
         className={`mb-3 text-xs ${
-          hasFailed
-            ? 'font-semibold text-red-600 dark:text-red-400'
-            : 'text-gray-600 dark:text-gray-400'
+          hasFailed ? 'font-semibold text-red-400' : 'text-gray-400'
         }`}
       >
         {t(`sync.${syncStatus}`)}
@@ -60,21 +58,16 @@ export function DraftPane({
       {draft && hasText ? (
         <>
           <DraftSourceBadge source={draft.source} />
-          <h3 className="mb-2 text-base font-semibold text-gray-900 dark:text-white">
+          <h3 className="mb-2 text-base font-semibold text-white">
             {draft.title}
           </h3>
           <DraftBody text={draft.text} />
         </>
       ) : (
-        <p className="text-sm text-gray-700 dark:text-gray-300">
-          {t('draft.empty')}
-        </p>
+        <p className="text-sm text-gray-300">{t('draft.empty')}</p>
       )}
       {details && (
-        <p
-          role="status"
-          className="mt-3 text-xs text-gray-600 dark:text-gray-400"
-        >
+        <p role="status" className="mt-3 text-xs text-gray-400">
           {t(
             details.draftChanged
               ? 'draft.updated'
@@ -98,7 +91,7 @@ export function DraftPane({
         isReadyToFinalize={!!details?.isReadyToFinalize}
         onFinalize={onFinalize}
       />
-      <p className="mt-4 border-t border-gray-200 pt-3 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-300">
+      <p className="mt-4 border-t pt-3 text-xs font-semibold border-gray-700 text-gray-300">
         {t('statement.notLegalAdvice')}
       </p>
     </section>

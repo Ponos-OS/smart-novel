@@ -87,18 +87,18 @@ export function SearchPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <h1 className="mb-8 text-3xl font-bold text-gray-900 dark:text-white">
+      <h1 className="mb-8 text-3xl font-bold text-white">
         Search Novels
       </h1>
 
       {/* Filter Section */}
-      <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+      <div className="mb-8 rounded-lg border p-6 border-gray-700 bg-gray-800">
         {categoriesLoading ? (
-          <div className="text-center text-gray-600 dark:text-gray-400">
+          <div className="text-center text-gray-400">
             <p>Loading categories...</p>
           </div>
         ) : categoriesError ? (
-          <div className="text-center text-red-600 dark:text-red-400">
+          <div className="text-center text-red-400">
             <p>Failed to load categories</p>
           </div>
         ) : (
@@ -128,22 +128,20 @@ export function SearchPage() {
         <div className="flex min-h-[30vh] items-center justify-center">
           <div className="text-center">
             <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-            <p className="text-gray-600 dark:text-gray-400">
-              Searching...
-            </p>
+            <p className="text-gray-400">Searching...</p>
           </div>
         </div>
       ) : searchError ? (
-        <div className="text-center text-red-600 dark:text-red-400">
+        <div className="text-center text-red-400">
           <p>Failed to search novels</p>
         </div>
       ) : searchTriggered && searchData ? (
         <div>
-          <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
+          <h2 className="mb-4 text-xl font-semibold text-white">
             Results ({novels.length})
           </h2>
           {novels.length === 0 ? (
-            <div className="text-center text-gray-600 dark:text-gray-400">
+            <div className="text-center text-gray-400">
               <p>No novels found matching your criteria.</p>
             </div>
           ) : (
@@ -155,7 +153,7 @@ export function SearchPage() {
           )}
         </div>
       ) : (
-        <div className="text-center text-gray-600 dark:text-gray-400">
+        <div className="text-center text-gray-400">
           <p>Select categories and click "Search" to find novels.</p>
         </div>
       )}
