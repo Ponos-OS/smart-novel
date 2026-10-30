@@ -1,4 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import {
@@ -12,9 +17,17 @@ const finalizedLicense = {
   name: 'CC BY 4.0 without resale',
 };
 
+const suggestions = vi.hoisted(() => ({
+  names: ['fantasy', 'adventure', 'mystery'],
+}));
+const requestCategory = vi.hoisted(() => ({
+  mutate: vi.fn(),
+  isPending: false,
+}));
+
 vi.mock('./use-category-suggestions', () => ({
   useCategorySuggestions: () => ({
-    names: ['fantasy', 'adventure', 'mystery'],
+    names: suggestions.names,
     isLoading: false,
     isError: false,
     hasMore: false,
@@ -49,6 +62,7 @@ vi.mock('../../generated/graphql', async () => ({
     data: { canonicalLicenses: [] },
   }),
   useCanonicalLicenseQuery: () => ({ data: undefined }),
+  useRequestCategoryMutation: () => requestCategory,
 }));
 
 function renderForm(
@@ -319,5 +333,85 @@ describe('NovelForm license', () => {
       expect(screen.getByLabelText('Start from')).toBeVisible();
       expect(onSubmit.mock.calls[0][0].licenseId).toBeUndefined();
     });
+  });
+});
+
+describe('NovelForm category request', () => {
+  beforeEach(() => {
+    suggestions.names = [];
+    requestCategory.mutate.mockReset();
+  });
+  afterEach(() => {
+    suggestions.names = ['fantasy', 'adventure', 'mystery'];
+  });
+
+  async function openRequestDialog(
+    user: ReturnType<typeof userEvent.setup>,
+  ) {
+    await user.type(
+      screen.getByRole('combobox', { name: 'Categories' }),
+      'slice of life',
+    );
+    // The picker waits for the debounce before it knows nothing matches.
+    await user.click(
+      await screen.findByRole('button', { name: 'Request category' }),
+    );
+  }
+
+  it('opens the request dialog prefilled with the typed text', async () => {
+    const user = userEvent.setup();
+    renderForm();
+
+    await openRequestDialog(user);
+
+    expect(
+      screen.getByRole('dialog', { name: 'Request a category' }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Category name')).toHaveValue(
+      'slice of life',
+    );
+  });
+
+  it('clears the typed text and does not add the category once it was requested', async () => {
+    const user = userEvent.setup();
+    const { onSubmit } = renderForm();
+    requestCategory.mutate.mockImplementation((_variables, options) =>
+      options.onSuccess({
+        requestCategory: { name: 'slice of life' },
+      }),
+    );
+    await openRequestDialog(user);
+
+    await user.click(
+      screen
+        .getAllByRole('button', { name: 'Request category' })
+        .at(-1)!,
+    );
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', { name: 'Categories' }),
+    ).toHaveValue('');
+    expect(
+      screen.queryByRole('list', { name: 'Selected categories' }),
+    ).not.toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('keeps what was typed when the dialog is cancelled', async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await openRequestDialog(user);
+
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: 'Cancel',
+      }),
+    );
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', { name: 'Categories' }),
+    ).toHaveValue('slice of life');
   });
 });

@@ -20,3 +20,11 @@ query SearchCategories(
     }
   }
 }
+
+mutation RequestCategory($name: String!) {
+  requestCategory(name: $name) {
+    id
+    name
+    status
+  }
+}

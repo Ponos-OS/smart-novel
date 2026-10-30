@@ -40,10 +40,9 @@ describe('Manage a novel (e2e)', () => {
       cy.get('textarea[placeholder="A short description"]').type(
         description,
       );
-      cy.get('select').select('Finished');
-      cy.get('input[placeholder="fantasy, adventure"]').type(
-        'cypress-journey',
-      );
+      cy.contains('label', 'State').find('select').select('Finished');
+      cy.get('input[role="combobox"]').click();
+      cy.contains('[role="option"]', 'fantasy').click();
       cy.contains('button', 'Save').click();
       cy.url().should(
         'eq',
@@ -52,7 +51,7 @@ describe('Manage a novel (e2e)', () => {
       cy.contains(description, { timeout: 15000 }).should(
         'be.visible',
       );
-      cy.contains('cypress-journey').should('be.visible');
+      cy.contains('fantasy').should('be.visible');
 
       // Upload a cover: the browser PUTs straight to the bucket
       cy.contains('button', 'Edit novel').click();

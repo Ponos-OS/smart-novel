@@ -29,6 +29,11 @@ const config: StorybookConfig = {
           importerPath: '../src/pages/novel/ChapterCreatePage.tsx',
           mockPath: './mocks/chapter-create-page.mock.ts',
         },
+        {
+          importerPath:
+            '../src/pages/novel/RequestCategoryDialog.tsx',
+          mockPath: './mocks/request-category-dialog.mock.ts',
+        },
       ]),
     );
     return viteConfig;

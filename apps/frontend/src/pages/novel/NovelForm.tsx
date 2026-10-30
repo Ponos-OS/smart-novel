@@ -9,6 +9,7 @@ import {
   NovelState,
 } from '../../generated/graphql';
 import { CategoryPicker } from './CategoryPicker';
+import { RequestCategoryDialog } from './RequestCategoryDialog';
 
 const LicenseDraftingAssistant = lazy(async () => ({
   default: (
@@ -67,6 +68,11 @@ export function NovelForm({
     LicenseDraftInput | undefined
   >();
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [requestedName, setRequestedName] = useState<string | null>(
+    null,
+  );
+  // Remounting the picker clears what was typed once a category was requested.
+  const [pickerKey, setPickerKey] = useState(0);
   const [assistantLicense, setAssistantLicense] = useState<{
     id: string;
     name: string;
@@ -154,9 +160,11 @@ export function NovelForm({
             Categories
           </span>
           <CategoryPicker
+            key={pickerKey}
             value={categories}
             onChange={setCategories}
             disabled={isSubmitting}
+            onRequestCategory={setRequestedName}
           />
         </div>
 
@@ -206,6 +214,16 @@ export function NovelForm({
           </Button>
         </div>
       </form>
+      {requestedName !== null && (
+        <RequestCategoryDialog
+          initialName={requestedName}
+          onClose={() => setRequestedName(null)}
+          onRequested={() => {
+            setRequestedName(null);
+            setPickerKey((key) => key + 1);
+          }}
+        />
+      )}
       {license && isAssistantOpen && (
         <Dialog
           title="Draft a license"
