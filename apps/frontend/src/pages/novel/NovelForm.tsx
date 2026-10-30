@@ -8,6 +8,7 @@ import {
   type LicenseDraftInput,
   NovelState,
 } from '../../generated/graphql';
+import { CategoryPicker } from './CategoryPicker';
 
 const LicenseDraftingAssistant = lazy(async () => ({
   default: (
@@ -59,7 +60,7 @@ export function NovelForm({
   );
   const [state, setState] = useState(initialValues.state);
   const [categories, setCategories] = useState(
-    initialValues.categories.join(', '),
+    initialValues.categories,
   );
 
   const [licenseDraft, setLicenseDraft] = useState<
@@ -87,10 +88,7 @@ export function NovelForm({
       name: name.trim(),
       description: description.trim(),
       state,
-      categories: categories
-        .split(',')
-        .map((category) => category.trim())
-        .filter(Boolean),
+      categories,
       ...(assistantLicense
         ? { licenseId: assistantLicense.id }
         : { licenseDraft }),
@@ -151,22 +149,16 @@ export function NovelForm({
           </select>
         </label>
 
-        <label className="block">
+        <div>
           <span className="mb-1 block text-sm font-medium text-gray-300">
             Categories
           </span>
-          <input
-            type="text"
+          <CategoryPicker
             value={categories}
-            onChange={(event) => setCategories(event.target.value)}
+            onChange={setCategories}
             disabled={isSubmitting}
-            placeholder="fantasy, adventure"
-            className={INPUT_CLASSES}
           />
-          <span className="mt-1 block text-xs text-gray-400">
-            Separate with commas. New categories are created.
-          </span>
-        </label>
+        </div>
 
         {license && assistantLicense && (
           <div className="space-y-2">

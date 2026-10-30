@@ -12,6 +12,17 @@ const finalizedLicense = {
   name: 'CC BY 4.0 without resale',
 };
 
+vi.mock('./use-category-suggestions', () => ({
+  useCategorySuggestions: () => ({
+    names: ['fantasy', 'adventure', 'mystery'],
+    isLoading: false,
+    isError: false,
+    hasMore: false,
+    isLoadingMore: false,
+    loadMore: vi.fn(),
+  }),
+}));
+
 vi.mock(
   '../../features/license-assistant/LicenseDraftingAssistant',
   () => ({
@@ -80,8 +91,9 @@ describe('NovelForm', () => {
     ).toBeEnabled();
   });
 
-  it('submits trimmed values with the categories as a list', () => {
+  it('submits trimmed values with the picked categories as a list', async () => {
     // Arrange
+    const user = userEvent.setup();
     const { onSubmit } = renderForm();
     fireEvent.change(screen.getByPlaceholderText('Novel name'), {
       target: { value: '  The Lantern Keeper ' },
@@ -94,14 +106,15 @@ describe('NovelForm', () => {
         },
       },
     );
-    fireEvent.change(screen.getByRole('combobox'), {
+    fireEvent.change(screen.getByLabelText('State'), {
       target: { value: NovelState.Finished },
     });
-    fireEvent.change(
-      screen.getByPlaceholderText('fantasy, adventure'),
-      {
-        target: { value: ' fantasy, ,adventure ,' },
-      },
+    await user.click(
+      screen.getByRole('combobox', { name: 'Categories' }),
+    );
+    await user.click(screen.getByRole('option', { name: 'fantasy' }));
+    await user.click(
+      screen.getByRole('option', { name: 'adventure' }),
     );
 
     // Act
@@ -134,12 +147,12 @@ describe('NovelForm', () => {
     expect(screen.getByPlaceholderText('Novel name')).toHaveValue(
       'The Lantern Keeper',
     );
-    expect(screen.getByRole('combobox')).toHaveValue(
+    expect(screen.getByLabelText('State')).toHaveValue(
       NovelState.Finished,
     );
     expect(
-      screen.getByPlaceholderText('fantasy, adventure'),
-    ).toHaveValue('fantasy, adventure');
+      screen.getByRole('list', { name: 'Selected categories' }),
+    ).toHaveTextContent('fantasyadventure');
     expect(
       screen.getByRole('button', { name: 'Save' }),
     ).toBeEnabled();

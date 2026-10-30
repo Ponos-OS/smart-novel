@@ -27,6 +27,17 @@ let novelQuery: {
   error: unknown;
 };
 
+vi.mock('./use-category-suggestions', () => ({
+  useCategorySuggestions: () => ({
+    names: [],
+    isLoading: false,
+    isError: false,
+    hasMore: false,
+    isLoadingMore: false,
+    loadMore: vi.fn(),
+  }),
+}));
+
 vi.mock('../../generated/graphql', async () => {
   const actual = await vi.importActual<
     typeof import('../../generated/graphql')
@@ -138,8 +149,8 @@ describe('NovelEditPage', () => {
       'The Lantern Keeper',
     );
     expect(
-      screen.getByPlaceholderText('fantasy, adventure'),
-    ).toHaveValue('fantasy, adventure');
+      screen.getByRole('list', { name: 'Selected categories' }),
+    ).toHaveTextContent('fantasyadventure');
   });
 
   it('saves the changes and lands on the novel page', async () => {

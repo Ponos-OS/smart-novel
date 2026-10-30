@@ -178,3 +178,12 @@
 - graphql-api-tester with `log_statement='all'` confirmed 0 `EXPLAIN` without the field and exactly one per category with it, and 20 parallel requests gave no errors. Cost is about one round trip per category (35 categories: +15 ms). The planner never estimates below 1 row, so a category with no novels shows 1; for `fantasy` the estimate equalled the real count (2) after `ANALYZE`.
 - The tester's "item 2 fails" was only my wording ("not slower"); no code change was warranted. Next time phrase such a requirement as a bound.
 - The tester needed fresh tokens after the cluster was recreated between runs; stale tokens are the first thing to rule out when a tester reports 401s.
+
+## Categories feature, Step 5 (2026-10-30)
+
+- Left uncommitted on request, for review. Frontend only, so no graphql-api-tester and no backend e2e; the new operation is validated by `frontend:codegen` against the schema.
+- `CategoryPicker` (combobox with chips, "More" via `after`, "Request category" only when the form passes `onRequestCategory`), `use-category-suggestions.ts` (a `useInfiniteQuery` over the generated `useSearchCategoriesQuery.fetcher`; no codegen change), `useDebouncedValue`. `NovelForm` does not pass `onRequestCategory` yet, so the action is not visible in the form until Step 6 wires it; the picker spec and story cover it.
+- Unit specs mock `./use-category-suggestions` (and the debounce) so the form specs need no `QueryClientProvider`. Adding a second `role="combobox"` broke the specs that located the State `<select>` by `getByRole('combobox')`; they use `getByLabelText('State')` now.
+- Storybook "verify the stories" proxy (no browser): a temporary `composeStories` spec ran every `play` and caught two real mistakes in my stories that a green `build-storybook` did not: a seeded `endCursor: null` makes react-query treat the page as the last (`getNextPageParam` returning `null` means no more), and asserting a count right after typing raced the 300 ms debounce (use `waitFor`). Deleted the temporary spec afterwards.
+- Baseline unchanged: `ChapterContentEditor` / `ChapterEditPage` specs fail without `VITE_SERVICE_URL`; `tsc` on the spec project has the same 4 errors with and without the change; `eslint apps/frontend/src` is only clean when `src/generated` is ignored.
+- No real-browser check was done (no Cypress per the step's Test line).

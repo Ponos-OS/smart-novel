@@ -18,6 +18,17 @@ const defaultLicense = {
   text: 'Attribution 4.0 International',
 };
 
+vi.mock('./use-category-suggestions', () => ({
+  useCategorySuggestions: () => ({
+    names: [],
+    isLoading: false,
+    isError: false,
+    hasMore: false,
+    isLoadingMore: false,
+    loadMore: vi.fn(),
+  }),
+}));
+
 vi.mock('../../generated/graphql', async () => {
   const actual = await vi.importActual<
     typeof import('../../generated/graphql')
