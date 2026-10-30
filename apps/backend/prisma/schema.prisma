@@ -20,6 +20,11 @@ enum NovelState {
   FINISHED
 }
 
+enum CategoryStatus {
+  APPROVED
+  PENDING
+}
+
 enum LicenseSourceType {
   CANONICAL
   FORKED
@@ -114,13 +119,16 @@ model ChapterContent {
 }
 
 model Category {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String   @unique
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id            String         @id @default(uuid()) @db.Uuid
+  name          String         @unique
+  status        CategoryStatus @default(APPROVED)
+  requestedById String?        @map("requested_by_id")
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz
 
   novels NovelCategory[]
 
+  @@index([status, name], name: "IDX_categories_status_name")
   @@map("categories")
 }
 

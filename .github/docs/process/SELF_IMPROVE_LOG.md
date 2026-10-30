@@ -142,3 +142,10 @@
 - The AC asked for autosave on the form's own editor; not done on purpose (see REQUIREMENTS F7 note). The route `/licenses/draft` exists as asked, linked from the Licenses page so it is reachable.
 - Boundary rule: D2 asked for an `index.ts` per feature, which AGENTS forbids in the frontend. The public files per feature are a map in the ESLint config. `no-restricted-imports` patterns with negation work on relative imports, checked with a throwaway file and then with `ESLint.lintText` in a spec; that spec needed the default jsdom environment because `vitest.setup.ts` touches `Range`.
 - `DefaultLicenseTab` sits in `features/license-assistant` but is the Licenses page's tab; moving it was out of scope.
+
+## Categories feature, Step 1 (2026-10-30)
+
+- `REQUIREMENTS.md` says not to commit each step, so Step 1 is left uncommitted for review.
+- Schema only: `CategoryStatus` enum, `status` (default `APPROVED`), `requested_by_id`, index `(status, name)`. The repo has no `prisma/migrations`; local and e2e use `prisma db push`, so the default is what keeps existing rows `APPROVED`. The seed is unchanged.
+- Verified on a throwaway `postgres:17`: pushed the old schema, inserted two categories, pushed the new one; both rows `APPROVED`, index present. `--skip-generate` is not a `db push` flag in this Prisma (it prints help and exits 0, which looks like success); `--url` is needed when the schema has no URL. Backend unit tests 737 pass.
+- Process change: none from one data point. The Test line said `migrate dev`, which does not apply here; the AC's migration wording should read "schema change" in later Prisma steps.
