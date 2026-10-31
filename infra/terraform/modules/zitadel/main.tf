@@ -37,6 +37,14 @@ locals {
     ZITADEL_DEFAULTINSTANCE_FEATURES_IMPERSONATION_ENABLED = "true"
   }
 
+  # Trusting the callers' trace context lets ZITADEL's spans continue the trace of whoever called it.
+  tracing_environment = var.otlp_grpc_endpoint == null ? {} : {
+    ZITADEL_INSTRUMENTATION_TRACE_EXPORTER_TYPE     = "grpc"
+    ZITADEL_INSTRUMENTATION_TRACE_EXPORTER_ENDPOINT = var.otlp_grpc_endpoint
+    ZITADEL_INSTRUMENTATION_TRACE_EXPORTER_INSECURE = "true"
+    ZITADEL_INSTRUMENTATION_TRACE_TRUSTREMOTESPANS  = "true"
+  }
+
   secret_environment = {
     ZITADEL_MASTERKEY                        = "masterkey"
     ZITADEL_DATABASE_POSTGRES_USER_PASSWORD  = "database_password"

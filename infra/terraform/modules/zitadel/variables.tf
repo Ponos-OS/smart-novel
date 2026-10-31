@@ -86,3 +86,9 @@ variable "credentials_storage_class_name" {
   type        = string
   default     = null
 }
+
+variable "otlp_grpc_endpoint" {
+  description = "host:port of an OTLP/gRPC endpoint without TLS that ZITADEL exports its traces to; null exports none. Incoming trace context is trusted then, so only set it for an endpoint and callers you control"
+  type        = string
+  default     = null
+}

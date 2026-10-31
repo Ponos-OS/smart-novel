@@ -38,7 +38,7 @@ resource "kubernetes_job_v1" "init" {
           args  = ["init"]
 
           dynamic "env" {
-            for_each = local.environment
+            for_each = merge(local.environment, local.tracing_environment)
             content {
               name  = env.key
               value = env.value
@@ -113,7 +113,7 @@ resource "kubernetes_deployment_v1" "zitadel" {
           }
 
           dynamic "env" {
-            for_each = merge(local.environment, {
+            for_each = merge(local.environment, local.tracing_environment, {
               ZITADEL_EXTERNALPORT   = tostring(var.external_port)
               ZITADEL_EXTERNALSECURE = "false"
               ZITADEL_TLS_ENABLED    = "false"

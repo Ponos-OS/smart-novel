@@ -67,3 +67,32 @@ run "the_readiness_probe_allows_a_slow_host" {
     error_message = "zitadel ready takes more than the default 1 second on a busy machine, and a probe that always times out keeps ZITADEL unready"
   }
 }
+
+run "no_traces_are_exported_without_an_endpoint" {
+  command = plan
+
+  assert {
+    condition     = !anytrue([for env in kubernetes_deployment_v1.zitadel.spec[0].template[0].spec[0].container[0].env : startswith(env.name, "ZITADEL_INSTRUMENTATION_")])
+    error_message = "tracing must stay off, and remote trace context untrusted, unless an endpoint is given"
+  }
+}
+
+run "traces_go_to_the_given_endpoint_and_the_callers_trace_is_continued" {
+  command = plan
+
+  variables {
+    otlp_grpc_endpoint = "otel-collector:4317"
+  }
+
+  assert {
+    condition = alltrue([
+      for expected in [
+        "ZITADEL_INSTRUMENTATION_TRACE_EXPORTER_TYPE=grpc",
+        "ZITADEL_INSTRUMENTATION_TRACE_EXPORTER_ENDPOINT=otel-collector:4317",
+        "ZITADEL_INSTRUMENTATION_TRACE_EXPORTER_INSECURE=true",
+        "ZITADEL_INSTRUMENTATION_TRACE_TRUSTREMOTESPANS=true",
+      ] : contains([for env in kubernetes_deployment_v1.zitadel.spec[0].template[0].spec[0].container[0].env : "${env.name}=${env.value}" if env.value != null], expected)
+    ])
+    error_message = "the server must export over gRPC to the endpoint and trust incoming trace context"
+  }
+}

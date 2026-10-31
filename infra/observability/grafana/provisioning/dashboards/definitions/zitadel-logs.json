@@ -1,0 +1,144 @@
+{
+  "uid": "smart-novel-zitadel-logs",
+  "title": "ZITADEL Logs",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "refresh": "10s",
+  "tags": ["zitadel"],
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "type": "query",
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "query": {
+          "query": "label_values({service_name=~\"zitadel.*\"}, service_name)",
+          "refId": "s"
+        },
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": "zitadel.*",
+        "multi": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "search",
+        "type": "textbox",
+        "label": "Contains",
+        "query": ""
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Log volume",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (detected_level) (count_over_time({service_name=~\"$service\"} |= \"$search\" [$__interval]))",
+          "legendFormat": "{{detected_level}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Warnings and errors",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 24,
+        "h": 8
+      },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service_name=~\"$service\"} | detected_level=~\"(?i)warn.*|error|fatal\" |= \"$search\""
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "All logs",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 24,
+        "h": 14
+      },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service_name=~\"$service\"} |= \"$search\""
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Traces",
+      "type": "table",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 24,
+        "h": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "traceql",
+          "query": "{ resource.service.name =~ \"(?i)$service\" }",
+          "limit": 50,
+          "tableType": "traces"
+        }
+      ]
+    }
+  ]
+}

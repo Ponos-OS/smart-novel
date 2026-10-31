@@ -99,7 +99,7 @@ locals {
   # The collector's Service name is fixed, and the app is created before the observability module because it provides the namespace.
   ingress_class_name = "traefik"
   otlp_endpoint      = var.enable_observability ? "http://otel-collector:4318" : null
-  log_shipping       = lookup(local.dotenv, "OTEL_LOGS_EXPORTER", "otlp") == "otlp" ? "otlp" : "stdout"
+  log_shipping       = lookup(local.dotenv, "OTEL_LOGS_EXPORTER", "otlp")
 }
 
 check "otlp_endpoint_matches_the_collector" {
@@ -249,6 +249,7 @@ module "alloy" {
   namespace = module.app.namespace
   labels    = var.tags
   image     = local.third_party_images["alloy"]
+  apps      = ["backend", "beatrice", "fithara", "zitadel", "zitadel-login"]
 }
 
 module "zitadel" {
@@ -260,6 +261,8 @@ module "zitadel" {
   login_image   = local.third_party_images["zitadel_login"]
   busybox_image = local.third_party_images["busybox"]
   external_port = var.host_port
+  # The collector's Service name is fixed, like for the app.
+  otlp_grpc_endpoint = var.enable_observability ? "otel-collector:4317" : null
 
   depends_on = [module.app]
 }
