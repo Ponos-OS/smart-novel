@@ -36,6 +36,11 @@ const config: StorybookConfig = {
         },
         {
           importerPath:
+            '../src/features/writer-request/RequestWriterAccessDialog.tsx',
+          mockPath: './mocks/request-writer-access-dialog.mock.ts',
+        },
+        {
+          importerPath:
             '../src/features/admin-categories/AdminCategoriesPage.tsx',
           mockPath: './mocks/admin-categories.mock.ts',
         },

@@ -1,0 +1,19 @@
+query MyWriterRequest {
+  myWriterRequest {
+    id
+    status
+    note
+    rejectionReason
+    createdAt
+  }
+}
+
+mutation RequestWriterAccess($note: String!) {
+  requestWriterAccess(note: $note) {
+    id
+    status
+    note
+    rejectionReason
+    createdAt
+  }
+}

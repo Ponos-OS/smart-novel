@@ -252,3 +252,10 @@
 - `writerRequestsConnection`, `approveWriterRequest`, `rejectWriterRequest`; separate approve and reject mutations kept on purpose (only reject takes a reason, only approve calls ZITADEL). Approve calls ZITADEL first and flips the status with a `status = PENDING` filtered `updateMany`, so a ZITADEL failure leaves `PENDING` and two admins racing end with one 400. The category page-size/cursor check moved to a shared `boundPagination` instead of being copied.
 - The real-ZITADEL e2e approves a user, which would change the shared `user` that other specs depend on, so it uses dedicated `applicant` and `applicant2` accounts. Any spec that mutates an account's role needs its own account.
 - Committed at the user's request with `backend-e2e` and `graphql-api-tester` still not run (the user's `smart-novel` cluster is up and predates the new table); only unit tests (838), lint, `tsc` and schema generation ran. Steps 4 and 5 have never met a real stack, so the first real run may find bugs the mocks hid.
+
+## Writer Access Requests, Step 6 (2026-10-31)
+
+- `features/writer-request/`: `RequestWriterAccessDialog`, a presentational `WriterAccessCard` (four states) and `WriterAccessSection` (role gate, query disabled for non-`user` roles), placed on the Settings page because the AC named no location. `generated/graphql.ts` is git-ignored, so only the `.graphql` document is committed.
+- A character counter placed inside the `<label>` became part of the field's accessible name and broke `getByLabelText`; keep counters outside the label.
+- Storybook proxies from `PROCESS.md` worked: `nx build-storybook` plus a temporary `composeStories` spec. Use `Story.run(element)`, not `render` + `play`: only `run` executes a story's own `beforeEach` (the mock outcome), which two stories needed.
+- A direct `npx vitest run` in `apps/frontend` skips Nx's `.env` loading: `ChapterContentEditor` and `ChapterEditPage` fail with `VITE_SERVICE_URL is not defined`, and cold-ESLint/load timeouts hit `feature-boundaries`, `a11y` and `pseudo-locale`. Source `.env` and widen `--testTimeout` before suspecting the diff; all passed that way.

@@ -1,6 +1,7 @@
 import { Dialog as RadixDialog } from 'radix-ui';
 import { useState } from 'react';
 
+import { WriterAccessSection } from '../../features/writer-request/WriterAccessSection';
 import { useDeleteReadHistoryMutation } from '../../generated/graphql';
 import { useAuth } from '../../hooks/useAuth';
 import { useRestoreFocus } from '../../hooks/useRestoreFocus';
@@ -58,6 +59,8 @@ export function SettingsPage() {
           Manage your account preferences and data.
         </p>
       </div>
+
+      <WriterAccessSection />
 
       {/* Data & Privacy section */}
       <section>
