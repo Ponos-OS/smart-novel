@@ -27,6 +27,14 @@ export interface AuthModuleOptions {
    */
   pat?: string;
   /**
+   * @description Token of the machine user that may only manage user grants (`ORG_USER_PERMISSION_EDITOR`). Never the instance admin token.
+   */
+  managementPat: string;
+  /**
+   * @description ID of the ZITADEL project whose roles the application hands out.
+   */
+  projectId: string;
+  /**
    * @description The base domain of your ZITADEL instance (e.g. https://zitadel.example.com)
    */
   domain: string;

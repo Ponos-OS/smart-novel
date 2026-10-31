@@ -19,6 +19,7 @@ import {
 import {
   RbacAuthorizationProvider,
   ZitadelAuthProvider,
+  ZitadelManagementClient,
 } from './providers';
 
 /**
@@ -53,6 +54,7 @@ export class AuthModule extends ConfigurableModuleClass {
       exports: [
         AUTHORIZATION_PROVIDER,
         AUTH_PROVIDER,
+        ZitadelManagementClient,
         PoliciesGuard,
         MODULE_OPTIONS_TOKEN,
         CaslAbilityFactory,
@@ -78,6 +80,7 @@ export class AuthModule extends ConfigurableModuleClass {
         ...((baseModule.exports as any[]) || []),
         AUTHORIZATION_PROVIDER,
         AUTH_PROVIDER,
+        ZitadelManagementClient,
         PoliciesGuard,
         MODULE_OPTIONS_TOKEN,
         CaslAbilityFactory,
@@ -95,6 +98,7 @@ export class AuthModule extends ConfigurableModuleClass {
     return [
       // Auth provider (JWKS-based JWT validation)
       ZitadelAuthProvider,
+      ZitadelManagementClient,
       {
         provide: AUTH_PROVIDER,
         useClass: ZitadelAuthProvider,

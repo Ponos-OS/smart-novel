@@ -118,7 +118,13 @@ variable "frontend_environment" {
 }
 
 variable "zitadel_client_id" {
-  description = "client_id output of envs/hetzner-zitadel; null holds back the backend, the frontend and the migration until it exists"
+  description = "client_id output of envs/hetzner-zitadel; null holds back the backend, the frontend and the migration until it exists, as do zitadel_project_id, zitadel_pat and zitadel_management_pat"
+  type        = string
+  default     = null
+}
+
+variable "zitadel_project_id" {
+  description = "project_id output of envs/hetzner-zitadel; the backend grants roles of this project"
   type        = string
   default     = null
 }

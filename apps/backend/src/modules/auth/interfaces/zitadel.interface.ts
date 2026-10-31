@@ -72,6 +72,13 @@ export interface ZitadelUserGrantsResponse {
   }>;
 }
 
+export interface ZitadelUserGrantsSearchResponse {
+  result?: Array<{
+    id: string;
+    roleKeys: string[];
+  }>;
+}
+
 export interface ZitadelJwtPayload extends JWTPayload {
   /** @example "http://localhost:8080" */
   iss: string;

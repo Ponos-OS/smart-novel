@@ -158,6 +158,14 @@ class EnvironmentVariables implements AppConfig {
 
   @IsNotEmpty()
   @IsString()
+  ZITADEL_MANAGEMENT_PAT: string;
+
+  @IsNotEmpty()
+  @IsString()
+  ZITADEL_PROJECT_ID: string;
+
+  @IsNotEmpty()
+  @IsString()
   ZITADEL_DOMAIN: string;
 
   @IsOptional()

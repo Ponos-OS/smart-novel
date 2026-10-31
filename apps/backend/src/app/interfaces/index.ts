@@ -87,6 +87,14 @@ export interface AppConfig {
    */
   ZITADEL_PAT_FILE?: string;
   /**
+   * @description Token of the machine user that may only manage user grants. Generated with the ZITADEL configuration, never set by hand.
+   */
+  ZITADEL_MANAGEMENT_PAT: string;
+  /**
+   * @description ID of the ZITADEL project that holds the roles. Generated with the ZITADEL configuration.
+   */
+  ZITADEL_PROJECT_ID: string;
+  /**
    * @description The base domain of your ZITADEL instance
    * @example `https://zitadel.example.com`
    */

@@ -120,7 +120,7 @@ Apply in this order, copying `backend.tf.example` to `backend.tf` and `terraform
 
 1. `envs/hetzner` without `zitadel_client_id`: everything but the backend, the frontend and the migration Job.
 2. `envs/hetzner-zitadel`: smart-novel's own organization on the shared ZITADEL, with its own login policy (self-registration, default redirect, optional OTP and U2F), and the project, roles, client and post-registration action in it. Its `org_id` output goes to `envs/hetzner` as `zitadel_org_id`. People who also use Nestral have a separate account there. The organization also gets the login page in the frontend's look (light and dark, `branding` variable, the frontend's `logo.png`; the dark logo and the icons in `modules/zitadel_config/files/login` come from `infra/scripts/make-login-assets.py`). The provider authenticates with the key in the `zitadel-admin` Secret, because a token cannot upload the logo; `envs/local` stays unbranded for the same reason.
-3. `envs/hetzner` with `zitadel_client_id`, `zitadel_pat` and `zitadel_management_pat` (the `backend_pat` output of step 2): the workloads.
+3. `envs/hetzner` with `zitadel_client_id`, `zitadel_pat` and `zitadel_management_pat` (the `backend_pat` output of step 2) and `zitadel_project_id` (its `project_id` output): the workloads.
 
 The backend's `zitadel_pat` should be a machine user's token; `zitadel_management_pat` is the token of the machine user that `hetzner-zitadel` creates with only the `ORG_USER_PERMISSION_EDITOR` role. The instance admin token that `hetzner-zitadel` reads is not meant for the app.
 

@@ -1,14 +1,13 @@
 locals {
-  zitadel_ready = var.zitadel_client_id != null && nonsensitive(var.zitadel_pat != null)
+  zitadel_ready = var.zitadel_client_id != null && var.zitadel_project_id != null && nonsensitive(var.zitadel_pat != null && var.zitadel_management_pat != null)
 
   backend_environment = merge(
     var.backend_environment,
-    local.zitadel_ready ? { ZITADEL_CLIENT_ID = var.zitadel_client_id } : {},
+    local.zitadel_ready ? { ZITADEL_CLIENT_ID = var.zitadel_client_id, ZITADEL_PROJECT_ID = var.zitadel_project_id } : {},
   )
   backend_secret_environment = merge(
     var.backend_secret_environment,
-    local.zitadel_ready ? { ZITADEL_PAT = var.zitadel_pat } : {},
-    local.zitadel_ready && var.zitadel_management_pat != null ? { ZITADEL_MANAGEMENT_PAT = var.zitadel_management_pat } : {},
+    local.zitadel_ready ? { ZITADEL_PAT = var.zitadel_pat, ZITADEL_MANAGEMENT_PAT = var.zitadel_management_pat } : {},
   )
   frontend_environment = merge(
     var.frontend_environment,

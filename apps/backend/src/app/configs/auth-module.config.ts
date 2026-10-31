@@ -42,6 +42,8 @@ export class AuthModuleConfig implements AuthModuleOptionsFactory {
       issuerInternalUrl: this.appConfig.ZITADEL_INTERNAL_URL,
       clientId,
       pat,
+      managementPat: this.appConfig.ZITADEL_MANAGEMENT_PAT,
+      projectId: this.appConfig.ZITADEL_PROJECT_ID,
       domain: this.appConfig.ZITADEL_DOMAIN,
       clientSecret: this.appConfig.ZITADEL_CLIENT_SECRET,
       callbackUrl: this.appConfig.ZITADEL_CALLBACK_URL,

@@ -229,3 +229,8 @@
 - Machine user, PAT and `ORG_USER_PERMISSION_EDITOR` (an org role, so `zitadel_org_member`, not `zitadel_instance_member`) in `modules/zitadel_config` behind `backend_access`; `ZITADEL_MANAGEMENT_PAT` reaches the backend from `envs/local`, and from `envs/hetzner` through `envs/hetzner-zitadel`. Committed at the user's request despite the note in `REQUIREMENTS.md`; the idempotence runs of `start:dev`/`stop:dev` were not done by then.
 - The requirements named only the local path; production is a separate env (`hetzner-zitadel`) that the AC missed. Grep `infra/terraform/envs` for every env that consumes a module before writing an infra AC.
 - A Bash call the user rejected had still been applied; re-running a scripted edit duplicated the blocks. After a rejection, check `git status`/`git diff` before retrying an edit script.
+
+## Writer Access Requests, Step 2 (2026-10-31)
+
+- `ZitadelManagementClient` (v1 management endpoints: grants `_search`, `POST`/`PUT` grant); the update is skipped when the grant is already exactly `[role]` because ZITADEL errors on a no-op update. The project id had no source in the requirements, so `ZITADEL_PROJECT_ID` is generated like the client id, in `envs/local` and `envs/hetzner`.
+- I first made the two new settings optional by copying `ZITADEL_PAT`, which is only optional because of its `_FILE` alternative; the user pointed out the feature cannot work without them. Before copying a setting's optionality, check why it is optional. Committed at the user's request; no `start:dev` or e2e run yet, which is the first place a config-validation break would show.
