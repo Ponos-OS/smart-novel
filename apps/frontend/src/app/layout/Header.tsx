@@ -106,6 +106,16 @@ export function Header() {
                             </Link>
                           </DropdownMenu.Item>
                         )}
+                        {isAdmin && (
+                          <DropdownMenu.Item
+                            asChild
+                            className={MENU_ITEM_CLASSES}
+                          >
+                            <Link to="/admin/writer-requests">
+                              Writer requests
+                            </Link>
+                          </DropdownMenu.Item>
+                        )}
                         <DropdownMenu.Item
                           asChild
                           className={MENU_ITEM_CLASSES}
@@ -246,6 +256,15 @@ export function Header() {
                         className="rounded-md px-3 py-2 text-sm transition-colors text-gray-300 hover:bg-gray-600"
                       >
                         Manage categories
+                      </Link>
+                    )}
+                    {isAdmin && (
+                      <Link
+                        to="/admin/writer-requests"
+                        onClick={closeMenu}
+                        className="rounded-md px-3 py-2 text-sm transition-colors text-gray-300 hover:bg-gray-600"
+                      >
+                        Writer requests
                       </Link>
                     )}
                     <Link

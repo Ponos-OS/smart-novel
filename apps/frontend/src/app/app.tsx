@@ -137,6 +137,22 @@ const router = createBrowserRouter([
         },
       },
 
+      {
+        path: '/admin/writer-requests',
+        lazy: async () => {
+          const { AdminWriterRequestsPage } =
+            await import('../features/admin-writer-requests/AdminWriterRequestsPage');
+
+          return {
+            element: (
+              <Layout>
+                <AdminWriterRequestsPage />
+              </Layout>
+            ),
+          };
+        },
+      },
+
       // Auth callback route
       { path: '/auth/callback', element: <CallbackPage /> },
 

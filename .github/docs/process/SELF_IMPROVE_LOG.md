@@ -259,3 +259,9 @@
 - A character counter placed inside the `<label>` became part of the field's accessible name and broke `getByLabelText`; keep counters outside the label.
 - Storybook proxies from `PROCESS.md` worked: `nx build-storybook` plus a temporary `composeStories` spec. Use `Story.run(element)`, not `render` + `play`: only `run` executes a story's own `beforeEach` (the mock outcome), which two stories needed.
 - A direct `npx vitest run` in `apps/frontend` skips Nx's `.env` loading: `ChapterContentEditor` and `ChapterEditPage` fail with `VITE_SERVICE_URL is not defined`, and cold-ESLint/load timeouts hit `feature-boundaries`, `a11y` and `pseudo-locale`. Source `.env` and widen `--testTimeout` before suspecting the diff; all passed that way.
+
+## Writer Access Requests, Step 7 (2026-10-31)
+
+- `features/admin-writer-requests/`: page at `/admin/writer-requests`, row with one-click Approve, reject dialog with an optional reason, status filter and load more; admin-only header links (desktop and mobile). An approve error keeps the row and says the request stays pending; a 400 means it was reviewed meanwhile, so the list refreshes.
+- The ingress sends the `/admin` prefix to ZITADEL's admin API, so loading `/admin/writer-requests` directly or reloading it never reaches the app (documented in `admin-categories.cy.ts`; menu navigation works). I followed the AC's path and flagged it instead of changing the ingress. Read the Cypress specs of a sibling feature for such environment facts before choosing a route.
+- Whole-feature status: Steps 1 to 7 are committed. `backend-e2e` and `graphql-api-tester` never ran for Steps 4 and 5 because the user's own `smart-novel` kind cluster was up and predated the new table; the real-ZITADEL approve test and the role-less `FORBIDDEN` test are unproven. That is the main open risk before this ships.
