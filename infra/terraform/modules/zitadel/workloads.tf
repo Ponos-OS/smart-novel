@@ -143,7 +143,9 @@ resource "kubernetes_deployment_v1" "zitadel" {
             }
             initial_delay_seconds = 20
             period_seconds        = 10
-            failure_threshold     = 12
+            # The default of 1 second is shorter than `zitadel ready` takes on a busy host, which left the pod unready for good and the ingress answering 502.
+            timeout_seconds   = 5
+            failure_threshold = 12
           }
 
           volume_mount {

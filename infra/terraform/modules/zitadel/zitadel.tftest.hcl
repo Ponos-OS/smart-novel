@@ -58,3 +58,12 @@ run "contributes_the_zitadel_and_login_routes" {
     error_message = "ZITADEL is served over h2c and the login UI wins over its catch-all routes"
   }
 }
+
+run "the_readiness_probe_allows_a_slow_host" {
+  command = plan
+
+  assert {
+    condition     = kubernetes_deployment_v1.zitadel.spec[0].template[0].spec[0].container[0].readiness_probe[0].timeout_seconds >= 5
+    error_message = "zitadel ready takes more than the default 1 second on a busy machine, and a probe that always times out keeps ZITADEL unready"
+  }
+}
