@@ -17,6 +17,14 @@ export class WriterRequest {
   @Field(() => ID)
   id: string;
 
+  @Field({ description: 'The name of the requester when they asked' })
+  requesterName: string;
+
+  @Field({
+    description: 'The email of the requester when they asked',
+  })
+  requesterEmail: string;
+
   @Field()
   note: string;
 

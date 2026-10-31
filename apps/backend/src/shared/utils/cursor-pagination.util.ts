@@ -1,3 +1,5 @@
+import { BadRequestException } from '@nestjs/common';
+import { isUUID } from 'class-validator';
 import { PageInfo } from 'nestjs-backend-common';
 
 import { PaginationArgs } from '../interfaces';
@@ -177,4 +179,40 @@ export async function paginateConnection<
     edges,
     pageInfo: buildPageInfo(edges, hasMore, pagination),
   };
+}
+
+/**
+ * @description Without `first` or `last` the page would be every row, so a default applies; an oversized page or a malformed cursor is refused rather than silently cut.
+ */
+export function boundPagination(
+  pagination: PaginationArgs,
+  { defaultSize, maxSize }: { defaultSize: number; maxSize: number },
+): PaginationArgs {
+  const { first, last, after, before } = pagination;
+
+  for (const cursor of [after, before]) {
+    if (cursor && !isUUID(decodeCursor(cursor))) {
+      throw new BadRequestException('Invalid cursor');
+    }
+  }
+
+  const requested = first ?? last;
+
+  if (requested !== undefined && requested < 1) {
+    throw new BadRequestException(
+      'first and last must be at least 1',
+    );
+  }
+
+  if (requested !== undefined && requested > maxSize) {
+    throw new BadRequestException(
+      `first and last can be at most ${maxSize}`,
+    );
+  }
+
+  if (requested === undefined) {
+    return { ...pagination, first: defaultSize };
+  }
+
+  return pagination;
 }

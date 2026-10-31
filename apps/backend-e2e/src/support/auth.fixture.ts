@@ -30,6 +30,21 @@ export class AuthorizationFixture {
     return `Bearer ${accessToken}`;
   }
 
+  /**
+   * @description A `user` that the writer request specs may turn into a writer; nothing else uses it, so the shared `user` keeps its role.
+   */
+  static async getApplicantAuthorizationHeader() {
+    return AuthorizationFixture.getAuthorizationHeaderOf(
+      config.userIds.applicant,
+    );
+  }
+
+  static async getSecondApplicantAuthorizationHeader() {
+    return AuthorizationFixture.getAuthorizationHeaderOf(
+      config.userIds.applicant2,
+    );
+  }
+
   static async getAdminAuthorizationHeader() {
     const actorToken =
       await AuthorizationFixture.getActorAccessToken();
@@ -81,6 +96,17 @@ export class AuthorizationFixture {
     const accessToken = await AuthorizationFixture.impersonate(
       actorToken,
       config.userIds.writer3,
+    );
+
+    return `Bearer ${accessToken}`;
+  }
+
+  private static async getAuthorizationHeaderOf(userId: string) {
+    const actorToken =
+      await AuthorizationFixture.getActorAccessToken();
+    const accessToken = await AuthorizationFixture.impersonate(
+      actorToken,
+      userId,
     );
 
     return `Bearer ${accessToken}`;

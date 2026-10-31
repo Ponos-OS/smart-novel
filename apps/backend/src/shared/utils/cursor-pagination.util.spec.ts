@@ -1,4 +1,5 @@
 import {
+  boundPagination,
   buildCursorPaginationParams,
   buildPageInfo,
   encodeCursor,
@@ -296,5 +297,36 @@ describe(paginateConnection.name, () => {
       hasPreviousPage: true,
       hasNextPage: false,
     });
+  });
+});
+
+describe(boundPagination.name, () => {
+  const sizes = { defaultSize: 20, maxSize: 100 };
+  const cursor = encodeCursor('bb563ad5-1ac4-46c2-a25f-6f62d245f44c');
+
+  it('should default the page size when neither first nor last is given', () => {
+    const result = boundPagination({ after: cursor }, sizes);
+
+    expect(result).toStrictEqual({ after: cursor, first: 20 });
+  });
+
+  it.each([{ first: 100 }, { last: 1 }])(
+    'should keep %j as it is',
+    (pagination) => {
+      const result = boundPagination(pagination, sizes);
+
+      expect(result).toBe(pagination);
+    },
+  );
+
+  it.each([
+    [{ first: 0 }, 'at least 1'],
+    [{ last: -2 }, 'at least 1'],
+    [{ first: 101 }, 'at most 100'],
+    [{ last: 101 }, 'at most 100'],
+    [{ after: encodeCursor('not-a-uuid') }, 'Invalid cursor'],
+    [{ before: 'bm90LWEtdXVpZA==' }, 'Invalid cursor'],
+  ])('should refuse %j', (pagination, message) => {
+    expect(() => boundPagination(pagination, sizes)).toThrow(message);
   });
 });

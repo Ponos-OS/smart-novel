@@ -4,13 +4,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CategoryStatus, Prisma } from '@prisma/client';
-import { isUUID } from 'class-validator';
 import {
   CustomLoggerService,
   retryAsync,
 } from 'nestjs-backend-common';
 
-import { paginateConnection, PaginationArgs } from '../../../shared';
+import {
+  boundPagination,
+  paginateConnection,
+  PaginationArgs,
+} from '../../../shared';
 import { normalizeCategoryName } from '../../novel/utils';
 import { PrismaService } from '../../prisma';
 import {
@@ -65,7 +68,10 @@ export class CategoryService {
     pagination: PaginationArgs,
     filters?: CategoryFiltersInput,
   ): Promise<CategoryConnection> {
-    const page = this.toBoundedPage(pagination);
+    const page = boundPagination(pagination, {
+      defaultSize: CATEGORIES_PAGE_SIZE_DEFAULT,
+      maxSize: CATEGORIES_PAGE_SIZE_MAX,
+    });
     const statuses =
       isAdmin && filters?.statuses?.length
         ? filters.statuses
@@ -252,44 +258,5 @@ export class CategoryService {
     return new BadRequestException(
       `The category "${normalizedName}" already exists or was already requested. Search for "${normalizedName}" instead.`,
     );
-  }
-
-  /**
-   * @description Without `first` or `last` the page would be every category, so a default applies; an oversized page is refused rather than silently cut.
-   */
-  private toBoundedPage(pagination: PaginationArgs): PaginationArgs {
-    const { first, last, after, before } = pagination;
-
-    for (const cursor of [after, before]) {
-      if (
-        cursor &&
-        !isUUID(Buffer.from(cursor, 'base64').toString())
-      ) {
-        throw new BadRequestException('Invalid cursor');
-      }
-    }
-
-    const requested = first ?? last;
-
-    if (requested !== undefined && requested < 1) {
-      throw new BadRequestException(
-        'first and last must be at least 1',
-      );
-    }
-
-    if (
-      requested !== undefined &&
-      requested > CATEGORIES_PAGE_SIZE_MAX
-    ) {
-      throw new BadRequestException(
-        `first and last can be at most ${CATEGORIES_PAGE_SIZE_MAX}`,
-      );
-    }
-
-    if (requested === undefined) {
-      return { ...pagination, first: CATEGORIES_PAGE_SIZE_DEFAULT };
-    }
-
-    return pagination;
   }
 }

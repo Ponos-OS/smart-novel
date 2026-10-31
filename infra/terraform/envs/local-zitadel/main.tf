@@ -45,6 +45,18 @@ locals {
       password   = "Writer123!"
       role       = "writer"
     }
+    applicant = {
+      email      = "applicant@test.com"
+      first_name = "Applicant"
+      last_name  = "One"
+      role       = "user"
+    }
+    applicant2 = {
+      email      = "applicant2@test.com"
+      first_name = "Applicant"
+      last_name  = "Two"
+      role       = "user"
+    }
     no_role = {
       email      = "no-role@test.com"
       first_name = "No"
