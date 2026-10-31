@@ -353,3 +353,28 @@ run "the_backend_machine_user_only_edits_user_permissions" {
     error_message = "the backend's PAT must be an output"
   }
 }
+
+run "a_user_without_a_role_gets_no_grant" {
+  command = plan
+
+  variables {
+    users = {
+      writer = {
+        email      = "writer@qa.example.com"
+        first_name = "Writer"
+        last_name  = "QA"
+        role       = "writer"
+      }
+      no_role = {
+        email      = "no-role@qa.example.com"
+        first_name = "No"
+        last_name  = "Role"
+      }
+    }
+  }
+
+  assert {
+    condition     = length(zitadel_human_user.this) == 2 && toset(keys(zitadel_user_grant.this)) == toset(["writer"])
+    error_message = "every user is created, but only the ones with a role are granted one"
+  }
+}

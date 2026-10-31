@@ -240,3 +240,9 @@
 - `REQUIREMENTS.md` assumed a `prisma/migrations` folder and that a partial unique index needs raw SQL; neither held. The repo used `db push` only, and Prisma 7.4+ declares partial indexes in the schema (`@@unique(..., where: raw(...))`, preview feature `partialIndexes`). Started `prisma/migrations` (baseline plus this table), production keeps `migrate deploy`, dev keeps `db push`; the documented `migrate deploy --schema=...` fails under Prisma 7 and became `--config=./apps/backend/prisma.config.ts`.
 - I asserted "Prisma cannot express it" from memory and designed around it; the user corrected me with the docs. For a library capability claim, check Context7 before writing it into a plan or a schema comment, even when the installed version is recent.
 - Verified on a throwaway `postgres:17`: `migrate deploy`, no `migrate diff` drift, the index behaves, and `db push` creates it too. Committed at the user's request.
+
+## Writer Access Requests, Step 4 (2026-10-31)
+
+- `writer-request` module: `requestWriterAccess` and `myWriterRequest`, both `@RequireRole(Role.user)`. Without it the role guard returns `true` when no role is required, so an authenticated account holding no project role would have passed; the user caught this. The AC said only "authenticated", so for a new operation decide the minimum role explicitly instead of leaving the guard's default.
+- To test that gate, `zitadel_config` users can now omit `role` (no grant) and `envs/local-zitadel` has a `no_role` user; the e2e project cannot import `@smart-novel/shared` (`rootDir`), so its specs use literals.
+- Committed at the user's request with `backend-e2e` and `graphql-api-tester` not run: the user's own `smart-novel` kind cluster was up and predated the new table, and `start-dev.sh e2e` refuses to start next to it. Only unit tests, lint and `tsc` ran. Ask for permission to run `npm run stop:dev` up front when `kind get clusters` shows a cluster.

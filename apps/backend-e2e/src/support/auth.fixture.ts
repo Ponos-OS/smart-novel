@@ -16,6 +16,20 @@ export class AuthorizationFixture {
     return `Bearer ${accessToken}`;
   }
 
+  /**
+   * @description An authenticated account that holds no role in the project, like one that signed in from outside smart-novel.
+   */
+  static async getNoRoleAuthorizationHeader() {
+    const actorToken =
+      await AuthorizationFixture.getActorAccessToken();
+    const accessToken = await AuthorizationFixture.impersonate(
+      actorToken,
+      config.userIds.noRole,
+    );
+
+    return `Bearer ${accessToken}`;
+  }
+
   static async getAdminAuthorizationHeader() {
     const actorToken =
       await AuthorizationFixture.getActorAccessToken();

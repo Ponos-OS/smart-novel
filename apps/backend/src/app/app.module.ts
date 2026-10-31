@@ -26,6 +26,7 @@ import {
   PrismaModule,
   RedisModule,
   TtsCallbacksModule,
+  WriterRequestModule,
 } from '../modules';
 import {
   createGraphqlErrorFormatter,
@@ -99,6 +100,7 @@ import {
     NovelModule,
     LlmModule,
     TtsCallbacksModule,
+    WriterRequestModule,
   ],
   providers: [
     AppResolver,

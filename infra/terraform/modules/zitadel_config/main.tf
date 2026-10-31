@@ -52,6 +52,9 @@ resource "zitadel_application_oidc" "public" {
 
 locals {
   usernames = toset(nonsensitive(keys(var.users)))
+  granted_usernames = toset(nonsensitive([
+    for username in local.usernames : username if var.users[username].role != null
+  ]))
   instance_members = toset(nonsensitive([
     for username in local.usernames : username if length(var.users[username].instance_roles) > 0
   ]))
@@ -71,7 +74,7 @@ resource "zitadel_human_user" "this" {
 }
 
 resource "zitadel_user_grant" "this" {
-  for_each = local.usernames
+  for_each = local.granted_usernames
 
   org_id     = local.org_id
   project_id = zitadel_project.this.id

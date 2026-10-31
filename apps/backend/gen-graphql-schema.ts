@@ -27,6 +27,7 @@ import {
   NovelResolver,
 } from './src/modules/novel/resolvers';
 import { PlatformTermsResolver } from './src/modules/platform-terms/platform-terms.resolver';
+import { WriterRequestResolver } from './src/modules/writer-request/writer-request.resolver';
 
 async function generateSchema() {
   const app = await NestFactory.create(GraphQLSchemaBuilderModule, {
@@ -54,6 +55,7 @@ async function generateSchema() {
     ChapterFieldResolver,
     ChapterNarrationResolver,
     ChapterUserStateResolver,
+    WriterRequestResolver,
   ]);
 
   const sdl = printSchema(schema);

@@ -30,7 +30,7 @@ interface ZitadelOutputs {
   project_id: { value: string };
   user_ids: {
     value: Record<
-      'admin' | 'user' | 'writer' | 'writer2' | 'writer3',
+      'admin' | 'user' | 'writer' | 'writer2' | 'writer3' | 'no_role',
       string
     >;
   };
@@ -69,6 +69,7 @@ export const config = {
     writer: userIds.writer,
     writer2: userIds.writer2,
     writer3: userIds.writer3,
+    noRole: userIds.no_role,
   },
   integrationTest: {
     scopes,

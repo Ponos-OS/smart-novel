@@ -46,13 +46,13 @@ variable "dev_mode" {
 }
 
 variable "users" {
-  description = "Human users to create, by username. Each one is granted its role in the project; instance_roles (for example IAM_OWNER) make a user an administrator of the whole ZITADEL instance, including its console. A user without a password cannot log in, which suits users that are only impersonated. Empty creates none"
+  description = "Human users to create, by username. Each one is granted its role in the project (a user without a role gets no grant at all, which the tests use for an account with no access); instance_roles (for example IAM_OWNER) make a user an administrator of the whole ZITADEL instance, including its console. A user without a password cannot log in, which suits users that are only impersonated. Empty creates none"
   type = map(object({
     email          = string
     first_name     = string
     last_name      = string
     password       = optional(string)
-    role           = string
+    role           = optional(string)
     instance_roles = optional(list(string), [])
   }))
   default   = {}
