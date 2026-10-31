@@ -265,3 +265,10 @@
 - `features/admin-writer-requests/`: page at `/admin/writer-requests`, row with one-click Approve, reject dialog with an optional reason, status filter and load more; admin-only header links (desktop and mobile). An approve error keeps the row and says the request stays pending; a 400 means it was reviewed meanwhile, so the list refreshes.
 - The ingress sends the `/admin` prefix to ZITADEL's admin API, so loading `/admin/writer-requests` directly or reloading it never reaches the app (documented in `admin-categories.cy.ts`; menu navigation works). I followed the AC's path and flagged it instead of changing the ingress. Read the Cypress specs of a sibling feature for such environment facts before choosing a route.
 - Whole-feature status: Steps 1 to 7 are committed. `backend-e2e` and `graphql-api-tester` never ran for Steps 4 and 5 because the user's own `smart-novel` kind cluster was up and predated the new table; the real-ZITADEL approve test and the role-less `FORBIDDEN` test are unproven. That is the main open risk before this ships.
+
+## Cursor Signing, Step 1 (2026-11-01)
+
+- The cursor check (`isUUID`, 400 "Invalid cursor") moved from `boundPagination` into `buildCursorPaginationParams`, so every `paginateConnection` caller is guarded; `after` with `before` is now a 400 (it used to drop `before`). New `cursor-validation.e2e-spec.ts` covers all five connections.
+- `REQUIREMENTS.md` says to leave each step uncommitted for review; followed it, nothing committed.
+- Making the check universal broke two `license-draft.service.spec.ts` cases that used `cursor-row` as a cursor id. The mocked specs had been passing a value the real database would reject, which is the same blind spot as the original 500.
+- Verification: 855 backend unit tests, `tsc` and eslint pass. `backend-e2e` did NOT run: `start-dev.sh e2e` fails twice at the frontend image build (`nx build frontend` runs codegen inside the image, and `apps/backend/schema.gql` is gitignored and not copied by `apps/frontend/Dockerfile`). Not checked on a clean `main`, so I cannot say whether it predates this step. The new e2e spec is unproven.

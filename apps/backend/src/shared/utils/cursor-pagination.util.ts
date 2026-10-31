@@ -30,7 +30,13 @@ export function encodeCursor(id: string): string {
 }
 
 export function decodeCursor(cursor: string): string {
-  return Buffer.from(cursor, 'base64').toString('utf-8');
+  const id = Buffer.from(cursor, 'base64').toString('utf-8');
+
+  if (!isUUID(id)) {
+    throw new BadRequestException('Invalid cursor');
+  }
+
+  return id;
 }
 
 function isBackward({ first, last }: PaginationArgs = {}): boolean {
@@ -42,7 +48,7 @@ function isBackward({ first, last }: PaginationArgs = {}): boolean {
  *
  * @description
  * This function handles:
- * - Base64 cursor decoding (`after`/`before` → UUID)
+ * - Base64 cursor decoding (`after`/`before` → UUID), refusing a malformed cursor or both args at once
  * - Computing `take = requested + 1` (for hasMore detection)
  * - Setting `cursor` and `skip: 1` to skip the cursor record
  * - Returning a `shouldReverse` flag for `before`-based queries
@@ -55,6 +61,13 @@ export function buildCursorPaginationParams(
   pagination?: PaginationArgs,
 ): CursorPaginationParams {
   const { first, last, after, before } = pagination ?? {};
+
+  if (after && before) {
+    throw new BadRequestException(
+      'after and before cannot be used together',
+    );
+  }
+
   const afterId = after && decodeCursor(after);
   const beforeId = before && decodeCursor(before);
   const result: CursorPaginationParams = {
@@ -66,9 +79,7 @@ export function buildCursorPaginationParams(
     result.skip = 1;
   }
 
-  // For simplicity sake I am skipping the implementation of when client sends both after & before.
-  // If we have both after and before, we need a different strategy
-  if (beforeId && !afterId) {
+  if (beforeId) {
     result.cursor = { id: beforeId };
     result.skip = 1;
     result.shouldReverse = true;
@@ -182,20 +193,13 @@ export async function paginateConnection<
 }
 
 /**
- * @description Without `first` or `last` the page would be every row, so a default applies; an oversized page or a malformed cursor is refused rather than silently cut.
+ * @description Without `first` or `last` the page would be every row, so a default applies; an oversized page is refused rather than silently cut.
  */
 export function boundPagination(
   pagination: PaginationArgs,
   { defaultSize, maxSize }: { defaultSize: number; maxSize: number },
 ): PaginationArgs {
-  const { first, last, after, before } = pagination;
-
-  for (const cursor of [after, before]) {
-    if (cursor && !isUUID(decodeCursor(cursor))) {
-      throw new BadRequestException('Invalid cursor');
-    }
-  }
-
+  const { first, last } = pagination;
   const requested = first ?? last;
 
   if (requested !== undefined && requested < 1) {

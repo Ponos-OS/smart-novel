@@ -51,18 +51,27 @@ describe(buildCursorPaginationParams.name, () => {
     });
   });
 
-  it('should prefer after over before when both are provided', () => {
-    const afterId = 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c';
-    const beforeId = '904bf826-33be-4172-b63f-665bba9007b9';
+  it('should refuse after and before together', () => {
+    const after = encodeCursor(
+      'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
+    );
+    const before = encodeCursor(
+      '904bf826-33be-4172-b63f-665bba9007b9',
+    );
 
-    const result = buildCursorPaginationParams({
-      after: Buffer.from(afterId).toString('base64'),
-      before: Buffer.from(beforeId).toString('base64'),
-      first: 10,
-    });
+    expect(() =>
+      buildCursorPaginationParams({ after, before, first: 10 }),
+    ).toThrow('after and before cannot be used together');
+  });
 
-    expect(result.cursor).toStrictEqual({ id: afterId });
-    expect(result.shouldReverse).toBe(false);
+  it.each([
+    { after: encodeCursor('not-a-uuid') },
+    { before: 'bm90LWEtdXVpZA==' },
+    { after: 'not-base64!!' },
+  ])('should refuse the malformed cursor %j', (pagination) => {
+    expect(() => buildCursorPaginationParams(pagination)).toThrow(
+      'Invalid cursor',
+    );
   });
 
   it('should set take to first + 1 when only first is provided', () => {
@@ -324,8 +333,6 @@ describe(boundPagination.name, () => {
     [{ last: -2 }, 'at least 1'],
     [{ first: 101 }, 'at most 100'],
     [{ last: 101 }, 'at most 100'],
-    [{ after: encodeCursor('not-a-uuid') }, 'Invalid cursor'],
-    [{ before: 'bm90LWEtdXVpZA==' }, 'Invalid cursor'],
   ])('should refuse %j', (pagination, message) => {
     expect(() => boundPagination(pagination, sizes)).toThrow(message);
   });

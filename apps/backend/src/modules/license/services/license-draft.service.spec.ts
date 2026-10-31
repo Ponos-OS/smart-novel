@@ -402,12 +402,14 @@ describe(LicenseDraftService.name, () => {
 
       const result = await uut.findConnection(writer, {
         first: 2,
-        after: Buffer.from('cursor-row').toString('base64'),
+        after: Buffer.from(
+          'c0a80121-7ac0-4e1c-9f3b-2d5e8a6b1f04',
+        ).toString('base64'),
       });
 
       expect(prisma.license.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          cursor: { id: 'cursor-row' },
+          cursor: { id: 'c0a80121-7ac0-4e1c-9f3b-2d5e8a6b1f04' },
           skip: 1,
           take: 3,
         }),
@@ -437,13 +439,15 @@ describe(LicenseDraftService.name, () => {
 
       const result = await uut.findConnection(writer, {
         last: 2,
-        before: Buffer.from('cursor-row').toString('base64'),
+        before: Buffer.from(
+          'c0a80121-7ac0-4e1c-9f3b-2d5e8a6b1f04',
+        ).toString('base64'),
       });
 
       expect(prisma.license.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
-          cursor: { id: 'cursor-row' },
+          cursor: { id: 'c0a80121-7ac0-4e1c-9f3b-2d5e8a6b1f04' },
         }),
       );
       expect(result.edges.map(({ node }) => node.id)).toEqual(
