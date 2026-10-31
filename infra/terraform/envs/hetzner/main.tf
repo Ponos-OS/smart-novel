@@ -8,6 +8,7 @@ locals {
   backend_secret_environment = merge(
     var.backend_secret_environment,
     local.zitadel_ready ? { ZITADEL_PAT = var.zitadel_pat } : {},
+    local.zitadel_ready && var.zitadel_management_pat != null ? { ZITADEL_MANAGEMENT_PAT = var.zitadel_management_pat } : {},
   )
   frontend_environment = merge(
     var.frontend_environment,

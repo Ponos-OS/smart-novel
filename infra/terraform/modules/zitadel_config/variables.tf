@@ -86,6 +86,14 @@ variable "impersonation" {
   default = null
 }
 
+variable "backend_access" {
+  description = "Gives the backend a machine user with a PAT and the organization role ORG_USER_PERMISSION_EDITOR, enough to manage user grants and nothing else; it holds no project role. credential_expiration_date (RFC 3339) is when the PAT stops working. null creates none of it"
+  type = object({
+    credential_expiration_date = optional(string, "9999-12-31T23:59:59Z")
+  })
+  default = null
+}
+
 variable "manage_instance_settings" {
   description = "Set the instance-wide default login policy and security settings. Turn it off on a ZITADEL that other projects share and whose owner sets them"
   type        = bool

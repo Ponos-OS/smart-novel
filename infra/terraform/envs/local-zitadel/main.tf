@@ -69,4 +69,6 @@ module "zitadel_config" {
   impersonation = {
     redirect_uris = ["http://localhost:${var.host_port}/dummy/callback"]
   }
+
+  backend_access = {}
 }

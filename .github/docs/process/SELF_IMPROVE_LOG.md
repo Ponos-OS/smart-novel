@@ -223,3 +223,9 @@
 - The refresh is mostly one file: Tailwind 4 `@theme` in `styles.css` redefines `gray` (ink), `blue` (dusk accent) and `white` (paper), so every utility already in use changes together; Literata (titles, novel titles, chapter text) and Instrument Sans via `@fontsource-variable` packages; global `:focus-visible` ring; sticky blurred header; novel cards with a spine on the cover. The dev stack's frontend image has to be rebuilt after adding packages.
 - A horizontal scrollbar in the Cypress screenshots came from a floating SVG widget in the page (not from the app: `scrollWidth` equals the viewport width), so it was left alone.
 - Cypress `novel.cy.ts` fails in this dev database only because my own earlier runs created novels with no chapters that sort before the seeded one.
+
+## Writer Access Requests, Step 1 (2026-10-31)
+
+- Machine user, PAT and `ORG_USER_PERMISSION_EDITOR` (an org role, so `zitadel_org_member`, not `zitadel_instance_member`) in `modules/zitadel_config` behind `backend_access`; `ZITADEL_MANAGEMENT_PAT` reaches the backend from `envs/local`, and from `envs/hetzner` through `envs/hetzner-zitadel`. Committed at the user's request despite the note in `REQUIREMENTS.md`; the idempotence runs of `start:dev`/`stop:dev` were not done by then.
+- The requirements named only the local path; production is a separate env (`hetzner-zitadel`) that the AC missed. Grep `infra/terraform/envs` for every env that consumes a module before writing an infra AC.
+- A Bash call the user rejected had still been applied; re-running a scripted edit duplicated the blocks. After a rejection, check `git status`/`git diff` before retrying an edit script.

@@ -24,3 +24,9 @@ output "pat" {
   sensitive   = true
   value       = trimspace(data.external.bot_pat.result.token)
 }
+
+output "backend_pat" {
+  description = "PAT of the backend's machine user, which may only manage user grants"
+  sensitive   = true
+  value       = module.zitadel_config.backend_pat
+}

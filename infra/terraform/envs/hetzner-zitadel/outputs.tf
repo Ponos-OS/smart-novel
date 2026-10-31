@@ -12,3 +12,9 @@ output "org_id" {
   description = "ID of smart-novel's organization; the zitadel_org_id input of envs/hetzner"
   value       = module.zitadel_config.org_id
 }
+
+output "backend_pat" {
+  description = "PAT of the backend's machine user, which may only manage user grants; the zitadel_management_pat input of envs/hetzner"
+  sensitive   = true
+  value       = module.zitadel_config.backend_pat
+}

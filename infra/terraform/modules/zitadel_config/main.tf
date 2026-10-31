@@ -232,6 +232,35 @@ resource "zitadel_user_grant" "impersonator" {
 }
 
 locals {
+  backend_access = var.backend_access == null ? 0 : 1
+}
+
+resource "zitadel_machine_user" "backend" {
+  count = local.backend_access
+
+  org_id      = local.org_id
+  user_name   = "backend-user-grant-manager"
+  name        = "Backend User Grant Manager"
+  description = "Machine user the backend uses to grant project roles"
+}
+
+resource "zitadel_personal_access_token" "backend" {
+  count = local.backend_access
+
+  org_id          = local.org_id
+  user_id         = zitadel_machine_user.backend[0].id
+  expiration_date = var.backend_access.credential_expiration_date
+}
+
+resource "zitadel_org_member" "backend" {
+  count = local.backend_access
+
+  org_id  = local.org_id
+  user_id = zitadel_machine_user.backend[0].id
+  roles   = ["ORG_USER_PERMISSION_EDITOR"]
+}
+
+locals {
   # The light logo is the frontend's own file, so it cannot drift; the dark logo and the icons are derived from it
   # by scripts/make-login-assets.py, because the logo is a dark book that would vanish on a dark page.
   frontend_public = "${path.module}/../../../../apps/frontend/public"

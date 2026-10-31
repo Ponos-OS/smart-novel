@@ -321,3 +321,35 @@ run "a_color_that_is_not_a_hex_value_is_rejected" {
 
   expect_failures = [var.branding]
 }
+
+run "the_backend_has_no_machine_user_unless_asked_for" {
+  command = plan
+
+  assert {
+    condition     = length(zitadel_machine_user.backend) == 0 && output.backend_pat == null
+    error_message = "no credential is created unless asked to"
+  }
+}
+
+run "the_backend_machine_user_only_edits_user_permissions" {
+  command = apply
+
+  variables {
+    backend_access = {}
+  }
+
+  assert {
+    condition     = zitadel_org_member.backend[0].roles == toset(["ORG_USER_PERMISSION_EDITOR"])
+    error_message = "the backend must hold the user permission editor role and nothing broader"
+  }
+
+  assert {
+    condition     = length(zitadel_instance_member.this) == 0 && length(zitadel_user_grant.impersonator) == 0
+    error_message = "the backend user must not become an instance member or hold a project role"
+  }
+
+  assert {
+    condition     = nonsensitive(output.backend_pat) != ""
+    error_message = "the backend's PAT must be an output"
+  }
+}

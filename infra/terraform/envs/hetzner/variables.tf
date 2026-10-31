@@ -136,6 +136,13 @@ variable "zitadel_pat" {
   sensitive   = true
 }
 
+variable "zitadel_management_pat" {
+  description = "backend_pat output of envs/hetzner-zitadel: the token of the machine user the backend uses to grant project roles. Only that user's token, never the instance admin token"
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
 variable "migrate_image" {
   description = "Image that has the Prisma CLI and the schema, for the migration Job; the production backend image has no CLI"
   type        = string

@@ -28,4 +28,6 @@ module "zitadel_config" {
   allow_self_registration    = true
   login_default_redirect_uri = "https://${var.domain}"
   manage_instance_settings   = false
+
+  backend_access = {}
 }

@@ -28,3 +28,9 @@ output "integration_test" {
     bot_token     = zitadel_personal_access_token.impersonator[0].token
   }
 }
+
+output "backend_pat" {
+  description = "PAT of the backend's machine user; null when backend_access is not configured"
+  sensitive   = true
+  value       = local.backend_access == 0 ? null : zitadel_personal_access_token.backend[0].token
+}

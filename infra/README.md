@@ -66,7 +66,7 @@ ZITADEL is configured in three stages, which `start-dev.sh` applies in order:
 
 1. `envs/local` with `wait_for_zitadel_credentials = true` creates the cluster and everything except the backend, the frontend and the pre-deploy Jobs, which need values ZITADEL generates.
 2. `envs/local-zitadel` configures ZITADEL with the `zitadel/zitadel` provider, through `modules/zitadel_config`: the project and its roles, the public OIDC application, the test users and their grants, self-registration with the action that grants the `user` role, and impersonation with the integration-test bot. Its outputs are the client ID, the bot PAT, the user IDs and the integration-test values.
-3. `envs/local` again with `wait_for_zitadel_credentials = false` reads those outputs with `terraform_remote_state` and passes them to the workloads as ordinary settings: `ZITADEL_CLIENT_ID` and `ZITADEL_PAT` (a Secret) for the backend, `VITE_OIDC_CLIENT_ID` for the frontend, `ZITADEL_WRITER_USER_ID` for the init Job. `modules/app` only knows its inputs and nothing about ZITADEL's configuration.
+3. `envs/local` again with `wait_for_zitadel_credentials = false` reads those outputs with `terraform_remote_state` and passes them to the workloads as ordinary settings: `ZITADEL_CLIENT_ID` and `ZITADEL_PAT` and `ZITADEL_MANAGEMENT_PAT` (Secrets) for the backend, `VITE_OIDC_CLIENT_ID` for the frontend, `ZITADEL_WRITER_USER_ID` for the init Job. `modules/app` only knows its inputs and nothing about ZITADEL's configuration.
 
 `modules/zitadel_config` is the part a deployed environment reuses. Its root module supplies the inputs: `redirect_uris`, `users` (empty means none), `allow_self_registration` and `impersonation` (`null` means none, and it should only be set on an instance without real users, because it lets the bot act as any user). `envs/local-zitadel` authenticates the provider with ZITADEL's first-instance PAT, read from the cluster with `kubectl exec`. A deployed environment passes a JWT profile key to the provider instead. See `infra/docs/zitadel-terraform-provider.md`.
 
@@ -120,9 +120,9 @@ Apply in this order, copying `backend.tf.example` to `backend.tf` and `terraform
 
 1. `envs/hetzner` without `zitadel_client_id`: everything but the backend, the frontend and the migration Job.
 2. `envs/hetzner-zitadel`: smart-novel's own organization on the shared ZITADEL, with its own login policy (self-registration, default redirect, optional OTP and U2F), and the project, roles, client and post-registration action in it. Its `org_id` output goes to `envs/hetzner` as `zitadel_org_id`. People who also use Nestral have a separate account there. The organization also gets the login page in the frontend's look (light and dark, `branding` variable, the frontend's `logo.png`; the dark logo and the icons in `modules/zitadel_config/files/login` come from `infra/scripts/make-login-assets.py`). The provider authenticates with the key in the `zitadel-admin` Secret, because a token cannot upload the logo; `envs/local` stays unbranded for the same reason.
-3. `envs/hetzner` with `zitadel_client_id` and `zitadel_pat`: the workloads.
+3. `envs/hetzner` with `zitadel_client_id`, `zitadel_pat` and `zitadel_management_pat` (the `backend_pat` output of step 2): the workloads.
 
-The backend's `zitadel_pat` should be a machine user's token. The instance admin token that `hetzner-zitadel` reads is not meant for the app.
+The backend's `zitadel_pat` should be a machine user's token; `zitadel_management_pat` is the token of the machine user that `hetzner-zitadel` creates with only the `ORG_USER_PERMISSION_EDITOR` role. The instance admin token that `hetzner-zitadel` reads is not meant for the app.
 
 ## Backup Restore Test
 
