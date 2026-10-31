@@ -207,6 +207,49 @@ describe(ZitadelAuthProvider.name, () => {
         expect(freshJwks).toHaveBeenCalledOnce();
       });
 
+      it('should count a failed refresh against the cooldown', async () => {
+        const { accessToken, sub } = getTestData();
+        (uut as any).jwks = vi
+          .fn()
+          .mockRejectedValue(new errors.JWKSNoMatchingKey());
+        (uut as any).lastJwksRefreshAt = 0;
+        mockJwtVerifyResolvingKey(sub);
+        vi.mocked(axios.get)
+          .mockClear()
+          .mockRejectedValue(new Error('connect ECONNREFUSED'));
+
+        await expect(uut.validateToken(accessToken)).rejects.toThrow(
+          'ECONNREFUSED',
+        );
+        await expect(uut.validateToken(accessToken)).rejects.toThrow(
+          errors.JWKSNoMatchingKey,
+        );
+        expect(axios.get).toHaveBeenCalledTimes(1);
+      });
+
+      it('should share one refresh between concurrent unknown-kid lookups', async () => {
+        const { accessToken, sub } = getTestData();
+        (uut as any).jwks = vi
+          .fn()
+          .mockRejectedValueOnce(new errors.JWKSNoMatchingKey())
+          .mockRejectedValueOnce(new errors.JWKSNoMatchingKey());
+        vi.mocked(createLocalJWKSet).mockReturnValue(
+          vi.fn().mockResolvedValue({}) as any,
+        );
+        (uut as any).lastJwksRefreshAt = 0;
+        mockJwtVerifyResolvingKey(sub);
+        vi.mocked(axios.get)
+          .mockClear()
+          .mockResolvedValue({ data: rotatedKeys });
+
+        await Promise.all([
+          uut.validateToken(accessToken),
+          uut.validateToken(accessToken),
+        ]);
+
+        expect(axios.get).toHaveBeenCalledTimes(1);
+      });
+
       it('should not refresh again within the cooldown', async () => {
         const { accessToken, sub } = getTestData();
         const staleJwks = vi

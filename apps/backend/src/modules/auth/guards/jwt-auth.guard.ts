@@ -17,6 +17,7 @@ import {
 
 import { IS_PUBLIC_KEY } from '../decorators';
 import { AUTH_PROVIDER, type IAuthProvider } from '../interfaces';
+import { sanitizeKeyId } from '../utils';
 
 /**
  * @description
@@ -54,7 +55,7 @@ export class JwtAuthGuard implements CanActivate {
 
         if (isNotEmpty(error)) {
           this.logger.warn(
-            `Ignoring invalid token on a public route (kid: ${this.getTokenKeyId(token)}): ${error}`,
+            `Ignoring invalid token on a public route (kid: ${sanitizeKeyId(this.getTokenKeyId(token))}): ${error}`,
           );
         }
 
@@ -85,7 +86,7 @@ export class JwtAuthGuard implements CanActivate {
     return true;
   }
 
-  private getTokenKeyId(token: string): string | undefined {
+  private getTokenKeyId(token: string): unknown {
     try {
       return decodeProtectedHeader(token).kid;
     } catch {

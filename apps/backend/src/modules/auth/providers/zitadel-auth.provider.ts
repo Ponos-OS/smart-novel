@@ -26,7 +26,7 @@ import {
   ZitadelOpenIdConfigurationResponse,
   ZitadelUserInfoResponse,
 } from '../interfaces';
-import { generateUserInfoCacheKey } from '../utils';
+import { generateUserInfoCacheKey, sanitizeKeyId } from '../utils';
 
 /**
  * @description
@@ -49,6 +49,7 @@ export class ZitadelAuthProvider
   /** @description Minimum gap between JWKS refreshes triggered by an unknown `kid`, so forged tokens cannot make us hammer the IdP. */
   private static readonly JWKS_REFRESH_COOLDOWN_MS = 30_000;
   private lastJwksRefreshAt = 0;
+  private jwksRefreshInFlight?: Promise<void>;
 
   constructor(
     @Inject(MODULE_OPTIONS_TOKEN)
@@ -191,7 +192,13 @@ export class ZitadelAuthProvider
     const { data } = await axios.get<JSONWebKeySet>(this.jwksUri);
 
     this.jwks = createLocalJWKSet(data);
+  }
+
+  private async refreshJwksOnUnknownKey(): Promise<void> {
+    // Stamped before the fetch so a failing IdP is not hit again within the cooldown.
     this.lastJwksRefreshAt = Date.now();
+
+    await this.refreshJwks();
   }
 
   /**
@@ -205,21 +212,25 @@ export class ZitadelAuthProvider
     try {
       return await this.jwks(header, token);
     } catch (error) {
-      const isRefreshAllowed =
-        Date.now() - this.lastJwksRefreshAt >=
-        ZitadelAuthProvider.JWKS_REFRESH_COOLDOWN_MS;
-
-      if (
-        !(error instanceof joseErrors.JWKSNoMatchingKey) ||
-        !isRefreshAllowed
-      ) {
+      if (!(error instanceof joseErrors.JWKSNoMatchingKey)) {
         throw error;
       }
 
-      await this.refreshJwks();
+      const isCoolingDown =
+        Date.now() - this.lastJwksRefreshAt <
+        ZitadelAuthProvider.JWKS_REFRESH_COOLDOWN_MS;
 
+      if (isCoolingDown && !this.jwksRefreshInFlight) {
+        throw error;
+      }
+
+      this.jwksRefreshInFlight ??=
+        this.refreshJwksOnUnknownKey().finally(() => {
+          this.jwksRefreshInFlight = undefined;
+        });
+      await this.jwksRefreshInFlight;
       this.logger.warn(
-        `Token kid "${header.kid}" was not in the cached JWKS; refreshed it from ${this.jwksUri}`,
+        `Token kid "${sanitizeKeyId(header.kid)}" was not in the cached JWKS; refreshed it from ${this.jwksUri}`,
       );
 
       return this.jwks(header, token);

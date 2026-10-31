@@ -103,6 +103,22 @@ describe(JwtAuthGuard.name, () => {
     });
   });
 
+  it('should not log a kid containing control characters', async () => {
+    mockReflectorMetadata(IS_PUBLIC_KEY, true, reflector);
+    const kid = 'x\n[ERROR] forged entry';
+    const token = `${Buffer.from(JSON.stringify({ alg: 'RS256', kid })).toString('base64url')}.e30.c2ln`;
+    mockGqlContext({ authorization: `Bearer ${token}` });
+    vi.mocked(authProvider.validateToken).mockRejectedValue(
+      new Error('Invalid token'),
+    );
+
+    await uut.canActivate(mockExecutionContext);
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('kid: <invalid>'),
+    );
+  });
+
   describe('protected routes', () => {
     it('should throw UnauthorizedException when no token is provided', async () => {
       mockGqlContext({});
