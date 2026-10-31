@@ -21,36 +21,30 @@ export class ZitadelManagementClient {
   ) {}
 
   /**
+   * Grants `role` only to a user without any grant on the project, so it never lowers a role the user already holds. Safe to call again.
+   */
+  async grantProjectRoleIfAbsent(
+    userId: string,
+    role: Role,
+  ): Promise<void> {
+    if (await this.findProjectGrant(userId)) {
+      return;
+    }
+
+    await this.createProjectGrant(userId, role);
+  }
+
+  /**
    * Makes `role` the only role the user holds on the project. Safe to call again with the same arguments.
    */
   async setUserProjectRole(
     userId: string,
     role: Role,
   ): Promise<void> {
-    const { projectId } = this.options;
-
-    const { result } =
-      await this.request<ZitadelUserGrantsSearchResponse>(
-        'POST',
-        ['management', 'v1', 'users', 'grants', '_search'],
-        {
-          queries: [
-            { user_id_query: { user_id: userId } },
-            { project_id_query: { project_id: projectId } },
-          ],
-        },
-      );
-    const grant = result?.[0];
+    const grant = await this.findProjectGrant(userId);
 
     if (!grant) {
-      await this.request(
-        'POST',
-        ['management', 'v1', 'users', userId, 'grants'],
-        {
-          projectId,
-          roleKeys: [role],
-        },
-      );
+      await this.createProjectGrant(userId, role);
       return;
     }
     // ZITADEL answers an update that changes nothing with an error.
@@ -62,6 +56,34 @@ export class ZitadelManagementClient {
       'PUT',
       ['management', 'v1', 'users', userId, 'grants', grant.id],
       { roleKeys: [role] },
+    );
+  }
+
+  private async findProjectGrant(userId: string) {
+    const { result } =
+      await this.request<ZitadelUserGrantsSearchResponse>(
+        'POST',
+        ['management', 'v1', 'users', 'grants', '_search'],
+        {
+          queries: [
+            { user_id_query: { user_id: userId } },
+            {
+              project_id_query: {
+                project_id: this.options.projectId,
+              },
+            },
+          ],
+        },
+      );
+
+    return result?.[0];
+  }
+
+  private async createProjectGrant(userId: string, role: Role) {
+    await this.request(
+      'POST',
+      ['management', 'v1', 'users', userId, 'grants'],
+      { projectId: this.options.projectId, roleKeys: [role] },
     );
   }
 

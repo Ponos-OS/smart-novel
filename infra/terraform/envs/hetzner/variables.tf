@@ -118,7 +118,7 @@ variable "frontend_environment" {
 }
 
 variable "zitadel_client_id" {
-  description = "client_id output of envs/hetzner-zitadel; null holds back the backend, the frontend and the migration until it exists, as do zitadel_project_id, zitadel_pat and zitadel_management_pat"
+  description = "client_id output of envs/hetzner-zitadel; null holds back the backend, the frontend and the migration until it exists, as do zitadel_project_id, zitadel_pat, zitadel_management_pat and zitadel_webhook_signing_key"
   type        = string
   default     = null
 }
@@ -144,6 +144,13 @@ variable "zitadel_pat" {
 
 variable "zitadel_management_pat" {
   description = "backend_pat output of envs/hetzner-zitadel: the token of the machine user the backend uses to grant project roles. Only that user's token, never the instance admin token"
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
+variable "zitadel_webhook_signing_key" {
+  description = "webhook_signing_key output of envs/hetzner-zitadel: the key ZITADEL signs its call about a new user with, which the backend checks"
   type        = string
   default     = null
   sensitive   = true

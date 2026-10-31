@@ -137,28 +137,22 @@ resource "zitadel_login_policy" "this" {
   multi_factor_check_lifetime   = "43200s"
 }
 
-resource "zitadel_action" "post_self_registration" {
-  count = local.self_registration
+# Actions v1 triggers do not run behind Login V2, so the new user is announced to the backend, which grants the role.
+resource "zitadel_action_target" "user_added" {
+  count = var.self_registration_webhook_url == null ? 0 : local.self_registration
 
-  org_id = local.org_id
-  name   = "postSelfRegistrationToExtendUserClaims"
-  script = templatefile("${path.module}/files/post-self-registration.js.tftpl", {
-    project_id = zitadel_project.this.id
-    role_key   = var.self_registration_role_key
-  })
-  timeout         = "5s"
-  allowed_to_fail = false
-
-  depends_on = [zitadel_project_role.this]
+  name               = "userAddedToGrantRole"
+  endpoint           = var.self_registration_webhook_url
+  target_type        = "REST_WEBHOOK"
+  timeout            = "5s"
+  interrupt_on_error = false
 }
 
-resource "zitadel_trigger_actions" "post_self_registration" {
-  count = local.self_registration
+resource "zitadel_action_execution_event" "user_added" {
+  count = length(zitadel_action_target.user_added)
 
-  org_id       = local.org_id
-  flow_type    = "FLOW_TYPE_INTERNAL_AUTHENTICATION"
-  trigger_type = "TRIGGER_TYPE_POST_CREATION"
-  action_ids   = [zitadel_action.post_self_registration[0].id]
+  event      = "user.human.added"
+  target_ids = [zitadel_action_target.user_added[0].id]
 }
 
 locals {

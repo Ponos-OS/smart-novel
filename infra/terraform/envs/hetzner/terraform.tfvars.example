@@ -1,5 +1,5 @@
 # Copy to terraform.tfvars (git-ignored). Secrets come from TF_VAR_* environment variables instead:
-# postgres_password, redis_password, llm_api_key, tts_api_key, zitadel_pat, zitadel_management_pat, backup_access_key, backup_secret_key, backend_secret_environment.
+# postgres_password, redis_password, llm_api_key, tts_api_key, zitadel_pat, zitadel_management_pat, zitadel_webhook_signing_key, backup_access_key, backup_secret_key, backend_secret_environment.
 kubeconfig_path         = "../../../../../infra/terraform/hetzner/kubeconfig"
 domain                  = "novel.example.com"
 ingress_class           = "traefik"

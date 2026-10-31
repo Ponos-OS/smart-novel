@@ -12,3 +12,4 @@ export * from './prisma';
 export * from './redis';
 export * from './tts-callbacks';
 export * from './writer-request';
+export * from './zitadel-events';

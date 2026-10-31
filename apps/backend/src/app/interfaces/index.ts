@@ -91,6 +91,10 @@ export interface AppConfig {
    */
   ZITADEL_MANAGEMENT_PAT: string;
   /**
+   * @description Secret shared with ZITADEL so the backend can tell that a "new user registered" call really comes from ZITADEL and not from someone else. Generated with the ZITADEL configuration, never set by hand.
+   */
+  ZITADEL_WEBHOOK_SIGNING_KEY: string;
+  /**
    * @description ID of the ZITADEL project that holds the roles. Generated with the ZITADEL configuration.
    */
   ZITADEL_PROJECT_ID: string;

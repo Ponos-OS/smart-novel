@@ -11,8 +11,10 @@ import { appConfigs, AppModule } from './app';
 const JSON_BODY_LIMIT = '1mb';
 
 async function bootstrap() {
-  const app =
-    await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(
+    AppModule,
+    { rawBody: true },
+  );
   const { PORT, CORS_ALLOWED_ORIGINS } = app.get<
     ConfigType<typeof appConfigs>
   >(appConfigs.KEY);

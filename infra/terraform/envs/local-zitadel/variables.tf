@@ -10,6 +10,12 @@ variable "namespace" {
   default     = "smart-novel"
 }
 
+variable "backend_internal_url" {
+  description = "How ZITADEL reaches the backend inside the cluster, same as in envs/local"
+  type        = string
+  default     = "http://backend:3000"
+}
+
 variable "host_port" {
   description = "Port on the host that reaches ZITADEL through the ingress, same as in envs/local"
   type        = number

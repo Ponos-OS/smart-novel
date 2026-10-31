@@ -31,6 +31,10 @@ export interface AuthModuleOptions {
    */
   managementPat: string;
   /**
+   * @description Secret shared with ZITADEL so the backend can tell that a "new user registered" call really comes from ZITADEL and not from someone else. Generated with the ZITADEL configuration, never set by hand.
+   */
+  webhookSigningKey: string;
+  /**
    * @description ID of the ZITADEL project whose roles the application hands out.
    */
   projectId: string;

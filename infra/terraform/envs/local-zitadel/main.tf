@@ -80,8 +80,9 @@ module "zitadel_config" {
   dev_mode                  = true
   users                     = local.users
 
-  allow_self_registration    = true
-  login_default_redirect_uri = "http://localhost:${var.host_port}"
+  allow_self_registration       = true
+  self_registration_webhook_url = "${var.backend_internal_url}/zitadel-events/user-added"
+  login_default_redirect_uri    = "http://localhost:${var.host_port}"
 
   impersonation = {
     redirect_uris = ["http://localhost:${var.host_port}/dummy/callback"]

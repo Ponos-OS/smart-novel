@@ -34,3 +34,9 @@ output "backend_pat" {
   sensitive   = true
   value       = local.backend_access == 0 ? null : zitadel_personal_access_token.backend[0].token
 }
+
+output "webhook_signing_key" {
+  description = "Key ZITADEL signs its calls to self_registration_webhook_url with; null when there is no such target"
+  sensitive   = true
+  value       = one(zitadel_action_target.user_added[*].signing_key)
+}

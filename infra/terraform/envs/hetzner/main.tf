@@ -1,5 +1,5 @@
 locals {
-  zitadel_ready = var.zitadel_client_id != null && var.zitadel_project_id != null && nonsensitive(var.zitadel_pat != null && var.zitadel_management_pat != null)
+  zitadel_ready = var.zitadel_client_id != null && var.zitadel_project_id != null && nonsensitive(var.zitadel_pat != null && var.zitadel_management_pat != null && var.zitadel_webhook_signing_key != null)
 
   backend_environment = merge(
     var.backend_environment,
@@ -7,7 +7,7 @@ locals {
   )
   backend_secret_environment = merge(
     var.backend_secret_environment,
-    local.zitadel_ready ? { ZITADEL_PAT = var.zitadel_pat, ZITADEL_MANAGEMENT_PAT = var.zitadel_management_pat } : {},
+    local.zitadel_ready ? { ZITADEL_PAT = var.zitadel_pat, ZITADEL_MANAGEMENT_PAT = var.zitadel_management_pat, ZITADEL_WEBHOOK_SIGNING_KEY = var.zitadel_webhook_signing_key } : {},
   )
   frontend_environment = merge(
     var.frontend_environment,

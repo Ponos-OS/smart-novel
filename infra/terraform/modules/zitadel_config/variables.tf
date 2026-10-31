@@ -60,15 +60,15 @@ variable "users" {
 }
 
 variable "allow_self_registration" {
-  description = "Let people register themselves in the login UI. They are granted self_registration_role_key by an action that runs after they are created, and registration fails when the action does"
+  description = "Let people register themselves in the login UI. The role they start with is granted by the endpoint in self_registration_webhook_url"
   type        = bool
   default     = false
 }
 
-variable "self_registration_role_key" {
-  description = "Role granted to self-registered users"
+variable "self_registration_webhook_url" {
+  description = "Endpoint ZITADEL calls when a user is created, so the backend can grant the new user their role. Without it, self-registered users get no role"
   type        = string
-  default     = "user"
+  default     = null
 }
 
 variable "login_default_redirect_uri" {

@@ -27,6 +27,7 @@ import {
   RedisModule,
   TtsCallbacksModule,
   WriterRequestModule,
+  ZitadelEventsModule,
 } from '../modules';
 import {
   createGraphqlErrorFormatter,
@@ -101,6 +102,7 @@ import {
     LlmModule,
     TtsCallbacksModule,
     WriterRequestModule,
+    ZitadelEventsModule,
   ],
   providers: [
     AppResolver,

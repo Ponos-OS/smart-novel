@@ -66,7 +66,7 @@ locals {
   # Stage 2 configures ZITADEL and outputs what the workloads need; the workloads are held back until it has run.
   zitadel                            = one(data.terraform_remote_state.zitadel[*].outputs)
   zitadel_backend_environment        = local.zitadel == null ? {} : { ZITADEL_CLIENT_ID = local.zitadel.client_id, ZITADEL_PROJECT_ID = local.zitadel.project_id }
-  zitadel_backend_secret_environment = local.zitadel == null ? {} : { ZITADEL_PAT = local.zitadel.pat, ZITADEL_MANAGEMENT_PAT = local.zitadel.backend_pat }
+  zitadel_backend_secret_environment = local.zitadel == null ? {} : { ZITADEL_PAT = local.zitadel.pat, ZITADEL_MANAGEMENT_PAT = local.zitadel.backend_pat, ZITADEL_WEBHOOK_SIGNING_KEY = local.zitadel.webhook_signing_key }
   zitadel_frontend_environment       = local.zitadel == null ? {} : { VITE_OIDC_CLIENT_ID = local.zitadel.client_id }
   init_job_environment               = local.zitadel == null ? {} : { ZITADEL_WRITER_USER_ID = local.zitadel.user_ids["writer"] }
 

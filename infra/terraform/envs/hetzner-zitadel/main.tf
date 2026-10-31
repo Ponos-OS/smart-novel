@@ -23,11 +23,12 @@ module "zitadel_config" {
   redirect_uris             = ["https://${var.domain}${var.redirect_path}"]
   post_logout_redirect_uris = ["https://${var.domain}"]
 
-  create_org                 = true
-  org_name                   = var.zitadel_org_name
-  allow_self_registration    = true
-  login_default_redirect_uri = "https://${var.domain}"
-  manage_instance_settings   = false
+  create_org                    = true
+  org_name                      = var.zitadel_org_name
+  allow_self_registration       = true
+  self_registration_webhook_url = "https://${var.domain}/zitadel-events/user-added"
+  login_default_redirect_uri    = "https://${var.domain}"
+  manage_instance_settings      = false
 
   backend_access = {}
 }

@@ -18,3 +18,9 @@ output "backend_pat" {
   sensitive   = true
   value       = module.zitadel_config.backend_pat
 }
+
+output "webhook_signing_key" {
+  description = "Key ZITADEL signs its calls to the backend with; the zitadel_webhook_signing_key input of envs/hetzner"
+  sensitive   = true
+  value       = module.zitadel_config.webhook_signing_key
+}

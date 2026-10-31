@@ -56,6 +56,33 @@ describe(ZitadelManagementClient.name, () => {
     );
   });
 
+  it('should grant the role to a user without a grant', async () => {
+    vi.mocked(axios.request)
+      .mockResolvedValueOnce({ data: { result: [] } })
+      .mockResolvedValueOnce({ data: {} });
+
+    await uut.grantProjectRoleIfAbsent(userId, Role.user);
+
+    expect(axios.request).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        method: 'POST',
+        url: `http://traefik/management/v1/users/${userId}/grants`,
+        data: { projectId, roleKeys: [Role.user] },
+      }),
+    );
+  });
+
+  it('should keep the grant of a user who already has one', async () => {
+    vi.mocked(axios.request).mockResolvedValueOnce({
+      data: { result: [{ id: grantId, roleKeys: [Role.writer] }] },
+    });
+
+    await uut.grantProjectRoleIfAbsent(userId, Role.user);
+
+    expect(axios.request).toHaveBeenCalledOnce();
+  });
+
   it('should replace the roles of an existing grant', async () => {
     vi.mocked(axios.request)
       .mockResolvedValueOnce({

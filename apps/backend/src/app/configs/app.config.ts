@@ -162,6 +162,10 @@ class EnvironmentVariables implements AppConfig {
 
   @IsNotEmpty()
   @IsString()
+  ZITADEL_WEBHOOK_SIGNING_KEY: string;
+
+  @IsNotEmpty()
+  @IsString()
   ZITADEL_PROJECT_ID: string;
 
   @IsNotEmpty()

@@ -53,7 +53,7 @@ run "the_port_reaches_the_container_and_the_routes" {
   }
 
   assert {
-    condition     = alltrue([for r in output.routes : r.service_port == 4000]) && contains([for r in output.routes : r.path], "/graphql") && contains([for r in output.routes : r.path], "/beatrice-callbacks")
+    condition     = alltrue([for r in output.routes : r.service_port == 4000]) && contains([for r in output.routes : r.path], "/graphql") && contains([for r in output.routes : r.path], "/beatrice-callbacks") && contains([for r in output.routes : r.path], "/zitadel-events")
     error_message = "the GraphQL and callback routes must target the given port"
   }
 }

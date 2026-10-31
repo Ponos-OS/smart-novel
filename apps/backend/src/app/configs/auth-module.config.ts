@@ -43,6 +43,7 @@ export class AuthModuleConfig implements AuthModuleOptionsFactory {
       clientId,
       pat,
       managementPat: this.appConfig.ZITADEL_MANAGEMENT_PAT,
+      webhookSigningKey: this.appConfig.ZITADEL_WEBHOOK_SIGNING_KEY,
       projectId: this.appConfig.ZITADEL_PROJECT_ID,
       domain: this.appConfig.ZITADEL_DOMAIN,
       clientSecret: this.appConfig.ZITADEL_CLIENT_SECRET,

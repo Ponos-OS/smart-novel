@@ -130,31 +130,45 @@ run "self_registration_is_off_by_default" {
   command = plan
 
   assert {
-    condition     = length(zitadel_default_login_policy.this) == 0 && length(zitadel_action.post_self_registration) == 0 && length(zitadel_trigger_actions.post_self_registration) == 0
+    condition     = length(zitadel_default_login_policy.this) == 0 && length(zitadel_action_target.user_added) == 0 && length(zitadel_action_execution_event.user_added) == 0
     error_message = "production does not open registration unless asked to"
   }
 }
 
-run "self_registration_grants_the_user_role_and_fails_registration_when_it_fails" {
+run "self_registration_announces_the_new_user_to_the_backend" {
   command = apply
+
+  variables {
+    allow_self_registration       = true
+    self_registration_webhook_url = "http://backend:3000/zitadel-events/user-added"
+  }
+
+  assert {
+    condition     = zitadel_default_login_policy.this[0].allow_register && zitadel_action_target.user_added[0].endpoint == "http://backend:3000/zitadel-events/user-added" && zitadel_action_target.user_added[0].target_type == "REST_WEBHOOK"
+    error_message = "registration must be allowed, and the backend called"
+  }
+
+  assert {
+    condition     = zitadel_action_execution_event.user_added[0].event == "user.human.added"
+    error_message = "the backend must be called when a human user is created"
+  }
+
+  assert {
+    condition     = nonsensitive(output.webhook_signing_key) != ""
+    error_message = "the key the calls are signed with must be an output"
+  }
+}
+
+run "self_registration_without_an_endpoint_creates_no_target" {
+  command = plan
 
   variables {
     allow_self_registration = true
   }
 
   assert {
-    condition     = zitadel_default_login_policy.this[0].allow_register && zitadel_action.post_self_registration[0].allowed_to_fail == false
-    error_message = "registration must be allowed, and blocked when the role cannot be granted"
-  }
-
-  assert {
-    condition     = zitadel_trigger_actions.post_self_registration[0].flow_type == "FLOW_TYPE_INTERNAL_AUTHENTICATION" && zitadel_trigger_actions.post_self_registration[0].trigger_type == "TRIGGER_TYPE_POST_CREATION"
-    error_message = "the action must run right after a user is created"
-  }
-
-  assert {
-    condition     = strcontains(zitadel_action.post_self_registration[0].script, "api.userGrants.push") && strcontains(zitadel_action.post_self_registration[0].script, "roles: ['user']") && !strcontains(zitadel_action.post_self_registration[0].script, "Bearer")
-    error_message = "the script must grant the user role through ZITADEL's own API, with no credential in it"
+    condition     = length(zitadel_action_target.user_added) == 0 && output.webhook_signing_key == null
+    error_message = "nothing to call, nothing to create"
   }
 }
 
@@ -230,17 +244,18 @@ run "without_instance_settings_only_the_project_level_pieces_remain" {
   command = plan
 
   variables {
-    manage_instance_settings   = false
-    allow_self_registration    = true
-    login_default_redirect_uri = "https://novel.example.com"
+    manage_instance_settings      = false
+    allow_self_registration       = true
+    self_registration_webhook_url = "http://backend:3000/zitadel-events/user-added"
+    login_default_redirect_uri    = "https://novel.example.com"
     impersonation = {
       redirect_uris = ["http://localhost:8080/callback"]
     }
   }
 
   assert {
-    condition     = length(zitadel_default_login_policy.this) == 0 && length(zitadel_default_security_settings.this) == 0 && length(zitadel_action.post_self_registration) == 1 && length(zitadel_trigger_actions.post_self_registration) == 1
-    error_message = "the instance-wide policies belong to the instance owner, the post-registration action to this project"
+    condition     = length(zitadel_default_login_policy.this) == 0 && length(zitadel_default_security_settings.this) == 0 && length(zitadel_action_target.user_added) == 1
+    error_message = "the instance-wide policies belong to the instance owner, the post-registration webhook to this project"
   }
 }
 
@@ -270,8 +285,8 @@ run "its_own_organization_gets_its_own_login_policy" {
   }
 
   assert {
-    condition     = zitadel_login_policy.this[0].allow_register && zitadel_login_policy.this[0].default_redirect_uri == "https://novel.example.com" && length(zitadel_default_login_policy.this) == 0 && length(zitadel_action.post_self_registration) == 1
-    error_message = "the login policy belongs to the organization, not to the instance, and the post-registration action stays"
+    condition     = zitadel_login_policy.this[0].allow_register && zitadel_login_policy.this[0].default_redirect_uri == "https://novel.example.com" && length(zitadel_default_login_policy.this) == 0
+    error_message = "the login policy belongs to the organization, not to the instance"
   }
 }
 
