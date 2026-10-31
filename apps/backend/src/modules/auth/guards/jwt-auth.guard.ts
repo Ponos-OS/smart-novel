@@ -8,6 +8,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { isNotEmpty } from 'class-validator';
+import { decodeProtectedHeader } from 'jose';
 import {
   CustomLoggerService,
   isNil,
@@ -46,10 +47,16 @@ export class JwtAuthGuard implements CanActivate {
     if (isPublic) {
       if (token) {
         // Soft auth: attempt to populate req.user if a token is present, but don't reject if missing or invalid — this is a public route.
-        const [_, user] = await retryAsync(
+        const [error, user] = await retryAsync(
           () => this.authProvider.validateToken(token),
           { retry: 0 },
         );
+
+        if (isNotEmpty(error)) {
+          this.logger.warn(
+            `Ignoring invalid token on a public route (kid: ${this.getTokenKeyId(token)}): ${error}`,
+          );
+        }
 
         request.user = user;
       }
@@ -76,6 +83,14 @@ export class JwtAuthGuard implements CanActivate {
     request.user = user;
 
     return true;
+  }
+
+  private getTokenKeyId(token: string): string | undefined {
+    try {
+      return decodeProtectedHeader(token).kid;
+    } catch {
+      return undefined;
+    }
   }
 
   private extractTokenFromHeader(

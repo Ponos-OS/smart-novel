@@ -163,6 +163,67 @@ describe(ZitadelAuthProvider.name, () => {
       });
     });
 
+    describe('JWKS refresh on unknown kid', () => {
+      const header = { alg: 'RS256', kid: '379481726302355459' };
+      const rotatedKeys = {
+        keys: [{ kid: header.kid, kty: 'RSA', use: 'sig' }],
+      };
+
+      function mockJwtVerifyResolvingKey(sub: string) {
+        vi.mocked(jwtVerify).mockImplementation((async (
+          _token: string,
+          getKey: (...args: any[]) => Promise<unknown>,
+        ) => {
+          await getKey(header, {});
+
+          return { payload: { sub, iss: 'http://localhost:8080' } };
+        }) as any);
+        vi.mocked(redisService.get).mockResolvedValue(
+          JSON.stringify({ email: 'writer@smart-novel.localhost' }),
+        );
+      }
+
+      it('should refresh the JWKS once and verify with the new key', async () => {
+        const { accessToken, sub } = getTestData();
+        const staleJwks = vi
+          .fn()
+          .mockRejectedValue(new errors.JWKSNoMatchingKey());
+        const freshJwks = vi.fn().mockResolvedValue({});
+        vi.mocked(createLocalJWKSet).mockReturnValue(
+          freshJwks as any,
+        );
+        vi.mocked(axios.get).mockResolvedValueOnce({
+          data: rotatedKeys,
+        });
+        (uut as any).jwks = staleJwks;
+        (uut as any).lastJwksRefreshAt = 0;
+        mockJwtVerifyResolvingKey(sub);
+
+        await uut.validateToken(accessToken);
+
+        expect(createLocalJWKSet).toHaveBeenLastCalledWith(
+          rotatedKeys,
+        );
+        expect(freshJwks).toHaveBeenCalledOnce();
+      });
+
+      it('should not refresh again within the cooldown', async () => {
+        const { accessToken, sub } = getTestData();
+        const staleJwks = vi
+          .fn()
+          .mockRejectedValue(new errors.JWKSNoMatchingKey());
+        (uut as any).jwks = staleJwks;
+        (uut as any).lastJwksRefreshAt = Date.now();
+        mockJwtVerifyResolvingKey(sub);
+        vi.mocked(axios.get).mockClear();
+
+        await expect(uut.validateToken(accessToken)).rejects.toThrow(
+          errors.JWKSNoMatchingKey,
+        );
+        expect(axios.get).not.toHaveBeenCalled();
+      });
+    });
+
     it('should return cached userinfo from Redis when available', async () => {
       const { accessToken, sub, userInfoResponse } = getTestData();
       vi.mocked(jwtVerify).mockResolvedValue({

@@ -46,6 +46,9 @@ export class ZitadelAuthProvider
   private issuer!: string;
   /** @description Cache TTL for userinfo responses (in seconds). */
   private static readonly USERINFO_CACHE_TTL_SECONDS = 60;
+  /** @description Minimum gap between JWKS refreshes triggered by an unknown `kid`, so forged tokens cannot make us hammer the IdP. */
+  private static readonly JWKS_REFRESH_COOLDOWN_MS = 30_000;
+  private lastJwksRefreshAt = 0;
 
   constructor(
     @Inject(MODULE_OPTIONS_TOKEN)
@@ -72,7 +75,7 @@ export class ZitadelAuthProvider
 
     const { payload } = await jwtVerify<ZitadelJwtPayload>(
       token,
-      this.jwks,
+      this.resolveKey,
       {
         issuer: this.issuer,
       },
@@ -104,7 +107,9 @@ export class ZitadelAuthProvider
     }
 
     try {
-      await jwtVerify(token, this.jwks, { issuer: this.issuer });
+      await jwtVerify(token, this.resolveKey, {
+        issuer: this.issuer,
+      });
     } catch (error) {
       // JWTExpired is only thrown once the signature and issuer have already checked out, so it's the one failure we accept.
       if (error instanceof joseErrors.JWTExpired) {
@@ -186,7 +191,40 @@ export class ZitadelAuthProvider
     const { data } = await axios.get<JSONWebKeySet>(this.jwksUri);
 
     this.jwks = createLocalJWKSet(data);
+    this.lastJwksRefreshAt = Date.now();
   }
+
+  /**
+   * @description
+   * ZITADEL rotates its signing keys (and a reseed creates new ones), so a token signed with a `kid` missing from our snapshot triggers one JWKS refresh before we give up.
+   */
+  private readonly resolveKey: JWTVerifyGetKey = async (
+    header,
+    token,
+  ) => {
+    try {
+      return await this.jwks(header, token);
+    } catch (error) {
+      const isRefreshAllowed =
+        Date.now() - this.lastJwksRefreshAt >=
+        ZitadelAuthProvider.JWKS_REFRESH_COOLDOWN_MS;
+
+      if (
+        !(error instanceof joseErrors.JWKSNoMatchingKey) ||
+        !isRefreshAllowed
+      ) {
+        throw error;
+      }
+
+      await this.refreshJwks();
+
+      this.logger.warn(
+        `Token kid "${header.kid}" was not in the cached JWKS; refreshed it from ${this.jwksUri}`,
+      );
+
+      return this.jwks(header, token);
+    }
+  };
 
   /**
    * @description

@@ -37,6 +37,7 @@ describe(JwtAuthGuard.name, () => {
 
     logger = {
       error: vi.fn(),
+      warn: vi.fn(),
     } as any;
 
     uut = new JwtAuthGuard(authProvider, reflector, logger);
@@ -83,6 +84,22 @@ describe(JwtAuthGuard.name, () => {
 
       expect(result).toBe(true);
       expect(req.user).toBeNull();
+    });
+
+    it('should warn with the token kid when an invalid token is ignored', async () => {
+      mockReflectorMetadata(IS_PUBLIC_KEY, true, reflector);
+      const kid = '379481726302355458';
+      const token = `${Buffer.from(JSON.stringify({ alg: 'RS256', kid })).toString('base64url')}.e30.c2ln`;
+      mockGqlContext({ authorization: `Bearer ${token}` });
+      vi.mocked(authProvider.validateToken).mockRejectedValue(
+        new Error('no applicable key found in the JSON Web Key Set'),
+      );
+
+      await uut.canActivate(mockExecutionContext);
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining(`kid: ${kid}`),
+      );
     });
   });
 
