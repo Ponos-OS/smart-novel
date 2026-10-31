@@ -150,14 +150,14 @@ variable "zitadel_management_pat" {
 }
 
 variable "migrate_image" {
-  description = "Image that has the Prisma CLI and the schema, for the migration Job; the production backend image has no CLI"
+  description = "Image that has the Prisma CLI, the schema and its migrations, for the migration Job; the production backend image has no CLI"
   type        = string
 }
 
 variable "migrate_command" {
   description = "Command of the migration Job"
   type        = list(string)
-  default     = ["/bin/sh", "-c", "npx prisma migrate deploy --schema=./apps/backend/prisma/schema.prisma"]
+  default     = ["/bin/sh", "-c", "npx prisma migrate deploy --config=./apps/backend/prisma.config.ts"]
 }
 
 variable "backup_endpoint" {

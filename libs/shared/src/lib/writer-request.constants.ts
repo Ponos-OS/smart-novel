@@ -1,0 +1,1 @@
+export const WRITER_REQUEST_NOTE_MAX_LENGTH = 1000;

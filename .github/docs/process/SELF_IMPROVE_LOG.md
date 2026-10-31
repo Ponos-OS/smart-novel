@@ -234,3 +234,9 @@
 
 - `ZitadelManagementClient` (v1 management endpoints: grants `_search`, `POST`/`PUT` grant); the update is skipped when the grant is already exactly `[role]` because ZITADEL errors on a no-op update. The project id had no source in the requirements, so `ZITADEL_PROJECT_ID` is generated like the client id, in `envs/local` and `envs/hetzner`.
 - I first made the two new settings optional by copying `ZITADEL_PAT`, which is only optional because of its `_FILE` alternative; the user pointed out the feature cannot work without them. Before copying a setting's optionality, check why it is optional. Committed at the user's request; no `start:dev` or e2e run yet, which is the first place a config-validation break would show.
+
+## Writer Access Requests, Step 3 (2026-10-31)
+
+- `REQUIREMENTS.md` assumed a `prisma/migrations` folder and that a partial unique index needs raw SQL; neither held. The repo used `db push` only, and Prisma 7.4+ declares partial indexes in the schema (`@@unique(..., where: raw(...))`, preview feature `partialIndexes`). Started `prisma/migrations` (baseline plus this table), production keeps `migrate deploy`, dev keeps `db push`; the documented `migrate deploy --schema=...` fails under Prisma 7 and became `--config=./apps/backend/prisma.config.ts`.
+- I asserted "Prisma cannot express it" from memory and designed around it; the user corrected me with the docs. For a library capability claim, check Context7 before writing it into a plan or a schema comment, even when the installed version is recent.
+- Verified on a throwaway `postgres:17`: `migrate deploy`, no `migrate diff` drift, the index behaves, and `db push` creates it too. Committed at the user's request.

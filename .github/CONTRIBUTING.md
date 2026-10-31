@@ -61,7 +61,7 @@ npm run start:dev
 
 ### Development
 
-To run migrations in development:
+The local stack and the e2e tests create the tables with `prisma db push` (`backend-init`), which ignores `apps/backend/prisma/migrations`; production applies the migrations with `migrate deploy`. So every schema change needs its migration, or production drifts from what dev and the tests run on. Partial indexes are declared in `schema.prisma` (`where: raw(...)`, preview feature `partialIndexes`), so both paths create them. To add a migration, change `schema.prisma` and run:
 
 ```bash
 npx prisma migrate dev
@@ -72,7 +72,7 @@ npx prisma migrate dev
 How migrations should be applied in a professional, production‑safe workflow? Since the Prisma CLI is a dev dependency and not available in the production container. Thus we need to apply migrations in our CI/CD Pipeline:
 
 ```bash
-npx prisma migrate deploy --schema=./apps/backend/prisma/schema.prisma
+npx prisma migrate deploy --config=./apps/backend/prisma.config.ts
 ```
 
 ## Design & Code Philosophy

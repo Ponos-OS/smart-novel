@@ -2,7 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -29,6 +30,12 @@ enum LicenseSourceType {
   CANONICAL
   FORKED
   CUSTOM
+}
+
+enum WriterRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 model License {
@@ -171,4 +178,21 @@ model PlatformTermsAcceptance {
   @@unique([userId, termsVersion])
   @@index([userId], name: "IDX_platform_terms_acceptances_user")
   @@map("platform_terms_acceptances")
+}
+
+model WriterRequest {
+  id              String              @id @default(uuid()) @db.Uuid
+  userId          String              @map("user_id")
+  requesterName   String              @map("requester_name")
+  requesterEmail  String              @map("requester_email")
+  note            String
+  status          WriterRequestStatus @default(PENDING)
+  rejectionReason String?             @map("rejection_reason")
+  reviewedBy      String?             @map("reviewed_by")
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  reviewedAt      DateTime?           @map("reviewed_at") @db.Timestamptz
+
+  @@unique([userId], map: "UQ_writer_requests_user_pending", where: raw("status = 'PENDING'"))
+  @@index([status, createdAt], name: "IDX_writer_requests_status_created_at")
+  @@map("writer_requests")
 }
