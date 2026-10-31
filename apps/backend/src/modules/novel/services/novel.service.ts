@@ -3,9 +3,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PageInfo } from 'nestjs-backend-common';
 
-import { OrderDirection } from '../../../shared';
+import { OrderDirection, paginateConnection } from '../../../shared';
 import { LicenseService } from '../../license';
 import { ChapterOrderField } from '../enums';
 import {
@@ -17,7 +16,7 @@ import {
 } from '../inputs';
 import {
   CHAPTER_REPOSITORY,
-  type FindNovelsConnectionArgs,
+  type FindNovelsPageArgs,
   type IChapterRepository,
   type INovelRepository,
   NOVEL_REPOSITORY,
@@ -25,10 +24,8 @@ import {
 import {
   Chapter,
   ChapterConnection,
-  ChapterEdge,
   Novel,
   NovelConnection,
-  NovelEdge,
 } from '../types';
 import { ChapterNarrationService } from './chapter-narration.service';
 
@@ -120,31 +117,24 @@ export class NovelService {
     before?: string,
     filters?: NovelFiltersInput,
   ): Promise<NovelConnection> {
-    const connectionFilters: FindNovelsConnectionArgs['filters'] = {
+    const connectionFilters: FindNovelsPageArgs['filters'] = {
       categoryIn: filters?.category?.in,
       categoryNin: filters?.category?.nin,
     };
-    const { items: novels, hasMore } =
-      await this.novelRepository.findNovelsConnection({
-        pagination: { first, last, after, before },
-        filters: connectionFilters,
-      });
-    const edges: NovelEdge[] = novels.map((novel) => ({
-      cursor: Buffer.from(novel.id).toString('base64'),
-      node: novel,
-    }));
+    const { edges, pageInfo } = await paginateConnection({
+      pagination: { first, last, after, before },
+      findMany: (page) =>
+        this.novelRepository.findNovelsPage({
+          page,
+          filters: connectionFilters,
+        }),
+      toNode: (novel) => novel,
+    });
 
-    const pageInfo: PageInfo = {
-      startCursor: edges.length > 0 ? edges[0].cursor : null,
-      endCursor:
-        edges.length > 0 ? edges[edges.length - 1].cursor : null,
-      hasPreviousPage: !!after,
-      hasNextPage: hasMore && !!first,
-    };
-
-    const connection = new NovelConnection();
-    connection.edges = edges;
-    connection.pageInfo = pageInfo;
+    const connection = Object.assign(new NovelConnection(), {
+      edges,
+      pageInfo,
+    });
     connection._filterContext = connectionFilters;
 
     return connection;
@@ -165,31 +155,23 @@ export class NovelService {
     const connectionFilters = {
       narrationStatus: filters?.narrationStatus?.eq,
     };
-    const { items: chapters, hasMore } =
-      await this.chapterRepository.findChaptersConnection({
-        novelId,
-        pagination: { first, last, after, before },
-        orderByField,
-        orderByDirection,
-        filters: connectionFilters,
-      });
+    const { edges, pageInfo } = await paginateConnection({
+      pagination: { first, last, after, before },
+      findMany: (page) =>
+        this.chapterRepository.findChaptersPage({
+          novelId,
+          page,
+          orderByField,
+          orderByDirection,
+          filters: connectionFilters,
+        }),
+      toNode: (chapter) => chapter as Chapter,
+    });
 
-    const edges: ChapterEdge[] = chapters.map((chapter) => ({
-      cursor: Buffer.from(chapter.id).toString('base64'),
-      node: chapter as Chapter,
-    }));
-
-    const pageInfo: PageInfo = {
-      startCursor: edges.length > 0 ? edges[0].cursor : null,
-      endCursor:
-        edges.length > 0 ? edges[edges.length - 1].cursor : null,
-      hasPreviousPage: !!after,
-      hasNextPage: hasMore && !!first,
-    };
-
-    const connection = new ChapterConnection();
-    connection.edges = edges;
-    connection.pageInfo = pageInfo;
+    const connection = Object.assign(new ChapterConnection(), {
+      edges,
+      pageInfo,
+    });
     connection._filterContext = {
       novelId,
       filters: connectionFilters,

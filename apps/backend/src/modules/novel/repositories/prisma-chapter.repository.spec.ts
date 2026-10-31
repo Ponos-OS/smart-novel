@@ -556,7 +556,9 @@ describe(PrismaChapterRepository.name, () => {
     });
   });
 
-  describe('findChaptersConnection', () => {
+  describe('findChaptersPage', () => {
+    const page = { shouldReverse: false };
+
     it('should return chapters with default ordering by chapterNumber ASC', async () => {
       const { novel1Chapter1, novel1Chapter2 } = getMockedData();
       vi.mocked(prismaService.chapter.findMany).mockResolvedValue([
@@ -564,13 +566,14 @@ describe(PrismaChapterRepository.name, () => {
         novel1Chapter2,
       ] as any);
 
-      const result = await uut.findChaptersConnection({
+      const result = await uut.findChaptersPage({
+        page,
         novelId: novel1Chapter1.novelId,
       });
 
-      expect(result.items).toHaveLength(2);
-      expect(result.items[0].id).toBe(novel1Chapter1.id);
-      expect(result.items[1].id).toBe(novel1Chapter2.id);
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBe(novel1Chapter1.id);
+      expect(result[1].id).toBe(novel1Chapter2.id);
       expect(prismaService.chapter.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
@@ -586,7 +589,8 @@ describe(PrismaChapterRepository.name, () => {
         [] as any,
       );
 
-      await uut.findChaptersConnection({
+      await uut.findChaptersPage({
+        page,
         novelId: '86537331-b426-4081-aa4e-e58daf533a97',
         filters: { narrationStatus: NarrationStatus.READY },
       });
@@ -606,7 +610,8 @@ describe(PrismaChapterRepository.name, () => {
         [] as any,
       );
 
-      await uut.findChaptersConnection({
+      await uut.findChaptersPage({
+        page,
         novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
         orderByField: ChapterOrderField.CREATED_AT,
         orderByDirection: OrderDirection.DESC,
@@ -624,15 +629,18 @@ describe(PrismaChapterRepository.name, () => {
       vi.mocked(prismaService.chapter.findMany).mockResolvedValue([
         novel1Chapter2,
       ] as any);
-      const afterCursor =
-        'YmI1NjNhZDUtMWFjNC00NmMyLWEyNWYtNmY2MmQyNDVmNDRj'; // Base64 for 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c'
 
-      const result = await uut.findChaptersConnection({
+      const result = await uut.findChaptersPage({
         novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
-        pagination: { first: 10, after: afterCursor },
+        page: {
+          cursor: { id: 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c' },
+          skip: 1,
+          take: 11,
+          shouldReverse: false,
+        },
       });
 
-      expect(result.items).toHaveLength(1);
+      expect(result).toHaveLength(1);
       expect(prismaService.chapter.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           cursor: { id: 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c' },
@@ -642,24 +650,22 @@ describe(PrismaChapterRepository.name, () => {
       );
     });
 
-    it('should trim extra record and signal hasMore when chapters exceed take', async () => {
-      const { novel1Chapter1, novel1Chapter2, novel1Chapter3 } =
-        getMockedData();
-      vi.mocked(prismaService.chapter.findMany).mockResolvedValue([
-        novel1Chapter1,
-        novel1Chapter2,
-        novel1Chapter3,
-      ] as any);
+    it('should flip the order when the page is reversed', async () => {
+      vi.mocked(prismaService.chapter.findMany).mockResolvedValue(
+        [] as any,
+      );
 
-      const result = await uut.findChaptersConnection({
+      await uut.findChaptersPage({
         novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
-        pagination: { first: 2 },
+        page: { shouldReverse: true },
+        orderByDirection: OrderDirection.DESC,
       });
 
-      expect(result.items).toHaveLength(2);
-      expect(result.hasMore).toBe(true);
-      expect(result.items[0].id).toBe(novel1Chapter1.id);
-      expect(result.items[1].id).toBe(novel1Chapter2.id);
+      expect(prismaService.chapter.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { chapterNumber: 'asc' },
+        }),
+      );
     });
 
     it('should return empty result when novel has no chapters', async () => {
@@ -667,12 +673,12 @@ describe(PrismaChapterRepository.name, () => {
         [] as any,
       );
 
-      const result = await uut.findChaptersConnection({
+      const result = await uut.findChaptersPage({
+        page,
         novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
       });
 
-      expect(result.items).toHaveLength(0);
-      expect(result.hasMore).toBe(false);
+      expect(result).toStrictEqual([]);
     });
   });
 

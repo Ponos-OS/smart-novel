@@ -1,6 +1,6 @@
 import { NovelState } from '@prisma/client';
 
-import { PaginationArgs, TrimmedResult } from '../../../shared';
+import { CursorPaginationParams } from '../../../shared';
 import { INovel } from './novel-details.interface';
 
 export interface NovelConnectionFilters {
@@ -8,8 +8,8 @@ export interface NovelConnectionFilters {
   categoryNin?: string[];
 }
 
-export interface FindNovelsConnectionArgs {
-  pagination?: PaginationArgs;
+export interface FindNovelsPageArgs {
+  page: CursorPaginationParams;
   filters?: NovelConnectionFilters;
 }
 
@@ -39,9 +39,7 @@ export interface NovelWithPreviousCover {
 }
 
 export interface INovelRepository {
-  findNovelsConnection(
-    args: FindNovelsConnectionArgs,
-  ): Promise<TrimmedResult<INovel>>;
+  findNovelsPage(args: FindNovelsPageArgs): Promise<INovel[]>;
   countNovels(filters?: NovelConnectionFilters): Promise<number>;
   findById(id: string): Promise<INovel | null>;
   createNovel(data: CreateNovelData): Promise<INovel>;

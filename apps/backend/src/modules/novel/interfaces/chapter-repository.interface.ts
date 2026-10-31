@@ -1,6 +1,6 @@
 import { NarrationStatus } from '@prisma/client';
 
-import { PaginationArgs, TrimmedResult } from '../../../shared';
+import { CursorPaginationParams } from '../../../shared';
 import { IChapter } from './chapter.interface';
 
 export interface ChapterCountContext {
@@ -12,9 +12,9 @@ export interface ChapterConnectionFilters {
   narrationStatus?: NarrationStatus;
 }
 
-export interface FindChaptersConnectionArgs {
+export interface FindChaptersPageArgs {
   novelId: string;
-  pagination?: PaginationArgs;
+  page: CursorPaginationParams;
   orderByField?: string;
   orderByDirection?: string;
   filters?: ChapterConnectionFilters;
@@ -60,9 +60,7 @@ export interface IChapterRepository {
     id: string,
     url: string,
   ): Promise<number>;
-  findChaptersConnection(
-    args: FindChaptersConnectionArgs,
-  ): Promise<TrimmedResult<IChapter>>;
+  findChaptersPage(args: FindChaptersPageArgs): Promise<IChapter[]>;
   countChapters(
     novelId: string,
     filters?: ChapterConnectionFilters,

@@ -5,16 +5,11 @@ import {
   Novel as PrismaNovel,
 } from '@prisma/client';
 
-import {
-  buildCursorPaginationParams,
-  trimCursorPaginationResults,
-  TrimmedResult,
-} from '../../../shared';
 import { PrismaService } from '../../prisma';
 import {
   type CreateNovelData,
   type DeletedNovel,
-  type FindNovelsConnectionArgs,
+  type FindNovelsPageArgs,
   type INovelRepository,
   type NovelConnectionFilters,
   type NovelWithPreviousCover,
@@ -30,55 +25,20 @@ const NOVEL_INCLUDE = {
 export class PrismaNovelRepository implements INovelRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findNovelsConnection({
-    pagination,
+  async findNovelsPage({
+    page: { cursor, skip, take, shouldReverse },
     filters,
-  }: FindNovelsConnectionArgs): Promise<TrimmedResult<Novel>> {
-    const where = this.buildNovelWhereClause(filters);
-    const { cursor, skip, take, shouldReverse } =
-      buildCursorPaginationParams(pagination);
-
-    const findArgs: Prisma.NovelFindManyArgs = {
-      where,
+  }: FindNovelsPageArgs): Promise<Novel[]> {
+    const novels = await this.prisma.novel.findMany({
+      where: this.buildNovelWhereClause(filters),
       orderBy: { name: shouldReverse ? 'desc' : 'asc' },
-      include: {
-        categories: {
-          select: {
-            category: {
-              select: {
-                name: true,
-              },
-            },
-          },
-        },
-      },
-    };
+      include: NOVEL_INCLUDE,
+      cursor,
+      skip,
+      take,
+    });
 
-    if (cursor) {
-      findArgs.cursor = cursor;
-    }
-    if (skip) {
-      findArgs.skip = skip;
-    }
-    if (take) {
-      findArgs.take = take;
-    }
-
-    const novels = await this.prisma.novel.findMany(findArgs);
-    const { items, hasMore } = trimCursorPaginationResults(
-      novels,
-      pagination,
-      shouldReverse,
-    );
-    const mapped: Novel[] = items.map((novel) =>
-      this.toNovel(
-        novel as PrismaNovel & {
-          categories: { category: { name: string } }[];
-        },
-      ),
-    );
-
-    return { items: mapped, hasMore };
+    return novels.map((novel) => this.toNovel(novel));
   }
 
   async countNovels(

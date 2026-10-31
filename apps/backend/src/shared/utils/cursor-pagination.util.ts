@@ -1,3 +1,5 @@
+import { PageInfo } from 'nestjs-backend-common';
+
 import { PaginationArgs } from '../interfaces';
 
 export interface CursorPaginationParams {
@@ -14,6 +16,23 @@ export interface CursorPaginationParams {
 export interface TrimmedResult<T> {
   items: T[];
   hasMore: boolean;
+}
+
+export interface CursorConnection<TNode> {
+  edges: { cursor: string; node: TNode }[];
+  pageInfo: PageInfo;
+}
+
+export function encodeCursor(id: string): string {
+  return Buffer.from(id).toString('base64');
+}
+
+export function decodeCursor(cursor: string): string {
+  return Buffer.from(cursor, 'base64').toString('utf-8');
+}
+
+function isBackward({ first, last }: PaginationArgs = {}): boolean {
+  return !!last && !first;
 }
 
 /**
@@ -34,10 +53,8 @@ export function buildCursorPaginationParams(
   pagination?: PaginationArgs,
 ): CursorPaginationParams {
   const { first, last, after, before } = pagination ?? {};
-  const afterId =
-    after && Buffer.from(after, 'base64').toString('utf-8');
-  const beforeId =
-    before && Buffer.from(before, 'base64').toString('utf-8');
+  const afterId = after && decodeCursor(after);
+  const beforeId = before && decodeCursor(before);
   const result: CursorPaginationParams = {
     shouldReverse: false,
   };
@@ -52,6 +69,11 @@ export function buildCursorPaginationParams(
   if (beforeId && !afterId) {
     result.cursor = { id: beforeId };
     result.skip = 1;
+    result.shouldReverse = true;
+  }
+
+  // `last` alone means "the final N rows": read from the end, then flip back
+  if (!afterId && !beforeId && isBackward(pagination)) {
     result.shouldReverse = true;
   }
 
@@ -99,4 +121,60 @@ export function trimCursorPaginationResults<T>(
   }
 
   return { items: result, hasMore };
+}
+
+/**
+ * @description Computes Relay `pageInfo` for both directions.
+ *
+ * @param hasMore Whether {@link trimCursorPaginationResults} trimmed an extra record
+ */
+export function buildPageInfo(
+  edges: { cursor: string }[],
+  hasMore: boolean,
+  pagination: PaginationArgs = {},
+): PageInfo {
+  const backward = isBackward(pagination);
+
+  return {
+    startCursor: edges.length > 0 ? edges[0].cursor : null,
+    endCursor:
+      edges.length > 0 ? edges[edges.length - 1].cursor : null,
+    hasPreviousPage: backward ? hasMore : !!pagination.after,
+    hasNextPage: backward ? !!pagination.before : hasMore,
+  };
+}
+
+/**
+ * @description Runs the whole Relay flow: cursor params, query, trim, edges, `pageInfo`.
+ *
+ * @param findMany Must flip its `orderBy` when `shouldReverse` is `true`, and pass `cursor`, `skip` and `take` to the query.
+ */
+export async function paginateConnection<
+  TRow extends { id: string },
+  TNode,
+>({
+  pagination,
+  findMany,
+  toNode,
+}: {
+  pagination: PaginationArgs;
+  findMany: (params: CursorPaginationParams) => Promise<TRow[]>;
+  toNode: (row: TRow) => TNode;
+}): Promise<CursorConnection<TNode>> {
+  const params = buildCursorPaginationParams(pagination);
+  const rows = await findMany(params);
+  const { items, hasMore } = trimCursorPaginationResults(
+    rows,
+    pagination,
+    params.shouldReverse,
+  );
+  const edges = items.map((row) => ({
+    cursor: encodeCursor(row.id),
+    node: toNode(row),
+  }));
+
+  return {
+    edges,
+    pageInfo: buildPageInfo(edges, hasMore, pagination),
+  };
 }

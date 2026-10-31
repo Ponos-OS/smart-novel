@@ -7,15 +7,10 @@ import { CategoryStatus, Prisma } from '@prisma/client';
 import { isUUID } from 'class-validator';
 import {
   CustomLoggerService,
-  PageInfo,
   retryAsync,
 } from 'nestjs-backend-common';
 
-import {
-  buildCursorPaginationParams,
-  PaginationArgs,
-  trimCursorPaginationResults,
-} from '../../../shared';
+import { paginateConnection, PaginationArgs } from '../../../shared';
 import { normalizeCategoryName } from '../../novel/utils';
 import { PrismaService } from '../../prisma';
 import {
@@ -27,7 +22,6 @@ import { CategoryFiltersInput } from '../inputs';
 import {
   Category,
   CategoryConnection,
-  CategoryEdge,
   DeleteCategoryResponse,
 } from '../types';
 
@@ -82,38 +76,24 @@ export class CategoryService {
         OR: wordStartMatches(escapeLikePattern(filters.search)),
       }),
     };
-    const { cursor, skip, take, shouldReverse } =
-      buildCursorPaginationParams(page);
-    const rows = await this.prisma.category.findMany({
-      where,
-      orderBy: { name: shouldReverse ? 'desc' : 'asc' },
-      select: CATEGORY_SELECT,
-      cursor,
-      skip,
-      take,
+    const { edges, pageInfo } = await paginateConnection({
+      pagination: page,
+      findMany: ({ cursor, skip, take, shouldReverse }) =>
+        this.prisma.category.findMany({
+          where,
+          orderBy: { name: shouldReverse ? 'desc' : 'asc' },
+          select: CATEGORY_SELECT,
+          cursor,
+          skip,
+          take,
+        }),
+      toNode: (row) => row,
     });
-    const { items, hasMore } = trimCursorPaginationResults(
-      rows,
-      page,
-      shouldReverse,
-    );
-    const edges: CategoryEdge[] = items.map((row) => ({
-      cursor: Buffer.from(row.id).toString('base64'),
-      node: row,
-    }));
-    const pageInfo: PageInfo = {
-      startCursor: edges.length > 0 ? edges[0].cursor : null,
-      endCursor:
-        edges.length > 0 ? edges[edges.length - 1].cursor : null,
-      hasPreviousPage: !!page.after,
-      hasNextPage: hasMore && !!page.first,
-    };
-    const connection = new CategoryConnection();
 
-    connection.edges = edges;
-    connection.pageInfo = pageInfo;
-
-    return connection;
+    return Object.assign(new CategoryConnection(), {
+      edges,
+      pageInfo,
+    });
   }
 
   async request(

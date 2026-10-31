@@ -5,12 +5,7 @@ import {
   Chapter as PrismaChapter,
 } from '@prisma/client';
 
-import {
-  buildCursorPaginationParams,
-  OrderDirection,
-  trimCursorPaginationResults,
-  TrimmedResult,
-} from '../../../shared';
+import { OrderDirection } from '../../../shared';
 import { PrismaService } from '../../prisma';
 import { ChapterOrderField } from '../enums';
 import {
@@ -18,7 +13,7 @@ import {
   type ChapterNovelKey,
   type CreateChapterData,
   type DeletedChapter,
-  type FindChaptersConnectionArgs,
+  type FindChaptersPageArgs,
   type IChapter,
   type IChapterRepository,
 } from '../interfaces';
@@ -62,32 +57,20 @@ export class PrismaChapterRepository implements IChapterRepository {
     return this.toChapter(chapter);
   }
 
-  async findChaptersConnection(
-    args: FindChaptersConnectionArgs,
-  ): Promise<TrimmedResult<IChapter>> {
-    const {
-      novelId,
-      pagination,
-      orderByField = ChapterOrderField.CHAPTER_NUMBER,
-      orderByDirection = OrderDirection.ASC,
-      filters,
-    } = args;
+  async findChaptersPage({
+    novelId,
+    page: { cursor, skip, take, shouldReverse },
+    orderByField = ChapterOrderField.CHAPTER_NUMBER,
+    orderByDirection = OrderDirection.ASC,
+    filters,
+  }: FindChaptersPageArgs): Promise<IChapter[]> {
     const prismaField =
       ORDER_FIELD_MAP[orderByField] ?? 'chapterNumber';
-    const baseDirection =
-      orderByDirection === OrderDirection.DESC ? 'desc' : 'asc';
-    const where = this.buildChapterWhereClause(novelId, filters);
-    const { cursor, skip, take, shouldReverse } =
-      buildCursorPaginationParams(pagination);
-    const findArgs: Prisma.ChapterFindManyArgs = {
-      where,
-      orderBy: {
-        [prismaField]: shouldReverse
-          ? baseDirection === 'asc'
-            ? 'desc'
-            : 'asc'
-          : baseDirection,
-      },
+    const isAscending =
+      (orderByDirection !== OrderDirection.DESC) !== shouldReverse;
+    const chapters = await this.prisma.chapter.findMany({
+      where: this.buildChapterWhereClause(novelId, filters),
+      orderBy: { [prismaField]: isAscending ? 'asc' : 'desc' },
       select: {
         id: true,
         novelId: true,
@@ -99,27 +82,12 @@ export class PrismaChapterRepository implements IChapterRepository {
         createdAt: true,
         updatedAt: true,
       },
-    };
+      cursor,
+      skip,
+      take,
+    });
 
-    if (cursor) {
-      findArgs.cursor = cursor;
-    }
-    if (skip) {
-      findArgs.skip = skip;
-    }
-    if (take) {
-      findArgs.take = take;
-    }
-
-    const chapters = await this.prisma.chapter.findMany(findArgs);
-    const { items, hasMore } = trimCursorPaginationResults(
-      chapters,
-      pagination,
-      shouldReverse,
-    );
-    const mapped: IChapter[] = items.map((ch) => this.toChapter(ch));
-
-    return { items: mapped, hasMore };
+    return chapters.map((chapter) => this.toChapter(chapter));
   }
 
   async countChapters(

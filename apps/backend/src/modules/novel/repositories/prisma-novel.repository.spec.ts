@@ -373,30 +373,29 @@ describe(PrismaNovelRepository.name, () => {
     });
   });
 
-  describe('findNovelsConnection', () => {
+  describe('findNovelsPage', () => {
+    const page = { shouldReverse: false };
+
     it('should return novels when no filters or pagination are provided', async () => {
       const { novel } = getMockedData();
       vi.mocked(prismaService.novel.findMany).mockResolvedValue([
         novel,
       ] as any);
 
-      const result = await uut.findNovelsConnection({});
+      const result = await uut.findNovelsPage({ page });
 
-      expect(result).toEqual({
-        items: [
-          {
-            id: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
-            name: 'Test Novel',
-            author: 'John Doe',
-            description: 'A test novel description',
-            state: NovelState.ONGOING,
-            ownerId: '230104087265432001',
-            coverUrl: 'https://example.com/cover.jpg',
-            category: ['fantasy', 'adventure'],
-          },
-        ],
-        hasMore: false,
-      });
+      expect(result).toEqual([
+        {
+          id: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
+          name: 'Test Novel',
+          author: 'John Doe',
+          description: 'A test novel description',
+          state: NovelState.ONGOING,
+          ownerId: '230104087265432001',
+          coverUrl: 'https://example.com/cover.jpg',
+          category: ['fantasy', 'adventure'],
+        },
+      ]);
       expect(prismaService.novel.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {},
@@ -408,9 +407,9 @@ describe(PrismaNovelRepository.name, () => {
     it('should return empty result when no novels exist', async () => {
       vi.mocked(prismaService.novel.findMany).mockResolvedValue([]);
 
-      const result = await uut.findNovelsConnection({});
+      const result = await uut.findNovelsPage({ page });
 
-      expect(result).toEqual({ items: [], hasMore: false });
+      expect(result).toEqual([]);
     });
 
     it('should handle novels with null coverUrl', async () => {
@@ -420,15 +419,16 @@ describe(PrismaNovelRepository.name, () => {
         novelWithoutCover,
       ] as any);
 
-      const result = await uut.findNovelsConnection({});
+      const result = await uut.findNovelsPage({ page });
 
-      expect(result.items[0].coverUrl).toBeUndefined();
+      expect(result[0].coverUrl).toBeUndefined();
     });
 
     it('should apply categoryIn filter', async () => {
       vi.mocked(prismaService.novel.findMany).mockResolvedValue([]);
 
-      await uut.findNovelsConnection({
+      await uut.findNovelsPage({
+        page,
         filters: { categoryIn: ['Fantasy'] },
       });
 
@@ -452,7 +452,8 @@ describe(PrismaNovelRepository.name, () => {
         [] as any,
       );
 
-      await uut.findNovelsConnection({
+      await uut.findNovelsPage({
+        page,
         filters: { categoryNin: ['Horror'] },
       });
 
@@ -478,12 +479,14 @@ describe(PrismaNovelRepository.name, () => {
       vi.mocked(prismaService.novel.findMany).mockResolvedValue([
         novel,
       ] as any);
-      const afterCursor = Buffer.from(
-        '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
-      ).toString('base64');
 
-      await uut.findNovelsConnection({
-        pagination: { first: 10, after: afterCursor },
+      await uut.findNovelsPage({
+        page: {
+          cursor: { id: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec' },
+          skip: 1,
+          take: 11,
+          shouldReverse: false,
+        },
       });
 
       expect(prismaService.novel.findMany).toHaveBeenCalledWith(
@@ -495,12 +498,22 @@ describe(PrismaNovelRepository.name, () => {
       );
     });
 
+    it('should order by name DESC when the page is reversed', async () => {
+      vi.mocked(prismaService.novel.findMany).mockResolvedValue([]);
+
+      await uut.findNovelsPage({ page: { shouldReverse: true } });
+
+      expect(prismaService.novel.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ orderBy: { name: 'desc' } }),
+      );
+    });
+
     it('should propagate the error when database fails', async () => {
       vi.mocked(prismaService.novel.findMany).mockRejectedValue(
         new Error('Database connection failed'),
       );
 
-      const result = uut.findNovelsConnection({});
+      const result = uut.findNovelsPage({ page });
 
       await expect(result).rejects.toThrow(
         'Database connection failed',

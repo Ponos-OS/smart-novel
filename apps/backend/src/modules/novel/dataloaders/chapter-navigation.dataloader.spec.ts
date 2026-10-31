@@ -15,7 +15,7 @@ describe(ChapterNavigationDataLoader.name, () => {
       getLastChapter: vi.fn(),
       getFirstChapter: vi.fn(),
       updateNarrationStatus: vi.fn(),
-      findChaptersConnection: vi.fn(),
+      findChaptersPage: vi.fn(),
       updateChapterNarrationUrl: vi.fn(),
       updateChapterNarrationComplete: vi.fn(),
       findManyByNovelAndChapterNumbers: vi.fn(),

@@ -1,5 +1,8 @@
 import {
   buildCursorPaginationParams,
+  buildPageInfo,
+  encodeCursor,
+  paginateConnection,
   trimCursorPaginationResults,
 } from './cursor-pagination.util';
 
@@ -68,11 +71,11 @@ describe(buildCursorPaginationParams.name, () => {
     expect(result.shouldReverse).toBe(false);
   });
 
-  it('should set take to last + 1 when only last is provided', () => {
+  it('should set take to last + 1 and reverse when only last is provided', () => {
     const result = buildCursorPaginationParams({ last: 15 });
 
     expect(result.take).toBe(16);
-    expect(result.shouldReverse).toBe(false);
+    expect(result.shouldReverse).toBe(true);
   });
 
   it('should not set take when neither first nor last is provided', () => {
@@ -173,5 +176,125 @@ describe(trimCursorPaginationResults.name, () => {
     const result = trimCursorPaginationResults([], { first: 10 });
 
     expect(result).toStrictEqual({ items: [], hasMore: false });
+  });
+});
+
+describe(buildPageInfo.name, () => {
+  const edges = [
+    { cursor: encodeCursor('bb563ad5-1ac4-46c2-a25f-6f62d245f44c') },
+    { cursor: encodeCursor('904bf826-33be-4172-b63f-665bba9007b9') },
+  ];
+
+  it.each([
+    {
+      name: 'first page with more rows',
+      pagination: { first: 2 },
+      hasMore: true,
+      expected: { hasPreviousPage: false, hasNextPage: true },
+    },
+    {
+      name: 'forward page after a cursor, last page',
+      pagination: { first: 2, after: edges[0].cursor },
+      hasMore: false,
+      expected: { hasPreviousPage: true, hasNextPage: false },
+    },
+    {
+      name: 'last page of the list with more rows before it',
+      pagination: { last: 2 },
+      hasMore: true,
+      expected: { hasPreviousPage: true, hasNextPage: false },
+    },
+    {
+      name: 'backward page before a cursor, nothing earlier',
+      pagination: { last: 2, before: edges[1].cursor },
+      hasMore: false,
+      expected: { hasPreviousPage: false, hasNextPage: true },
+    },
+    {
+      name: 'backward page before a cursor with more rows earlier',
+      pagination: { last: 2, before: edges[1].cursor },
+      hasMore: true,
+      expected: { hasPreviousPage: true, hasNextPage: true },
+    },
+  ])('should handle $name', ({ pagination, hasMore, expected }) => {
+    const result = buildPageInfo(edges, hasMore, pagination);
+
+    expect(result).toStrictEqual({
+      startCursor: edges[0].cursor,
+      endCursor: edges[1].cursor,
+      ...expected,
+    });
+  });
+
+  it('should return null cursors when there are no edges', () => {
+    const result = buildPageInfo([], false, { first: 10 });
+
+    expect(result).toStrictEqual({
+      startCursor: null,
+      endCursor: null,
+      hasPreviousPage: false,
+      hasNextPage: false,
+    });
+  });
+});
+
+describe(paginateConnection.name, () => {
+  const rows = [
+    { id: 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c', name: 'Fantasy' },
+    { id: '904bf826-33be-4172-b63f-665bba9007b9', name: 'Horror' },
+    { id: '3c0c1b5e-6d1e-4f43-9a55-0f2c8a1d7e21', name: 'Romance' },
+  ];
+
+  it('should build edges and trim the extra row for forward paging', async () => {
+    const findMany = vi
+      .fn<() => Promise<typeof rows>>()
+      .mockResolvedValue(rows);
+
+    const result = await paginateConnection({
+      pagination: { first: 2 },
+      findMany,
+      toNode: (row) => row.name,
+    });
+
+    expect(findMany).toHaveBeenCalledWith({
+      take: 3,
+      shouldReverse: false,
+    });
+    expect(result.edges).toStrictEqual([
+      { cursor: encodeCursor(rows[0].id), node: 'Fantasy' },
+      { cursor: encodeCursor(rows[1].id), node: 'Horror' },
+    ]);
+    expect(result.pageInfo).toStrictEqual({
+      startCursor: encodeCursor(rows[0].id),
+      endCursor: encodeCursor(rows[1].id),
+      hasPreviousPage: false,
+      hasNextPage: true,
+    });
+  });
+
+  it('should restore order and report earlier rows for backward paging', async () => {
+    const reversedRows = [...rows].reverse();
+    const findMany = vi
+      .fn<() => Promise<typeof rows>>()
+      .mockResolvedValue(reversedRows);
+
+    const result = await paginateConnection({
+      pagination: { last: 2 },
+      findMany,
+      toNode: (row) => row.name,
+    });
+
+    expect(findMany).toHaveBeenCalledWith({
+      take: 3,
+      shouldReverse: true,
+    });
+    expect(result.edges.map(({ node }) => node)).toStrictEqual([
+      'Horror',
+      'Romance',
+    ]);
+    expect(result.pageInfo).toMatchObject({
+      hasPreviousPage: true,
+      hasNextPage: false,
+    });
   });
 });

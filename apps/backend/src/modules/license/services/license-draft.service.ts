@@ -6,12 +6,10 @@ import {
 } from '@nestjs/common';
 import { LicenseSourceType, Prisma } from '@prisma/client';
 import { LICENSE_DRAFTS_PER_WRITER_MAX } from '@smart-novel/shared';
-import { PageInfo } from 'nestjs-backend-common';
 
 import {
-  buildCursorPaginationParams,
+  paginateConnection,
   type PaginationArgs,
-  trimCursorPaginationResults,
 } from '../../../shared';
 import { CanonicalLicenseCatalog } from '../../fithara';
 import { PrismaService } from '../../prisma';
@@ -24,7 +22,6 @@ import {
   License,
   LicenseDraft,
   LicenseDraftConnection,
-  LicenseDraftEdge,
 } from '../types';
 import { LicenseService } from './license.service';
 
@@ -149,41 +146,29 @@ export class LicenseDraftService {
     }
 
     const owners = viewer.isAdmin ? ownerIds : [viewer.id];
-    const { cursor, skip, take, shouldReverse } =
-      buildCursorPaginationParams(pagination);
-    const direction = shouldReverse ? 'asc' : 'desc';
-    const rows = await this.prisma.license.findMany({
-      where: {
-        isDraft: true,
-        ...(owners ? { ownerId: { in: owners } } : {}),
-      },
-      orderBy: [{ updatedAt: direction }, { id: direction }],
-      cursor,
-      skip,
-      take,
-    });
-    const { items, hasMore } = trimCursorPaginationResults(
-      rows,
+    const { edges, pageInfo } = await paginateConnection({
       pagination,
-      shouldReverse,
-    );
-    const edges: LicenseDraftEdge[] = items.map((row) => ({
-      cursor: Buffer.from(row.id).toString('base64'),
-      node: this.toDraft(row),
-    }));
-    const pageInfo: PageInfo = {
-      startCursor: edges.length > 0 ? edges[0].cursor : null,
-      endCursor:
-        edges.length > 0 ? edges[edges.length - 1].cursor : null,
-      hasPreviousPage: !!pagination.after,
-      hasNextPage: hasMore && !!pagination.first,
-    };
-    const connection = new LicenseDraftConnection();
+      findMany: ({ cursor, skip, take, shouldReverse }) => {
+        const direction = shouldReverse ? 'asc' : 'desc';
 
-    connection.edges = edges;
-    connection.pageInfo = pageInfo;
+        return this.prisma.license.findMany({
+          where: {
+            isDraft: true,
+            ...(owners ? { ownerId: { in: owners } } : {}),
+          },
+          orderBy: [{ updatedAt: direction }, { id: direction }],
+          cursor,
+          skip,
+          take,
+        });
+      },
+      toNode: (row) => this.toDraft(row),
+    });
 
-    return connection;
+    return Object.assign(new LicenseDraftConnection(), {
+      edges,
+      pageInfo,
+    });
   }
 
   async discard(ownerId: string, id: string): Promise<void> {
