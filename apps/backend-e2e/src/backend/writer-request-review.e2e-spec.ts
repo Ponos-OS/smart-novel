@@ -21,12 +21,21 @@ const MY_WRITER_REQUEST = `#graphql
 `;
 
 const WRITER_REQUESTS = `#graphql
-  query WriterRequests($first: Int, $filters: WriterRequestFiltersInput) {
-    writerRequestsConnection(first: $first, filters: $filters) {
+  query WriterRequests(
+    $first: Int
+    $after: String
+    $filters: WriterRequestFiltersInput
+  ) {
+    writerRequestsConnection(
+      first: $first
+      after: $after
+      filters: $filters
+    ) {
       edges {
         cursor
         node {
           id
+          userId
           requesterName
           requesterEmail
           note
@@ -175,6 +184,7 @@ describe('Writer request review (e2e)', () => {
         ),
       ).toContainEqual({
         id: requestId,
+        userId: expect.stringMatching(/^\d+$/),
         requesterName: 'Applicant One',
         requesterEmail: 'applicant@test.com',
         note: 'I serialize a fantasy web novel.',
@@ -345,6 +355,104 @@ describe('Writer request review (e2e)', () => {
           ({ node }: { node: { id: string } }) => node.id,
         ),
       ).toContain(requestId);
+    });
+  });
+
+  describe('searching', () => {
+    const statuses = ['PENDING', 'APPROVED', 'REJECTED'];
+
+    async function searchEveryStatus(search: string) {
+      const results = await Promise.all(
+        statuses.map((status) =>
+          graphql(
+            WRITER_REQUESTS,
+            { first: 100, filters: { status, search } },
+            adminAuthorization,
+          ),
+        ),
+      );
+
+      expect(results.map(({ errors }) => errors)).toStrictEqual([
+        undefined,
+        undefined,
+        undefined,
+      ]);
+
+      return results.flatMap(({ data }) =>
+        data.writerRequestsConnection.edges.map(
+          ({
+            node,
+          }: {
+            node: {
+              requesterName: string;
+              requesterEmail: string;
+              userId: string;
+            };
+          }) => node,
+        ),
+      );
+    }
+
+    beforeAll(async () => {
+      // Another spec may have filed this one already, which is a 400 and fine here.
+      await graphql(
+        REQUEST_WRITER_ACCESS,
+        { note: 'Searching needs a request from the regular user.' },
+        await AuthorizationFixture.getUserAuthorizationHeader(),
+      );
+    });
+
+    it.each([
+      {
+        scenario: 'a part of the name, in any case',
+        search: 'rEgULar uS',
+      },
+      { scenario: 'a part of the email', search: 'user@test' },
+    ])('should find the request by $scenario', async ({ search }) => {
+      const result = await searchEveryStatus(search);
+
+      expect(
+        result.map(({ requesterEmail }) => requesterEmail),
+      ).toContain('user@test.com');
+      expect(
+        result.every(({ userId }) => userId.length > 0),
+      ).toBeTrue();
+    });
+
+    it.each(['%', 'regular_user', 'regular\\'])(
+      'should treat %s as text, not as a LIKE pattern',
+      async (search) => {
+        const result = await searchEveryStatus(search);
+
+        expect(result).toBeEmpty();
+      },
+    );
+
+    it('should refuse a cursor issued without the search', async () => {
+      const first = await graphql(
+        WRITER_REQUESTS,
+        { first: 1 },
+        adminAuthorization,
+      );
+      const { cursor } = first.data.writerRequestsConnection.edges[0];
+
+      const data = await graphql(
+        WRITER_REQUESTS,
+        { first: 1, after: cursor, filters: { search: 'user' } },
+        adminAuthorization,
+      );
+
+      expect(data.errors[0].message).toContain('Invalid cursor');
+    });
+
+    it('should refuse a search over the limit', async () => {
+      const data = await graphql(
+        WRITER_REQUESTS,
+        { first: 1, filters: { search: 'a'.repeat(101) } },
+        adminAuthorization,
+      );
+
+      expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
     });
   });
 

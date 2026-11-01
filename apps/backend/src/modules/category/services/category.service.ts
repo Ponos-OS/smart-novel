@@ -12,6 +12,7 @@ import {
 import {
   boundPagination,
   buildAudience,
+  escapeLikePattern,
   paginateConnection,
   PaginationArgs,
 } from '../../../shared';
@@ -36,13 +37,6 @@ const CATEGORY_SELECT = {
   status: true,
   requesterUserId: true,
 } satisfies Prisma.CategorySelect;
-
-/**
- * @description Prisma's `startsWith` hands the text to `LIKE` as is, so `%` and `_` in it would be wildcards.
- */
-function escapeLikePattern(text: string): string {
-  return text.replace(/[\\%_]/g, '\\$&');
-}
 
 /**
  * @description

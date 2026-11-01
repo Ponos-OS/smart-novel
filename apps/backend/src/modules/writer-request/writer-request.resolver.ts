@@ -48,7 +48,7 @@ export class WriterRequestResolver {
   @RequireRole(Role.admin)
   @Query(() => WriterRequestConnection, {
     description:
-      'Admin only. Writer requests, oldest first, PENDING unless `filters.status` says otherwise. Without `first` or `last` a page of 20 is returned, at most 100 are allowed.',
+      'Admin only. Writer requests, oldest first, PENDING unless `filters.status` says otherwise, narrowed by `filters.search` (requester name or email contains it). Without `first` or `last` a page of 20 is returned, at most 100 are allowed.',
   })
   async writerRequestsConnection(
     @Args('first', { type: () => Int, nullable: true })

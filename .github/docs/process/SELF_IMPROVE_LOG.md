@@ -309,3 +309,10 @@
 - The planned infra change (widening the PAT's org role) turned out unnecessary: a live call from the backend pod with the existing PAT answered 200 for every seeded user. The Q15 premise was a hypothesis; `REQUIREMENTS.md` was corrected, and `PROCESS.md` now says to probe permission hypotheses live before building.
 - Left uncommitted for review, as asked. No GraphQL surface, so no graphql-api-tester and no e2e (the client has no caller yet; Step 4 uses it).
 - Live check: a throwaway `ts-node` script run from inside `apps/backend` (a script in the scratchpad cannot resolve `axios`) printed the profile of the seeded users against the running ZITADEL; deleted afterwards.
+
+## Admin Dashboard, Step 3 (2026-11-01)
+
+- `WriterRequestFiltersInput.search` (trimmed, max `WRITER_REQUEST_SEARCH_MAX_LENGTH` = 100, contains over `requesterName` or `requesterEmail`, case-insensitive, LIKE wildcards escaped) and a non-null `WriterRequest.userId`. `escapeLikePattern` moved from `CategoryService` to `shared/utils/like-pattern.util.ts`. An empty search leaves `where` exactly as before, so the cursor audience of the default query is unchanged.
+- Committed on the user's request even though `REQUIREMENTS.md` says not to. The clean-state `backend-e2e` rerun was still pending at commit time (see below), so it is recorded here and not claimed.
+- Adding `userId` to a shared e2e query broke an existing `toContainEqual` on the whole node (deep equality); a field added to a query that a spec compares as a whole object must be added to that expectation too (`expect.stringMatching(/^\d+$/)` for the ZITADEL id).
+- The writer-request specs (`writer-request.e2e-spec`, `cursor-validation`) assume a database nobody has used: against a reused `start:dev` stack they failed on leftover requests ("never asked", "let a user request"), unrelated to this diff. The seven new search cases passed on the reused stack. A clean verification needs `stop:dev` and `start:dev` first (about 10 minutes).

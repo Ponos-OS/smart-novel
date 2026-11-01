@@ -1,6 +1,13 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { WriterRequestStatus } from '@prisma/client';
-import { IsEnum, IsOptional } from 'class-validator';
+import { WRITER_REQUEST_SEARCH_MAX_LENGTH } from '@smart-novel/shared';
+import { Transform } from 'class-transformer';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 @InputType()
 export class WriterRequestFiltersInput {
@@ -11,4 +18,15 @@ export class WriterRequestFiltersInput {
   @IsOptional()
   @IsEnum(WriterRequestStatus)
   status?: WriterRequestStatus;
+
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Requests whose requester name or email contains this text, case-insensitively. Blank is ignored.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(WRITER_REQUEST_SEARCH_MAX_LENGTH)
+  @Transform(({ value }) => value?.trim())
+  search?: string;
 }

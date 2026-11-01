@@ -20,6 +20,7 @@ const requestId = '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10';
 const adminId = '364554362732740610';
 const pendingRequest = {
   id: requestId,
+  userId,
   requesterName: 'Mina Ardalan',
   requesterEmail: 'mina.ardalan@example.com',
   note,
@@ -233,6 +234,87 @@ describe(WriterRequestService.name, () => {
           where: { status: WriterRequestStatus.REJECTED },
         }),
       );
+    });
+
+    it('should match the requester name or email, case-insensitively, when asked to search', async () => {
+      await uut.findConnection(
+        { first: 5 },
+        { status: WriterRequestStatus.APPROVED, search: 'Mina' },
+      );
+
+      expect(prisma.writerRequest.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            status: WriterRequestStatus.APPROVED,
+            OR: [
+              {
+                requesterName: {
+                  contains: 'Mina',
+                  mode: 'insensitive',
+                },
+              },
+              {
+                requesterEmail: {
+                  contains: 'Mina',
+                  mode: 'insensitive',
+                },
+              },
+            ],
+          },
+        }),
+      );
+    });
+
+    it('should escape the LIKE wildcards of the search text', async () => {
+      await uut.findConnection({ first: 5 }, { search: '100%_mina' });
+
+      expect(prisma.writerRequest.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: [
+              {
+                requesterName: {
+                  contains: '100\\%\\_mina',
+                  mode: 'insensitive',
+                },
+              },
+              {
+                requesterEmail: {
+                  contains: '100\\%\\_mina',
+                  mode: 'insensitive',
+                },
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    it('should ignore an empty search', async () => {
+      await uut.findConnection({ first: 5 }, { search: '' });
+
+      expect(prisma.writerRequest.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { status: WriterRequestStatus.PENDING },
+        }),
+      );
+    });
+
+    it('should refuse a cursor issued for another search before querying', async () => {
+      const after = cursorCodec.encode(
+        buildAudience('writerRequests', {
+          where: { status: WriterRequestStatus.PENDING },
+        }),
+        second.id,
+      );
+
+      const result = uut.findConnection(
+        { first: 5, after },
+        { search: 'mina' },
+      );
+
+      await expect(result).rejects.toThrow('Invalid cursor');
+      expect(prisma.writerRequest.findMany).not.toHaveBeenCalled();
     });
 
     it('should refuse a cursor issued for another status before querying', async () => {

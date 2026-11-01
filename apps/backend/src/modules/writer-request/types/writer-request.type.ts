@@ -17,6 +17,12 @@ export class WriterRequest {
   @Field(() => ID)
   id: string;
 
+  @Field(() => ID, {
+    description:
+      'The ID of the requester in the identity provider, the `ownerId` of their novels',
+  })
+  userId: string;
+
   @Field({ description: 'The name of the requester when they asked' })
   requesterName: string;
 

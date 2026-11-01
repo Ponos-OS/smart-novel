@@ -14,6 +14,7 @@ import { retryAsync } from 'nestjs-backend-common';
 import {
   boundPagination,
   buildAudience,
+  escapeLikePattern,
   paginateConnection,
   PaginationArgs,
 } from '../../shared';
@@ -29,6 +30,7 @@ import { WriterRequest, WriterRequestConnection } from './types';
 
 const WRITER_REQUEST_SELECT = {
   id: true,
+  userId: true,
   requesterName: true,
   requesterEmail: true,
   note: true,
@@ -96,8 +98,20 @@ export class WriterRequestService {
       defaultSize: WRITER_REQUESTS_PAGE_SIZE_DEFAULT,
       maxSize: WRITER_REQUESTS_PAGE_SIZE_MAX,
     });
+    const search =
+      filters?.search && escapeLikePattern(filters.search);
     const where: Prisma.WriterRequestWhereInput = {
       status: filters?.status ?? WriterRequestStatus.PENDING,
+      ...(search && {
+        OR: [
+          {
+            requesterName: { contains: search, mode: 'insensitive' },
+          },
+          {
+            requesterEmail: { contains: search, mode: 'insensitive' },
+          },
+        ],
+      }),
     };
     const { edges, pageInfo } = await paginateConnection({
       codec: this.cursorCodec,
