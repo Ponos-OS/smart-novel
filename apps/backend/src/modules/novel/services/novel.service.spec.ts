@@ -11,7 +11,7 @@ import type {
 import type { ChapterNarrationService } from './chapter-narration.service';
 
 import { appConfigs } from '../../../app/configs/app.config';
-import { OrderDirection } from '../../../shared';
+import { buildAudience, OrderDirection } from '../../../shared';
 import { CursorCodec } from '../../cursor';
 import { ChapterOrderField } from '../enums';
 import { Novel } from '../types';
@@ -20,6 +20,18 @@ import { NovelService } from './novel.service';
 const cursorCodec = new CursorCodec({
   CURSOR_SIGNING_SECRET: 'b7e1f0c2a94d4c1f8d3e6a5b09c27f41',
 } as ConfigType<typeof appConfigs>);
+
+const chaptersAudience = (
+  novelId: string,
+  orderByField = ChapterOrderField.CHAPTER_NUMBER,
+  orderByDirection = OrderDirection.ASC,
+) =>
+  buildAudience('chapters', {
+    novelId,
+    orderByField,
+    orderByDirection,
+    filters: {},
+  });
 
 describe(NovelService.name, () => {
   let uut: NovelService;
@@ -373,7 +385,7 @@ describe(NovelService.name, () => {
         },
       ]);
       const afterCursor = cursorCodec.encode(
-        'novels',
+        buildAudience('novels', { filters: {} }),
         'afbc61b9-1ff7-4792-9e79-fb3ec55939a7',
       );
 
@@ -418,6 +430,49 @@ describe(NovelService.name, () => {
   });
 
   describe('getChaptersConnection', () => {
+    const novelId = '8d3ea510-2dee-4af0-b5c4-7709d15c606a';
+    const chapterId = 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c';
+
+    it.each([
+      [
+        'another novel',
+        chaptersAudience('9d154762-d77f-42b4-add2-cf1d234d1a21'),
+      ],
+      [
+        'another order',
+        chaptersAudience(
+          novelId,
+          ChapterOrderField.CREATED_AT,
+          OrderDirection.DESC,
+        ),
+      ],
+      [
+        'another filter',
+        buildAudience('chapters', {
+          novelId,
+          orderByField: ChapterOrderField.CHAPTER_NUMBER,
+          orderByDirection: OrderDirection.ASC,
+          filters: { narrationStatus: NarrationStatus.READY },
+        }),
+      ],
+      ['another connection', buildAudience('novels')],
+    ])(
+      'should refuse a cursor issued for %s before querying',
+      async (_case, audience) => {
+        const result = uut.getChaptersConnection(
+          novelId,
+          10,
+          undefined,
+          cursorCodec.encode(audience, chapterId),
+        );
+
+        await expect(result).rejects.toThrow('Invalid cursor');
+        expect(
+          chapterRepository.findChaptersPage,
+        ).not.toHaveBeenCalled();
+      },
+    );
+
     it('should return a connection with edges and pageInfo', async () => {
       const novelId = '8d3ea510-2dee-4af0-b5c4-7709d15c606a';
       vi.mocked(chapterRepository.findChaptersPage).mockResolvedValue(
@@ -451,7 +506,7 @@ describe(NovelService.name, () => {
       );
       expect(result.edges[0].cursor).toBe(
         cursorCodec.encode(
-          'chapters',
+          chaptersAudience(novelId),
           'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
         ),
       );

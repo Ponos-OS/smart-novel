@@ -247,6 +247,26 @@ describe('License drafts (e2e)', () => {
   });
 
   describe('listing', () => {
+    it('should refuse a cursor issued to another writer', async () => {
+      await startDraft();
+      const page = await graphql(
+        LICENSE_DRAFTS_CONNECTION,
+        { first: 1 },
+        writer,
+      );
+      const cursor =
+        page.data.licenseDraftsConnection.edges[0].cursor;
+
+      const data = await graphql(
+        LICENSE_DRAFTS_CONNECTION,
+        { first: 1, after: cursor },
+        otherWriter,
+      );
+
+      expect(data.errors[0].message).toBe('Invalid cursor');
+      expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
+    });
+
     it('should page through the drafts of a writer', async () => {
       const first = await startDraft();
       const second = await startDraft();

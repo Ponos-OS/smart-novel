@@ -11,6 +11,7 @@ import {
 
 import {
   boundPagination,
+  buildAudience,
   paginateConnection,
   PaginationArgs,
 } from '../../../shared';
@@ -86,7 +87,7 @@ export class CategoryService {
     };
     const { edges, pageInfo } = await paginateConnection({
       codec: this.cursorCodec,
-      audience: 'categories',
+      audience: buildAudience('categories', { where }),
       pagination: page,
       findMany: ({ cursor, skip, take, shouldReverse }) =>
         this.prisma.category.findMany({

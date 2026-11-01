@@ -8,6 +8,7 @@ import { LicenseSourceType, Prisma } from '@prisma/client';
 import { LICENSE_DRAFTS_PER_WRITER_MAX } from '@smart-novel/shared';
 
 import {
+  buildAudience,
   paginateConnection,
   type PaginationArgs,
 } from '../../../shared';
@@ -148,18 +149,19 @@ export class LicenseDraftService {
     }
 
     const owners = viewer.isAdmin ? ownerIds : [viewer.id];
+    const where: Prisma.LicenseWhereInput = {
+      isDraft: true,
+      ...(owners ? { ownerId: { in: owners } } : {}),
+    };
     const { edges, pageInfo } = await paginateConnection({
       codec: this.cursorCodec,
-      audience: 'licenseDrafts',
+      audience: buildAudience('licenseDrafts', { where }),
       pagination,
       findMany: ({ cursor, skip, take, shouldReverse }) => {
         const direction = shouldReverse ? 'asc' : 'desc';
 
         return this.prisma.license.findMany({
-          where: {
-            isDraft: true,
-            ...(owners ? { ownerId: { in: owners } } : {}),
-          },
+          where,
           orderBy: [{ updatedAt: direction }, { id: direction }],
           cursor,
           skip,

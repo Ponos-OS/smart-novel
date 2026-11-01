@@ -13,14 +13,13 @@ import type { PrismaService } from '../../prisma';
 import type { LicenseService } from './license.service';
 
 import { appConfigs } from '../../../app/configs/app.config';
+import { buildAudience } from '../../../shared';
 import { CursorCodec } from '../../cursor';
 import { LicenseDraftService } from './license-draft.service';
 
 const cursorCodec = new CursorCodec({
   CURSOR_SIGNING_SECRET: 'b7e1f0c2a94d4c1f8d3e6a5b09c27f41',
 } as ConfigType<typeof appConfigs>);
-const cursorOf = (id: string) =>
-  cursorCodec.encode('licenseDrafts', id);
 
 describe(LicenseDraftService.name, () => {
   let uut: LicenseDraftService;
@@ -29,6 +28,13 @@ describe(LicenseDraftService.name, () => {
   let catalog: CanonicalLicenseCatalog;
 
   const ownerId = '230104087265432001';
+  const cursorOf = (id: string, owners = [ownerId]) =>
+    cursorCodec.encode(
+      buildAudience('licenseDrafts', {
+        where: { isDraft: true, ownerId: { in: owners } },
+      }),
+      id,
+    );
   const draftId = '5c1f4d0e-3b6a-4a57-9d3e-0b7a8f2c9e41';
   const draftRow = {
     id: draftId,
@@ -437,6 +443,18 @@ describe(LicenseDraftService.name, () => {
         hasPreviousPage: true,
         hasNextPage: true,
       });
+    });
+
+    it('should refuse a cursor issued to another writer before querying', async () => {
+      const result = uut.findConnection(writer, {
+        first: 2,
+        after: cursorOf('c0a80121-7ac0-4e1c-9f3b-2d5e8a6b1f04', [
+          otherWriter,
+        ]),
+      });
+
+      await expect(result).rejects.toThrow('Invalid cursor');
+      expect(prisma.license.findMany).not.toHaveBeenCalled();
     });
 
     it('should page backwards from a cursor and give the page in its normal order', async () => {

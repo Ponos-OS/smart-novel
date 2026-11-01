@@ -280,3 +280,10 @@
 - A new required env key breaks `validateEnvs` at boot for everyone with an existing `.env`; added the key to the local `.env` too (git-ignored).
 - Not run: `backend-e2e` (same `start-dev.sh e2e` frontend-image codegen failure as Step 1, still unexplained). The new e2e cases (changed signature, cursor from another connection) are unproven.
 - Pre-existing, left alone: `novels.e2e-spec.ts` "should return novels after a cursor" sends an unsigned cursor and only asserts HTTP 200, so it no longer exercises paging.
+
+## Cursor Signing, Step 3 (2026-11-01)
+
+- `buildAudience(connection, query)` (`shared/utils/cursor-audience.util.ts`): SHA-256 of canonical JSON (sorted keys, `undefined` dropped), base64url cut to 22 chars. Categories, license drafts and writer requests hash their Prisma `where` (so a condition added later is bound automatically); novels and chapters hash the arguments they hand to the repository (one shared `novelsQuery` / `chaptersQuery` per call, so a new filtering argument is bound automatically), because their `where` is built inside the repositories. Sorts fixed in code are covered by the connection name only.
+- `REQUIREMENTS.md` says to leave the step uncommitted for review; followed it.
+- Service specs that built cursors with a plain audience name had to use `buildAudience` too; every service spec got a "refuses a cursor issued for another scope before querying" case that also asserts the repository/Prisma call never happened.
+- Not run: `backend-e2e` (same unexplained `start-dev.sh e2e` frontend-image codegen failure as Steps 1 and 2). The new e2e cases (chapters other order / other novel in `cursor-validation.e2e-spec.ts`, other writer in `license-drafts.e2e-spec.ts`) are unproven.

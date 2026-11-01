@@ -4,6 +4,7 @@ import type { CustomLoggerService } from 'nestjs-backend-common';
 import { CategoryStatus, Prisma } from '@prisma/client';
 
 import { appConfigs } from '../../../app/configs/app.config';
+import { buildAudience } from '../../../shared';
 import { CursorCodec } from '../../cursor';
 import { PrismaService } from '../../prisma';
 import { CategoryService } from './category.service';
@@ -27,7 +28,11 @@ const romance = {
 const cursorCodec = new CursorCodec({
   CURSOR_SIGNING_SECRET: 'b7e1f0c2a94d4c1f8d3e6a5b09c27f41',
 } as ConfigType<typeof appConfigs>);
-const toCursor = (id: string) => cursorCodec.encode('categories', id);
+const approvedOnly = buildAudience('categories', {
+  where: { status: { in: [CategoryStatus.APPROVED] } },
+});
+const toCursor = (id: string, audience = approvedOnly) =>
+  cursorCodec.encode(audience, id);
 
 describe(CategoryService.name, () => {
   let uut: CategoryService;
@@ -239,6 +244,37 @@ describe(CategoryService.name, () => {
       'should reject a malformed $name cursor',
       async ({ pagination }) => {
         const result = uut.findConnection(false, pagination);
+
+        await expect(result).rejects.toThrow('Invalid cursor');
+        expect(prisma.category.findMany).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      [
+        'another search',
+        buildAudience('categories', {
+          where: {
+            status: { in: [CategoryStatus.APPROVED] },
+            OR: [
+              { name: { startsWith: 'fan', mode: 'insensitive' } },
+            ],
+          },
+        }),
+      ],
+      [
+        'other statuses',
+        buildAudience('categories', {
+          where: { status: { in: [CategoryStatus.PENDING] } },
+        }),
+      ],
+    ])(
+      'should refuse a cursor issued for %s',
+      async (_case, audience) => {
+        const result = uut.findConnection(false, {
+          first: 5,
+          after: toCursor(mystery.id, audience),
+        });
 
         await expect(result).rejects.toThrow('Invalid cursor');
         expect(prisma.category.findMany).not.toHaveBeenCalled();

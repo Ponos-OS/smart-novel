@@ -8,6 +8,7 @@ import {
 } from '@smart-novel/shared';
 
 import { appConfigs } from '../../app/configs/app.config';
+import { buildAudience } from '../../shared';
 import { type IAuthUser, ZitadelManagementClient } from '../auth';
 import { CursorCodec } from '../cursor';
 import { PrismaService } from '../prisma';
@@ -232,6 +233,20 @@ describe(WriterRequestService.name, () => {
           where: { status: WriterRequestStatus.REJECTED },
         }),
       );
+    });
+
+    it('should refuse a cursor issued for another status before querying', async () => {
+      const after = cursorCodec.encode(
+        buildAudience('writerRequests', {
+          where: { status: WriterRequestStatus.APPROVED },
+        }),
+        second.id,
+      );
+
+      const result = uut.findConnection({ first: 5, after });
+
+      await expect(result).rejects.toThrow('Invalid cursor');
+      expect(prisma.writerRequest.findMany).not.toHaveBeenCalled();
     });
 
     it('should flip the order and report more pages when paging backward', async () => {

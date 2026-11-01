@@ -4,7 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
-import { OrderDirection, paginateConnection } from '../../../shared';
+import {
+  buildAudience,
+  OrderDirection,
+  paginateConnection,
+} from '../../../shared';
 import { CursorCodec } from '../../cursor';
 import { LicenseService } from '../../license';
 import { ChapterOrderField } from '../enums';
@@ -17,6 +21,7 @@ import {
 } from '../inputs';
 import {
   CHAPTER_REPOSITORY,
+  type FindChaptersPageArgs,
   type FindNovelsPageArgs,
   type IChapterRepository,
   type INovelRepository,
@@ -123,15 +128,15 @@ export class NovelService {
       categoryIn: filters?.category?.in,
       categoryNin: filters?.category?.nin,
     };
+    const novelsQuery: Omit<FindNovelsPageArgs, 'page'> = {
+      filters: connectionFilters,
+    };
     const { edges, pageInfo } = await paginateConnection({
       codec: this.cursorCodec,
-      audience: 'novels',
+      audience: buildAudience('novels', novelsQuery),
       pagination: { first, last, after, before },
       findMany: (page) =>
-        this.novelRepository.findNovelsPage({
-          page,
-          filters: connectionFilters,
-        }),
+        this.novelRepository.findNovelsPage({ ...novelsQuery, page }),
       toNode: (novel) => novel,
     });
 
@@ -159,17 +164,20 @@ export class NovelService {
     const connectionFilters = {
       narrationStatus: filters?.narrationStatus?.eq,
     };
+    const chaptersQuery: Omit<FindChaptersPageArgs, 'page'> = {
+      novelId,
+      orderByField,
+      orderByDirection,
+      filters: connectionFilters,
+    };
     const { edges, pageInfo } = await paginateConnection({
       codec: this.cursorCodec,
-      audience: 'chapters',
+      audience: buildAudience('chapters', chaptersQuery),
       pagination: { first, last, after, before },
       findMany: (page) =>
         this.chapterRepository.findChaptersPage({
-          novelId,
+          ...chaptersQuery,
           page,
-          orderByField,
-          orderByDirection,
-          filters: connectionFilters,
         }),
       toNode: (chapter) => chapter as Chapter,
     });

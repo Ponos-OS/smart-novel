@@ -13,6 +13,7 @@ import { retryAsync } from 'nestjs-backend-common';
 
 import {
   boundPagination,
+  buildAudience,
   paginateConnection,
   PaginationArgs,
 } from '../../shared';
@@ -100,7 +101,7 @@ export class WriterRequestService {
     };
     const { edges, pageInfo } = await paginateConnection({
       codec: this.cursorCodec,
-      audience: 'writerRequests',
+      audience: buildAudience('writerRequests', { where }),
       pagination: page,
       findMany: ({ cursor, skip, take, shouldReverse }) => {
         const direction = shouldReverse ? 'desc' : 'asc';

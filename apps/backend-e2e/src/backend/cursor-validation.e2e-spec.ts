@@ -60,6 +60,38 @@ const WRITER_REQUESTS = `#graphql
   }
 `;
 
+const CHAPTERS_PAGE = `#graphql
+  query ChaptersPage(
+    $novelId: ID!
+    $after: String
+    $direction: OrderDirection!
+  ) {
+    novel(id: $novelId) {
+      chaptersConnection(
+        first: 1
+        after: $after
+        orderBy: { field: CHAPTER_NUMBER, direction: $direction }
+      ) {
+        edges {
+          cursor
+        }
+      }
+    }
+  }
+`;
+
+const NOVEL_IDS = `#graphql
+  query NovelIds {
+    novelsConnection(first: 2) {
+      edges {
+        node {
+          id
+        }
+      }
+    }
+  }
+`;
+
 async function graphql(
   query: string,
   variables: Record<string, unknown>,
@@ -152,6 +184,46 @@ describe('Cursor validation (e2e)', () => {
       const tampered = `${cursor.slice(0, -1)}${cursor.endsWith('A') ? 'B' : 'A'}`;
 
       const data = await graphql(NOVELS, { after: tampered });
+
+      expect(data.errors[0].message).toBe('Invalid cursor');
+      expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
+    });
+
+    it('should refuse a chapters cursor used with another order', async () => {
+      const first = await graphql(CHAPTERS_PAGE, {
+        novelId,
+        direction: 'ASC',
+      });
+      const cursor =
+        first.data.novel.chaptersConnection.edges[0].cursor;
+
+      const data = await graphql(CHAPTERS_PAGE, {
+        novelId,
+        direction: 'DESC',
+        after: cursor,
+      });
+
+      expect(data.errors[0].message).toBe('Invalid cursor');
+      expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
+    });
+
+    it('should refuse a chapters cursor used for another novel', async () => {
+      const first = await graphql(CHAPTERS_PAGE, {
+        novelId,
+        direction: 'ASC',
+      });
+      const cursor =
+        first.data.novel.chaptersConnection.edges[0].cursor;
+      const novels = await graphql(NOVEL_IDS, {});
+      const otherNovelId = novels.data.novelsConnection.edges
+        .map(({ node }: { node: { id: string } }) => node.id)
+        .find((id: string) => id !== novelId);
+
+      const data = await graphql(CHAPTERS_PAGE, {
+        novelId: otherNovelId,
+        direction: 'ASC',
+        after: cursor,
+      });
 
       expect(data.errors[0].message).toBe('Invalid cursor');
       expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
