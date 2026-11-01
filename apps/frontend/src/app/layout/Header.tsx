@@ -10,7 +10,7 @@ import { Tooltip } from '../../components/Tooltip';
 import { useAuth } from '../../hooks/useAuth';
 import { getInitials } from '../../utils/get-initials';
 
-const ZITADEL_CONSOLE_URL = `${window.location.origin}/ui/console/`;
+const ZITADEL_CONSOLE_URL = `${import.meta.env.VITE_OIDC_AUTHORITY}/ui/console/`;
 
 const MENU_ITEM_CLASSES =
   'block w-full cursor-pointer px-4 py-2 text-left text-sm text-gray-200 outline-none transition-colors data-[highlighted]:bg-gray-600';
