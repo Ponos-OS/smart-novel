@@ -15,6 +15,7 @@ import {
 } from '../../generated/graphql';
 import { useAuth } from '../../hooks/useAuth';
 import { showApiError, showSuccess } from '../../utils/notification';
+import { ContentStatsCards } from './ContentStatsCards';
 import {
   buildNovelFilters,
   EMPTY_NOVEL_FILTERS,
@@ -150,6 +151,8 @@ export function AdminNovelsPage() {
         is an estimate; the filter on it is exact. Deleting a novel
         removes it for good.
       </p>
+
+      <ContentStatsCards />
 
       <fieldset className="mb-4 grid gap-4 rounded-lg border border-gray-700 bg-gray-800 p-4 sm:grid-cols-2 lg:grid-cols-4">
         <legend className="px-2 text-sm font-medium text-gray-300">

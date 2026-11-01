@@ -29,6 +29,9 @@ vi.mock('../../utils/notification', () => ({
   showApiError: vi.fn(),
   showSuccess: vi.fn(),
 }));
+vi.mock('./ContentStatsCards', () => ({
+  ContentStatsCards: () => null,
+}));
 vi.mock('./use-admin-novels', () => ({
   ADMIN_NOVELS_KEY: 'AdminNovelsInfinite',
   useAdminNovels: vi.fn(),

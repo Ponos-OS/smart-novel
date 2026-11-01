@@ -80,6 +80,21 @@ const writersPage = (nodes: object[]) => ({
   pageParams: [undefined],
 });
 
+/** @description The content stats cards have their own stories; here they only need an answer. */
+function primeContentStatsCards(client: QueryClient) {
+  client.setQueryData(['ContentStats'], {
+    contentStats: {
+      estimatedNovelCount: 1236,
+      estimatedChapterCount: 14420,
+    },
+  });
+  for (const last of [30, 90]) {
+    client.setQueryData(['StatsSnapshots', { last }], {
+      statsSnapshotsConnection: { edges: [] },
+    });
+  }
+}
+
 const authAs = (roles: string[]) =>
   ({
     isLoading: false,
@@ -115,6 +130,7 @@ function decorator(
       ['SearchWritersInfinite', ''],
       writersPage([mina, omid]),
     );
+    primeContentStatsCards(client);
 
     return (
       <AuthContext.Provider value={authAs(roles)}>
@@ -137,6 +153,7 @@ function unavailable(outcome: 'pending' | 'failed') {
       },
     });
 
+    primeContentStatsCards(client);
     void client.prefetchInfiniteQuery({
       queryKey: [ADMIN_NOVELS_KEY, undefined, undefined],
       initialPageParam: undefined,

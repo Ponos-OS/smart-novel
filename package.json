@@ -200,6 +200,7 @@
     "gray-matter": "^4.0.3",
     "ioredis": "^5.9.3",
     "jose": "^6.2.1",
+    "lightweight-charts": "5.2.1",
     "loglevel": "^1.9.2",
     "lucide-react": "^1.65.0",
     "mime": "^4.1.0",

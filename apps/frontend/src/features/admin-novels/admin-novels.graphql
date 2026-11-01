@@ -56,3 +56,23 @@ query SearchWriters($search: String, $first: Int!, $after: String) {
     }
   }
 }
+
+query ContentStats {
+  contentStats {
+    estimatedNovelCount
+    estimatedChapterCount
+  }
+}
+
+query StatsSnapshots($last: Int!) {
+  statsSnapshotsConnection(last: $last) {
+    edges {
+      node {
+        id
+        day
+        novelCount
+        chapterCount
+      }
+    }
+  }
+}

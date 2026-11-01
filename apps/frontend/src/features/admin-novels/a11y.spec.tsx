@@ -15,6 +15,9 @@ import { useWriterSuggestions } from './use-writer-suggestions';
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ user: { roles: ['admin'] }, loading: false }),
 }));
+vi.mock('./ContentStatsCards', () => ({
+  ContentStatsCards: () => null,
+}));
 vi.mock('./use-admin-novels', () => ({
   ADMIN_NOVELS_KEY: 'AdminNovelsInfinite',
   useAdminNovels: vi.fn(),
