@@ -4,20 +4,30 @@ import {
   Prisma,
   Novel as PrismaNovel,
 } from '@prisma/client';
-import { CustomLoggerService } from 'nestjs-backend-common';
+import {
+  CustomLoggerService,
+  retryAsync,
+} from 'nestjs-backend-common';
 
-import { PrismaService } from '../../prisma';
+import { estimateRows, PrismaService } from '../../prisma';
 import { writerIntegrityError } from '../../writer';
 import {
   type CreateNovelData,
   type DeletedNovel,
   type FindNovelsPageArgs,
   type INovelRepository,
-  type NovelConnectionFilters,
   type NovelWithPreviousCover,
   type UpdateNovelData,
 } from '../interfaces';
 import { Novel } from '../types';
+import {
+  buildAfterCursorCondition,
+  buildFilterConditions,
+  buildOrderBy,
+} from './novel-page.sql';
+
+/** @description Only reached when a caller skips the pagination bounds, which the service never does. */
+const NOVELS_PAGE_SIZE_FALLBACK = 21;
 
 const NOVEL_INCLUDE = {
   categories: { select: { category: { select: { name: true } } } },
@@ -31,28 +41,77 @@ export class PrismaNovelRepository implements INovelRepository {
     private readonly logger: CustomLoggerService,
   ) {}
 
+  /**
+   * @description
+   * Prisma cannot filter by a count and its cursor breaks on a nullable sort column (a row comparison with NULL is never true), so the page of ids is raw SQL with its own keyset, see {@link buildOrderBy}. The novels themselves are then loaded with their categories and put back in that order.
+   */
   async findNovelsPage({
-    page: { cursor, skip, take, shouldReverse },
+    page: { cursor, take, shouldReverse },
     filters,
+    order,
   }: FindNovelsPageArgs): Promise<Novel[]> {
-    const novels = await this.prisma.novel.findMany({
-      where: this.buildNovelWhereClause(filters),
-      orderBy: { name: shouldReverse ? 'desc' : 'asc' },
-      include: NOVEL_INCLUDE,
-      cursor,
-      skip,
-      take,
-    });
+    const conditions = buildFilterConditions(filters);
 
-    return novels.map((novel) => this.toNovel(novel));
+    if (cursor) {
+      conditions.push(
+        await buildAfterCursorCondition(
+          this.prisma,
+          cursor.id,
+          order,
+          shouldReverse,
+        ),
+      );
+    }
+
+    const where = conditions.length
+      ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
+      : Prisma.empty;
+    const rows = await this.prisma.$queryRaw<
+      { id: string }[]
+    >(Prisma.sql`
+      SELECT n.id FROM novels n
+      ${where}
+      ${buildOrderBy(order, shouldReverse)}
+      LIMIT ${take ?? NOVELS_PAGE_SIZE_FALLBACK}`);
+    const ids = rows.map(({ id }) => id);
+    const novels = await this.prisma.novel.findMany({
+      where: { id: { in: ids } },
+      include: NOVEL_INCLUDE,
+    });
+    const byId = new Map(novels.map((novel) => [novel.id, novel]));
+
+    return ids.map((id) => this.toNovel(byId.get(id)!));
   }
 
-  async countNovels(
-    filters?: NovelConnectionFilters,
-  ): Promise<number> {
-    const where = this.buildNovelWhereClause(filters);
+  /**
+   * @description
+   * The planner's row estimate for the chapters of each novel, from `EXPLAIN` instead of `COUNT(*)`; see {@link estimateRows}. A novel whose estimate cannot be read gets 0.
+   */
+  async estimateChapterCounts(
+    novelIds: string[],
+  ): Promise<Map<string, number>> {
+    const counts = await Promise.all(
+      novelIds.map(async (novelId) => {
+        const [error, count] = await retryAsync(
+          () =>
+            estimateRows(
+              this.prisma,
+              Prisma.sql`SELECT 1 FROM chapters WHERE novel_id = ${novelId}::uuid`,
+            ),
+          { retry: 0 },
+        );
 
-    return this.prisma.novel.count({ where });
+        if (error) {
+          this.logger.warn(
+            `Could not estimate the chapters of novel ${novelId}: ${error}`,
+          );
+        }
+
+        return [novelId, error ? 0 : count] as const;
+      }),
+    );
+
+    return new Map(counts);
   }
 
   async findById(id: string): Promise<Novel | null> {
@@ -225,36 +284,6 @@ export class PrismaNovelRepository implements INovelRepository {
     }
 
     return approved.map((category) => category.id);
-  }
-
-  private buildNovelWhereClause(
-    filters?: NovelConnectionFilters,
-  ): Prisma.NovelWhereInput {
-    const where: Prisma.NovelWhereInput = {};
-
-    if (filters?.categoryIn && filters.categoryIn.length > 0) {
-      where.categories = {
-        some: {
-          category: {
-            name: { in: filters.categoryIn, mode: 'insensitive' },
-          },
-        },
-      };
-    }
-
-    if (filters?.categoryNin && filters.categoryNin.length > 0) {
-      where.NOT = {
-        categories: {
-          some: {
-            category: {
-              name: { in: filters.categoryNin, mode: 'insensitive' },
-            },
-          },
-        },
-      };
-    }
-
-    return where;
   }
 
   private toNovel(

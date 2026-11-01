@@ -1,12 +1,17 @@
 import { NovelState } from '@prisma/client';
 
+import { OrderDirection } from '../../../shared';
 import { PrismaService } from '../../prisma';
+import { NovelOrderField } from '../enums';
 import { PrismaNovelRepository } from './prisma-novel.repository';
 
 describe(PrismaNovelRepository.name, () => {
   let uut: PrismaNovelRepository;
   let prismaService: PrismaService;
-  let logger: { error: ReturnType<typeof vi.fn> };
+  let logger: {
+    error: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+  };
   const writerId = '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10';
 
   beforeEach(async () => {
@@ -37,7 +42,7 @@ describe(PrismaNovelRepository.name, () => {
       $transaction: vi.fn((callback) => callback(prismaService)),
     } as any;
 
-    logger = { error: vi.fn() };
+    logger = { error: vi.fn(), warn: vi.fn() };
     uut = new PrismaNovelRepository(prismaService, logger as never);
     vi.mocked(prismaService.writer.findUnique).mockResolvedValue({
       id: writerId,
@@ -420,16 +425,38 @@ describe(PrismaNovelRepository.name, () => {
   });
 
   describe('findNovelsPage', () => {
-    const page = { shouldReverse: false };
+    const page = { shouldReverse: false, take: 21 };
+    const order = {
+      field: NovelOrderField.NAME,
+      direction: OrderDirection.ASC,
+    };
+    const lastQuery = () => {
+      const calls = vi.mocked(prismaService.$queryRaw).mock.calls;
+      const { text, values } = calls[calls.length - 1][0] as any;
 
-    it('should return novels when no filters or pagination are provided', async () => {
+      return { sql: text.replace(/\s+/g, ' '), values };
+    };
+
+    it('should read the ids of the page by name, then load those novels with their categories', async () => {
       const { novel } = getMockedData();
+      vi.mocked(prismaService.$queryRaw).mockResolvedValue([
+        { id: novel.id },
+      ]);
       vi.mocked(prismaService.novel.findMany).mockResolvedValue([
         novel,
       ] as any);
 
-      const result = await uut.findNovelsPage({ page });
+      const result = await uut.findNovelsPage({ page, order });
 
+      const { sql, values } = lastQuery();
+      expect(sql).not.toContain('WHERE');
+      expect(sql).toContain('ORDER BY n.name ASC, n.id ASC LIMIT $1');
+      expect(values).toStrictEqual([21]);
+      expect(prismaService.novel.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: { in: [novel.id] } },
+        }),
+      );
       expect(result).toEqual([
         {
           id: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
@@ -442,179 +469,171 @@ describe(PrismaNovelRepository.name, () => {
           category: ['fantasy', 'adventure'],
         },
       ]);
-      expect(prismaService.novel.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {},
-          orderBy: { name: 'asc' },
-        }),
-      );
     });
 
-    it('should return empty result when no novels exist', async () => {
+    it('should return the novels in the order of the page, not the order the database loaded them in', async () => {
+      const { novel } = getMockedData();
+      const second = {
+        ...novel,
+        id: '78981754-46c4-4521-9216-b9b27dafeab2',
+      };
+      vi.mocked(prismaService.$queryRaw).mockResolvedValue([
+        { id: second.id },
+        { id: novel.id },
+      ]);
+      vi.mocked(prismaService.novel.findMany).mockResolvedValue([
+        novel,
+        second,
+      ] as any);
+
+      const result = await uut.findNovelsPage({ page, order });
+
+      expect(result.map(({ id }) => id)).toStrictEqual([
+        second.id,
+        novel.id,
+      ]);
+    });
+
+    it('should return an empty result when no novels exist', async () => {
+      vi.mocked(prismaService.$queryRaw).mockResolvedValue([]);
       vi.mocked(prismaService.novel.findMany).mockResolvedValue([]);
 
-      const result = await uut.findNovelsPage({ page });
+      const result = await uut.findNovelsPage({ page, order });
 
       expect(result).toEqual([]);
     });
 
-    it('should handle novels with null coverUrl', async () => {
+    it('should leave a missing cover out', async () => {
       const { novel } = getMockedData();
-      const novelWithoutCover = { ...novel, coverUrl: null };
+      vi.mocked(prismaService.$queryRaw).mockResolvedValue([
+        { id: novel.id },
+      ]);
       vi.mocked(prismaService.novel.findMany).mockResolvedValue([
-        novelWithoutCover,
+        { ...novel, coverUrl: null },
       ] as any);
 
-      const result = await uut.findNovelsPage({ page });
+      const result = await uut.findNovelsPage({ page, order });
 
       expect(result[0].coverUrl).toBeUndefined();
     });
 
-    it('should apply categoryIn filter', async () => {
+    it('should read the opposite order when the page is reversed', async () => {
+      vi.mocked(prismaService.$queryRaw).mockResolvedValue([]);
+      vi.mocked(prismaService.novel.findMany).mockResolvedValue([]);
+
+      await uut.findNovelsPage({
+        page: { shouldReverse: true, take: 3 },
+        order,
+      });
+
+      expect(lastQuery().sql).toContain(
+        'ORDER BY n.name DESC, n.id DESC LIMIT $1',
+      );
+    });
+
+    it('should put the filters in the query', async () => {
+      vi.mocked(prismaService.$queryRaw).mockResolvedValue([]);
       vi.mocked(prismaService.novel.findMany).mockResolvedValue([]);
 
       await uut.findNovelsPage({
         page,
-        filters: { categoryIn: ['Fantasy'] },
-      });
-
-      expect(prismaService.novel.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            categories: {
-              some: {
-                category: {
-                  name: { in: ['Fantasy'], mode: 'insensitive' },
-                },
-              },
-            },
-          },
-        }),
-      );
-    });
-
-    it('should apply categoryNin filter', async () => {
-      vi.mocked(prismaService.novel.findMany).mockResolvedValue(
-        [] as any,
-      );
-
-      await uut.findNovelsPage({
-        page,
-        filters: { categoryNin: ['Horror'] },
-      });
-
-      expect(prismaService.novel.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            NOT: {
-              categories: {
-                some: {
-                  category: {
-                    name: { in: ['Horror'], mode: 'insensitive' },
-                  },
-                },
-              },
-            },
-          },
-        }),
-      );
-    });
-
-    it('should apply forward pagination with first and after', async () => {
-      const { novel } = getMockedData();
-      vi.mocked(prismaService.novel.findMany).mockResolvedValue([
-        novel,
-      ] as any);
-
-      await uut.findNovelsPage({
-        page: {
-          cursor: { id: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec' },
-          skip: 1,
-          take: 11,
-          shouldReverse: false,
+        order,
+        filters: {
+          categoryIn: ['fantasy'],
+          state: NovelState.FINISHED,
         },
       });
 
-      expect(prismaService.novel.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          cursor: { id: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec' },
-          skip: 1,
-          take: 11,
-        }),
+      const { sql, values } = lastQuery();
+      expect(sql).toContain('WHERE EXISTS (');
+      expect(sql).toContain('lower(c.name) = ANY($1::text[])');
+      expect(sql).toContain('AND n.state = $2::"NovelState"');
+      expect(values).toStrictEqual([
+        ['fantasy'],
+        NovelState.FINISHED,
+        21,
+      ]);
+    });
+
+    it('should continue after a cursor with a keyset on the sort column and the id', async () => {
+      vi.mocked(prismaService.$queryRaw)
+        .mockResolvedValueOnce([{ isNull: false }])
+        .mockResolvedValueOnce([]);
+      vi.mocked(prismaService.novel.findMany).mockResolvedValue([]);
+      const cursorId = '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10';
+
+      await uut.findNovelsPage({
+        page: { ...page, cursor: { id: cursorId }, skip: 1 },
+        order,
+      });
+
+      expect(lastQuery().sql).toContain(
+        '(n.name > (SELECT n.name FROM novels n WHERE n.id = $1::uuid) OR (n.name = (SELECT n.name FROM novels n WHERE n.id = $2::uuid) AND n.id > $3::uuid))',
       );
     });
 
-    it('should order by name DESC when the page is reversed', async () => {
-      vi.mocked(prismaService.novel.findMany).mockResolvedValue([]);
+    it('should refuse a cursor whose row no longer exists', async () => {
+      vi.mocked(prismaService.$queryRaw).mockResolvedValueOnce([]);
 
-      await uut.findNovelsPage({ page: { shouldReverse: true } });
+      const result = uut.findNovelsPage({
+        page: {
+          ...page,
+          cursor: { id: '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10' },
+        },
+        order,
+      });
 
-      expect(prismaService.novel.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ orderBy: { name: 'desc' } }),
-      );
+      await expect(result).rejects.toThrow('Invalid cursor');
     });
 
     it('should propagate the error when database fails', async () => {
-      vi.mocked(prismaService.novel.findMany).mockRejectedValue(
-        new Error('Database connection failed'),
+      vi.mocked(prismaService.$queryRaw).mockRejectedValue(
+        new Error('Database error'),
       );
 
-      const result = uut.findNovelsPage({ page });
+      const result = uut.findNovelsPage({ page, order });
 
-      await expect(result).rejects.toThrow(
-        'Database connection failed',
-      );
+      await expect(result).rejects.toThrow('Database error');
     });
   });
 
-  describe('countNovels', () => {
-    it('should return count with no filters', async () => {
-      vi.mocked(prismaService.novel.count).mockResolvedValue(5);
+  describe('estimateChapterCounts', () => {
+    const novelId = '78981754-46c4-4521-9216-b9b27dafeab2';
+    const otherNovelId = '248c9fee-cad0-43fc-9abb-c2ab8ff002ec';
 
-      const result = await uut.countNovels();
+    it('should read the planner estimate of each novel', async () => {
+      vi.mocked(prismaService.$queryRaw)
+        .mockResolvedValueOnce([
+          { 'QUERY PLAN': [{ Plan: { 'Plan Rows': 12 } }] },
+        ])
+        .mockResolvedValueOnce([
+          { 'QUERY PLAN': [{ Plan: { 'Plan Rows': 1 } }] },
+        ]);
 
-      expect(result).toBe(5);
-      expect(prismaService.novel.count).toHaveBeenCalledWith({
-        where: {},
-      });
+      const result = await uut.estimateChapterCounts([
+        novelId,
+        otherNovelId,
+      ]);
+
+      expect(result).toStrictEqual(
+        new Map([
+          [novelId, 12],
+          [otherNovelId, 1],
+        ]),
+      );
     });
 
-    it('should apply categoryIn filter', async () => {
-      vi.mocked(prismaService.novel.count).mockResolvedValue(2);
+    it('should give 0 and log a warning for a novel whose plan cannot be read', async () => {
+      vi.mocked(prismaService.$queryRaw).mockRejectedValue(
+        new Error('boom'),
+      );
 
-      await uut.countNovels({ categoryIn: ['Fantasy'] });
+      const result = await uut.estimateChapterCounts([novelId]);
 
-      expect(prismaService.novel.count).toHaveBeenCalledWith({
-        where: {
-          categories: {
-            some: {
-              category: {
-                name: { in: ['Fantasy'], mode: 'insensitive' },
-              },
-            },
-          },
-        },
-      });
-    });
-
-    it('should apply categoryNin filter', async () => {
-      vi.mocked(prismaService.novel.count).mockResolvedValue(3);
-
-      await uut.countNovels({ categoryNin: ['Horror'] });
-
-      expect(prismaService.novel.count).toHaveBeenCalledWith({
-        where: {
-          NOT: {
-            categories: {
-              some: {
-                category: {
-                  name: { in: ['Horror'], mode: 'insensitive' },
-                },
-              },
-            },
-          },
-        },
-      });
+      expect(result.get(novelId)).toBe(0);
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining(novelId),
+      );
     });
   });
 

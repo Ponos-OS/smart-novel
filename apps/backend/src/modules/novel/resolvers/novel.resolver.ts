@@ -26,6 +26,7 @@ import {
   ChapterOrderByInput,
   CreateNovelInput,
   NovelFiltersInput,
+  NovelOrderByInput,
   UpdateNovelInput,
 } from '../inputs';
 import {
@@ -69,7 +70,8 @@ export class NovelResolver {
 
   @Public()
   @Query(() => NovelConnection, {
-    description: 'Paginated list of novels',
+    description:
+      'Paginated list of novels, by name unless `orderBy` says otherwise. Without `first` or `last` a page of 20 is returned, at most 100 are allowed.',
   })
   async novelsConnection(
     @Args('first', { type: () => Int, nullable: true })
@@ -84,6 +86,11 @@ export class NovelResolver {
       nullable: true,
     })
     filters?: NovelFiltersInput,
+    @Args('orderBy', {
+      type: () => NovelOrderByInput,
+      nullable: true,
+    })
+    orderBy?: NovelOrderByInput,
   ): Promise<NovelConnection> {
     return this.novelService.findNovelsConnection(
       first,
@@ -91,6 +98,7 @@ export class NovelResolver {
       after,
       before,
       filters,
+      orderBy,
     );
   }
 

@@ -5,18 +5,24 @@ import {
 } from '@nestjs/common';
 
 import {
+  boundPagination,
   buildAudience,
   OrderDirection,
   paginateConnection,
 } from '../../../shared';
 import { CursorCodec } from '../../cursor';
 import { LicenseService } from '../../license';
-import { ChapterOrderField } from '../enums';
+import {
+  NOVELS_PAGE_SIZE_DEFAULT,
+  NOVELS_PAGE_SIZE_MAX,
+} from '../constants';
+import { ChapterOrderField, NovelOrderField } from '../enums';
 import {
   ChapterFiltersInput,
   ChapterOrderByInput,
   CreateNovelInput,
   NovelFiltersInput,
+  NovelOrderByInput,
   UpdateNovelInput,
 } from '../inputs';
 import {
@@ -26,6 +32,7 @@ import {
   type IChapterRepository,
   type INovelRepository,
   NOVEL_REPOSITORY,
+  type NovelConnectionFilters,
 } from '../interfaces';
 import {
   Chapter,
@@ -121,30 +128,50 @@ export class NovelService {
     after?: string,
     before?: string,
     filters?: NovelFiltersInput,
+    orderBy?: NovelOrderByInput,
   ): Promise<NovelConnection> {
-    const connectionFilters: FindNovelsPageArgs['filters'] = {
+    const connectionFilters: NovelConnectionFilters = {
       categoryIn: filters?.category?.in,
       categoryNin: filters?.category?.nin,
+      chapterCountMin: filters?.chapterCount?.min,
+      chapterCountMax: filters?.chapterCount?.max,
+      firstChapterCreatedFrom: filters?.firstChapterCreatedAt?.from,
+      firstChapterCreatedTo: filters?.firstChapterCreatedAt?.to,
+      state: filters?.state,
+      ownerIds: filters?.ownerIds?.length
+        ? filters.ownerIds
+        : undefined,
+    };
+    const order = {
+      field: orderBy?.field ?? NovelOrderField.NAME,
+      direction: orderBy?.direction ?? OrderDirection.ASC,
     };
     const novelsQuery: Omit<FindNovelsPageArgs, 'page'> = {
       filters: connectionFilters,
+      order,
     };
     const { edges, pageInfo } = await paginateConnection({
       codec: this.cursorCodec,
       audience: buildAudience('novels', novelsQuery),
-      pagination: { first, last, after, before },
+      pagination: boundPagination(
+        { first, last, after, before },
+        {
+          defaultSize: NOVELS_PAGE_SIZE_DEFAULT,
+          maxSize: NOVELS_PAGE_SIZE_MAX,
+        },
+      ),
       findMany: (page) =>
         this.novelRepository.findNovelsPage({ ...novelsQuery, page }),
       toNode: (novel) => novel,
     });
 
-    const connection = Object.assign(new NovelConnection(), {
-      edges,
-      pageInfo,
-    });
-    connection._filterContext = connectionFilters;
+    return Object.assign(new NovelConnection(), { edges, pageInfo });
+  }
 
-    return connection;
+  estimateChapterCounts(
+    novelIds: string[],
+  ): Promise<Map<string, number>> {
+    return this.novelRepository.estimateChapterCounts(novelIds);
   }
 
   async getChaptersConnection(

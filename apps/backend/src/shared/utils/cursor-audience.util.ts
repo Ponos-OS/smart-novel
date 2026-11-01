@@ -3,6 +3,11 @@ import { createHash } from 'node:crypto';
 const AUDIENCE_LENGTH = 22;
 
 function canonicalize(value: unknown): unknown {
+  // A Date has no own entries, so it would hash as `{}` and every date as the same one.
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
   if (Array.isArray(value)) {
     return value.map(canonicalize);
   }

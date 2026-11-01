@@ -1,16 +1,33 @@
 import { NovelState } from '@prisma/client';
 
-import { CursorPaginationParams } from '../../../shared';
+import {
+  CursorPaginationParams,
+  OrderDirection,
+} from '../../../shared';
+import { NovelOrderField } from '../enums';
 import { INovel } from './novel-details.interface';
 
 export interface NovelConnectionFilters {
   categoryIn?: string[];
   categoryNin?: string[];
+  chapterCountMin?: number;
+  chapterCountMax?: number;
+  firstChapterCreatedFrom?: Date;
+  firstChapterCreatedTo?: Date;
+  state?: NovelState;
+  /** @description `Writer.userId` values, at least one when present. */
+  ownerIds?: string[];
+}
+
+export interface NovelPageOrder {
+  field: NovelOrderField;
+  direction: OrderDirection;
 }
 
 export interface FindNovelsPageArgs {
   page: CursorPaginationParams;
   filters?: NovelConnectionFilters;
+  order: NovelPageOrder;
 }
 
 export interface CreateNovelData {
@@ -40,7 +57,9 @@ export interface NovelWithPreviousCover {
 
 export interface INovelRepository {
   findNovelsPage(args: FindNovelsPageArgs): Promise<INovel[]>;
-  countNovels(filters?: NovelConnectionFilters): Promise<number>;
+  estimateChapterCounts(
+    novelIds: string[],
+  ): Promise<Map<string, number>>;
   findById(id: string): Promise<INovel | null>;
   createNovel(data: CreateNovelData): Promise<INovel>;
   updateNovel(id: string, data: UpdateNovelData): Promise<INovel>;

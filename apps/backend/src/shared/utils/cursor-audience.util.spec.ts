@@ -9,6 +9,17 @@ describe(buildAudience.name, () => {
     expect(result).toMatch(/^[A-Za-z0-9_-]{22}$/);
   });
 
+  it('should tell dates apart', () => {
+    const first = buildAudience('novels', {
+      from: new Date('2026-01-01T00:00:00.000Z'),
+    });
+    const second = buildAudience('novels', {
+      from: new Date('2026-02-01T00:00:00.000Z'),
+    });
+
+    expect(first).not.toBe(second);
+  });
+
   it('should not depend on key order or on undefined values', () => {
     const first = buildAudience('chapters', {
       novelId,

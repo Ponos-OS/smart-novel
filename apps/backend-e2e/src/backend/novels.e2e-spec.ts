@@ -24,7 +24,6 @@ describe('Novels (e2e)', () => {
               hasNextPage
               hasPreviousPage
             }
-            totalCount
           }
         }
       `,
@@ -46,7 +45,6 @@ describe('Novels (e2e)', () => {
     expect(
       res.data.data.novelsConnection.pageInfo.hasPreviousPage,
     ).toBeBoolean();
-    expect(res.data.data.novelsConnection.totalCount).toBeNumber();
     expect(
       res.data.data.novelsConnection.edges[0].cursor,
     ).toBeString();

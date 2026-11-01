@@ -18,7 +18,7 @@ import {
 } from '../../../shared';
 import { CursorCodec } from '../../cursor';
 import { normalizeCategoryName } from '../../novel/utils';
-import { PrismaService } from '../../prisma';
+import { estimateRows, PrismaService } from '../../prisma';
 import {
   CATEGORIES_PAGE_SIZE_DEFAULT,
   CATEGORIES_PAGE_SIZE_MAX,
@@ -208,19 +208,10 @@ export class CategoryService {
   private async explainNovelCount(
     categoryId: string,
   ): Promise<number> {
-    const rows = await this.prisma.$queryRaw<
-      { 'QUERY PLAN': { Plan: { 'Plan Rows': number } }[] }[]
-    >(
-      Prisma.sql`EXPLAIN (FORMAT JSON) SELECT 1 FROM novel_categories WHERE category_id = ${categoryId}::uuid`,
+    return estimateRows(
+      this.prisma,
+      Prisma.sql`SELECT 1 FROM novel_categories WHERE category_id = ${categoryId}::uuid`,
     );
-    const estimate =
-      rows[0]?.['QUERY PLAN']?.[0]?.Plan?.['Plan Rows'];
-
-    if (typeof estimate !== 'number' || !Number.isFinite(estimate)) {
-      throw new Error('The query plan has no row estimate');
-    }
-
-    return Math.max(0, Math.round(estimate));
   }
 
   private normalize(name: string): string {

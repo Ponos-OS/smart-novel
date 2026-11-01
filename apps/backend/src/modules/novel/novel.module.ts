@@ -6,6 +6,7 @@ import {
   ChapterContentDataLoader,
   ChapterNavigationDataLoader,
   ChapterViewerStateDataLoader,
+  NovelChapterCountDataLoader,
   NovelWriterDataLoader,
 } from './dataloaders';
 import {
@@ -27,7 +28,7 @@ import {
   ChapterNarrationResolver,
   ChapterResolver,
   ChapterUserStateResolver,
-  NovelConnectionFieldResolver,
+  NovelChapterCountFieldResolver,
   NovelLicenseFieldResolver,
   NovelResolver,
   NovelWriterFieldResolver,
@@ -46,7 +47,7 @@ import {
   imports: [LicenseModule, WriterModule],
   providers: [
     NovelResolver,
-    NovelConnectionFieldResolver,
+    NovelChapterCountFieldResolver,
     NovelLicenseFieldResolver,
     NovelWriterFieldResolver,
     ChapterFieldResolver,
@@ -67,6 +68,7 @@ import {
     ChapterNavigationDataLoader,
     ChapterViewerStateDataLoader,
     NovelWriterDataLoader,
+    NovelChapterCountDataLoader,
     PubSubProvider,
     TtsTextService,
     {
