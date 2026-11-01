@@ -1,8 +1,11 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
 import {
   useCreateNovelMutation,
   useDefaultLicenseQuery,
+  useGetNovelsQuery,
+  useSearchNovelsQuery,
 } from '../../generated/graphql';
 import { useCanCreateNovel } from '../../hooks/useCanCreateNovel';
 import { showApiError } from '../../utils/notification';
@@ -11,6 +14,7 @@ import { NovelForm, NovelFormValues } from './NovelForm';
 export function NovelCreatePage() {
   const { canCreate, loading } = useCanCreateNovel();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const createNovelMutation = useCreateNovelMutation();
   const { data: licenseData } = useDefaultLicenseQuery(
     {},
@@ -21,8 +25,17 @@ export function NovelCreatePage() {
     createNovelMutation.mutate(
       { input },
       {
-        onSuccess: (data) =>
-          navigate(`/novel/${data.createNovel.id}`),
+        onSuccess: async (data) => {
+          await Promise.all([
+            queryClient.invalidateQueries({
+              queryKey: useGetNovelsQuery.getKey(),
+            }),
+            queryClient.invalidateQueries({
+              queryKey: useSearchNovelsQuery.getKey(),
+            }),
+          ]);
+          navigate(`/novel/${data.createNovel.id}`);
+        },
         onError: () => showApiError(),
       },
     );
