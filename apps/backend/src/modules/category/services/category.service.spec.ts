@@ -1,7 +1,10 @@
+import type { ConfigType } from '@nestjs/config';
 import type { CustomLoggerService } from 'nestjs-backend-common';
 
 import { CategoryStatus, Prisma } from '@prisma/client';
 
+import { appConfigs } from '../../../app/configs/app.config';
+import { CursorCodec } from '../../cursor';
 import { PrismaService } from '../../prisma';
 import { CategoryService } from './category.service';
 
@@ -21,7 +24,10 @@ const romance = {
   status: CategoryStatus.APPROVED,
 };
 
-const toCursor = (id: string) => Buffer.from(id).toString('base64');
+const cursorCodec = new CursorCodec({
+  CURSOR_SIGNING_SECRET: 'b7e1f0c2a94d4c1f8d3e6a5b09c27f41',
+} as ConfigType<typeof appConfigs>);
+const toCursor = (id: string) => cursorCodec.encode('categories', id);
 
 describe(CategoryService.name, () => {
   let uut: CategoryService;
@@ -57,6 +63,7 @@ describe(CategoryService.name, () => {
     uut = new CategoryService(
       prisma as unknown as PrismaService,
       logger as unknown as CustomLoggerService,
+      cursorCodec,
     );
   });
 

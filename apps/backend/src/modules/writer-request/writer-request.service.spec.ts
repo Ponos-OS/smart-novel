@@ -1,3 +1,5 @@
+import type { ConfigType } from '@nestjs/config';
+
 import { NotFoundException } from '@nestjs/common';
 import { Prisma, WriterRequestStatus } from '@prisma/client';
 import {
@@ -5,7 +7,9 @@ import {
   WRITER_REQUEST_NOTE_MAX_LENGTH,
 } from '@smart-novel/shared';
 
+import { appConfigs } from '../../app/configs/app.config';
 import { type IAuthUser, ZitadelManagementClient } from '../auth';
+import { CursorCodec } from '../cursor';
 import { PrismaService } from '../prisma';
 import { WriterRequestService } from './writer-request.service';
 
@@ -35,6 +39,10 @@ const buildUser = (roles: Role[]): IAuthUser => ({
   roles,
   metadata: {},
 });
+
+const cursorCodec = new CursorCodec({
+  CURSOR_SIGNING_SECRET: 'b7e1f0c2a94d4c1f8d3e6a5b09c27f41',
+} as ConfigType<typeof appConfigs>);
 
 describe(WriterRequestService.name, () => {
   let uut: WriterRequestService;
@@ -68,6 +76,7 @@ describe(WriterRequestService.name, () => {
     uut = new WriterRequestService(
       prisma as unknown as PrismaService,
       zitadelManagementClient as unknown as ZitadelManagementClient,
+      cursorCodec,
     );
   });
 

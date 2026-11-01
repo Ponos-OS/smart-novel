@@ -17,6 +17,7 @@ import {
   PaginationArgs,
 } from '../../shared';
 import { type IAuthUser, ZitadelManagementClient } from '../auth';
+import { CursorCodec } from '../cursor';
 import { PrismaService } from '../prisma';
 import {
   WRITER_REQUESTS_PAGE_SIZE_DEFAULT,
@@ -41,6 +42,7 @@ export class WriterRequestService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly zitadelManagementClient: ZitadelManagementClient,
+    private readonly cursorCodec: CursorCodec,
   ) {}
 
   async request(
@@ -97,6 +99,8 @@ export class WriterRequestService {
       status: filters?.status ?? WriterRequestStatus.PENDING,
     };
     const { edges, pageInfo } = await paginateConnection({
+      codec: this.cursorCodec,
+      audience: 'writerRequests',
       pagination: page,
       findMany: ({ cursor, skip, take, shouldReverse }) => {
         const direction = shouldReverse ? 'desc' : 'asc';

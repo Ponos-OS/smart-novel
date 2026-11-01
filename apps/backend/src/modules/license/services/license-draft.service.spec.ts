@@ -1,3 +1,5 @@
+import type { ConfigType } from '@nestjs/config';
+
 import {
   BadRequestException,
   ForbiddenException,
@@ -10,7 +12,15 @@ import type { CanonicalLicenseCatalog } from '../../fithara';
 import type { PrismaService } from '../../prisma';
 import type { LicenseService } from './license.service';
 
+import { appConfigs } from '../../../app/configs/app.config';
+import { CursorCodec } from '../../cursor';
 import { LicenseDraftService } from './license-draft.service';
+
+const cursorCodec = new CursorCodec({
+  CURSOR_SIGNING_SECRET: 'b7e1f0c2a94d4c1f8d3e6a5b09c27f41',
+} as ConfigType<typeof appConfigs>);
+const cursorOf = (id: string) =>
+  cursorCodec.encode('licenseDrafts', id);
 
 describe(LicenseDraftService.name, () => {
   let uut: LicenseDraftService;
@@ -67,7 +77,12 @@ describe(LicenseDraftService.name, () => {
     } as any;
     catalog = { findVerbatim: vi.fn() } as any;
 
-    uut = new LicenseDraftService(prisma, licenseService, catalog);
+    uut = new LicenseDraftService(
+      prisma,
+      licenseService,
+      catalog,
+      cursorCodec,
+    );
   });
 
   describe('create', () => {
@@ -402,9 +417,7 @@ describe(LicenseDraftService.name, () => {
 
       const result = await uut.findConnection(writer, {
         first: 2,
-        after: Buffer.from(
-          'c0a80121-7ac0-4e1c-9f3b-2d5e8a6b1f04',
-        ).toString('base64'),
+        after: cursorOf('c0a80121-7ac0-4e1c-9f3b-2d5e8a6b1f04'),
       });
 
       expect(prisma.license.findMany).toHaveBeenCalledWith(
@@ -417,12 +430,10 @@ describe(LicenseDraftService.name, () => {
       expect(result.edges.map(({ node }) => node.id)).toEqual(
         ids.slice(0, 2),
       );
-      expect(result.edges[0].cursor).toBe(
-        Buffer.from(ids[0]).toString('base64'),
-      );
+      expect(result.edges[0].cursor).toBe(cursorOf(ids[0]));
       expect(result.pageInfo).toEqual({
-        startCursor: Buffer.from(ids[0]).toString('base64'),
-        endCursor: Buffer.from(ids[1]).toString('base64'),
+        startCursor: cursorOf(ids[0]),
+        endCursor: cursorOf(ids[1]),
         hasPreviousPage: true,
         hasNextPage: true,
       });
@@ -439,9 +450,7 @@ describe(LicenseDraftService.name, () => {
 
       const result = await uut.findConnection(writer, {
         last: 2,
-        before: Buffer.from(
-          'c0a80121-7ac0-4e1c-9f3b-2d5e8a6b1f04',
-        ).toString('base64'),
+        before: cursorOf('c0a80121-7ac0-4e1c-9f3b-2d5e8a6b1f04'),
       });
 
       expect(prisma.license.findMany).toHaveBeenCalledWith(

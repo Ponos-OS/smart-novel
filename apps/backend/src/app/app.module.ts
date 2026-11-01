@@ -16,6 +16,7 @@ import {
   AuthModule,
   BackgroundRunnerModule,
   CategoryModule,
+  CursorModule,
   FitharaModule,
   LicenseAssistantModule,
   LicenseModule,
@@ -74,6 +75,7 @@ import {
       useClass: AuthModuleConfig,
     }),
     PrismaModule,
+    CursorModule,
     OpenTelemetryModule.forRoot(),
     BackgroundRunnerModule,
     GraphQLModule.forRootAsync<ApolloDriverConfig>({

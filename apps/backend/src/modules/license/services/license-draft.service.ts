@@ -11,6 +11,7 @@ import {
   paginateConnection,
   type PaginationArgs,
 } from '../../../shared';
+import { CursorCodec } from '../../cursor';
 import { CanonicalLicenseCatalog } from '../../fithara';
 import { PrismaService } from '../../prisma';
 import {
@@ -42,6 +43,7 @@ export class LicenseDraftService {
     private readonly prisma: PrismaService,
     private readonly licenseService: LicenseService,
     private readonly canonicalLicenseCatalog: CanonicalLicenseCatalog,
+    private readonly cursorCodec: CursorCodec,
   ) {}
 
   async create(
@@ -147,6 +149,8 @@ export class LicenseDraftService {
 
     const owners = viewer.isAdmin ? ownerIds : [viewer.id];
     const { edges, pageInfo } = await paginateConnection({
+      codec: this.cursorCodec,
+      audience: 'licenseDrafts',
       pagination,
       findMany: ({ cursor, skip, take, shouldReverse }) => {
         const direction = shouldReverse ? 'asc' : 'desc';

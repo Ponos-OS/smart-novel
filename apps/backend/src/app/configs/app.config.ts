@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  MinLength,
 } from 'class-validator';
 import { type StringValue } from 'ms';
 import {
@@ -191,6 +192,11 @@ class EnvironmentVariables implements AppConfig {
   @IsNotEmpty()
   @IsString()
   SESSION_SECRET: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(32)
+  CURSOR_SIGNING_SECRET: string;
 
   @IsInt()
   SESSION_DURATION: number;

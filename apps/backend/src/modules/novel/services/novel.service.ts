@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 
 import { OrderDirection, paginateConnection } from '../../../shared';
+import { CursorCodec } from '../../cursor';
 import { LicenseService } from '../../license';
 import { ChapterOrderField } from '../enums';
 import {
@@ -38,6 +39,7 @@ export class NovelService {
     private readonly chapterRepository: IChapterRepository,
     private readonly chapterNarrationService: ChapterNarrationService,
     private readonly licenseService: LicenseService,
+    private readonly cursorCodec: CursorCodec,
   ) {}
 
   async findOne(id: string): Promise<Novel> {
@@ -122,6 +124,8 @@ export class NovelService {
       categoryNin: filters?.category?.nin,
     };
     const { edges, pageInfo } = await paginateConnection({
+      codec: this.cursorCodec,
+      audience: 'novels',
       pagination: { first, last, after, before },
       findMany: (page) =>
         this.novelRepository.findNovelsPage({
@@ -156,6 +160,8 @@ export class NovelService {
       narrationStatus: filters?.narrationStatus?.eq,
     };
     const { edges, pageInfo } = await paginateConnection({
+      codec: this.cursorCodec,
+      audience: 'chapters',
       pagination: { first, last, after, before },
       findMany: (page) =>
         this.chapterRepository.findChaptersPage({

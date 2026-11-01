@@ -1,5 +1,4 @@
 import { BadRequestException } from '@nestjs/common';
-import { isUUID } from 'class-validator';
 import { PageInfo } from 'nestjs-backend-common';
 
 import { PaginationArgs } from '../interfaces';
@@ -25,18 +24,9 @@ export interface CursorConnection<TNode> {
   pageInfo: PageInfo;
 }
 
-export function encodeCursor(id: string): string {
-  return Buffer.from(id).toString('base64');
-}
-
-export function decodeCursor(cursor: string): string {
-  const id = Buffer.from(cursor, 'base64').toString('utf-8');
-
-  if (!isUUID(id)) {
-    throw new BadRequestException('Invalid cursor');
-  }
-
-  return id;
+export interface CursorCodecPort {
+  encode(audience: string, id: string): string;
+  decode(cursor: string, audience: string): string;
 }
 
 function isBackward({ first, last }: PaginationArgs = {}): boolean {
@@ -48,7 +38,7 @@ function isBackward({ first, last }: PaginationArgs = {}): boolean {
  *
  * @description
  * This function handles:
- * - Base64 cursor decoding (`after`/`before` → UUID), refusing a malformed cursor or both args at once
+ * - Cursor decoding (`after`/`before` → UUID), refusing a cursor that fails `decodeCursor` or both args at once
  * - Computing `take = requested + 1` (for hasMore detection)
  * - Setting `cursor` and `skip: 1` to skip the cursor record
  * - Returning a `shouldReverse` flag for `before`-based queries
@@ -58,7 +48,8 @@ function isBackward({ first, last }: PaginationArgs = {}): boolean {
  * - Calling {@link trimCursorPaginationResults} to trim the extra record
  */
 export function buildCursorPaginationParams(
-  pagination?: PaginationArgs,
+  pagination: PaginationArgs | undefined,
+  decodeCursor: (cursor: string) => string,
 ): CursorPaginationParams {
   const { first, last, after, before } = pagination ?? {};
 
@@ -160,21 +151,28 @@ export function buildPageInfo(
 /**
  * @description Runs the whole Relay flow: cursor params, query, trim, edges, `pageInfo`.
  *
+ * @param audience Names the query the cursors belong to; a cursor from another audience is refused.
  * @param findMany Must flip its `orderBy` when `shouldReverse` is `true`, and pass `cursor`, `skip` and `take` to the query.
  */
 export async function paginateConnection<
   TRow extends { id: string },
   TNode,
 >({
+  codec,
+  audience,
   pagination,
   findMany,
   toNode,
 }: {
+  codec: CursorCodecPort;
+  audience: string;
   pagination: PaginationArgs;
   findMany: (params: CursorPaginationParams) => Promise<TRow[]>;
   toNode: (row: TRow) => TNode;
 }): Promise<CursorConnection<TNode>> {
-  const params = buildCursorPaginationParams(pagination);
+  const params = buildCursorPaginationParams(pagination, (cursor) =>
+    codec.decode(cursor, audience),
+  );
   const rows = await findMany(params);
   const { items, hasMore } = trimCursorPaginationResults(
     rows,
@@ -182,7 +180,7 @@ export async function paginateConnection<
     params.shouldReverse,
   );
   const edges = items.map((row) => ({
-    cursor: encodeCursor(row.id),
+    cursor: codec.encode(audience, row.id),
     node: toNode(row),
   }));
 

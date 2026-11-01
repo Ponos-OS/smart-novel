@@ -1,17 +1,35 @@
+import { BadRequestException } from '@nestjs/common';
+
 import {
   boundPagination,
   buildCursorPaginationParams,
   buildPageInfo,
-  encodeCursor,
+  type CursorCodecPort,
   paginateConnection,
   trimCursorPaginationResults,
 } from './cursor-pagination.util';
+
+const codec: CursorCodecPort = {
+  encode: (audience, id) => `${audience}:${id}`,
+  decode: (cursor, audience) => {
+    if (!cursor.startsWith(`${audience}:`)) {
+      throw new BadRequestException('Invalid cursor');
+    }
+
+    return cursor.slice(audience.length + 1);
+  },
+};
+const decodeCursor = (cursor: string) =>
+  codec.decode(cursor, 'novels');
 
 describe(buildCursorPaginationParams.name, () => {
   it.each([undefined, {}])(
     'should return defaults values (%s)',
     (pagination) => {
-      const result = buildCursorPaginationParams(pagination);
+      const result = buildCursorPaginationParams(
+        pagination,
+        decodeCursor,
+      );
 
       expect(result).toStrictEqual({ shouldReverse: false });
     },
@@ -19,12 +37,12 @@ describe(buildCursorPaginationParams.name, () => {
 
   it('should decode after cursor and set skip', () => {
     const id = 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c';
-    const afterCursor = Buffer.from(id).toString('base64');
+    const afterCursor = codec.encode('novels', id);
 
-    const result = buildCursorPaginationParams({
-      after: afterCursor,
-      first: 10,
-    });
+    const result = buildCursorPaginationParams(
+      { after: afterCursor, first: 10 },
+      decodeCursor,
+    );
 
     expect(result).toStrictEqual({
       cursor: { id },
@@ -36,12 +54,12 @@ describe(buildCursorPaginationParams.name, () => {
 
   it('should decode before cursor, set skip, and flag shouldReverse', () => {
     const id = '904bf826-33be-4172-b63f-665bba9007b9';
-    const beforeCursor = Buffer.from(id).toString('base64');
+    const beforeCursor = codec.encode('novels', id);
 
-    const result = buildCursorPaginationParams({
-      before: beforeCursor,
-      last: 5,
-    });
+    const result = buildCursorPaginationParams(
+      { before: beforeCursor, last: 5 },
+      decodeCursor,
+    );
 
     expect(result).toStrictEqual({
       cursor: { id },
@@ -52,37 +70,49 @@ describe(buildCursorPaginationParams.name, () => {
   });
 
   it('should refuse after and before together', () => {
-    const after = encodeCursor(
+    const after = codec.encode(
+      'novels',
       'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
     );
-    const before = encodeCursor(
+    const before = codec.encode(
+      'novels',
       '904bf826-33be-4172-b63f-665bba9007b9',
     );
 
     expect(() =>
-      buildCursorPaginationParams({ after, before, first: 10 }),
+      buildCursorPaginationParams(
+        { after, before, first: 10 },
+        decodeCursor,
+      ),
     ).toThrow('after and before cannot be used together');
   });
 
-  it.each([
-    { after: encodeCursor('not-a-uuid') },
-    { before: 'bm90LWEtdXVpZA==' },
-    { after: 'not-base64!!' },
-  ])('should refuse the malformed cursor %j', (pagination) => {
-    expect(() => buildCursorPaginationParams(pagination)).toThrow(
-      'Invalid cursor',
+  it('should let the decoder refuse a cursor', () => {
+    const after = codec.encode(
+      'chapters',
+      'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
     );
+
+    expect(() =>
+      buildCursorPaginationParams({ after }, decodeCursor),
+    ).toThrow('Invalid cursor');
   });
 
   it('should set take to first + 1 when only first is provided', () => {
-    const result = buildCursorPaginationParams({ first: 20 });
+    const result = buildCursorPaginationParams(
+      { first: 20 },
+      decodeCursor,
+    );
 
     expect(result.take).toBe(21);
     expect(result.shouldReverse).toBe(false);
   });
 
   it('should set take to last + 1 and reverse when only last is provided', () => {
-    const result = buildCursorPaginationParams({ last: 15 });
+    const result = buildCursorPaginationParams(
+      { last: 15 },
+      decodeCursor,
+    );
 
     expect(result.take).toBe(16);
     expect(result.shouldReverse).toBe(true);
@@ -91,9 +121,10 @@ describe(buildCursorPaginationParams.name, () => {
   it('should not set take when neither first nor last is provided', () => {
     const id = 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c';
 
-    const result = buildCursorPaginationParams({
-      after: Buffer.from(id).toString('base64'),
-    });
+    const result = buildCursorPaginationParams(
+      { after: codec.encode('novels', id) },
+      decodeCursor,
+    );
 
     expect(result.take).toBeUndefined();
   });
@@ -191,8 +222,18 @@ describe(trimCursorPaginationResults.name, () => {
 
 describe(buildPageInfo.name, () => {
   const edges = [
-    { cursor: encodeCursor('bb563ad5-1ac4-46c2-a25f-6f62d245f44c') },
-    { cursor: encodeCursor('904bf826-33be-4172-b63f-665bba9007b9') },
+    {
+      cursor: codec.encode(
+        'novels',
+        'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
+      ),
+    },
+    {
+      cursor: codec.encode(
+        'novels',
+        '904bf826-33be-4172-b63f-665bba9007b9',
+      ),
+    },
   ];
 
   it.each([
@@ -261,6 +302,8 @@ describe(paginateConnection.name, () => {
       .mockResolvedValue(rows);
 
     const result = await paginateConnection({
+      codec,
+      audience: 'novels',
       pagination: { first: 2 },
       findMany,
       toNode: (row) => row.name,
@@ -271,15 +314,33 @@ describe(paginateConnection.name, () => {
       shouldReverse: false,
     });
     expect(result.edges).toStrictEqual([
-      { cursor: encodeCursor(rows[0].id), node: 'Fantasy' },
-      { cursor: encodeCursor(rows[1].id), node: 'Horror' },
+      { cursor: codec.encode('novels', rows[0].id), node: 'Fantasy' },
+      { cursor: codec.encode('novels', rows[1].id), node: 'Horror' },
     ]);
     expect(result.pageInfo).toStrictEqual({
-      startCursor: encodeCursor(rows[0].id),
-      endCursor: encodeCursor(rows[1].id),
+      startCursor: codec.encode('novels', rows[0].id),
+      endCursor: codec.encode('novels', rows[1].id),
       hasPreviousPage: false,
       hasNextPage: true,
     });
+  });
+
+  it('should refuse a cursor issued for another audience before querying', async () => {
+    const findMany = vi.fn<() => Promise<typeof rows>>();
+
+    const promise = paginateConnection({
+      codec,
+      audience: 'novels',
+      pagination: {
+        first: 2,
+        after: codec.encode('chapters', rows[0].id),
+      },
+      findMany,
+      toNode: (row) => row.name,
+    });
+
+    await expect(promise).rejects.toThrow('Invalid cursor');
+    expect(findMany).not.toHaveBeenCalled();
   });
 
   it('should restore order and report earlier rows for backward paging', async () => {
@@ -289,6 +350,8 @@ describe(paginateConnection.name, () => {
       .mockResolvedValue(reversedRows);
 
     const result = await paginateConnection({
+      codec,
+      audience: 'novels',
       pagination: { last: 2 },
       findMany,
       toNode: (row) => row.name,
@@ -311,7 +374,10 @@ describe(paginateConnection.name, () => {
 
 describe(boundPagination.name, () => {
   const sizes = { defaultSize: 20, maxSize: 100 };
-  const cursor = encodeCursor('bb563ad5-1ac4-46c2-a25f-6f62d245f44c');
+  const cursor = codec.encode(
+    'novels',
+    'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
+  );
 
   it('should default the page size when neither first nor last is given', () => {
     const result = boundPagination({ after: cursor }, sizes);

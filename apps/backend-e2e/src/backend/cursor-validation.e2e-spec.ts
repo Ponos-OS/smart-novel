@@ -130,4 +130,42 @@ describe('Cursor validation (e2e)', () => {
       expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
     });
   });
+
+  describe('issued cursors', () => {
+    async function issuedCursor(query: string, path: string[]) {
+      const data = await graphql(query, {});
+      const edges = path.reduce((node, key) => node[key], data.data);
+
+      return edges.edges[0].cursor as string;
+    }
+
+    it('should accept a cursor it issued', async () => {
+      const cursor = await issuedCursor(NOVELS, ['novelsConnection']);
+
+      const data = await graphql(NOVELS, { after: cursor });
+
+      expect(data.errors).toBeUndefined();
+    });
+
+    it('should refuse an issued cursor whose last character was changed', async () => {
+      const cursor = await issuedCursor(NOVELS, ['novelsConnection']);
+      const tampered = `${cursor.slice(0, -1)}${cursor.endsWith('A') ? 'B' : 'A'}`;
+
+      const data = await graphql(NOVELS, { after: tampered });
+
+      expect(data.errors[0].message).toBe('Invalid cursor');
+      expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
+    });
+
+    it('should refuse a cursor issued by another connection', async () => {
+      const cursor = await issuedCursor(CATEGORIES, [
+        'categoriesConnection',
+      ]);
+
+      const data = await graphql(NOVELS, { after: cursor });
+
+      expect(data.errors[0].message).toBe('Invalid cursor');
+      expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
+    });
+  });
 });

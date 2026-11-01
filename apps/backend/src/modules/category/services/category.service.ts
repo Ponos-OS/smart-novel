@@ -14,6 +14,7 @@ import {
   paginateConnection,
   PaginationArgs,
 } from '../../../shared';
+import { CursorCodec } from '../../cursor';
 import { normalizeCategoryName } from '../../novel/utils';
 import { PrismaService } from '../../prisma';
 import {
@@ -61,6 +62,7 @@ export class CategoryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: CustomLoggerService,
+    private readonly cursorCodec: CursorCodec,
   ) {}
 
   async findConnection(
@@ -83,6 +85,8 @@ export class CategoryService {
       }),
     };
     const { edges, pageInfo } = await paginateConnection({
+      codec: this.cursorCodec,
+      audience: 'categories',
       pagination: page,
       findMany: ({ cursor, skip, take, shouldReverse }) =>
         this.prisma.category.findMany({

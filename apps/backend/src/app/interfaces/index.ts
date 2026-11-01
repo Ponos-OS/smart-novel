@@ -127,6 +127,10 @@ export interface AppConfig {
    */
   SESSION_SECRET: string;
   /**
+   * @description Secret string used to sign pagination cursors (min 32 characters)
+   */
+  CURSOR_SIGNING_SECRET: string;
+  /**
    * @description Duration of the session in seconds
    * @default 3600
    */

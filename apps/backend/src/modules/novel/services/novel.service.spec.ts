@@ -1,3 +1,5 @@
+import type { ConfigType } from '@nestjs/config';
+
 import { NotFoundException } from '@nestjs/common';
 import { NarrationStatus, NovelState } from '@prisma/client';
 
@@ -8,10 +10,16 @@ import type {
 } from '../interfaces';
 import type { ChapterNarrationService } from './chapter-narration.service';
 
+import { appConfigs } from '../../../app/configs/app.config';
 import { OrderDirection } from '../../../shared';
+import { CursorCodec } from '../../cursor';
 import { ChapterOrderField } from '../enums';
 import { Novel } from '../types';
 import { NovelService } from './novel.service';
+
+const cursorCodec = new CursorCodec({
+  CURSOR_SIGNING_SECRET: 'b7e1f0c2a94d4c1f8d3e6a5b09c27f41',
+} as ConfigType<typeof appConfigs>);
 
 describe(NovelService.name, () => {
   let uut: NovelService;
@@ -49,6 +57,7 @@ describe(NovelService.name, () => {
       chapterRepository,
       chapterNarrationService,
       licenseService,
+      cursorCodec,
     );
   });
 
@@ -363,8 +372,10 @@ describe(NovelService.name, () => {
           description: 'Description for Novel Two',
         },
       ]);
-      const afterCursor =
-        'YWZiYzYxYjktMWZmNy00NzkyLTllNzktZmIzZWM1NTkzOWE3'; // Base64 for 'afbc61b9-1ff7-4792-9e79-fb3ec55939a7'
+      const afterCursor = cursorCodec.encode(
+        'novels',
+        'afbc61b9-1ff7-4792-9e79-fb3ec55939a7',
+      );
 
       const result = await uut.findNovelsConnection(
         1,
@@ -439,7 +450,10 @@ describe(NovelService.name, () => {
         'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
       );
       expect(result.edges[0].cursor).toBe(
-        'YmI1NjNhZDUtMWFjNC00NmMyLWEyNWYtNmY2MmQyNDVmNDRj',
+        cursorCodec.encode(
+          'chapters',
+          'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
+        ),
       );
       expect(result.pageInfo.startCursor).toBe(
         result.edges[0].cursor,

@@ -272,3 +272,11 @@
 - `REQUIREMENTS.md` says to leave each step uncommitted for review; followed it, nothing committed.
 - Making the check universal broke two `license-draft.service.spec.ts` cases that used `cursor-row` as a cursor id. The mocked specs had been passing a value the real database would reject, which is the same blind spot as the original 500.
 - Verification: 855 backend unit tests, `tsc` and eslint pass. `backend-e2e` did NOT run: `start-dev.sh e2e` fails twice at the frontend image build (`nx build frontend` runs codegen inside the image, and `apps/backend/schema.gql` is gitignored and not copied by `apps/frontend/Dockerfile`). Not checked on a clean `main`, so I cannot say whether it predates this step. The new e2e spec is unproven.
+
+## Cursor Signing, Step 2 (2026-11-01)
+
+- New global `CursorModule` / `CursorCodec` (`modules/cursor`): cursor is `<base64url {a,k}>.<base64url HMAC-SHA256>`, key from `CURSOR_SIGNING_SECRET` (`.env.example`, min 32 chars). `paginateConnection` now takes `codec` and `audience`; `encodeCursor`/`decodeCursor` are gone. `audience` is a per-connection constant for now, so Step 3 only has to widen it into the query fingerprint.
+- `REQUIREMENTS.md` says to leave the step uncommitted for review; followed it.
+- A new required env key breaks `validateEnvs` at boot for everyone with an existing `.env`; added the key to the local `.env` too (git-ignored).
+- Not run: `backend-e2e` (same `start-dev.sh e2e` frontend-image codegen failure as Step 1, still unexplained). The new e2e cases (changed signature, cursor from another connection) are unproven.
+- Pre-existing, left alone: `novels.e2e-spec.ts` "should return novels after a cursor" sends an unsigned cursor and only asserts HTTP 200, so it no longer exercises paging.
