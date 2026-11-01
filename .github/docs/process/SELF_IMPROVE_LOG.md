@@ -302,3 +302,10 @@
 - `nx e2e backend-e2e` did not run: the same frontend-image `schema.gql` codegen failure as earlier steps (reproduced once more, ~2 min wasted). Ran `novel-first-chapter-created-at`, `chapter-delete` and `novels` (16 tests) against `start:dev` with a throwaway config; graphql-api-tester passed all five requirements. `start:dev` takes more than the 10 minute foreground cap on a cold cluster, so it went to the background.
 - A review comment asked whether the first-chapter case was handled: it is, through the `null` condition, which relies on the invariant "null iff no chapter". Worth a code comment if a reviewer asks again.
 - Process change: `PROCESS.md` now names the `schema.gql` failure and its workaround; `SELF_IMPROVE.md` step 2c says to grep the log before re-diagnosing a repeat failure.
+
+## Admin Dashboard, Step 2 (2026-11-01)
+
+- `ZitadelManagementClient.findUser(userId)` (`GET /v2/users/{id}`, returns `{ name, email }`, null on 404 without an error log and for machine users); `request()` learned `GET` and a `notFoundIsNull` option. Display name first, then given plus family name.
+- The planned infra change (widening the PAT's org role) turned out unnecessary: a live call from the backend pod with the existing PAT answered 200 for every seeded user. The Q15 premise was a hypothesis; `REQUIREMENTS.md` was corrected, and `PROCESS.md` now says to probe permission hypotheses live before building.
+- Left uncommitted for review, as asked. No GraphQL surface, so no graphql-api-tester and no e2e (the client has no caller yet; Step 4 uses it).
+- Live check: a throwaway `ts-node` script run from inside `apps/backend` (a script in the scratchpad cannot resolve `axios`) printed the profile of the seeded users against the running ZITADEL; deleted afterwards.

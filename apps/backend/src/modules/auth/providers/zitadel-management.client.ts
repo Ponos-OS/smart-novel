@@ -10,7 +10,11 @@ import {
   type AuthModuleOptions,
   MODULE_OPTIONS_TOKEN,
 } from '../auth.module-definition';
-import { ZitadelUserGrantsSearchResponse } from '../interfaces';
+import {
+  ZitadelUserGrantsSearchResponse,
+  ZitadelUserInfo,
+  ZitadelUserResponse,
+} from '../interfaces';
 
 @Injectable()
 export class ZitadelManagementClient {
@@ -59,6 +63,34 @@ export class ZitadelManagementClient {
     );
   }
 
+  /**
+   * Name and email of a human user, or null when ZITADEL does not know the ID.
+   */
+  async findUser(userId: string): Promise<ZitadelUserInfo | null> {
+    const response = await this.request<ZitadelUserResponse>(
+      'GET',
+      ['v2', 'users', userId],
+      undefined,
+      { notFoundIsNull: true },
+    );
+    const human = response?.user?.human;
+
+    if (!human) {
+      return null;
+    }
+
+    const { displayName, givenName, familyName } =
+      human.profile ?? {};
+
+    return {
+      name:
+        displayName ||
+        [givenName, familyName].filter(Boolean).join(' ') ||
+        undefined,
+      email: human.email?.email,
+    };
+  }
+
   private async findProjectGrant(userId: string) {
     const { result } =
       await this.request<ZitadelUserGrantsSearchResponse>(
@@ -88,9 +120,10 @@ export class ZitadelManagementClient {
   }
 
   private async request<T>(
-    method: 'POST' | 'PUT',
+    method: 'GET' | 'POST' | 'PUT',
     path: string[],
-    data: object,
+    data?: object,
+    { notFoundIsNull = false } = {},
   ): Promise<T> {
     const url = urlBuilder(
       this.options.issuerInternalUrl ?? this.options.issuerUrl,
@@ -111,6 +144,10 @@ export class ZitadelManagementClient {
     } catch (error) {
       // The axios error carries the request headers, so it must not be logged or rethrown.
       const status = (error as AxiosError).response?.status;
+
+      if (notFoundIsNull && status === 404) {
+        return null as T;
+      }
 
       this.logger.error(
         `ZITADEL management API ${method} /${path.join('/')} failed with status ${status}`,
