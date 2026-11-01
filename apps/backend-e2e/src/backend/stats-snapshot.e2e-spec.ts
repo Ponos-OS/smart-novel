@@ -11,15 +11,16 @@ describe('Stats snapshots (e2e)', () => {
     expect(rows).toBe('1');
   });
 
-  it('refuses a second snapshot for the same day', () => {
+  it('has a unique index on the day, so a second snapshot of a day cannot exist', () => {
     // Act
-    const insertTwice = () =>
-      ClusterFixture.queryDatabase(
-        `INSERT INTO stats_snapshots (id, day, novel_count, chapter_count)
-         VALUES (gen_random_uuid(), (now() AT TIME ZONE 'UTC')::date, 0, 0);`,
-      );
+    const inserted = ClusterFixture.queryDatabase(
+      `INSERT INTO stats_snapshots (id, day, novel_count, chapter_count)
+       VALUES (gen_random_uuid(), (now() AT TIME ZONE 'UTC')::date, 0, 0)
+       ON CONFLICT (day) DO NOTHING
+       RETURNING id;`,
+    );
 
     // Assert
-    expect(insertTwice).toThrow(/UQ_stats_snapshots_day/);
+    expect(inserted).toBe('INSERT 0 0');
   });
 });
