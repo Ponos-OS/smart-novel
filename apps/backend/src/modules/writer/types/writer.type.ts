@@ -6,13 +6,18 @@ import {
 } from '@nestjs/graphql';
 import { WriterStatus } from '@prisma/client';
 
+import { WriterApplication } from './writer-application.type';
+
 registerEnumType(WriterStatus, {
   name: 'WriterStatus',
   description:
-    'PENDING waits for an admin; APPROVED and REJECTED are kept as history',
+    'PENDING waits for an admin; a REJECTED user may apply again',
 });
 
-@ObjectType({ description: 'A request to become a writer' })
+@ObjectType({
+  description:
+    'A writer, or a user who applied to become one, with the history of their applications',
+})
 export class Writer {
   @Field(() => ID)
   id: string;
@@ -27,25 +32,25 @@ export class Writer {
   name: string;
 
   @Field({
+    description:
+      'The pen name the writer chose: English letters, hyphens and underscores, unique across writers in any case',
+  })
+  penName: string;
+
+  @Field({
     description: 'The email of the requester when they asked',
   })
   email: string;
 
-  @Field()
-  note: string;
-
   @Field(() => WriterStatus)
   status: WriterStatus;
-
-  @Field(() => String, {
-    nullable: true,
-    description: 'Why an admin rejected the request, when they said',
-  })
-  rejectionReason?: string | null;
 
   @Field()
   createdAt: Date;
 
-  @Field(() => Date, { nullable: true })
-  reviewedAt?: Date | null;
+  @Field(() => [WriterApplication], {
+    description:
+      'Every application of the writer, oldest first; the last one is the current one',
+  })
+  applications: WriterApplication[];
 }

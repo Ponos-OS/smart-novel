@@ -22,7 +22,7 @@ export class WriterFiltersInput {
   @Field(() => String, {
     nullable: true,
     description:
-      'Requests whose requester name or email contains this text, case-insensitively. Blank is ignored.',
+      'Writers whose pen name contains this text, case-insensitively. Blank is ignored.',
   })
   @IsOptional()
   @IsString()

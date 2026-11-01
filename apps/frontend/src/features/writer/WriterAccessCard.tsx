@@ -3,7 +3,8 @@ import { WriterStatus } from '../../generated/graphql';
 
 export interface WriterAccessRequest {
   status: WriterStatus;
-  rejectionReason?: string | null;
+  /** @description Oldest first; the last one is the current application. */
+  applications?: { rejectionReason?: string | null }[];
 }
 
 interface WriterAccessCardProps {
@@ -50,6 +51,8 @@ function WriterAccessBody({
   }
 
   const wasRejected = request?.status === WriterStatus.Rejected;
+  const rejectionReason =
+    request?.applications?.at(-1)?.rejectionReason;
 
   return (
     <div className="sm:flex sm:items-start sm:justify-between">
@@ -59,9 +62,9 @@ function WriterAccessBody({
             ? 'Your request was not approved'
             : 'Become a writer'}
         </h3>
-        {wasRejected && request.rejectionReason && (
+        {wasRejected && rejectionReason && (
           <p className="mt-1 text-sm text-gray-300">
-            {request.rejectionReason}
+            {rejectionReason}
           </p>
         )}
         <p className="mt-1 text-sm text-gray-400">

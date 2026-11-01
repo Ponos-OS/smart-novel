@@ -34,23 +34,35 @@ vi.mock('../../generated/graphql', async () => ({
 
 const mina = {
   id: '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10',
+  penName: 'Mina_Ardalan',
   name: 'Mina Ardalan',
   email: 'mina.ardalan@example.com',
-  note: 'I serialize a fantasy web novel.',
   status: WriterStatus.Pending,
-  rejectionReason: null,
   createdAt: '2026-10-30T09:15:00.000Z',
-  reviewedAt: null,
+  applications: [
+    {
+      note: 'I serialize a fantasy web novel.',
+      appliedAt: '2026-10-30T09:15:00.000Z',
+      rejectionReason: null,
+      reviewedAt: null,
+    },
+  ],
 };
 const omid = {
   id: 'c1d4a7f2-6e58-4b39-8a64-2f0e9b7d3c55',
+  penName: 'Omid_Rahimi',
   name: 'Omid Rahimi',
   email: 'omid.rahimi@example.com',
-  note: 'I would like to publish poems.',
   status: WriterStatus.Pending,
-  rejectionReason: null,
   createdAt: '2026-10-31T08:00:00.000Z',
-  reviewedAt: null,
+  applications: [
+    {
+      note: 'I would like to publish poems.',
+      appliedAt: '2026-10-31T08:00:00.000Z',
+      rejectionReason: null,
+      reviewedAt: null,
+    },
+  ],
 };
 
 function mockRequests(
@@ -130,7 +142,7 @@ describe('AdminWritersPage', () => {
   });
 
   describe('list', () => {
-    it('lists the pending requests with who asked, the note and the date', () => {
+    it('lists the pending requests with the pen name, who asked, the note and the date', () => {
       renderPage();
 
       const row = rowOf('Mina Ardalan');
@@ -139,6 +151,7 @@ describe('AdminWritersPage', () => {
         WriterStatus.Pending,
         true,
       );
+      expect(within(row).getByText('Mina_Ardalan')).toBeVisible();
       expect(
         within(row).getByText('mina.ardalan@example.com'),
       ).toBeVisible();
@@ -197,7 +210,12 @@ describe('AdminWritersPage', () => {
           {
             ...mina,
             status: WriterStatus.Rejected,
-            rejectionReason: 'Please share a sample chapter.',
+            applications: [
+              {
+                ...mina.applications[0],
+                rejectionReason: 'Please share a sample chapter.',
+              },
+            ],
           },
         ],
       });

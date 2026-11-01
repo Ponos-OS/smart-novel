@@ -34,6 +34,24 @@ describe(createGraphqlErrorFormatter.name, () => {
     expect(logger.error).not.toHaveBeenCalled();
   });
 
+  it('keeps a code the thrower chose on a 409, such as PEN_NAME_TAKEN', () => {
+    // Arrange
+    const logger = buildLogger();
+    const formatError = createGraphqlErrorFormatter(logger as never);
+    const formattedError: GraphQLFormattedError = {
+      message: 'That pen name is already taken',
+      path: ['requestWriterAccess'],
+      extensions: { code: 'PEN_NAME_TAKEN', status: 409 },
+    };
+
+    // Act
+    const result = formatError(formattedError, new Error('boom'));
+
+    // Assert
+    expect(result.extensions?.code).toBe('PEN_NAME_TAKEN');
+    expect(logger.warn).toHaveBeenCalled();
+  });
+
   it('leaves extensions.code untouched for a status with no additional mapping (e.g. 403)', () => {
     // Arrange
     const logger = buildLogger();

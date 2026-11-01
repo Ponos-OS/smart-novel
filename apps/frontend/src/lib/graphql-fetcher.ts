@@ -1,5 +1,6 @@
 import {
   INVALID_CURSOR_MESSAGE,
+  PEN_NAME_TAKEN,
   PLATFORM_TERMS_NOT_ACCEPTED,
 } from '@smart-novel/shared';
 
@@ -30,6 +31,16 @@ export function isInvalidCursorError(error: unknown): boolean {
   return (
     error instanceof GraphqlRequestError &&
     error.message === INVALID_CURSOR_MESSAGE
+  );
+}
+
+/**
+ * @description Another writer already has the pen name that was asked for, in any case.
+ */
+export function isPenNameTakenError(error: unknown): boolean {
+  return (
+    error instanceof GraphqlRequestError &&
+    error.extensions?.code === PEN_NAME_TAKEN
   );
 }
 

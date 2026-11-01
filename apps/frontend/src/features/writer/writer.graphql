@@ -1,19 +1,29 @@
 query MyWriter {
   myWriter {
     id
+    penName
     status
-    note
-    rejectionReason
     createdAt
+    applications {
+      note
+      appliedAt
+      rejectionReason
+      reviewedAt
+    }
   }
 }
 
-mutation RequestWriterAccess($note: String!) {
-  requestWriterAccess(note: $note) {
+mutation RequestWriterAccess($note: String!, $penName: String!) {
+  requestWriterAccess(note: $note, penName: $penName) {
     id
+    penName
     status
-    note
-    rejectionReason
     createdAt
+    applications {
+      note
+      appliedAt
+      rejectionReason
+      reviewedAt
+    }
   }
 }

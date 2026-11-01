@@ -2,6 +2,7 @@ import {
   graphqlFetcher,
   GraphqlRequestError,
   isInvalidCursorError,
+  isPenNameTakenError,
   isPlatformTermsNotAcceptedError,
 } from './graphql-fetcher';
 
@@ -102,6 +103,31 @@ describe(isInvalidCursorError.name, () => {
     [undefined, false],
   ])('should answer for %j', (error, expected) => {
     const result = isInvalidCursorError(error);
+
+    expect(result).toBe(expected);
+  });
+});
+
+describe(isPenNameTakenError.name, () => {
+  it.each([
+    [
+      new GraphqlRequestError('That pen name is already taken', {
+        code: 'PEN_NAME_TAKEN',
+      }),
+      true,
+    ],
+    [
+      new GraphqlRequestError('Conflict', { code: 'CONFLICT' }),
+      false,
+    ],
+    [
+      new GraphqlRequestError('That pen name is already taken'),
+      false,
+    ],
+    [new Error('PEN_NAME_TAKEN'), false],
+    [undefined, false],
+  ])('should answer for %j', (error, expected) => {
+    const result = isPenNameTakenError(error);
 
     expect(result).toBe(expected);
   });

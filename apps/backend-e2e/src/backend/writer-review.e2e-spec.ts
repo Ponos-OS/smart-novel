@@ -1,10 +1,14 @@
 import axios from 'axios';
 
-import { AuthorizationFixture } from '../support';
+import {
+  AuthorizationFixture,
+  ClusterFixture,
+  uniquePenName,
+} from '../support';
 
 const REQUEST_WRITER_ACCESS = `#graphql
-  mutation RequestWriterAccess($note: String!) {
-    requestWriterAccess(note: $note) {
+  mutation RequestWriterAccess($note: String!, $penName: String!) {
+    requestWriterAccess(note: $note, penName: $penName) {
       id
     }
   }
@@ -14,8 +18,13 @@ const MY_WRITER = `#graphql
   query MyWriter {
     myWriter {
       id
+      penName
       status
-      rejectionReason
+      applications {
+        note
+        rejectionReason
+        reviewedAt
+      }
     }
   }
 `;
@@ -36,13 +45,17 @@ const WRITERS = `#graphql
         node {
           id
           userId
+          penName
           name
           email
-          note
           status
-          rejectionReason
           createdAt
-          reviewedAt
+          applications {
+            note
+            appliedAt
+            rejectionReason
+            reviewedAt
+          }
         }
       }
       pageInfo {
@@ -57,7 +70,9 @@ const APPROVE = `#graphql
     approveWriter(id: $id) {
       id
       status
-      reviewedAt
+      applications {
+        reviewedAt
+      }
     }
   }
 `;
@@ -67,8 +82,10 @@ const REJECT = `#graphql
     rejectWriter(id: $id, reason: $reason) {
       id
       status
-      rejectionReason
-      reviewedAt
+      applications {
+        rejectionReason
+        reviewedAt
+      }
     }
   }
 `;
@@ -164,9 +181,10 @@ describe('Writer request review (e2e)', () => {
     });
 
     it('should show an admin the pending request with who asked', async () => {
+      const penName = uniquePenName('Applicant');
       const created = await graphql(
         REQUEST_WRITER_ACCESS,
-        { note: 'I serialize a fantasy web novel.' },
+        { note: 'I serialize a fantasy web novel.', penName },
         applicantAuthorization,
       );
       requestId = created.data.requestWriterAccess.id;
@@ -185,13 +203,19 @@ describe('Writer request review (e2e)', () => {
       ).toContainEqual({
         id: requestId,
         userId: expect.stringMatching(/^\d+$/),
+        penName,
         name: 'Applicant One',
         email: 'applicant@test.com',
-        note: 'I serialize a fantasy web novel.',
         status: 'PENDING',
-        rejectionReason: null,
         createdAt: expect.any(String),
-        reviewedAt: null,
+        applications: [
+          {
+            note: 'I serialize a fantasy web novel.',
+            appliedAt: expect.any(String),
+            rejectionReason: null,
+            reviewedAt: null,
+          },
+        ],
       });
     });
 
@@ -213,7 +237,7 @@ describe('Writer request review (e2e)', () => {
       expect(data.data.approveWriter).toMatchObject({
         id: requestId,
         status: 'APPROVED',
-        reviewedAt: expect.any(String),
+        applications: [{ reviewedAt: expect.any(String) }],
       });
 
       const freshAuthorization =
@@ -267,7 +291,7 @@ describe('Writer request review (e2e)', () => {
 
       const data = await graphql(
         REQUEST_WRITER_ACCESS,
-        { note: 'Asking again.' },
+        { note: 'Asking again.', penName: uniquePenName() },
         freshAuthorization,
       );
 
@@ -278,6 +302,7 @@ describe('Writer request review (e2e)', () => {
   describe('rejecting', () => {
     let applicantAuthorization: string;
     let requestId: string;
+    const penName = uniquePenName('Poet');
 
     beforeAll(async () => {
       applicantAuthorization =
@@ -287,7 +312,7 @@ describe('Writer request review (e2e)', () => {
     it('should store the trimmed reason and show it to the requester', async () => {
       const created = await graphql(
         REQUEST_WRITER_ACCESS,
-        { note: 'I would like to publish poems.' },
+        { note: 'I would like to publish poems.', penName },
         applicantAuthorization,
       );
       requestId = created.data.requestWriterAccess.id;
@@ -305,8 +330,12 @@ describe('Writer request review (e2e)', () => {
       expect(data.data.rejectWriter).toMatchObject({
         id: requestId,
         status: 'REJECTED',
-        rejectionReason: 'Please share a sample chapter.',
-        reviewedAt: expect.any(String),
+        applications: [
+          {
+            rejectionReason: 'Please share a sample chapter.',
+            reviewedAt: expect.any(String),
+          },
+        ],
       });
 
       const mine = await graphql(
@@ -317,8 +346,15 @@ describe('Writer request review (e2e)', () => {
 
       expect(mine.data.myWriter).toStrictEqual({
         id: requestId,
+        penName,
         status: 'REJECTED',
-        rejectionReason: 'Please share a sample chapter.',
+        applications: [
+          {
+            note: 'I would like to publish poems.',
+            rejectionReason: 'Please share a sample chapter.',
+            reviewedAt: expect.any(String),
+          },
+        ],
       });
     });
 
@@ -331,10 +367,12 @@ describe('Writer request review (e2e)', () => {
       expect(data.data.whoAmI.roles).toStrictEqual(['user']);
     });
 
-    it('should let the requester file a new request, keeping the old one as history', async () => {
+    it('should let the requester ask again on the same row, keeping the first application in its history', async () => {
+      const newPenName = uniquePenName('Poet');
+
       const created = await graphql(
         REQUEST_WRITER_ACCESS,
-        { note: 'Here is a sample chapter.' },
+        { note: 'Here is a sample chapter.', penName: newPenName },
         applicantAuthorization,
       );
       const rejected = await graphql(
@@ -347,14 +385,52 @@ describe('Writer request review (e2e)', () => {
         {},
         applicantAuthorization,
       );
+      const history = JSON.parse(
+        ClusterFixture.queryDatabase(
+          `SELECT applications FROM writers WHERE id = '${requestId}';`,
+        ),
+      );
 
       expect(created.errors).toBeUndefined();
-      expect(mine.data.myWriter.status).toBe('PENDING');
+      expect(created.data.requestWriterAccess.id).toBe(requestId);
+      expect(mine.data.myWriter).toStrictEqual({
+        id: requestId,
+        penName: newPenName,
+        status: 'PENDING',
+        applications: [
+          {
+            note: 'I would like to publish poems.',
+            rejectionReason: 'Please share a sample chapter.',
+            reviewedAt: expect.any(String),
+          },
+          {
+            note: 'Here is a sample chapter.',
+            rejectionReason: null,
+            reviewedAt: null,
+          },
+        ],
+      });
       expect(
         rejected.data.writersConnection.edges.map(
           ({ node }: { node: { id: string } }) => node.id,
         ),
-      ).toContain(requestId);
+      ).not.toContain(requestId);
+      expect(history).toStrictEqual([
+        {
+          note: 'I would like to publish poems.',
+          appliedAt: expect.any(String),
+          rejectionReason: 'Please share a sample chapter.',
+          reviewedBy: expect.stringMatching(/^\d+$/),
+          reviewedAt: expect.any(String),
+        },
+        {
+          note: 'Here is a sample chapter.',
+          appliedAt: expect.any(String),
+          rejectionReason: null,
+          reviewedBy: null,
+          reviewedAt: null,
+        },
+      ]);
     });
   });
 
@@ -384,6 +460,7 @@ describe('Writer request review (e2e)', () => {
             node,
           }: {
             node: {
+              penName: string;
               name: string;
               email: string;
               userId: string;
@@ -393,33 +470,52 @@ describe('Writer request review (e2e)', () => {
       );
     }
 
+    let userPenName: string;
+
     beforeAll(async () => {
+      const userAuthorization =
+        await AuthorizationFixture.getUserAuthorizationHeader();
+
       // Another spec may have filed this one already, which is a 400 and fine here.
       await graphql(
         REQUEST_WRITER_ACCESS,
-        { note: 'Searching needs a request from the regular user.' },
-        await AuthorizationFixture.getUserAuthorizationHeader(),
+        {
+          note: 'Searching needs a request from the regular user.',
+          penName: uniquePenName(),
+        },
+        userAuthorization,
       );
+
+      const mine = await graphql(MY_WRITER, {}, userAuthorization);
+      userPenName = mine.data.myWriter.penName;
     });
 
-    it.each([
-      {
-        scenario: 'a part of the name, in any case',
-        search: 'rEgULar uS',
-      },
-      { scenario: 'a part of the email', search: 'user@test' },
-    ])('should find the request by $scenario', async ({ search }) => {
-      const result = await searchEveryStatus(search);
+    it('should find the writer by a part of the pen name, in any case', async () => {
+      const result = await searchEveryStatus(
+        userPenName.slice(1, 8).toUpperCase(),
+      );
 
-      expect(result.map(({ email }) => email)).toContain(
-        'user@test.com',
+      expect(result.map(({ penName }) => penName)).toContain(
+        userPenName,
       );
       expect(
         result.every(({ userId }) => userId.length > 0),
       ).toBeTrue();
     });
 
-    it.each(['%', 'regular_user', 'regular\\'])(
+    it.each([
+      { scenario: 'the name', search: 'Regular User' },
+      { scenario: 'the email', search: 'user@test' },
+    ])(
+      'should not search $scenario of the writer',
+      async ({ search }) => {
+        const result = await searchEveryStatus(search);
+
+        expect(result).toBeEmpty();
+      },
+    );
+
+    it.each(['%', 'Pe_', 'Pen\\'])(
       'should treat %s as text, not as a LIKE pattern',
       async (search) => {
         const result = await searchEveryStatus(search);
@@ -461,7 +557,10 @@ describe('Writer request review (e2e)', () => {
       // Another spec may have filed this one already, which is a 400 and fine here.
       await graphql(
         REQUEST_WRITER_ACCESS,
-        { note: 'Paging needs a second pending request.' },
+        {
+          note: 'Paging needs a second pending request.',
+          penName: uniquePenName(),
+        },
         await AuthorizationFixture.getUserAuthorizationHeader(),
       );
       const first = await graphql(

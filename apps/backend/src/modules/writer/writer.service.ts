@@ -1,14 +1,19 @@
 import {
   BadRequestException,
+  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, WriterStatus } from '@prisma/client';
 import {
+  getPenNameProblem,
   hasMinimumRole,
+  PEN_NAME_PROBLEM_MESSAGES,
+  PEN_NAME_TAKEN,
   Role,
   WRITER_NOTE_MAX_LENGTH,
 } from '@smart-novel/shared';
+import { GraphQLError } from 'graphql';
 import { retryAsync } from 'nestjs-backend-common';
 
 import {
@@ -20,25 +25,38 @@ import {
 } from '../../shared';
 import { type IAuthUser, ZitadelManagementClient } from '../auth';
 import { CursorCodec } from '../cursor';
-import { PrismaService } from '../prisma';
+import { PrismaService, PrismaTransactionClient } from '../prisma';
 import {
   WRITERS_PAGE_SIZE_DEFAULT,
   WRITERS_PAGE_SIZE_MAX,
 } from './constants';
 import { WriterFiltersInput } from './inputs';
 import { Writer, WriterConnection } from './types';
+import {
+  parseApplications,
+  StoredWriterApplication,
+} from './writer-application';
 
 const WRITER_SELECT = {
   id: true,
   userId: true,
   name: true,
   email: true,
-  note: true,
+  penName: true,
   status: true,
-  rejectionReason: true,
+  applications: true,
   createdAt: true,
-  reviewedAt: true,
 } satisfies Prisma.WriterSelect;
+
+type WriterRow = Prisma.WriterGetPayload<{
+  select: typeof WRITER_SELECT;
+}>;
+
+function toJson(
+  applications: StoredWriterApplication[],
+): Prisma.InputJsonValue {
+  return applications as unknown as Prisma.InputJsonValue;
+}
 
 @Injectable()
 export class WriterService {
@@ -48,7 +66,15 @@ export class WriterService {
     private readonly cursorCodec: CursorCodec,
   ) {}
 
-  async request(user: IAuthUser, note: string): Promise<Writer> {
+  /**
+   * @description
+   * A user has one row for life: the first request creates it, and a rejected user who asks again gets a new entry in the history and the status back to PENDING. The pen name is checked here, with no separate availability query, and the unique index settles two requests that race for it.
+   */
+  async request(
+    user: IAuthUser,
+    note: string,
+    penName: string,
+  ): Promise<Writer> {
     if (hasMinimumRole(user.roles, Role.writer)) {
       throw new BadRequestException('You already have writer access');
     }
@@ -58,33 +84,40 @@ export class WriterService {
       );
     }
 
-    const [error, writer] = await retryAsync(
+    const penNameProblem = getPenNameProblem(penName);
+
+    if (penNameProblem) {
+      throw new BadRequestException(
+        PEN_NAME_PROBLEM_MESSAGES[penNameProblem],
+      );
+    }
+
+    if (await this.isPenNameTakenByAnother(penName, user.sub)) {
+      throw this.toPenNameTaken();
+    }
+
+    const [error, row] = await retryAsync(
       () =>
-        this.prisma.writer.create({
-          data: {
-            userId: user.sub,
-            name: user.name || user.preferredUsername,
-            email: user.email,
-            note,
-          },
-          select: WRITER_SELECT,
-        }),
+        this.prisma.$transaction((tx) =>
+          this.apply(tx, user, note, penName),
+        ),
       { retry: 0 },
     );
 
     if (error) {
-      throw this.toKnownError(error);
+      throw await this.toKnownError(error, user.sub, penName);
     }
 
-    return writer;
+    return this.toWriter(row);
   }
 
-  async findLatest(userId: string): Promise<Writer | null> {
-    return this.prisma.writer.findFirst({
+  async findByUserId(userId: string): Promise<Writer | null> {
+    const row = await this.prisma.writer.findUnique({
       where: { userId },
-      orderBy: { createdAt: 'desc' },
       select: WRITER_SELECT,
     });
+
+    return row && this.toWriter(row);
   }
 
   async findConnection(
@@ -100,14 +133,7 @@ export class WriterService {
     const where: Prisma.WriterWhereInput = {
       status: filters?.status ?? WriterStatus.PENDING,
       ...(search && {
-        OR: [
-          {
-            name: { contains: search, mode: 'insensitive' },
-          },
-          {
-            email: { contains: search, mode: 'insensitive' },
-          },
-        ],
+        penName: { contains: search, mode: 'insensitive' },
       }),
     };
     const { edges, pageInfo } = await paginateConnection({
@@ -126,7 +152,7 @@ export class WriterService {
           take,
         });
       },
-      toNode: (row) => row,
+      toNode: (row) => this.toWriter(row),
     });
 
     return Object.assign(new WriterConnection(), {
@@ -146,9 +172,8 @@ export class WriterService {
       Role.writer,
     );
 
-    return this.review(id, {
+    return this.review(id, adminId, {
       status: WriterStatus.APPROVED,
-      reviewedBy: adminId,
     });
   }
 
@@ -170,10 +195,66 @@ export class WriterService {
 
     await this.findPending(id);
 
-    return this.review(id, {
+    return this.review(id, adminId, {
       status: WriterStatus.REJECTED,
       rejectionReason,
-      reviewedBy: adminId,
+    });
+  }
+
+  private async apply(
+    tx: PrismaTransactionClient,
+    user: IAuthUser,
+    note: string,
+    penName: string,
+  ): Promise<WriterRow> {
+    await tx.$queryRaw`SELECT id FROM writers WHERE user_id = ${user.sub} FOR UPDATE`;
+
+    const existing = await tx.writer.findUnique({
+      where: { userId: user.sub },
+      select: WRITER_SELECT,
+    });
+    const application: StoredWriterApplication = {
+      note,
+      appliedAt: new Date().toISOString(),
+      rejectionReason: null,
+      reviewedBy: null,
+      reviewedAt: null,
+    };
+    const identity = {
+      name: user.name || user.preferredUsername,
+      email: user.email,
+      penName,
+    };
+
+    if (!existing) {
+      return tx.writer.create({
+        data: {
+          userId: user.sub,
+          ...identity,
+          applications: toJson([application]),
+        },
+        select: WRITER_SELECT,
+      });
+    }
+    if (existing.status === WriterStatus.PENDING) {
+      throw this.toAlreadyPending();
+    }
+    if (existing.status === WriterStatus.APPROVED) {
+      throw new BadRequestException('You already have writer access');
+    }
+
+    return tx.writer.update({
+      where: { id: existing.id },
+      data: {
+        ...identity,
+        status: WriterStatus.PENDING,
+        createdAt: new Date(),
+        applications: toJson([
+          ...parseApplications(existing.applications),
+          application,
+        ]),
+      },
+      select: WRITER_SELECT,
     });
   }
 
@@ -194,25 +275,96 @@ export class WriterService {
   }
 
   /**
-   * @description The status in the filter makes two admins reviewing the same request at once end with one winner and one 400.
+   * @description The row is locked and its status read again, so two admins reviewing the same request at once end with one winner and one 400. Filling in the review fields of the last entry is the only time an entry of the history changes.
    */
   private async review(
     id: string,
-    data: Prisma.WriterUpdateManyMutationInput,
+    adminId: string,
+    outcome: {
+      status: WriterStatus;
+      rejectionReason?: string | null;
+    },
   ): Promise<Writer> {
-    const { count } = await this.prisma.writer.updateMany({
-      where: { id, status: WriterStatus.PENDING },
-      data: { ...data, reviewedAt: new Date() },
+    const row = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM writers WHERE id = ${id}::uuid FOR UPDATE`;
+
+      const writer = await tx.writer.findUnique({
+        where: { id },
+        select: WRITER_SELECT,
+      });
+
+      if (!writer) {
+        throw new NotFoundException('Writer request not found');
+      }
+      if (writer.status !== WriterStatus.PENDING) {
+        throw this.toAlreadyReviewed();
+      }
+
+      const applications = parseApplications(writer.applications);
+      const latest = applications.at(-1);
+
+      if (!latest) {
+        throw new Error(
+          `Writer ${id} is pending without an application`,
+        );
+      }
+
+      return tx.writer.update({
+        where: { id },
+        data: {
+          status: outcome.status,
+          applications: toJson([
+            ...applications.slice(0, -1),
+            {
+              ...latest,
+              rejectionReason: outcome.rejectionReason ?? null,
+              reviewedBy: adminId,
+              reviewedAt: new Date().toISOString(),
+            },
+          ]),
+        },
+        select: WRITER_SELECT,
+      });
     });
 
-    if (count === 0) {
-      throw this.toAlreadyReviewed();
-    }
+    return this.toWriter(row);
+  }
 
-    return this.prisma.writer.findUniqueOrThrow({
-      where: { id },
-      select: WRITER_SELECT,
+  private toWriter(row: WriterRow): Writer {
+    return {
+      id: row.id,
+      userId: row.userId,
+      name: row.name,
+      email: row.email,
+      penName: row.penName,
+      status: row.status,
+      createdAt: row.createdAt,
+      applications: parseApplications(row.applications).map(
+        (application) => ({
+          note: application.note,
+          appliedAt: new Date(application.appliedAt),
+          rejectionReason: application.rejectionReason,
+          reviewedAt: application.reviewedAt
+            ? new Date(application.reviewedAt)
+            : null,
+        }),
+      ),
+    };
+  }
+
+  /**
+   * @description `pen_name` is `citext`, so the lookup and the unique index both ignore case.
+   */
+  private async isPenNameTakenByAnother(
+    penName: string,
+    userId: string,
+  ): Promise<boolean> {
+    const owner = await this.prisma.writer.findUnique({
+      where: { penName },
+      select: { userId: true },
     });
+
+    return owner !== null && owner.userId !== userId;
   }
 
   private toAlreadyReviewed(): BadRequestException {
@@ -221,16 +373,41 @@ export class WriterService {
     );
   }
 
-  private toKnownError(error: unknown): unknown {
+  private toAlreadyPending(): BadRequestException {
+    return new BadRequestException(
+      'You already have a pending writer request',
+    );
+  }
+
+  private toPenNameTaken(): GraphQLError {
+    return new GraphQLError(
+      'That pen name is already taken, please choose another one',
+      {
+        extensions: {
+          code: PEN_NAME_TAKEN,
+          status: HttpStatus.CONFLICT,
+        },
+      },
+    );
+  }
+
+  /**
+   * @description A unique violation is either the pen name another request just took or this user's own pending row; asking again tells them apart without relying on the driver's error details.
+   */
+  private async toKnownError(
+    error: unknown,
+    userId: string,
+    penName: string,
+  ): Promise<unknown> {
     if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === 'P2002'
+      !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+      error.code !== 'P2002'
     ) {
-      return new BadRequestException(
-        'You already have a pending writer request',
-      );
+      return error;
     }
 
-    return error;
+    return (await this.isPenNameTakenByAnother(penName, userId))
+      ? this.toPenNameTaken()
+      : this.toAlreadyPending();
   }
 }

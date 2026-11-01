@@ -34,6 +34,7 @@ export function WriterRow({ request, onReject }: WriterRowProps) {
   const queryClient = useQueryClient();
   const approve = useApproveWriterMutation();
   const isPending = request.status === WriterStatus.Pending;
+  const application = request.applications.at(-1);
 
   const refresh = () =>
     queryClient.invalidateQueries({
@@ -72,11 +73,12 @@ export function WriterRow({ request, onReject }: WriterRowProps) {
   return (
     <tr className="border-t border-gray-700">
       <td className="px-4 py-3 align-top">
-        <p className="font-medium text-white">{request.name}</p>
+        <p className="font-medium text-white">{request.penName}</p>
+        <p className="text-sm text-gray-300">{request.name}</p>
         <p className="text-sm text-gray-400">{request.email}</p>
       </td>
       <td className="max-w-md whitespace-pre-wrap break-words px-4 py-3 align-top text-sm text-gray-300">
-        {request.note}
+        {application?.note}
       </td>
       <td className="whitespace-nowrap px-4 py-3 align-top text-sm text-gray-400">
         {new Date(request.createdAt).toLocaleDateString('en-US')}
@@ -87,9 +89,9 @@ export function WriterRow({ request, onReject }: WriterRowProps) {
         >
           {STATUS_LABELS[request.status]}
         </span>
-        {request.rejectionReason && (
+        {application?.rejectionReason && (
           <p className="mt-2 text-sm text-gray-400">
-            {request.rejectionReason}
+            {application.rejectionReason}
           </p>
         )}
       </td>

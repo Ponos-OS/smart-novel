@@ -39,7 +39,9 @@ export const RejectedWithReason: Story = {
   args: {
     request: {
       status: WriterStatus.Rejected,
-      rejectionReason: 'Please share a sample chapter.',
+      applications: [
+        { rejectionReason: 'Please share a sample chapter.' },
+      ],
     },
   },
   play: async ({ canvasElement }) => {

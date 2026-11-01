@@ -1,6 +1,6 @@
 import { GraphqlRequestError } from '../../src/lib/graphql-fetcher';
 
-type Outcome = 'noop' | 'success' | 'refused';
+type Outcome = 'noop' | 'success' | 'refused' | 'taken';
 
 /** Swapped in for `useRequestWriterAccessMutation` by the Storybook Vite plugin — flip before rendering a story to drive the pending, refused and success states. */
 export const mockRequestWriterAccessState: {
@@ -12,7 +12,7 @@ export function useRequestWriterAccessMutation() {
   return {
     isPending: mockRequestWriterAccessState.isPending,
     mutate: (
-      _variables: { note: string },
+      _variables: { note: string; penName: string },
       options?: {
         onSuccess?: () => void;
         onError?: (error: unknown) => void;
@@ -20,6 +20,13 @@ export function useRequestWriterAccessMutation() {
     ) => {
       if (mockRequestWriterAccessState.outcome === 'success') {
         options?.onSuccess?.();
+      } else if (mockRequestWriterAccessState.outcome === 'taken') {
+        options?.onError?.(
+          new GraphqlRequestError(
+            'That pen name is already taken, please choose another one',
+            { code: 'PEN_NAME_TAKEN' },
+          ),
+        );
       } else if (mockRequestWriterAccessState.outcome === 'refused') {
         options?.onError?.(
           new GraphqlRequestError(

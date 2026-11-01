@@ -11,13 +11,17 @@ query AdminWriters(
     edges {
       node {
         id
+        penName
         name
         email
-        note
         status
-        rejectionReason
         createdAt
-        reviewedAt
+        applications {
+          note
+          appliedAt
+          rejectionReason
+          reviewedAt
+        }
       }
     }
     pageInfo {
@@ -38,6 +42,8 @@ mutation RejectWriter($id: ID!, $reason: String) {
   rejectWriter(id: $id, reason: $reason) {
     id
     status
-    rejectionReason
+    applications {
+      rejectionReason
+    }
   }
 }

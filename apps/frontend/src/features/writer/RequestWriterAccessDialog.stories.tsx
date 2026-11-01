@@ -37,6 +37,10 @@ export const Typing: Story = {
     const canvas = within(canvasElement.ownerDocument.body);
 
     await userEvent.type(
+      canvas.getByLabelText('Pen name'),
+      'Mina_Ardalan',
+    );
+    await userEvent.type(
       canvas.getByLabelText('Why do you want to write here?'),
       'I serialize a fantasy web novel.',
     );
@@ -62,6 +66,10 @@ export const AlreadyPending: Story = {
     const canvas = within(canvasElement.ownerDocument.body);
 
     await userEvent.type(
+      canvas.getByLabelText('Pen name'),
+      'Mina_Ardalan',
+    );
+    await userEvent.type(
       canvas.getByLabelText('Why do you want to write here?'),
       'Hello',
     );
@@ -83,6 +91,10 @@ export const Requested: Story = {
     const canvas = within(canvasElement.ownerDocument.body);
 
     await userEvent.type(
+      canvas.getByLabelText('Pen name'),
+      'Mina_Ardalan',
+    );
+    await userEvent.type(
       canvas.getByLabelText('Why do you want to write here?'),
       'Hello',
     );
@@ -91,5 +103,54 @@ export const Requested: Story = {
     );
 
     await expect(args.onRequested).toHaveBeenCalledOnce();
+  },
+};
+
+export const InvalidPenName: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement.ownerDocument.body);
+
+    await userEvent.type(canvas.getByLabelText('Pen name'), 'Mina2');
+    await userEvent.type(
+      canvas.getByLabelText('Why do you want to write here?'),
+      'Hello',
+    );
+
+    await expect(canvas.getByLabelText('Pen name')).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    );
+    await expect(
+      canvas.getByText(/English letters, hyphens and underscores/),
+    ).toBeInTheDocument();
+    await expect(
+      canvas.getByRole('button', { name: 'Send request' }),
+    ).toBeDisabled();
+  },
+};
+
+export const PenNameTaken: Story = {
+  beforeEach: () => {
+    mockRequestWriterAccessState.outcome = 'taken';
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement.ownerDocument.body);
+
+    await userEvent.type(
+      canvas.getByLabelText('Pen name'),
+      'Mina_Ardalan',
+    );
+    await userEvent.type(
+      canvas.getByLabelText('Why do you want to write here?'),
+      'Hello',
+    );
+    await userEvent.click(
+      canvas.getByRole('button', { name: 'Send request' }),
+    );
+
+    await expect(canvas.getByLabelText('Pen name')).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    );
   },
 };

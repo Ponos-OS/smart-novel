@@ -34,7 +34,9 @@ describe('WriterAccessCard', () => {
       <WriterAccessCard
         request={{
           status: WriterStatus.Rejected,
-          rejectionReason: 'Please share a sample chapter.',
+          applications: [
+            { rejectionReason: 'Please share a sample chapter.' },
+          ],
         }}
         onRequest={onRequest}
       />,
@@ -55,7 +57,7 @@ describe('WriterAccessCard', () => {
       <WriterAccessCard
         request={{
           status: WriterStatus.Rejected,
-          rejectionReason: null,
+          applications: [{ rejectionReason: null }],
         }}
         onRequest={vi.fn()}
       />,

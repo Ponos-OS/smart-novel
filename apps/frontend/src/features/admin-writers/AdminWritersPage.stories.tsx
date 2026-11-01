@@ -17,33 +17,51 @@ import { ADMIN_WRITERS_KEY } from './use-admin-writers';
 
 const mina = {
   id: '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10',
+  penName: 'Mina_Ardalan',
   name: 'Mina Ardalan',
   email: 'mina.ardalan@example.com',
-  note: 'I serialize a fantasy web novel and would like to move it here.',
   status: WriterStatus.Pending,
-  rejectionReason: null,
   createdAt: '2026-10-30T09:15:00.000Z',
-  reviewedAt: null,
+  applications: [
+    {
+      note: 'I serialize a fantasy web novel and would like to move it here.',
+      appliedAt: '2026-10-30T09:15:00.000Z',
+      rejectionReason: null,
+      reviewedAt: null,
+    },
+  ],
 };
 const omid = {
   id: 'c1d4a7f2-6e58-4b39-8a64-2f0e9b7d3c55',
+  penName: 'Omid_Rahimi',
   name: 'Omid Rahimi',
   email: 'omid.rahimi@example.com',
-  note: 'I would like to publish poems.',
   status: WriterStatus.Pending,
-  rejectionReason: null,
   createdAt: '2026-10-31T08:00:00.000Z',
-  reviewedAt: null,
+  applications: [
+    {
+      note: 'I would like to publish poems.',
+      appliedAt: '2026-10-31T08:00:00.000Z',
+      rejectionReason: null,
+      reviewedAt: null,
+    },
+  ],
 };
 const sara = {
   id: '8e9a1b6d-3f47-4c20-b5a8-7d6c2e1f0a93',
+  penName: 'Sara_Karimi',
   name: 'Sara Karimi',
   email: 'sara.karimi@example.com',
-  note: 'Short stories.',
   status: WriterStatus.Rejected,
-  rejectionReason: 'Please share a sample chapter.',
   createdAt: '2026-10-20T10:00:00.000Z',
-  reviewedAt: '2026-10-21T10:00:00.000Z',
+  applications: [
+    {
+      note: 'Short stories.',
+      appliedAt: '2026-10-20T10:00:00.000Z',
+      rejectionReason: 'Please share a sample chapter.',
+      reviewedAt: '2026-10-21T10:00:00.000Z',
+    },
+  ],
 };
 
 const page = (nodes: object[], hasNextPage = false) => ({

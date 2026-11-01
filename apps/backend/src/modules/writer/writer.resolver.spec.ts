@@ -13,7 +13,7 @@ describe(WriterResolver.name, () => {
   let uut: WriterResolver;
   let service: Record<
     | 'request'
-    | 'findLatest'
+    | 'findByUserId'
     | 'findConnection'
     | 'approve'
     | 'reject',
@@ -23,7 +23,7 @@ describe(WriterResolver.name, () => {
   beforeEach(() => {
     service = {
       request: vi.fn(),
-      findLatest: vi.fn(),
+      findByUserId: vi.fn(),
       findConnection: vi.fn(),
       approve: vi.fn(),
       reject: vi.fn(),
@@ -31,24 +31,29 @@ describe(WriterResolver.name, () => {
     uut = new WriterResolver(service as unknown as WriterService);
   });
 
-  it('should hand the caller and the note to the service', async () => {
+  it('should hand the caller, the note and the pen name to the service', async () => {
     service.request.mockResolvedValue({ id: 'x' });
 
-    await uut.requestWriterAccess('I write fantasy.', user);
+    await uut.requestWriterAccess(
+      'I write fantasy.',
+      'Mina_Ardalan',
+      user,
+    );
 
     expect(service.request).toHaveBeenCalledWith(
       user,
       'I write fantasy.',
+      'Mina_Ardalan',
     );
   });
 
-  it('should look up the latest request by the caller', async () => {
-    service.findLatest.mockResolvedValue(null);
+  it('should look up the writer record of the caller', async () => {
+    service.findByUserId.mockResolvedValue(null);
 
     const result = await uut.myWriter(user);
 
     expect(result).toBeNull();
-    expect(service.findLatest).toHaveBeenCalledWith(user.sub);
+    expect(service.findByUserId).toHaveBeenCalledWith(user.sub);
   });
 
   it('should page the requests with the filters', async () => {

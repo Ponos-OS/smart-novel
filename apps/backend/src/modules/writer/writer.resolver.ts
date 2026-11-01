@@ -22,31 +22,34 @@ export class WriterResolver {
   @RequireRole(Role.user)
   @Mutation(() => Writer, {
     description:
-      'Ask to become a writer. A 400 when the caller is already a writer or admin, already has a pending request, or sends an empty or too long note.',
+      'Ask to become a writer, with the pen name the writer will be known by. A 400 when the caller is already a writer or admin, already has a pending request, sends an empty or too long note, or a pen name that is not 3 to 50 English letters, hyphens and underscores. A 409 with the code `PEN_NAME_TAKEN` when another writer has the pen name, in any case. A rejected user may ask again and keeps a history of their applications.',
   })
   async requestWriterAccess(
     @Args('note', { type: () => String }, RequiredStringPipe)
     note: string,
+    @Args('penName', { type: () => String }, RequiredStringPipe)
+    penName: string,
     @CurrentUser() user: IAuthUser,
   ): Promise<Writer> {
-    return this.writerService.request(user, note);
+    return this.writerService.request(user, note, penName);
   }
 
   @RequireRole(Role.user)
   @Query(() => Writer, {
     nullable: true,
-    description: "The caller's latest writer request, or null",
+    description:
+      "The caller's writer record (their latest request), or null",
   })
   async myWriter(
     @CurrentUser() user: IAuthUser,
   ): Promise<Writer | null> {
-    return this.writerService.findLatest(user.sub);
+    return this.writerService.findByUserId(user.sub);
   }
 
   @RequireRole(Role.admin)
   @Query(() => WriterConnection, {
     description:
-      'Admin only. Writer requests, oldest first, PENDING unless `filters.status` says otherwise, narrowed by `filters.search` (requester name or email contains it). Without `first` or `last` a page of 20 is returned, at most 100 are allowed.',
+      'Admin only. Writer requests, oldest first, PENDING unless `filters.status` says otherwise, narrowed by `filters.search` (the pen name contains it). Without `first` or `last` a page of 20 is returned, at most 100 are allowed.',
   })
   async writersConnection(
     @Args('first', { type: () => Int, nullable: true })

@@ -3,6 +3,8 @@ import { HttpStatus } from '@nestjs/common';
 import { GraphQLFormattedError } from 'graphql';
 import { CustomLoggerService } from 'nestjs-backend-common';
 
+const GENERIC_CODE = 'INTERNAL_SERVER_ERROR';
+
 /** @description custom error codes sent by the backend */
 const ADDITIONAL_STATUS_CODES: Partial<Record<number, string>> = {
   [HttpStatus.CONFLICT]: 'CONFLICT',
@@ -43,9 +45,11 @@ export function createGraphqlErrorFormatter(
       });
     }
 
-    const remappedCode = status
-      ? ADDITIONAL_STATUS_CODES[status]
-      : undefined;
+    // A code the thrower chose (e.g. PEN_NAME_TAKEN on a 409) is more specific than the status and stays.
+    const remappedCode =
+      status && formattedError.extensions?.code === GENERIC_CODE
+        ? ADDITIONAL_STATUS_CODES[status]
+        : undefined;
 
     if (!remappedCode) {
       return formattedError;
