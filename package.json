@@ -55,6 +55,7 @@
   "scripts": {
     "start:dev": "sh infra/scripts/start-dev.sh",
     "stop:dev": "sh infra/scripts/stop-dev.sh",
+    "force:stop:dev": "sh local-setup/force-stop-dev.sh",
     "prepare": "husky || true",
     "format": "prettier . -w -u && nx prisma:format backend",
     "format:check": "prettier . --check -u",

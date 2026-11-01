@@ -1,14 +1,11 @@
 /**
- * Through the menu, not `cy.visit('/admin/categories')`: the ingress sends the
- * `/admin` prefix to ZITADEL's admin API, so loading that URL directly never
- * reaches the app.
+ * Loaded directly, like a refresh or a pasted link: the ingress must serve the app for it, not ZITADEL (which lives on its own host).
  */
 function openCategoriesPage() {
-  cy.visit('/');
+  cy.visit('/admin/categories');
   cy.get('button[aria-label="User menu"]', {
     timeout: 15000,
-  }).click();
-  cy.contains('a', 'Manage categories').click();
+  }).should('be.visible');
   cy.url().should('match', /\/admin\/categories$/);
 }
 

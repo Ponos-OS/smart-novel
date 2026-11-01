@@ -108,7 +108,7 @@ Everything is behind Traefik on port 8080:
 
   UI                http://localhost:8080                      login: infra/terraform/envs/local-zitadel/main.tf
   GraphQL (Apollo)  http://localhost:8080/graphql              needs a bearer token from a logged-in session
-  ZITADEL console   http://localhost:8080/ui/console/          admin login: infra/terraform/envs/local-zitadel/main.tf
+  ZITADEL console   http://auth.localhost:8080/ui/console/     admin login: infra/terraform/envs/local-zitadel/main.tf
   Grafana           http://grafana.localhost:8080              admin password: see infra/README.md
   RabbitMQ          http://rabbitmq.localhost:8080             guest / guest, only when Beatrice is deployed
   RustFS console    http://s3-console.localhost:8080           S3 API on http://s3.localhost:8080

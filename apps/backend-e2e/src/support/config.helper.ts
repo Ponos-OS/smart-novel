@@ -9,7 +9,7 @@ import { Logger } from './logger';
  * FIXME: If we containerize our integration tests, then there is a chance that I have to override or modify the URL in the backend.
  */
 const zitadelIssuer =
-  process.env.ZITADEL_ISSUER_URL ?? 'http://localhost:8080';
+  process.env.ZITADEL_ISSUER_URL ?? 'http://auth.localhost:8080';
 const workspaceRoot = resolve(__dirname, '../../../../');
 const zitadelEnvDir = resolve(
   workspaceRoot,

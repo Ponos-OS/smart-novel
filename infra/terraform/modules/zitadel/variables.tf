@@ -25,9 +25,15 @@ variable "busybox_image" {
 }
 
 variable "external_domain" {
-  description = "Domain ZITADEL is reached on from the browser"
+  description = "Host ZITADEL is reached on from the browser. It is its own host, never the host of the frontend, so no path of ZITADEL can shadow a page of the app (the frontend has `/admin/...` pages, ZITADEL has `/admin/v1`)"
   type        = string
-  default     = "localhost"
+  default     = "auth.localhost"
+}
+
+variable "internal_hosts" {
+  description = "Hosts other workloads in the cluster reach ZITADEL with, through the ingress (its Service name). Nothing else is served on them"
+  type        = list(string)
+  default     = ["traefik"]
 }
 
 variable "external_port" {

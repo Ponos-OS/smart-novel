@@ -1,19 +1,16 @@
 output "routes" {
-  description = "Routes for the ingress: ZITADEL's own endpoints and the login UI. Everything else falls through to the frontend"
+  description = "Routes for the ingress: everything on ZITADEL's own host, and the login UI on it. Nothing is claimed on the host of the frontend"
   value = [
     {
-      name = "zitadel-web"
-      rule = join(" || ", [for prefix in [
-        "/.well-known", "/oauth", "/oidc", "/saml", "/v2", "/management", "/admin", "/auth/v1",
-        "/assets/v1", "/ui/console", "/debug", "/zitadel.",
-      ] : "PathPrefix(`${prefix}`)"])
+      name        = "zitadel-web"
+      rule        = local.host_rule
       priority    = 100
       service     = "h2c://${kubernetes_service_v1.zitadel.metadata[0].name}:8080"
       middlewares = ["zitadel-fwd"]
     },
     {
       name     = "zitadel-login-web"
-      rule     = "PathPrefix(`${local.login_path}`)"
+      rule     = "(${local.host_rule}) && PathPrefix(`${local.login_path}`)"
       priority = 250
       service  = "http://${kubernetes_service_v1.login.metadata[0].name}:3000"
     },

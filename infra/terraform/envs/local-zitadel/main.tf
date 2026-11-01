@@ -8,7 +8,7 @@ data "external" "bot_pat" {
 }
 
 provider "zitadel" {
-  domain       = "localhost"
+  domain       = "auth.localhost"
   port         = tostring(var.host_port)
   insecure     = true
   access_token = trimspace(data.external.bot_pat.result.token)

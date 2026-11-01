@@ -2,6 +2,7 @@ locals {
   credentials_mount_path = "/zitadel-pat"
   external_origin        = "http://${var.external_domain}:${var.external_port}"
   login_path             = "/ui/v2/login"
+  host_rule              = join(" || ", [for host in concat([var.external_domain], var.internal_hosts) : "Host(`${host}`)"])
 
   # Shared by the init step and the server, which read the same configuration.
   environment = {

@@ -26,7 +26,7 @@ run "server_environment_contains_the_external_port_from_the_input" {
   assert {
     condition = contains(
       [for env in kubernetes_deployment_v1.zitadel.spec[0].template[0].spec[0].container[0].env : "${env.name}=${env.value}" if env.value != null],
-      "ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI=http://localhost:8080/ui/v2/login/",
+      "ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI=http://auth.localhost:8080/ui/v2/login/",
     )
     error_message = "the login UI base URI must use the external domain and port"
   }
@@ -40,7 +40,7 @@ run "another_external_port_reaches_the_forwarded_host_header" {
   }
 
   assert {
-    condition     = output.middlewares["zitadel-fwd"].custom_request_headers["X-Forwarded-Host"] == "localhost:9090"
+    condition     = output.middlewares["zitadel-fwd"].custom_request_headers["X-Forwarded-Host"] == "auth.localhost:9090"
     error_message = "the forwarded host must follow the external port"
   }
 }
@@ -56,6 +56,45 @@ run "contributes_the_zitadel_and_login_routes" {
   assert {
     condition     = output.routes[0].service == "h2c://zitadel:8080" && output.routes[0].priority < output.routes[1].priority
     error_message = "ZITADEL is served over h2c and the login UI wins over its catch-all routes"
+  }
+}
+
+run "the_routes_claim_the_zitadel_host_and_never_a_path_of_the_frontend_host" {
+  command = plan
+
+  assert {
+    condition     = output.routes[0].rule == "Host(`auth.localhost`) || Host(`traefik`)"
+    error_message = "ZITADEL is routed by its own host, and by the ingress Service name for the workloads in the cluster"
+  }
+
+  assert {
+    condition     = !anytrue([for route in output.routes : strcontains(route.rule, "/admin") || strcontains(route.rule, "/management")])
+    error_message = "a path prefix such as /admin would swallow the admin pages of the frontend"
+  }
+
+  assert {
+    condition     = output.routes[1].rule == "(Host(`auth.localhost`) || Host(`traefik`)) && PathPrefix(`/ui/v2/login`)"
+    error_message = "the login UI is the login path of the same hosts"
+  }
+}
+
+run "another_external_domain_moves_the_routes_and_the_forwarded_host" {
+  command = plan
+
+  variables {
+    external_domain = "id.example.test"
+    internal_hosts  = []
+    external_port   = 8080
+  }
+
+  assert {
+    condition     = output.routes[0].rule == "Host(`id.example.test`)"
+    error_message = "the route must follow the external domain"
+  }
+
+  assert {
+    condition     = output.middlewares["zitadel-fwd"].custom_request_headers["X-Forwarded-Host"] == "id.example.test:8080"
+    error_message = "the forwarded host must follow the external domain"
   }
 }
 

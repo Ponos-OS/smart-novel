@@ -36,60 +36,85 @@ const DEFAULT_PASSWORD = 'Writer123!';
 const MAX_SUBMIT_RETRIES = 3;
 const RETRY_WAIT_MS = 5000;
 
+/**
+ * @description ZITADEL is served on its own host (`auth.localhost`), so the login pages are another origin than the app and their commands have to run inside `cy.origin`.
+ */
+const ZITADEL_ORIGIN = 'http://auth.localhost:8080';
+
 function log(message: string) {
   baseLog(`[AUTH] ${message}`);
 }
 
+interface ZitadelSignIn {
+  username: string;
+  password: string;
+  maxRetries: number;
+  retryWaitMs: number;
+}
+
 /**
- * @description ZITADEL Login V2 sometimes swallows the submit-button click - the DOM element is visible and enabled, but the JS handler is not wired up yet (a race condition in their SPA hydration).
+ * @description Enters the username and the password on ZITADEL Login V2. It runs inside `cy.origin`, which serializes the callback, so it can use nothing from the rest of this file: its helpers are declared inside it.
  *
- * This helper clicks the submit button and waits a short time for the next page to appear. If it doesn't, it re-clicks up to {@link MAX_SUBMIT_RETRIES} times before giving up.
+ * ZITADEL Login V2 sometimes swallows the submit-button click - the DOM element is visible and enabled, but the JS handler is not wired up yet (a race condition in their SPA hydration). The username step clicks submit and waits a short time for the password field; if it does not appear, it re-clicks up to `maxRetries` times before giving up. You cannot use a regular `for` loop for that: Cypress commands are enqueued, not run immediately.
+ *
+ * The password step ends with the click, because the redirect back to the app leaves this origin and nothing can be asserted on it from here.
  */
-function clickSubmitWithRetry(
-  nextPageSelector: string,
-  stepName: string,
-) {
-  /**
-   * @description
-   * You cannot use a regular `for` loop here. This is fundamental to how Cypress works. Cypress commands (`cy.get()`, `cy.click()`, `cy.wait()`, etc.) are asynchronous and enqueued — they do **NOT** execute immediately. They're added to an internal command queue and run later. A `for` loop is synchronous JavaScript, so a normal foor loop won't work!
-   */
-  function attempt(remaining: number) {
-    log(
-      `${stepName}: clicking submit (attempts left: ${remaining})...`,
+function signInOnZitadel({
+  username,
+  password,
+  maxRetries,
+  retryWaitMs,
+}: ZitadelSignIn) {
+  const passwordInput = '[data-testid="password-text-input"]';
+
+  function note(message: string) {
+    cy.task('log', `[AUTH] ${message}`, { log: false });
+  }
+
+  function submitUntilPasswordField(remaining: number) {
+    note(
+      `username submit: clicking (attempts left: ${remaining})...`,
     );
 
     cy.get('[data-testid="submit-button"]')
       .should('be.visible')
       .and('not.be.disabled')
       .click();
-
-    // Wait a short time for the next page to appear
-    cy.wait(RETRY_WAIT_MS);
+    cy.wait(retryWaitMs);
 
     cy.get('body').then(($body) => {
-      const nextPageAppeared =
-        $body.find(nextPageSelector).length > 0;
-
-      if (nextPageAppeared) {
-        log(`${stepName}: navigation succeeded`);
+      if ($body.find(passwordInput).length > 0) {
+        note('username submit: navigation succeeded');
         return;
       }
 
       if (remaining > 1) {
-        log(
-          `${stepName}: next page (${nextPageSelector}) not found — retrying...`,
+        note(
+          'username submit: password field not found, retrying...',
         );
-        attempt(remaining - 1);
+        submitUntilPasswordField(remaining - 1);
         return;
       }
 
-      log(`${stepName}: FAILED — exhausted all retries`);
-      // Fall through and let the next assertion in the caller fail with a clear message
-      cy.get(nextPageSelector, { timeout: 10000 }).should('exist');
+      note('username submit: FAILED, exhausted all retries');
+      cy.get(passwordInput, { timeout: 10000 }).should('exist');
     });
   }
 
-  attempt(MAX_SUBMIT_RETRIES);
+  note('waiting for the username input...');
+  cy.get('[data-testid="username-text-input"]', {
+    timeout: 15000,
+  }).type(username);
+  submitUntilPasswordField(maxRetries);
+
+  note('typing the password...');
+  cy.get(passwordInput, { timeout: 15000 }).type(password, {
+    log: false,
+  });
+  cy.get('[data-testid="submit-button"]')
+    .should('be.visible')
+    .and('not.be.disabled')
+    .click();
 }
 
 Cypress.Commands.add(
@@ -126,40 +151,19 @@ function performInteractiveLogin(username: string, password: string) {
     .click();
   log('Step 1: Login button clicked');
 
-  // 2. ZITADEL Login V2 – enter the login name (username)
-  log('Step 2: waiting for username input...');
-  cy.get('[data-testid="username-text-input"]', {
-    timeout: 15000,
-  }).type(username);
-  log(`Step 2: typed username "${username}"`);
-
-  cy.url().then((url) =>
-    log(`Step 2: current URL before submit: ${url}`),
-  );
-
-  clickSubmitWithRetry(
-    '[data-testid="password-text-input"]',
-    'Step 2 (username submit)',
-  );
-
-  cy.url().then((url) =>
-    log(`Step 2: current URL after submit: ${url}`),
-  );
-
-  // 3. Enter the password
-  log('Step 3: typing password...');
-  cy.get('[data-testid="password-text-input"]', {
-    timeout: 15000,
-  }).type(password, { log: false });
-  log('Step 3: password typed');
-
-  cy.url().then((url) =>
-    log(`Step 3: current URL before submit: ${url}`),
-  );
-
-  clickSubmitWithRetry(
-    'button[aria-label="User menu"]',
-    'Step 3 (password submit)',
+  // 2. ZITADEL Login V2 - the username and the password, on the ZITADEL origin
+  log('Step 2: signing in on ZITADEL...');
+  cy.origin(
+    ZITADEL_ORIGIN,
+    {
+      args: {
+        username,
+        password,
+        maxRetries: MAX_SUBMIT_RETRIES,
+        retryWaitMs: RETRY_WAIT_MS,
+      },
+    },
+    signInOnZitadel,
   );
 
   // 4. Wait for the redirect back to the app and verify authentication
