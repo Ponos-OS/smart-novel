@@ -39,6 +39,17 @@ enum WriterStatus {
   REJECTED
 }
 
+// Exact counts taken at STATS_SNAPSHOT_CRON, read by the growth charts. `day` is unique: at most one row per UTC day, the first run of the day wins
+model StatsSnapshot {
+  id           String   @id @default(uuid()) @db.Uuid
+  day          DateTime @unique(map: "UQ_stats_snapshots_day") @db.Date
+  novelCount   Int      @map("novel_count")
+  chapterCount Int      @map("chapter_count")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("stats_snapshots")
+}
+
 model License {
   id          String            @id @default(uuid()) @db.Uuid
   name        String

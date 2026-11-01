@@ -99,7 +99,7 @@ variable "tts_voices" {
 }
 
 variable "backend_environment" {
-  description = "Settings of the backend that are not secrets: the .env keys without the VITE_ prefix, object storage and ZITADEL URLs"
+  description = "Settings of the backend that are not secrets: the .env keys without the VITE_ prefix, object storage and ZITADEL URLs. STATS_SNAPSHOT_CRON (a cron expression in UTC, the hours with the least traffic) is required: the backend does not start without it"
   type        = map(string)
   default     = {}
 }

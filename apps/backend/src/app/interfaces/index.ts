@@ -136,6 +136,11 @@ export interface AppConfig {
    */
   SESSION_DURATION: number;
   /**
+   * @description When the daily statistics snapshot is taken, as a cron expression in UTC. Choose the hours with the least traffic: the snapshot counts the novels and the chapters exactly.
+   * @example "0 3 * * *"
+   */
+  STATS_SNAPSHOT_CRON: string;
+  /**
    * @description Service name.
    */
   SERVICE_NAME: string;

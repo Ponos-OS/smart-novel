@@ -17,6 +17,7 @@ import {
   validateEnvs,
 } from 'nestjs-backend-common';
 
+import { IsCronExpression } from '../../shared/validators';
 import { AppConfig } from '../interfaces';
 
 declare global {
@@ -34,7 +35,7 @@ export const appConfigs = registerAs('appConfigs', (): AppConfig => {
   return validatedEnvs;
 });
 
-class EnvironmentVariables implements AppConfig {
+export class EnvironmentVariables implements AppConfig {
   @IsInt()
   @IsPositive()
   EXPLAIN_CONTEXT_CHAR_SIZE: number;
@@ -200,6 +201,10 @@ class EnvironmentVariables implements AppConfig {
 
   @IsInt()
   SESSION_DURATION: number;
+
+  @IsNotEmpty()
+  @IsCronExpression()
+  STATS_SNAPSHOT_CRON: string;
 
   @IsString()
   SERVICE_NAME = 'smart-novel-backend';

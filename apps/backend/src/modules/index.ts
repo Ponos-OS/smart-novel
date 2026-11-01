@@ -11,6 +11,7 @@ export * from './object-storage';
 export * from './platform-terms';
 export * from './prisma';
 export * from './redis';
+export * from './stats';
 export * from './tts-callbacks';
 export * from './writer';
 export * from './zitadel-events';

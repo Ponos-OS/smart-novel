@@ -26,3 +26,9 @@ backup_bucket   = "<backup_bucket output of the infra repo>"
 # After envs/hetzner-zitadel is applied:
 # zitadel_client_id = "<client_id output>"
 # zitadel_org_id    = "<org_id output>"
+
+# Settings of the backend that are not secrets and have no variable of their own.
+# STATS_SNAPSHOT_CRON is required: when the daily statistics snapshot is taken (cron, UTC). Pick the hours with the least traffic.
+backend_environment = {
+  STATS_SNAPSHOT_CRON = "0 3 * * *"
+}

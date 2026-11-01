@@ -4,6 +4,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { GraphQLModule } from '@nestjs/graphql';
+import { ScheduleModule } from '@nestjs/schedule';
 import depthLimit from 'graphql-depth-limit';
 import {
   CustomLoggerService,
@@ -26,6 +27,7 @@ import {
   PlatformTermsModule,
   PrismaModule,
   RedisModule,
+  StatsModule,
   TtsCallbacksModule,
   WriterModule,
   ZitadelEventsModule,
@@ -50,6 +52,7 @@ import {
       global: true,
       middleware: { mount: true },
     }),
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       load: [appConfigs],
@@ -104,6 +107,7 @@ import {
     LlmModule,
     TtsCallbacksModule,
     WriterModule,
+    StatsModule,
     ZitadelEventsModule,
   ],
   providers: [

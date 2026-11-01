@@ -7,3 +7,4 @@ export * from './mixins';
 export * from './pipes';
 export * from './plugins';
 export * from './utils';
+export * from './validators';
