@@ -111,6 +111,16 @@ export function Header() {
                             asChild
                             className={MENU_ITEM_CLASSES}
                           >
+                            <Link to="/admin/novels">
+                              Manage novels
+                            </Link>
+                          </DropdownMenu.Item>
+                        )}
+                        {isAdmin && (
+                          <DropdownMenu.Item
+                            asChild
+                            className={MENU_ITEM_CLASSES}
+                          >
                             <Link to="/admin/writers">
                               Writer requests
                             </Link>
@@ -256,6 +266,15 @@ export function Header() {
                         className="rounded-md px-3 py-2 text-sm transition-colors text-gray-300 hover:bg-gray-600"
                       >
                         Manage categories
+                      </Link>
+                    )}
+                    {isAdmin && (
+                      <Link
+                        to="/admin/novels"
+                        onClick={closeMenu}
+                        className="rounded-md px-3 py-2 text-sm transition-colors text-gray-300 hover:bg-gray-600"
+                      >
+                        Manage novels
                       </Link>
                     )}
                     {isAdmin && (

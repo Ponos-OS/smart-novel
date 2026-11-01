@@ -138,6 +138,22 @@ const router = createBrowserRouter([
       },
 
       {
+        path: '/admin/novels',
+        lazy: async () => {
+          const { AdminNovelsPage } =
+            await import('../features/admin-novels/AdminNovelsPage');
+
+          return {
+            element: (
+              <Layout>
+                <AdminNovelsPage />
+              </Layout>
+            ),
+          };
+        },
+      },
+
+      {
         path: '/admin/writers',
         lazy: async () => {
           const { AdminWritersPage } =

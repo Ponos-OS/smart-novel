@@ -1,0 +1,58 @@
+query AdminNovels(
+  $filters: NovelFiltersInput
+  $orderBy: NovelOrderByInput
+  $first: Int!
+  $after: String
+) {
+  novelsConnection(
+    first: $first
+    after: $after
+    filters: $filters
+    orderBy: $orderBy
+  ) {
+    edges {
+      node {
+        id
+        name
+        state
+        firstChapterCreatedAt
+        estimatedChapterCount
+        license {
+          id
+          name
+        }
+        writer {
+          userId
+          penName
+          name
+          email
+        }
+      }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+  }
+}
+
+query SearchWriters($search: String, $first: Int!, $after: String) {
+  writersConnection(
+    first: $first
+    after: $after
+    filters: { status: APPROVED, search: $search }
+  ) {
+    edges {
+      node {
+        userId
+        penName
+        name
+        email
+      }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+  }
+}

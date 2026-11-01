@@ -50,6 +50,11 @@ const config: StorybookConfig = {
         },
         {
           importerPath:
+            '../src/features/admin-novels/AdminNovelsPage.tsx',
+          mockPath: './mocks/admin-novels.mock.ts',
+        },
+        {
+          importerPath:
             '../src/features/admin-categories/AdminCategoriesPage.tsx',
           mockPath: './mocks/admin-categories.mock.ts',
         },

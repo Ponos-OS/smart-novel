@@ -66,6 +66,7 @@ describe('Header user menu', () => {
         'Manage account',
         'Licenses and terms',
         'Manage categories',
+        'Manage novels',
         'Writer requests',
         'Settings',
       ],
@@ -91,6 +92,9 @@ describe('Header user menu', () => {
     expect(
       screen.getByRole('menuitem', { name: 'Manage categories' }),
     ).toHaveAttribute('href', '/admin/categories');
+    expect(
+      screen.getByRole('menuitem', { name: 'Manage novels' }),
+    ).toHaveAttribute('href', '/admin/novels');
     expect(
       screen.getByRole('menuitem', { name: 'Writer requests' }),
     ).toHaveAttribute('href', '/admin/writers');
