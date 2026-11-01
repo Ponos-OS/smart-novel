@@ -72,7 +72,7 @@ export function ContentStatCard({
           <h2 className="text-sm font-medium text-gray-300">
             {title}
           </h2>
-          <Tooltip content="A database estimate, not an exact count. It is as fresh as the last statistics update.">
+          <Tooltip content="A database estimate, not an exact count. It is only as fresh as the last statistics update, so it can be well off on a small or new database, where the statistics may not have been gathered yet.">
             <span
               tabIndex={0}
               aria-label={
