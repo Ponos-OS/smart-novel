@@ -57,6 +57,13 @@ export class Novel implements INovel {
    */
   licenseId: string;
 
+  @Field(() => Date, {
+    nullable: true,
+    description:
+      'When the first chapter was created, null while the novel has no chapter. Moves to the next earliest chapter if the first one is deleted.',
+  })
+  firstChapterCreatedAt?: Date;
+
   @Field(() => [NovelAction], {
     description:
       'Actions the current user is allowed to perform on this novel',

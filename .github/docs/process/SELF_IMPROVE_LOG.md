@@ -294,3 +294,11 @@
 - `REQUIREMENTS.md` says to leave the step uncommitted for review; followed it.
 - Skipped the Storybook story from the Test notes: Storybook has no `VITE_SERVICE_URL` (the `.env` is at the repo root, not under `apps/frontend`), so a story that clicks "Load more" runs the real fetcher and throws. Covered instead by a hook spec on a real `QueryClient` (first page, refused next page, first page again) and a `HomePage` spec that fails without the fix (checked by stashing `HomePage.tsx`).
 - Full frontend run: `ChapterContentEditor.spec` and `ChapterEditPage.spec` fail on the untouched commit too (`VITE_SERVICE_URL` not defined in vitest). Two other files failed per run with a 5000 ms timeout, a different pair each time (`feature-boundaries`, `pseudo-locale`) and both pass alone: load, not this diff.
+
+## Admin Dashboard, Step 1 (2026-11-01)
+
+- `Novel.firstChapterCreatedAt` (nullable, indexed with `id`): set in `PrismaChapterRepository.createChapter` with `updateMany where firstChapterCreatedAt is null` inside the chapter transaction, recomputed in `deleteChapter` from the earliest remaining chapter. Named for what it stores after the user rejected `publishedAt` (the app has no publish feature). No backfill and no seeder change on the user's instruction (no production chapters, dummy seed), so seeded novels keep null.
+- The user overrode `REQUIREMENTS.md`'s "do not commit" for this step and asked to commit it; `REQUIREMENTS.md` itself stays untracked.
+- `nx e2e backend-e2e` did not run: the same frontend-image `schema.gql` codegen failure as earlier steps (reproduced once more, ~2 min wasted). Ran `novel-first-chapter-created-at`, `chapter-delete` and `novels` (16 tests) against `start:dev` with a throwaway config; graphql-api-tester passed all five requirements. `start:dev` takes more than the 10 minute foreground cap on a cold cluster, so it went to the background.
+- A review comment asked whether the first-chapter case was handled: it is, through the `null` condition, which relies on the invariant "null iff no chapter". Worth a code comment if a reviewer asks again.
+- Process change: `PROCESS.md` now names the `schema.gql` failure and its workaround; `SELF_IMPROVE.md` step 2c says to grep the log before re-diagnosing a repeat failure.

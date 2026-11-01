@@ -24,4 +24,5 @@ export interface INovel {
   licenseId: string;
   coverUrl?: string;
   description: string;
+  firstChapterCreatedAt?: Date;
 }

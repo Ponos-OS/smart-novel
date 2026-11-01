@@ -66,13 +66,15 @@ model Novel {
   ownerId   String @map("owner_id")
   licenseId String @map("license_id") @db.Uuid
 
-  name        String
-  author      String
-  description String     @db.Text
-  state       NovelState @default(ONGOING)
-  coverUrl    String?    @map("cover_url")
-  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+  name                  String
+  author                String
+  description           String     @db.Text
+  state                 NovelState @default(ONGOING)
+  coverUrl              String?    @map("cover_url")
+  // createdAt of the earliest chapter, kept by PrismaChapterRepository
+  firstChapterCreatedAt DateTime?  @map("first_chapter_created_at") @db.Timestamptz
+  createdAt             DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime   @updatedAt @map("updated_at") @db.Timestamptz
 
   license           License            @relation(fields: [licenseId], references: [id], onDelete: Restrict)
   chapters          Chapter[]
@@ -81,6 +83,7 @@ model Novel {
 
   @@index([ownerId], name: "IDX_novels_owner")
   @@index([licenseId], name: "IDX_novels_license")
+  @@index([firstChapterCreatedAt, id], name: "IDX_novels_first_chapter_created_at")
   @@map("novels")
 }
 

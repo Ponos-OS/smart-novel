@@ -44,7 +44,7 @@ export class PrismaChapterRepository implements IChapterRepository {
       });
       const chapterNumber = (lastChapter?.chapterNumber ?? 0) + 1;
 
-      return tx.chapter.create({
+      const created = await tx.chapter.create({
         data: {
           novel: { connect: { id: novelId } },
           title,
@@ -52,6 +52,13 @@ export class PrismaChapterRepository implements IChapterRepository {
           content: { create: { content, contentHash } },
         },
       });
+
+      await tx.novel.updateMany({
+        where: { id: novelId, firstChapterCreatedAt: null },
+        data: { firstChapterCreatedAt: created.createdAt },
+      });
+
+      return created;
     });
 
     return this.toChapter(chapter);
@@ -282,6 +289,16 @@ export class PrismaChapterRepository implements IChapterRepository {
           chapterNumber: { gt: chapter.chapterNumber },
         },
         data: { chapterNumber: { decrement: 1 } },
+      });
+
+      const earliest = await tx.chapter.findFirst({
+        where: { novelId: chapter.novelId },
+        orderBy: { createdAt: 'asc' },
+        select: { createdAt: true },
+      });
+      await tx.novel.update({
+        where: { id: chapter.novelId },
+        data: { firstChapterCreatedAt: earliest?.createdAt ?? null },
       });
 
       return {

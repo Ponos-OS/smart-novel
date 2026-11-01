@@ -50,6 +50,7 @@ describe(PrismaChapterRepository.name, () => {
           findFirst: vi.fn().mockResolvedValue({ chapterNumber: 1 }),
           create: vi.fn().mockResolvedValue(createdChapter),
         },
+        novel: { updateMany: vi.fn() },
       };
       vi.mocked(prismaService.$transaction).mockImplementation(
         (cb: any) => cb(tx),
@@ -85,6 +86,45 @@ describe(PrismaChapterRepository.name, () => {
       expect(result.id).toBe(createdChapter.id);
     });
 
+    it('should set the publish date of a novel that has none to the creation date of the new chapter', async () => {
+      const createdAt = new Date('2024-01-01T00:00:00Z');
+      const tx = {
+        $queryRaw: vi.fn(),
+        chapter: {
+          findFirst: vi.fn().mockResolvedValue(null),
+          create: vi.fn().mockResolvedValue({
+            id: 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
+            novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
+            contentId: 'ccc63ad5-1ac4-46c2-a25f-6f62d245f44c',
+            title: 'Chapter 1: The Beginning',
+            chapterNumber: 1,
+            createdAt,
+            updatedAt: createdAt,
+            narrationStatus: null,
+            narrationUrl: null,
+          }),
+        },
+        novel: { updateMany: vi.fn() },
+      };
+      vi.mocked(prismaService.$transaction).mockImplementation(
+        (cb: any) => cb(tx),
+      );
+
+      await uut.createChapter({
+        novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
+        title: 'Chapter 1: The Beginning',
+        content: '# Chapter 1\n\nIt was a dark and stormy night.',
+      });
+
+      expect(tx.novel.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
+          firstChapterCreatedAt: null,
+        },
+        data: { firstChapterCreatedAt: createdAt },
+      });
+    });
+
     it('should assign chapter number 1 when the novel has no chapters yet', async () => {
       const createdChapter = {
         id: 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
@@ -103,6 +143,7 @@ describe(PrismaChapterRepository.name, () => {
           findFirst: vi.fn().mockResolvedValue(null),
           create: vi.fn().mockResolvedValue(createdChapter),
         },
+        novel: { updateMany: vi.fn() },
       };
       vi.mocked(prismaService.$transaction).mockImplementation(
         (cb: any) => cb(tx),
@@ -161,8 +202,10 @@ describe(PrismaChapterRepository.name, () => {
           findUnique: vi.fn(),
           delete: vi.fn(),
           updateMany: vi.fn(),
+          findFirst: vi.fn(),
         },
         chapterContent: { delete: vi.fn() },
+        novel: { update: vi.fn() },
       };
       vi.mocked(prismaService.$transaction).mockImplementation(
         (cb: any) => cb(tx),
@@ -194,6 +237,39 @@ describe(PrismaChapterRepository.name, () => {
       });
     });
 
+    it.each([
+      {
+        scenario: 'moves to the earliest remaining chapter',
+        earliest: { createdAt: new Date('2024-02-01T00:00:00Z') },
+        firstChapterCreatedAt: new Date('2024-02-01T00:00:00Z'),
+      },
+      {
+        scenario: 'becomes null when no chapter is left',
+        earliest: null,
+        firstChapterCreatedAt: null,
+      },
+    ])(
+      'should recompute the publish date of the novel, which $scenario',
+      async ({ earliest, firstChapterCreatedAt }) => {
+        tx.chapter.findUnique
+          .mockResolvedValueOnce({ novelId })
+          .mockResolvedValueOnce(chapterRow);
+        tx.chapter.findFirst.mockResolvedValue(earliest);
+
+        await uut.deleteChapter(chapterId);
+
+        expect(tx.chapter.findFirst).toHaveBeenCalledWith({
+          where: { novelId },
+          orderBy: { createdAt: 'asc' },
+          select: { createdAt: true },
+        });
+        expect(tx.novel.update).toHaveBeenCalledWith({
+          where: { id: novelId },
+          data: { firstChapterCreatedAt },
+        });
+      },
+    );
+
     it('should return null without locking when the chapter does not exist', async () => {
       tx.chapter.findUnique.mockResolvedValue(null);
 
@@ -214,6 +290,7 @@ describe(PrismaChapterRepository.name, () => {
       expect(result).toBeNull();
       expect(tx.chapter.delete).not.toHaveBeenCalled();
       expect(tx.chapter.updateMany).not.toHaveBeenCalled();
+      expect(tx.novel.update).not.toHaveBeenCalled();
     });
   });
 
