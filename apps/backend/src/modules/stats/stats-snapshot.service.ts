@@ -7,6 +7,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
+import { toUtcDay } from '@smart-novel/shared';
 import { CronJob } from 'cron';
 import {
   CustomLoggerService,
@@ -74,13 +75,7 @@ export class StatsSnapshotService
    * @returns Whether this call wrote the row of the day
    */
   async takeSnapshot(now = new Date()): Promise<boolean> {
-    const day = new Date(
-      Date.UTC(
-        now.getUTCFullYear(),
-        now.getUTCMonth(),
-        now.getUTCDate(),
-      ),
-    );
+    const day = toUtcDay(now);
     const existing = await this.prisma.statsSnapshot.findUnique({
       where: { day },
       select: { id: true },

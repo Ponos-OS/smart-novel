@@ -28,6 +28,7 @@ import {
   NovelWriterFieldResolver,
 } from './src/modules/novel/resolvers';
 import { PlatformTermsResolver } from './src/modules/platform-terms/platform-terms.resolver';
+import { ContentStatsResolver } from './src/modules/stats/content-stats.resolver';
 import { WriterResolver } from './src/modules/writer/writer.resolver';
 
 async function generateSchema() {
@@ -58,6 +59,7 @@ async function generateSchema() {
     ChapterNarrationResolver,
     ChapterUserStateResolver,
     WriterResolver,
+    ContentStatsResolver,
   ]);
 
   const sdl = printSchema(schema);
