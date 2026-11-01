@@ -138,15 +138,15 @@ const router = createBrowserRouter([
       },
 
       {
-        path: '/admin/writer-requests',
+        path: '/admin/writers',
         lazy: async () => {
-          const { AdminWriterRequestsPage } =
-            await import('../features/admin-writer-requests/AdminWriterRequestsPage');
+          const { AdminWritersPage } =
+            await import('../features/admin-writers/AdminWritersPage');
 
           return {
             element: (
               <Layout>
-                <AdminWriterRequestsPage />
+                <AdminWritersPage />
               </Layout>
             ),
           };

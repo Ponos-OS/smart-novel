@@ -1,0 +1,2 @@
+export const WRITER_NOTE_MAX_LENGTH = 1000;
+export const WRITER_SEARCH_MAX_LENGTH = 100;

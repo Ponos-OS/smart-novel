@@ -93,7 +93,7 @@ describe('Header user menu', () => {
     ).toHaveAttribute('href', '/admin/categories');
     expect(
       screen.getByRole('menuitem', { name: 'Writer requests' }),
-    ).toHaveAttribute('href', '/admin/writer-requests');
+    ).toHaveAttribute('href', '/admin/writers');
     expect(
       screen.getByRole('menuitem', { name: 'Settings' }),
     ).toHaveAttribute('href', '/settings');

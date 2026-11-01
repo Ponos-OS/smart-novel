@@ -50,9 +50,9 @@ const LICENSE_DRAFTS = `#graphql
   }
 `;
 
-const WRITER_REQUESTS = `#graphql
-  query WriterRequests($after: String, $before: String) {
-    writerRequestsConnection(first: 1, after: $after, before: $before) {
+const WRITERS = `#graphql
+  query Writers($after: String, $before: String) {
+    writersConnection(first: 1, after: $after, before: $before) {
       edges {
         cursor
       }
@@ -124,8 +124,8 @@ describe('Cursor validation (e2e)', () => {
       () => AuthorizationFixture.getWriterAuthorizationHeader(),
     ],
     [
-      'writerRequestsConnection',
-      WRITER_REQUESTS,
+      'writersConnection',
+      WRITERS,
       () => AuthorizationFixture.getAdminAuthorizationHeader(),
     ],
   ];

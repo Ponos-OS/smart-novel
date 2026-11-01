@@ -32,7 +32,7 @@ enum LicenseSourceType {
   CUSTOM
 }
 
-enum WriterRequestStatus {
+enum WriterStatus {
   PENDING
   APPROVED
   REJECTED
@@ -183,19 +183,19 @@ model PlatformTermsAcceptance {
   @@map("platform_terms_acceptances")
 }
 
-model WriterRequest {
-  id              String              @id @default(uuid()) @db.Uuid
-  userId          String              @map("user_id")
-  requesterName   String              @map("requester_name")
-  requesterEmail  String              @map("requester_email")
+model Writer {
+  id              String       @id @default(uuid()) @db.Uuid
+  userId          String       @map("user_id")
+  name            String
+  email           String
   note            String
-  status          WriterRequestStatus @default(PENDING)
-  rejectionReason String?             @map("rejection_reason")
-  reviewedBy      String?             @map("reviewed_by")
-  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz
-  reviewedAt      DateTime?           @map("reviewed_at") @db.Timestamptz
+  status          WriterStatus @default(PENDING)
+  rejectionReason String?      @map("rejection_reason")
+  reviewedBy      String?      @map("reviewed_by")
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  reviewedAt      DateTime?    @map("reviewed_at") @db.Timestamptz
 
-  @@unique([userId], map: "UQ_writer_requests_user_pending", where: raw("status = 'PENDING'"))
-  @@index([status, createdAt], name: "IDX_writer_requests_status_created_at")
-  @@map("writer_requests")
+  @@unique([userId], map: "UQ_writers_user_pending", where: raw("status = 'PENDING'"))
+  @@index([status, createdAt], name: "IDX_writers_status_created_at")
+  @@map("writers")
 }

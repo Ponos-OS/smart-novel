@@ -1,7 +1,7 @@
 import { Dialog as RadixDialog } from 'radix-ui';
 import { useState } from 'react';
 
-import { WriterAccessSection } from '../../features/writer-request/WriterAccessSection';
+import { WriterAccessSection } from '../../features/writer/WriterAccessSection';
 import { useDeleteReadHistoryMutation } from '../../generated/graphql';
 import { useAuth } from '../../hooks/useAuth';
 import { useRestoreFocus } from '../../hooks/useRestoreFocus';

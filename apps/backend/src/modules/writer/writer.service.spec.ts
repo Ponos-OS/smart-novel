@@ -1,0 +1,506 @@
+import type { ConfigType } from '@nestjs/config';
+
+import { NotFoundException } from '@nestjs/common';
+import { Prisma, WriterStatus } from '@prisma/client';
+import { Role, WRITER_NOTE_MAX_LENGTH } from '@smart-novel/shared';
+
+import { appConfigs } from '../../app/configs/app.config';
+import { buildAudience } from '../../shared';
+import { type IAuthUser, ZitadelManagementClient } from '../auth';
+import { CursorCodec } from '../cursor';
+import { PrismaService } from '../prisma';
+import { WriterService } from './writer.service';
+
+const userId = '364554362883670018';
+const note = 'I have been writing serialized fantasy for six years.';
+const requestId = '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10';
+const adminId = '364554362732740610';
+const pendingRequest = {
+  id: requestId,
+  userId,
+  name: 'Mina Ardalan',
+  email: 'mina.ardalan@example.com',
+  note,
+  status: WriterStatus.PENDING,
+  rejectionReason: null,
+  createdAt: new Date('2026-10-31T09:00:00.000Z'),
+  reviewedAt: null,
+};
+
+const buildUser = (roles: Role[]): IAuthUser => ({
+  sub: userId,
+  name: 'Mina Ardalan',
+  givenName: 'Mina',
+  familyName: 'Ardalan',
+  preferredUsername: 'mina.ardalan',
+  email: 'mina.ardalan@example.com',
+  emailVerified: true,
+  roles,
+  metadata: {},
+});
+
+const cursorCodec = new CursorCodec({
+  CURSOR_SIGNING_SECRET: 'b7e1f0c2a94d4c1f8d3e6a5b09c27f41',
+} as ConfigType<typeof appConfigs>);
+
+describe(WriterService.name, () => {
+  let uut: WriterService;
+  let prisma: {
+    writer: Record<
+      | 'create'
+      | 'findFirst'
+      | 'findMany'
+      | 'findUnique'
+      | 'findUniqueOrThrow'
+      | 'updateMany',
+      ReturnType<typeof vi.fn>
+    >;
+  };
+  let zitadelManagementClient: {
+    setUserProjectRole: ReturnType<typeof vi.fn>;
+  };
+
+  beforeEach(() => {
+    prisma = {
+      writer: {
+        create: vi.fn(),
+        findFirst: vi.fn(),
+        findMany: vi.fn().mockResolvedValue([]),
+        findUnique: vi.fn(),
+        findUniqueOrThrow: vi.fn(),
+        updateMany: vi.fn(),
+      },
+    };
+    zitadelManagementClient = { setUserProjectRole: vi.fn() };
+    uut = new WriterService(
+      prisma as unknown as PrismaService,
+      zitadelManagementClient as unknown as ZitadelManagementClient,
+      cursorCodec,
+    );
+  });
+
+  describe('request', () => {
+    it('should store the caller, their name and email, and the note', async () => {
+      prisma.writer.create.mockResolvedValue(pendingRequest);
+
+      const result = await uut.request(buildUser([Role.user]), note);
+
+      expect(result).toStrictEqual(pendingRequest);
+      expect(prisma.writer.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            userId,
+            name: 'Mina Ardalan',
+            email: 'mina.ardalan@example.com',
+            note,
+          },
+        }),
+      );
+    });
+
+    it('should fall back to the username when the token has no name', async () => {
+      prisma.writer.create.mockResolvedValue(pendingRequest);
+
+      await uut.request(
+        { ...buildUser([Role.user]), name: '' },
+        note,
+      );
+
+      expect(prisma.writer.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'mina.ardalan',
+          }),
+        }),
+      );
+    });
+
+    it.each([[Role.writer], [Role.admin]])(
+      'should refuse a caller whose highest role is %s',
+      async (role) => {
+        const promise = uut.request(
+          buildUser([Role.user, role]),
+          note,
+        );
+
+        await expect(promise).rejects.toThrow(
+          'You already have writer access',
+        );
+        expect(prisma.writer.create).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should refuse a note over the limit', async () => {
+      const promise = uut.request(
+        buildUser([Role.user]),
+        'a'.repeat(WRITER_NOTE_MAX_LENGTH + 1),
+      );
+
+      await expect(promise).rejects.toThrow(
+        `at most ${WRITER_NOTE_MAX_LENGTH} characters`,
+      );
+      expect(prisma.writer.create).not.toHaveBeenCalled();
+    });
+
+    it('should map the unique index violation to a 400', async () => {
+      prisma.writer.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError(
+          'Unique constraint',
+          {
+            code: 'P2002',
+            clientVersion: '7.7.0',
+          },
+        ),
+      );
+
+      const promise = uut.request(buildUser([Role.user]), note);
+
+      await expect(promise).rejects.toThrow(
+        'You already have a pending writer request',
+      );
+    });
+
+    it('should let any other database error through', async () => {
+      const error = new Error('connection lost');
+      prisma.writer.create.mockRejectedValue(error);
+
+      const promise = uut.request(buildUser([Role.user]), note);
+
+      await expect(promise).rejects.toBe(error);
+    });
+  });
+
+  describe('findLatest', () => {
+    it('should return the newest request of the user', async () => {
+      prisma.writer.findFirst.mockResolvedValue(pendingRequest);
+
+      const result = await uut.findLatest(userId);
+
+      expect(result).toStrictEqual(pendingRequest);
+      expect(prisma.writer.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId },
+          orderBy: { createdAt: 'desc' },
+        }),
+      );
+    });
+
+    it('should return null when the user never asked', async () => {
+      prisma.writer.findFirst.mockResolvedValue(null);
+
+      const result = await uut.findLatest(userId);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('findConnection', () => {
+    const second = {
+      ...pendingRequest,
+      id: 'c1d4a7f2-6e58-4b39-8a64-2f0e9b7d3c55',
+    };
+
+    it('should list pending requests oldest first, with a default page', async () => {
+      prisma.writer.findMany.mockResolvedValue([pendingRequest]);
+
+      const result = await uut.findConnection({});
+
+      expect(prisma.writer.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { status: WriterStatus.PENDING },
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          take: 21,
+        }),
+      );
+      expect(result.edges).toHaveLength(1);
+      expect(result.pageInfo.hasNextPage).toBe(false);
+    });
+
+    it('should filter by the status asked for', async () => {
+      await uut.findConnection(
+        { first: 5 },
+        { status: WriterStatus.REJECTED },
+      );
+
+      expect(prisma.writer.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { status: WriterStatus.REJECTED },
+        }),
+      );
+    });
+
+    it('should match the requester name or email, case-insensitively, when asked to search', async () => {
+      await uut.findConnection(
+        { first: 5 },
+        { status: WriterStatus.APPROVED, search: 'Mina' },
+      );
+
+      expect(prisma.writer.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            status: WriterStatus.APPROVED,
+            OR: [
+              {
+                name: {
+                  contains: 'Mina',
+                  mode: 'insensitive',
+                },
+              },
+              {
+                email: {
+                  contains: 'Mina',
+                  mode: 'insensitive',
+                },
+              },
+            ],
+          },
+        }),
+      );
+    });
+
+    it('should escape the LIKE wildcards of the search text', async () => {
+      await uut.findConnection({ first: 5 }, { search: '100%_mina' });
+
+      expect(prisma.writer.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: [
+              {
+                name: {
+                  contains: '100\\%\\_mina',
+                  mode: 'insensitive',
+                },
+              },
+              {
+                email: {
+                  contains: '100\\%\\_mina',
+                  mode: 'insensitive',
+                },
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    it('should ignore an empty search', async () => {
+      await uut.findConnection({ first: 5 }, { search: '' });
+
+      expect(prisma.writer.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { status: WriterStatus.PENDING },
+        }),
+      );
+    });
+
+    it('should refuse a cursor issued for another search before querying', async () => {
+      const after = cursorCodec.encode(
+        buildAudience('writers', {
+          where: { status: WriterStatus.PENDING },
+        }),
+        second.id,
+      );
+
+      const result = uut.findConnection(
+        { first: 5, after },
+        { search: 'mina' },
+      );
+
+      await expect(result).rejects.toThrow('Invalid cursor');
+      expect(prisma.writer.findMany).not.toHaveBeenCalled();
+    });
+
+    it('should refuse a cursor issued for another status before querying', async () => {
+      const after = cursorCodec.encode(
+        buildAudience('writers', {
+          where: { status: WriterStatus.APPROVED },
+        }),
+        second.id,
+      );
+
+      const result = uut.findConnection({ first: 5, after });
+
+      await expect(result).rejects.toThrow('Invalid cursor');
+      expect(prisma.writer.findMany).not.toHaveBeenCalled();
+    });
+
+    it('should flip the order and report more pages when paging backward', async () => {
+      prisma.writer.findMany.mockResolvedValue([
+        second,
+        pendingRequest,
+      ]);
+
+      const result = await uut.findConnection({ last: 1 });
+
+      expect(prisma.writer.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        }),
+      );
+      expect(result.edges.map(({ node }) => node.id)).toStrictEqual([
+        second.id,
+      ]);
+      expect(result.pageInfo.hasPreviousPage).toBe(true);
+    });
+
+    it('should refuse a page over the cap', async () => {
+      const promise = uut.findConnection({ first: 101 });
+
+      await expect(promise).rejects.toThrow('at most 100');
+    });
+  });
+
+  describe('approve', () => {
+    beforeEach(() => {
+      prisma.writer.findUnique.mockResolvedValue({
+        userId,
+        status: WriterStatus.PENDING,
+      });
+      prisma.writer.updateMany.mockResolvedValue({ count: 1 });
+      prisma.writer.findUniqueOrThrow.mockResolvedValue({
+        ...pendingRequest,
+        status: WriterStatus.APPROVED,
+      });
+    });
+
+    it('should grant the writer role in ZITADEL before it marks the request approved', async () => {
+      const result = await uut.approve(requestId, adminId);
+
+      expect(result.status).toBe(WriterStatus.APPROVED);
+      expect(
+        zitadelManagementClient.setUserProjectRole,
+      ).toHaveBeenCalledWith(userId, Role.writer);
+      expect(prisma.writer.updateMany).toHaveBeenCalledWith({
+        where: { id: requestId, status: WriterStatus.PENDING },
+        data: {
+          status: WriterStatus.APPROVED,
+          reviewedBy: adminId,
+          reviewedAt: expect.any(Date),
+        },
+      });
+      expect(
+        zitadelManagementClient.setUserProjectRole.mock
+          .invocationCallOrder[0],
+      ).toBeLessThan(
+        prisma.writer.updateMany.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('should leave the request pending when ZITADEL fails', async () => {
+      zitadelManagementClient.setUserProjectRole.mockRejectedValue(
+        new Error(
+          'ZITADEL management API request failed with status 503',
+        ),
+      );
+
+      const promise = uut.approve(requestId, adminId);
+
+      await expect(promise).rejects.toThrow('status 503');
+      expect(prisma.writer.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('should answer 404 for an unknown request', async () => {
+      prisma.writer.findUnique.mockResolvedValue(null);
+
+      const promise = uut.approve(requestId, adminId);
+
+      await expect(promise).rejects.toThrow(NotFoundException);
+      expect(
+        zitadelManagementClient.setUserProjectRole,
+      ).not.toHaveBeenCalled();
+    });
+
+    it.each([[WriterStatus.APPROVED], [WriterStatus.REJECTED]])(
+      'should refuse a request that is already %s',
+      async (status) => {
+        prisma.writer.findUnique.mockResolvedValue({
+          userId,
+          status,
+        });
+
+        const promise = uut.approve(requestId, adminId);
+
+        await expect(promise).rejects.toThrow('already reviewed');
+        expect(
+          zitadelManagementClient.setUserProjectRole,
+        ).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should refuse when another admin reviewed it in the meantime', async () => {
+      prisma.writer.updateMany.mockResolvedValue({ count: 0 });
+
+      const promise = uut.approve(requestId, adminId);
+
+      await expect(promise).rejects.toThrow('already reviewed');
+    });
+  });
+
+  describe('reject', () => {
+    beforeEach(() => {
+      prisma.writer.findUnique.mockResolvedValue({
+        userId,
+        status: WriterStatus.PENDING,
+      });
+      prisma.writer.updateMany.mockResolvedValue({ count: 1 });
+      prisma.writer.findUniqueOrThrow.mockResolvedValue({
+        ...pendingRequest,
+        status: WriterStatus.REJECTED,
+      });
+    });
+
+    it.each([
+      [
+        '  Please share a sample chapter.  ',
+        'Please share a sample chapter.',
+      ],
+      ['   ', null],
+      [undefined, null],
+    ])('should store the reason %j as %j', async (reason, stored) => {
+      await uut.reject(requestId, adminId, reason);
+
+      expect(prisma.writer.updateMany).toHaveBeenCalledWith({
+        where: { id: requestId, status: WriterStatus.PENDING },
+        data: {
+          status: WriterStatus.REJECTED,
+          rejectionReason: stored,
+          reviewedBy: adminId,
+          reviewedAt: expect.any(Date),
+        },
+      });
+      expect(
+        zitadelManagementClient.setUserProjectRole,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should refuse a reason over the limit', async () => {
+      const promise = uut.reject(
+        requestId,
+        adminId,
+        'a'.repeat(WRITER_NOTE_MAX_LENGTH + 1),
+      );
+
+      await expect(promise).rejects.toThrow('at most');
+      expect(prisma.writer.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('should answer 404 for an unknown request', async () => {
+      prisma.writer.findUnique.mockResolvedValue(null);
+
+      const promise = uut.reject(requestId, adminId);
+
+      await expect(promise).rejects.toThrow(NotFoundException);
+    });
+
+    it('should refuse a request that is already reviewed', async () => {
+      prisma.writer.findUnique.mockResolvedValue({
+        userId,
+        status: WriterStatus.APPROVED,
+      });
+
+      const promise = uut.reject(requestId, adminId);
+
+      await expect(promise).rejects.toThrow('already reviewed');
+    });
+  });
+});

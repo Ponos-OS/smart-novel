@@ -111,7 +111,7 @@ export function Header() {
                             asChild
                             className={MENU_ITEM_CLASSES}
                           >
-                            <Link to="/admin/writer-requests">
+                            <Link to="/admin/writers">
                               Writer requests
                             </Link>
                           </DropdownMenu.Item>
@@ -260,7 +260,7 @@ export function Header() {
                     )}
                     {isAdmin && (
                       <Link
-                        to="/admin/writer-requests"
+                        to="/admin/writers"
                         onClick={closeMenu}
                         className="rounded-md px-3 py-2 text-sm transition-colors text-gray-300 hover:bg-gray-600"
                       >

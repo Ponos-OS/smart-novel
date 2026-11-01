@@ -61,11 +61,7 @@ npm run start:dev
 
 ### Development
 
-The local stack and the e2e tests create the tables with `prisma db push` (`backend-init`), which ignores `apps/backend/prisma/migrations`; production applies the migrations with `migrate deploy`. So every schema change needs its migration, or production drifts from what dev and the tests run on. Partial indexes are declared in `schema.prisma` (`where: raw(...)`, preview feature `partialIndexes`), so both paths create them. To add a migration, change `schema.prisma` and run:
-
-```bash
-npx prisma migrate dev
-```
+The local stack and the e2e tests create the tables with `prisma db push` (`backend-init`), which ignores `apps/backend/prisma/migrations`; production applies the migrations with `migrate deploy`. So every schema change needs its migration, or production drifts from what dev and the tests run on. Partial indexes are declared in `schema.prisma` (`where: raw(...)`, preview feature `partialIndexes`), so both paths create them. A feature gets exactly one migration, written at its very last step, never one per step: while the feature is being built, change `schema.prisma` and let `prisma db push` (what `npm run start:dev` and the e2e tests already run) apply it. Do not create a migration file during the feature. At the end, generate a single migration for the whole schema difference, name it after the feature, and read the SQL before keeping it. The development database is built by `db push` and has no migration history, so `npx prisma migrate dev` would ask to reset it; `npx prisma migrate diff --from-migrations apps/backend/prisma/migrations --to-schema apps/backend/prisma/schema.prisma --script` prints the same SQL without touching it. A `REQUIREMENTS.md` ends with a step for this migration.
 
 #### Production
 

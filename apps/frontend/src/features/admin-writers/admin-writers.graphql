@@ -1,0 +1,43 @@
+query AdminWriters(
+  $status: WriterStatus
+  $first: Int!
+  $after: String
+) {
+  writersConnection(
+    first: $first
+    after: $after
+    filters: { status: $status }
+  ) {
+    edges {
+      node {
+        id
+        name
+        email
+        note
+        status
+        rejectionReason
+        createdAt
+        reviewedAt
+      }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+  }
+}
+
+mutation ApproveWriter($id: ID!) {
+  approveWriter(id: $id) {
+    id
+    status
+  }
+}
+
+mutation RejectWriter($id: ID!, $reason: String) {
+  rejectWriter(id: $id, reason: $reason) {
+    id
+    status
+    rejectionReason
+  }
+}

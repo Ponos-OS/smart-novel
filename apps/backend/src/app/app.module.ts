@@ -27,7 +27,7 @@ import {
   PrismaModule,
   RedisModule,
   TtsCallbacksModule,
-  WriterRequestModule,
+  WriterModule,
   ZitadelEventsModule,
 } from '../modules';
 import {
@@ -103,7 +103,7 @@ import {
     NovelModule,
     LlmModule,
     TtsCallbacksModule,
-    WriterRequestModule,
+    WriterModule,
     ZitadelEventsModule,
   ],
   providers: [
