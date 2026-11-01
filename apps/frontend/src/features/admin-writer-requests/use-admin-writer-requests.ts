@@ -4,6 +4,7 @@ import {
   useAdminWriterRequestsQuery,
   WriterRequestStatus,
 } from '../../generated/graphql';
+import { useResetOnInvalidCursor } from '../../hooks/useResetOnInvalidCursor';
 
 const PAGE_SIZE = 20;
 
@@ -14,8 +15,9 @@ export function useAdminWriterRequests(
   status: WriterRequestStatus,
   enabled: boolean,
 ) {
+  const queryKey = [ADMIN_WRITER_REQUESTS_KEY, status];
   const query = useInfiniteQuery({
-    queryKey: [ADMIN_WRITER_REQUESTS_KEY, status],
+    queryKey,
     enabled,
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam }) =>
@@ -29,6 +31,8 @@ export function useAdminWriterRequests(
         ? writerRequestsConnection.pageInfo.endCursor
         : undefined,
   });
+
+  useResetOnInvalidCursor(queryKey, query.error);
 
   return {
     requests: (query.data?.pages ?? []).flatMap((page) =>

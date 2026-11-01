@@ -4,6 +4,7 @@ import {
 } from '@tanstack/react-query';
 
 import { useFilterCategoriesQuery } from '../../generated/graphql';
+import { useResetOnInvalidCursor } from '../../hooks/useResetOnInvalidCursor';
 
 const PAGE_SIZE = 100;
 const FRESH_FOR_MS = 30_000;
@@ -13,8 +14,9 @@ const FRESH_FOR_MS = 30_000;
  * The categories whose name contains `search`, a page at a time. The caller debounces what the user types; the query is cached per text, so typing back to something already searched costs no request, and the list stays on screen while the next text loads.
  */
 export function useFilterCategories(search: string) {
+  const queryKey = ['FilterCategoriesInfinite', search];
   const query = useInfiniteQuery({
-    queryKey: ['FilterCategoriesInfinite', search],
+    queryKey,
     initialPageParam: undefined as string | undefined,
     staleTime: FRESH_FOR_MS,
     placeholderData: keepPreviousData,
@@ -29,6 +31,8 @@ export function useFilterCategories(search: string) {
         ? categoriesConnection.pageInfo.endCursor
         : undefined,
   });
+
+  useResetOnInvalidCursor(queryKey, query.error);
 
   return {
     categories: (query.data?.pages ?? []).flatMap((page) =>

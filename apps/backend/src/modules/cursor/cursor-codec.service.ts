@@ -5,6 +5,7 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
+import { INVALID_CURSOR_MESSAGE } from '@smart-novel/shared';
 import { isUUID } from 'class-validator';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
@@ -48,7 +49,7 @@ export class CursorCodec {
     const [body, signature, ...rest] = cursor.split('.');
 
     if (!body || !signature || rest.length > 0) {
-      throw new BadRequestException('Invalid cursor');
+      throw new BadRequestException(INVALID_CURSOR_MESSAGE);
     }
 
     const actual = Buffer.from(signature, 'base64url');
@@ -58,7 +59,7 @@ export class CursorCodec {
       actual.length !== expected.length ||
       !timingSafeEqual(actual, expected)
     ) {
-      throw new BadRequestException('Invalid cursor');
+      throw new BadRequestException(INVALID_CURSOR_MESSAGE);
     }
 
     const payload = JSON.parse(
@@ -72,7 +73,7 @@ export class CursorCodec {
       !id ||
       !isUUID(id)
     ) {
-      throw new BadRequestException('Invalid cursor');
+      throw new BadRequestException(INVALID_CURSOR_MESSAGE);
     }
 
     return id;

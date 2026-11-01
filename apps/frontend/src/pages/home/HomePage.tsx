@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Button } from '../../components/Button';
@@ -6,6 +6,7 @@ import { NovelCard } from '../../components/NovelCard';
 import { Pagination } from '../../components/Pagination';
 import { useGetNovelsQuery } from '../../generated/graphql';
 import { useCanCreateNovel } from '../../hooks/useCanCreateNovel';
+import { isInvalidCursorError } from '../../lib/graphql-fetcher';
 
 const PAGE_SIZE = 20;
 
@@ -23,6 +24,15 @@ export function HomePage() {
     { first: PAGE_SIZE, after: cursor },
     { placeholderData: (prev) => prev },
   );
+
+  useEffect(() => {
+    if (!isInvalidCursorError(error)) {
+      return;
+    }
+
+    setPageCursors(new Map([[1, null]]));
+    setCurrentPage(1);
+  }, [error]);
 
   const novelsData = data?.novelsConnection;
   const pageInfo = novelsData?.pageInfo;

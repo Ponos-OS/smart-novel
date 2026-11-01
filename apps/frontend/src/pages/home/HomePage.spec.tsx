@@ -2,26 +2,27 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 
 import { useCanCreateNovel } from '../../hooks/useCanCreateNovel';
+import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 import { HomePage } from './HomePage';
+
+const endOfFirstPage = 'eyJhIjoibm92ZWxzIn0.c2lnbmF0dXJl';
+const novel = {
+  id: 'c1d31ec2-f478-4648-b90b-d1e53de2a829',
+  name: 'The Journey Begins',
+  author: 'Jane Doe',
+  description: 'A young hero leaves home.',
+  state: 'ONGOING',
+  category: ['fantasy'],
+  coverUrl: null,
+};
+const novelsQuery = vi.hoisted(() => vi.fn());
 
 vi.mock('../../generated/graphql', async () => {
   const actual = await vi.importActual<
     typeof import('../../generated/graphql')
   >('../../generated/graphql');
 
-  return {
-    ...actual,
-    useGetNovelsQuery: () => ({
-      data: {
-        novelsConnection: {
-          edges: [],
-          pageInfo: { hasNextPage: false, hasPreviousPage: false },
-        },
-      },
-      isLoading: false,
-      error: null,
-    }),
-  };
+  return { ...actual, useGetNovelsQuery: novelsQuery };
 });
 
 vi.mock('../../hooks/useCanCreateNovel', () => ({
@@ -41,6 +42,19 @@ function renderPage() {
 }
 
 describe('HomePage', () => {
+  beforeEach(() => {
+    novelsQuery.mockReturnValue({
+      data: {
+        novelsConnection: {
+          edges: [],
+          pageInfo: { hasNextPage: false, hasPreviousPage: false },
+        },
+      },
+      isLoading: false,
+      error: null,
+    });
+  });
+
   it('offers a way to create a novel to those who can, and opens the form', async () => {
     // Arrange
     vi.mocked(useCanCreateNovel).mockReturnValue({
@@ -72,5 +86,50 @@ describe('HomePage', () => {
     expect(
       screen.queryByRole('button', { name: 'New novel' }),
     ).toBeNull();
+  });
+
+  it('should go back to the first page when the cursor of the next one is refused', async () => {
+    // Arrange
+    vi.mocked(useCanCreateNovel).mockReturnValue({
+      canCreate: false,
+      loading: false,
+    });
+    novelsQuery.mockImplementation(
+      ({ after }: { after: string | null }) =>
+        after
+          ? {
+              data: undefined,
+              isLoading: false,
+              error: new GraphqlRequestError('Invalid cursor'),
+            }
+          : {
+              data: {
+                novelsConnection: {
+                  edges: [{ cursor: endOfFirstPage, node: novel }],
+                  pageInfo: {
+                    hasNextPage: true,
+                    hasPreviousPage: false,
+                    endCursor: endOfFirstPage,
+                  },
+                },
+              },
+              isLoading: false,
+              error: null,
+            },
+    );
+    renderPage();
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+
+    // Assert
+    expect(
+      (await screen.findAllByText('The Journey Begins')).length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText('Failed to fetch novels')).toBeNull();
+    expect(novelsQuery).toHaveBeenLastCalledWith(
+      { first: 20, after: null },
+      expect.anything(),
+    );
   });
 });

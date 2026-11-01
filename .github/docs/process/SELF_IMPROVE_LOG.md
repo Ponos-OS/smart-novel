@@ -287,3 +287,10 @@
 - `REQUIREMENTS.md` says to leave the step uncommitted for review; followed it.
 - Service specs that built cursors with a plain audience name had to use `buildAudience` too; every service spec got a "refuses a cursor issued for another scope before querying" case that also asserts the repository/Prisma call never happened.
 - Not run: `backend-e2e` (same unexplained `start-dev.sh e2e` frontend-image codegen failure as Steps 1 and 2). The new e2e cases (chapters other order / other novel in `cursor-validation.e2e-spec.ts`, other writer in `license-drafts.e2e-spec.ts`) are unproven.
+
+## Cursor Signing, Step 5 (2026-11-01)
+
+- `INVALID_CURSOR_MESSAGE` moved to `libs/shared` (the backend codec and the frontend `isInvalidCursorError` read the same literal). `useResetOnInvalidCursor(queryKey, error)` resets an infinite list to its first page on that error; wired into the four infinite hooks (admin categories, admin writer requests, filter categories, category suggestions). `HomePage` keeps its cursors in component state, so it returns to page 1 itself. `gotchas.md` cursor line now points at the codec, `buildAudience` and the hook.
+- `REQUIREMENTS.md` says to leave the step uncommitted for review; followed it.
+- Skipped the Storybook story from the Test notes: Storybook has no `VITE_SERVICE_URL` (the `.env` is at the repo root, not under `apps/frontend`), so a story that clicks "Load more" runs the real fetcher and throws. Covered instead by a hook spec on a real `QueryClient` (first page, refused next page, first page again) and a `HomePage` spec that fails without the fix (checked by stashing `HomePage.tsx`).
+- Full frontend run: `ChapterContentEditor.spec` and `ChapterEditPage.spec` fail on the untouched commit too (`VITE_SERVICE_URL` not defined in vitest). Two other files failed per run with a 5000 ms timeout, a different pair each time (`feature-boundaries`, `pseudo-locale`) and both pass alone: load, not this diff.

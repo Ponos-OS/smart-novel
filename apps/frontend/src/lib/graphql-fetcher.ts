@@ -1,4 +1,7 @@
-import { PLATFORM_TERMS_NOT_ACCEPTED } from '@smart-novel/shared';
+import {
+  INVALID_CURSOR_MESSAGE,
+  PLATFORM_TERMS_NOT_ACCEPTED,
+} from '@smart-novel/shared';
 
 /**
  * @description Thrown by {@link graphqlFetcher} for a GraphQL-level error response
@@ -17,6 +20,16 @@ export function isConflictError(error: unknown): boolean {
   return (
     error instanceof GraphqlRequestError &&
     error.extensions?.code === 'CONFLICT'
+  );
+}
+
+/**
+ * @description The backend refused a pagination cursor: it was changed, belongs to another query, or predates a change of the signing key.
+ */
+export function isInvalidCursorError(error: unknown): boolean {
+  return (
+    error instanceof GraphqlRequestError &&
+    error.message === INVALID_CURSOR_MESSAGE
   );
 }
 

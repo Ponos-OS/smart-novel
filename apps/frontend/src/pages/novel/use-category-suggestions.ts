@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 
 import { useSearchCategoriesQuery } from '../../generated/graphql';
+import { useResetOnInvalidCursor } from '../../hooks/useResetOnInvalidCursor';
 
 const SUGGESTIONS_PAGE_SIZE = 10;
 
@@ -8,8 +9,9 @@ export function useCategorySuggestions(
   search: string,
   enabled: boolean,
 ) {
+  const queryKey = ['SearchCategoriesInfinite', search];
   const query = useInfiniteQuery({
-    queryKey: ['SearchCategoriesInfinite', search],
+    queryKey,
     enabled,
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam }) =>
@@ -23,6 +25,8 @@ export function useCategorySuggestions(
         ? categoriesConnection.pageInfo.endCursor
         : undefined,
   });
+
+  useResetOnInvalidCursor(queryKey, query.error);
 
   return {
     names: (query.data?.pages ?? []).flatMap((page) =>

@@ -4,6 +4,7 @@ import {
   CategoryStatus,
   useAdminCategoriesQuery,
 } from '../../generated/graphql';
+import { useResetOnInvalidCursor } from '../../hooks/useResetOnInvalidCursor';
 
 const PAGE_SIZE = 20;
 
@@ -14,8 +15,9 @@ export function useAdminCategories(
   statuses: CategoryStatus[],
   enabled: boolean,
 ) {
+  const queryKey = [ADMIN_CATEGORIES_KEY, search, statuses];
   const query = useInfiniteQuery({
-    queryKey: [ADMIN_CATEGORIES_KEY, search, statuses],
+    queryKey,
     enabled,
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam }) =>
@@ -30,6 +32,8 @@ export function useAdminCategories(
         ? categoriesConnection.pageInfo.endCursor
         : undefined,
   });
+
+  useResetOnInvalidCursor(queryKey, query.error);
 
   return {
     categories: (query.data?.pages ?? []).flatMap((page) =>
