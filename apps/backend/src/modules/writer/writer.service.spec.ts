@@ -465,6 +465,90 @@ describe(WriterService.name, () => {
     });
   });
 
+  describe('findForNovels', () => {
+    const approvedRow = {
+      ...pendingRow,
+      status: WriterStatus.APPROVED,
+      applications: [
+        {
+          ...application,
+          reviewedBy: adminId,
+          reviewedAt: '2026-11-01T10:30:00.000Z',
+        },
+      ],
+    };
+
+    it('should ask once for all the ids', async () => {
+      prisma.writer.findMany.mockResolvedValue([approvedRow]);
+
+      await uut.findForNovels([requestId], false);
+
+      expect(prisma.writer.findMany).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({
+          where: { id: { in: [requestId] } },
+        }),
+      );
+    });
+
+    it('should show everybody but an admin nothing more than the pen name of an approved writer', async () => {
+      prisma.writer.findMany.mockResolvedValue([approvedRow]);
+
+      const result = await uut.findForNovels([requestId], false);
+
+      expect(result.get(requestId)).toStrictEqual({
+        userId,
+        penName,
+      });
+    });
+
+    it.each([[WriterStatus.PENDING], [WriterStatus.REJECTED]])(
+      'should show everybody but an admin nothing of a writer who is %s',
+      async (status) => {
+        prisma.writer.findMany.mockResolvedValue([
+          { ...approvedRow, status },
+        ]);
+
+        const result = await uut.findForNovels([requestId], false);
+
+        expect(result.has(requestId)).toBeTrue();
+        expect(result.get(requestId)).toBeNull();
+      },
+    );
+
+    it('should give an admin everything, whatever the status, with the applications', async () => {
+      prisma.writer.findMany.mockResolvedValue([
+        { ...approvedRow, status: WriterStatus.REJECTED },
+      ]);
+
+      const result = await uut.findForNovels([requestId], true);
+
+      expect(result.get(requestId)).toStrictEqual({
+        userId,
+        penName,
+        name: 'Mina Ardalan',
+        email: 'mina.ardalan@example.com',
+        status: WriterStatus.REJECTED,
+        createdAt: new Date('2026-10-31T09:00:00.000Z'),
+        applications: [
+          {
+            note,
+            appliedAt: new Date(appliedAt),
+            rejectionReason: null,
+            reviewedAt: new Date('2026-11-01T10:30:00.000Z'),
+          },
+        ],
+      });
+    });
+
+    it('should leave an id without a row out of the map, so that the caller can tell a fault from a hidden writer', async () => {
+      prisma.writer.findMany.mockResolvedValue([]);
+
+      const result = await uut.findForNovels([requestId], true);
+
+      expect(result.has(requestId)).toBeFalse();
+    });
+  });
+
   describe('findConnection', () => {
     const second = {
       ...pendingRow,

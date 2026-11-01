@@ -5,4 +5,5 @@ export * from './chapter.field-resolver';
 export * from './chapter.resolver';
 export * from './novel-connection.field-resolver';
 export * from './novel-license.field-resolver';
+export * from './novel-writer.field-resolver';
 export * from './novel.resolver';

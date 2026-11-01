@@ -7,13 +7,12 @@ type NovelCardData = Pick<
   Novel,
   | 'id'
   | 'name'
-  | 'author'
   | 'category'
   | 'state'
   | 'coverUrl'
   | 'description'
   | 'lastChapterPublishedAt'
->;
+> & { writer?: { penName: string } | null };
 
 interface NovelCardProps {
   novel: NovelCardData;
@@ -84,9 +83,11 @@ export function NovelCard({ novel }: NovelCardProps) {
         <h3 className="font-serif text-xl font-semibold leading-snug text-white">
           {novel.name}
         </h3>
-        <p className="mt-0.5 text-sm text-gray-400">
-          By: {novel.author}
-        </p>
+        {novel.writer && (
+          <p className="mt-0.5 text-sm text-gray-400">
+            By: {novel.writer.penName}
+          </p>
+        )}
         <p className="mt-3 flex-1 text-sm leading-relaxed text-gray-300">
           {truncateText(novel.description, 300)}
         </p>

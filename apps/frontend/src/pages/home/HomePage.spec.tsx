@@ -9,7 +9,7 @@ const endOfFirstPage = 'eyJhIjoibm92ZWxzIn0.c2lnbmF0dXJl';
 const novel = {
   id: 'c1d31ec2-f478-4648-b90b-d1e53de2a829',
   name: 'The Journey Begins',
-  author: 'Jane Doe',
+  writer: { penName: 'Jane_Doe' },
   description: 'A young hero leaves home.',
   state: 'ONGOING',
   category: ['fantasy'],

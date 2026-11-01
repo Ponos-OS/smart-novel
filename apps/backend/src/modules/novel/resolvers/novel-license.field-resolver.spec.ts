@@ -19,11 +19,11 @@ describe(NovelLicenseFieldResolver.name, () => {
     const novel: Novel = {
       id: '78981754-46c4-4521-9216-b9b27dafeab2',
       name: 'The Journey Begins',
-      author: 'Jane Doe',
       category: ['fantasy'],
       state: NovelState.ONGOING,
       description: 'A young hero leaves home.',
       ownerId: '260311094522198751',
+      writerId: '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10',
       licenseId: license.id,
     };
 

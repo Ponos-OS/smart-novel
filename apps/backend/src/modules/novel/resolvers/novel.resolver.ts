@@ -108,11 +108,7 @@ export class NovelResolver {
     input: CreateNovelInput,
     @CurrentUser() user: IAuthUser,
   ): Promise<Novel> {
-    return this.novelService.createNovel(
-      user.sub,
-      `${user.givenName} ${user.familyName}`.trim(),
-      input,
-    );
+    return this.novelService.createNovel(user.sub, input);
   }
 
   @RequireAcceptedTerms()

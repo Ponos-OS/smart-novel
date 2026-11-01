@@ -64,11 +64,10 @@ model License {
 
 model Novel {
   id        String @id @default(uuid()) @db.Uuid
-  ownerId   String @map("owner_id")
+  writerId  String @map("writer_id") @db.Uuid
   licenseId String @map("license_id") @db.Uuid
 
   name                  String
-  author                String
   description           String     @db.Text
   state                 NovelState @default(ONGOING)
   coverUrl              String?    @map("cover_url")
@@ -77,12 +76,13 @@ model Novel {
   createdAt             DateTime   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt             DateTime   @updatedAt @map("updated_at") @db.Timestamptz
 
+  writer            Writer             @relation(fields: [writerId], references: [id], onDelete: Restrict)
   license           License            @relation(fields: [licenseId], references: [id], onDelete: Restrict)
   chapters          Chapter[]
   categories        NovelCategory[]
   chapterUserStates ChapterUserState[]
 
-  @@index([ownerId], name: "IDX_novels_owner")
+  @@index([writerId], name: "IDX_novels_writer")
   @@index([licenseId], name: "IDX_novels_license")
   @@index([firstChapterCreatedAt, id], name: "IDX_novels_first_chapter_created_at")
   @@map("novels")
@@ -195,6 +195,8 @@ model Writer {
   // append-only history of the applications, see writer-application.ts
   applications Json         @default("[]")
   createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
+
+  novels Novel[]
 
   @@index([status, createdAt], name: "IDX_writers_status_created_at")
   @@map("writers")

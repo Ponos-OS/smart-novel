@@ -52,7 +52,7 @@ export class ChapterPolicy implements IResourcePolicy {
 
         const novel = await this.prisma.novel.findUnique({
           where: { id: resourceId },
-          select: { ownerId: true },
+          select: { writer: { select: { userId: true } } },
         });
 
         if (!novel) {
@@ -62,7 +62,7 @@ export class ChapterPolicy implements IResourcePolicy {
 
         return ability.can(
           Action.Create,
-          subject('Chapter', { novelOwnerId: novel.ownerId }),
+          subject('Chapter', { novelOwnerId: novel.writer.userId }),
         );
       }
       case 'update':
@@ -84,7 +84,11 @@ export class ChapterPolicy implements IResourcePolicy {
 
         const chapter = await this.prisma.chapter.findUnique({
           where: { id: chapterId },
-          select: { novel: { select: { ownerId: true } } },
+          select: {
+            novel: {
+              select: { writer: { select: { userId: true } } },
+            },
+          },
         });
 
         if (!chapter) {
@@ -94,7 +98,9 @@ export class ChapterPolicy implements IResourcePolicy {
 
         return ability.can(
           casl,
-          subject('Chapter', { novelOwnerId: chapter.novel.ownerId }),
+          subject('Chapter', {
+            novelOwnerId: chapter.novel.writer.userId,
+          }),
         );
       }
       default:

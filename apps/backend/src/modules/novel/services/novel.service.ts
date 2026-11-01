@@ -59,7 +59,6 @@ export class NovelService {
 
   async createNovel(
     ownerId: string,
-    author: string,
     input: CreateNovelInput,
   ): Promise<Novel> {
     const { licenseId, licenseDraft, ...fields } = input;
@@ -71,7 +70,6 @@ export class NovelService {
 
     return this.novelRepository.createNovel({
       ownerId,
-      author,
       ...fields,
       licenseId: license.id,
     });

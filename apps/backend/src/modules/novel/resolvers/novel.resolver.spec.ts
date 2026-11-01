@@ -47,11 +47,7 @@ describe(NovelResolver.name, () => {
 
       expect(
         novelService.createNovel,
-      ).toHaveBeenCalledExactlyOnceWith(
-        '260311094522198751',
-        'Jane Doe',
-        input,
-      );
+      ).toHaveBeenCalledExactlyOnceWith('260311094522198751', input);
       expect(result).toBe(novel);
     });
   });
@@ -298,11 +294,11 @@ function getNovel({ ownerId }: { ownerId: string }): Novel {
   return {
     id: '78981754-46c4-4521-9216-b9b27dafeab2',
     name: 'Test Novel',
-    author: 'Author',
     category: ['fantasy'],
     state: NovelState.ONGOING,
     description: 'A test novel',
     ownerId,
+    writerId: '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10',
     licenseId: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
   };
 }

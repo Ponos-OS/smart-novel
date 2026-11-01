@@ -432,7 +432,6 @@ describe('License drafts (e2e)', () => {
         {
           input: {
             name: 'The Lantern Keeper',
-            author: 'Jane Doe',
             description:
               'A lighthouse keeper finds a door in the fog.',
             licenseId: license.id,
@@ -512,7 +511,6 @@ describe('License drafts (e2e)', () => {
       {
         input: {
           name: 'The Lantern Keeper',
-          author: 'Jane Doe',
           description: 'A lighthouse keeper finds a door in the fog.',
           licenseId: draft.id,
         },
@@ -536,7 +534,6 @@ describe('License drafts (e2e)', () => {
       {
         input: {
           name: 'The Lantern Keeper',
-          author: 'Jane Doe',
           description: 'A lighthouse keeper finds a door in the fog.',
           licenseId: finalized.data.finalizeLicenseDraft.id,
         },

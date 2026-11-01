@@ -2,7 +2,9 @@ query GetNovel($id: ID!) {
   novel(id: $id) {
     id
     name
-    author
+    writer {
+      penName
+    }
     category
     state
     coverUrl

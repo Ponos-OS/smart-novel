@@ -11,7 +11,6 @@ interface NovelDetails {
   id: string;
   name: string;
   description: string;
-  author: string;
   category: string[];
   state: 'ONGOING' | 'FINISHED';
   coverUrl?: string;
@@ -114,10 +113,10 @@ async function batchInsertChapters(
 }
 
 /**
- * @description Get the writer's ID. The writer ID is the actual ZITADEL user's `sub` claim, ensuring ownership checks work correctly.
+ * @description Get the user ID of the writer the seeded novels belong to. It is the actual ZITADEL user's `sub` claim, ensuring ownership checks work correctly.
  *
  */
-function getWriterId(): string {
+function getWriterUserId(): string {
   const writerUserId = process.env.ZITADEL_WRITER_USER_ID?.trim();
 
   if (!writerUserId) {
@@ -132,7 +131,17 @@ export async function seedNovels(
   dataPath: string,
   categoryMap: Map<string, string>,
   licenses: SeededLicenses,
+  writerIds: Map<string, string>,
 ): Promise<void> {
+  const writerUserId = getWriterUserId();
+  const writerId = writerIds.get(writerUserId);
+
+  if (!writerId) {
+    throw new Error(
+      `ZITADEL_WRITER_USER_ID ${writerUserId} is not among SEEDED_WRITERS`,
+    );
+  }
+
   console.log('\n📚 Processing novels...');
 
   const novelDirs = await readdir(dataPath, { withFileTypes: true });
@@ -176,17 +185,14 @@ export async function seedNovels(
       }
 
       await prisma.$transaction(async (tx) => {
-        const ownerId = getWriterId();
-
         await tx.novel.create({
           data: {
             id: details.id,
             name: details.name,
-            author: details.author,
             description: details.description,
             state: details.state,
             coverUrl: details.coverUrl,
-            ownerId,
+            writerId,
             licenseId,
           },
         });

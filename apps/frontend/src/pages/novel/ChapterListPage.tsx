@@ -97,9 +97,11 @@ export function ChapterListPage() {
               </Button>
             )}
           </div>
-          <p className="mb-4 text-lg text-gray-400">
-            By {novel.author}
-          </p>
+          {novel.writer && (
+            <p className="mb-4 text-lg text-gray-400">
+              By {novel.writer.penName}
+            </p>
+          )}
           <p className="mb-4 text-gray-300">{novel.description}</p>
           <div className="mb-4 flex flex-wrap gap-2">
             {novel.category.map((cat) => (

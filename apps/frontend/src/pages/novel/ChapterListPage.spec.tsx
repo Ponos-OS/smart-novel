@@ -24,7 +24,7 @@ function renderPage(canEditContent: boolean) {
     novel: {
       id: novelId,
       name: 'The Lantern Keeper',
-      author: 'Jane Doe',
+      writer: { penName: 'Jane_Doe' },
       description: 'A lighthouse keeper finds a door in the fog.',
       category: [],
       license: {
@@ -61,6 +61,12 @@ function renderPage(canEditContent: boolean) {
 }
 
 describe('ChapterListPage novel edit entry', () => {
+  it('shows the pen name of the writer, not a real name', () => {
+    renderPage(false);
+
+    expect(screen.getByText('By Jane_Doe')).toBeInTheDocument();
+  });
+
   it('opens the edit form for those who can edit the novel', async () => {
     // Arrange
     renderPage(true);

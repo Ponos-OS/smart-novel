@@ -70,7 +70,7 @@ describe(NovelPolicy.name, () => {
 
     it('should allow a writer who owns the novel', async () => {
       vi.mocked(prisma.novel.findUnique).mockResolvedValue({
-        ownerId: 'user-1',
+        writer: { userId: 'user-1' },
       } as any);
 
       const result = await uut.isAllowed({
@@ -85,7 +85,7 @@ describe(NovelPolicy.name, () => {
 
     it('should deny a writer who does not own the novel', async () => {
       vi.mocked(prisma.novel.findUnique).mockResolvedValue({
-        ownerId: 'someone-else',
+        writer: { userId: 'someone-else' },
       } as any);
 
       const result = await uut.isAllowed({

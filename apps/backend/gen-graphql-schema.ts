@@ -25,6 +25,7 @@ import {
   NovelConnectionFieldResolver,
   NovelLicenseFieldResolver,
   NovelResolver,
+  NovelWriterFieldResolver,
 } from './src/modules/novel/resolvers';
 import { PlatformTermsResolver } from './src/modules/platform-terms/platform-terms.resolver';
 import { WriterResolver } from './src/modules/writer/writer.resolver';
@@ -50,6 +51,7 @@ async function generateSchema() {
     NovelResolver,
     NovelConnectionFieldResolver,
     NovelLicenseFieldResolver,
+    NovelWriterFieldResolver,
     ChapterResolver,
     ChapterConnectionFieldResolver,
     ChapterFieldResolver,

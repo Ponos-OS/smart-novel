@@ -14,7 +14,9 @@ mutation UpdateNovel($id: ID!, $input: UpdateNovelInput!) {
   updateNovel(id: $id, input: $input) {
     id
     name
-    author
+    writer {
+      penName
+    }
     description
     state
     category

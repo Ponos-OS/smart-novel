@@ -79,24 +79,6 @@ export interface ZitadelUserGrantsSearchResponse {
   }>;
 }
 
-export interface ZitadelUserResponse {
-  user?: {
-    human?: {
-      profile?: {
-        givenName?: string;
-        familyName?: string;
-        displayName?: string;
-      };
-      email?: { email?: string };
-    };
-  };
-}
-
-export interface ZitadelUserInfo {
-  name?: string;
-  email?: string;
-}
-
 export interface ZitadelJwtPayload extends JWTPayload {
   /** @example "http://localhost:8080" */
   iss: string;

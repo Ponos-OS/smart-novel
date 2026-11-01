@@ -2,7 +2,6 @@
   "id": "c1d31ec2-f478-4648-b90b-d1e53de2a829",
   "name": "The Journey Begins",
   "description": "A young hero leaves home to uncover an ancient mystery and shape the fate of the realm.",
-  "author": "Jane Doe",
   "category": ["fantasy", "adventure"],
   "state": "ONGOING",
   "coverUrl": "http://s3.localhost:8080/smart-novel/covers/71a3fcd8-937d-4e3d-94de-a643ff515f82.png",

@@ -24,9 +24,6 @@ export class Novel implements INovel {
   @Field({ description: 'The name of the novel' })
   name: string;
 
-  @Field({ description: 'The author of the novel' })
-  author: string;
-
   @Field(() => [String], {
     description: 'The categories of the novel',
   })
@@ -51,6 +48,11 @@ export class Novel implements INovel {
    * @example "233104087965432001"
    */
   ownerId: string;
+
+  /**
+   * @internal field — not exposed in the GraphQL schema. Used by the `writer` field resolver.
+   */
+  writerId: string;
 
   /**
    * @internal field — not exposed in the GraphQL schema. Used by the `license` field resolver.

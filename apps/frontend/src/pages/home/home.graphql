@@ -9,7 +9,9 @@ query GetNovels(
       node {
         id
         name
-        author
+        writer {
+          penName
+        }
         category
         state
         coverUrl

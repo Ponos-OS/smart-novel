@@ -14,10 +14,10 @@ export interface FindNovelsPageArgs {
 }
 
 export interface CreateNovelData {
+  /** @description The user ID of the writer; the writer's row must exist. */
   ownerId: string;
   licenseId: string;
   name: string;
-  author: string;
   description: string;
   state?: NovelState;
   categories?: string[];

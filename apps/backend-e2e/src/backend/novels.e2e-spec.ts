@@ -12,7 +12,9 @@ describe('Novels (e2e)', () => {
                 id
                 name
                 state
-                author
+                writer {
+                  penName
+                }
                 category
               }
             }
@@ -59,7 +61,7 @@ describe('Novels (e2e)', () => {
     ).toHaveProperty('state');
     expect(
       res.data.data.novelsConnection.edges[0].node,
-    ).toHaveProperty('author');
+    ).toHaveProperty('writer');
     expect(
       res.data.data.novelsConnection.edges[0].node,
     ).toHaveProperty('category');

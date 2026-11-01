@@ -6,6 +6,7 @@ import { Pool } from 'pg';
 import { seedCategories } from './seeders/category.seeder';
 import { seedLicenses } from './seeders/license.seeder';
 import { seedNovels } from './seeders/novel.seeder';
+import { seedWriters } from './seeders/writer.seeder';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -23,7 +24,15 @@ async function main() {
 
     const licenses = await seedLicenses(prisma);
 
-    await seedNovels(prisma, DATA_PATH, categoryMap, licenses);
+    const writerIds = await seedWriters(prisma);
+
+    await seedNovels(
+      prisma,
+      DATA_PATH,
+      categoryMap,
+      licenses,
+      writerIds,
+    );
 
     console.log('\n✅ Database seeding completed successfully!');
   } catch (error) {

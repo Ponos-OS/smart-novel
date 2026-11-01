@@ -31,7 +31,7 @@ import {
   WRITERS_PAGE_SIZE_MAX,
 } from './constants';
 import { WriterFiltersInput } from './inputs';
-import { Writer, WriterConnection } from './types';
+import { NovelWriter, Writer, WriterConnection } from './types';
 import {
   parseApplications,
   StoredWriterApplication,
@@ -118,6 +118,24 @@ export class WriterService {
     });
 
     return row && this.toWriter(row);
+  }
+
+  /**
+   * @description
+   * The writers of a page of novels, by writer id, in one query. Only the ids that have a row are in the map, so the caller can tell a missing row (a fault) from a writer the viewer may not see (null): everybody but an admin only sees an approved writer, and only an admin gets more than the pen name.
+   */
+  async findForNovels(
+    writerIds: string[],
+    isAdmin: boolean,
+  ): Promise<Map<string, NovelWriter | null>> {
+    const rows = await this.prisma.writer.findMany({
+      where: { id: { in: writerIds } },
+      select: WRITER_SELECT,
+    });
+
+    return new Map(
+      rows.map((row) => [row.id, this.toNovelWriter(row, isAdmin)]),
+    );
   }
 
   async findConnection(
@@ -339,17 +357,40 @@ export class WriterService {
       penName: row.penName,
       status: row.status,
       createdAt: row.createdAt,
-      applications: parseApplications(row.applications).map(
-        (application) => ({
-          note: application.note,
-          appliedAt: new Date(application.appliedAt),
-          rejectionReason: application.rejectionReason,
-          reviewedAt: application.reviewedAt
-            ? new Date(application.reviewedAt)
-            : null,
-        }),
-      ),
+      applications: this.toApplications(row),
     };
+  }
+
+  private toNovelWriter(
+    row: WriterRow,
+    isAdmin: boolean,
+  ): NovelWriter | null {
+    if (isAdmin) {
+      return {
+        userId: row.userId,
+        penName: row.penName,
+        name: row.name,
+        email: row.email,
+        status: row.status,
+        createdAt: row.createdAt,
+        applications: this.toApplications(row),
+      };
+    }
+
+    return row.status === WriterStatus.APPROVED
+      ? { userId: row.userId, penName: row.penName }
+      : null;
+  }
+
+  private toApplications(row: WriterRow): Writer['applications'] {
+    return parseApplications(row.applications).map((application) => ({
+      note: application.note,
+      appliedAt: new Date(application.appliedAt),
+      rejectionReason: application.rejectionReason,
+      reviewedAt: application.reviewedAt
+        ? new Date(application.reviewedAt)
+        : null,
+    }));
   }
 
   /**

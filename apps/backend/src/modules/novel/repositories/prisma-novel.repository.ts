@@ -4,8 +4,10 @@ import {
   Prisma,
   Novel as PrismaNovel,
 } from '@prisma/client';
+import { CustomLoggerService } from 'nestjs-backend-common';
 
 import { PrismaService } from '../../prisma';
+import { writerIntegrityError } from '../../writer';
 import {
   type CreateNovelData,
   type DeletedNovel,
@@ -19,11 +21,15 @@ import { Novel } from '../types';
 
 const NOVEL_INCLUDE = {
   categories: { select: { category: { select: { name: true } } } },
+  writer: { select: { userId: true } },
 } satisfies Prisma.NovelInclude;
 
 @Injectable()
 export class PrismaNovelRepository implements INovelRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly logger: CustomLoggerService,
+  ) {}
 
   async findNovelsPage({
     page: { cursor, skip, take, shouldReverse },
@@ -52,17 +58,7 @@ export class PrismaNovelRepository implements INovelRepository {
   async findById(id: string): Promise<Novel | null> {
     const novel = await this.prisma.novel.findUnique({
       where: { id },
-      include: {
-        categories: {
-          select: {
-            category: {
-              select: {
-                name: true,
-              },
-            },
-          },
-        },
-      },
+      include: NOVEL_INCLUDE,
     });
 
     if (!novel) {
@@ -73,16 +69,29 @@ export class PrismaNovelRepository implements INovelRepository {
   }
 
   async createNovel(data: CreateNovelData): Promise<Novel> {
-    const { categories, ...fields } = data;
+    const { categories, ownerId, ...fields } = data;
 
     return this.prisma.$transaction(async (tx) => {
       const categoryIds = await this.resolveCategoryIds(
         tx,
         categories ?? [],
       );
+      const writer = await tx.writer.findUnique({
+        where: { userId: ownerId },
+        select: { id: true },
+      });
+
+      if (!writer) {
+        throw writerIntegrityError(
+          this.logger,
+          `user ${ownerId} creates a novel but has no writer row`,
+        );
+      }
+
       const novel = await tx.novel.create({
         data: {
           ...fields,
+          writerId: writer.id,
           categories: {
             create: categoryIds.map((categoryId) => ({ categoryId })),
           },
@@ -98,14 +107,7 @@ export class PrismaNovelRepository implements INovelRepository {
     id: string,
     data: UpdateNovelData,
   ): Promise<Novel> {
-    const {
-      name,
-      author,
-      description,
-      state,
-      categories,
-      licenseId,
-    } = data;
+    const { name, description, state, categories, licenseId } = data;
 
     return this.prisma.$transaction(async (tx) => {
       const categoryIds = categories
@@ -115,7 +117,6 @@ export class PrismaNovelRepository implements INovelRepository {
         where: { id },
         data: {
           name: name ?? undefined,
-          author: author ?? undefined,
           description: description ?? undefined,
           state: state ?? undefined,
           licenseId: licenseId ?? undefined,
@@ -259,15 +260,16 @@ export class PrismaNovelRepository implements INovelRepository {
   private toNovel(
     record: PrismaNovel & {
       categories: { category: { name: string } }[];
+      writer: { userId: string };
     },
   ): Novel {
     return {
       id: record.id,
       name: record.name,
-      author: record.author,
       description: record.description,
       state: record.state,
-      ownerId: record.ownerId,
+      ownerId: record.writer.userId,
+      writerId: record.writerId,
       licenseId: record.licenseId,
       coverUrl: record.coverUrl ?? undefined,
       firstChapterCreatedAt:

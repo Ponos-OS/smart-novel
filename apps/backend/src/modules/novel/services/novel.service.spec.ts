@@ -136,13 +136,11 @@ describe(NovelService.name, () => {
 
       const result = await uut.createNovel(
         '260311094522198751',
-        'Jane Doe',
         input,
       );
 
       expect(novelRepository.createNovel).toHaveBeenCalledWith({
         ownerId: '260311094522198751',
-        author: 'Jane Doe',
         licenseId: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
         licenseId: defaultLicenseId,
         ...input,
@@ -156,7 +154,7 @@ describe(NovelService.name, () => {
         id: licenseId,
       } as any);
 
-      await uut.createNovel('260311094522198751', 'Jane Doe', {
+      await uut.createNovel('260311094522198751', {
         name: 'The Journey Begins',
         description: 'A young hero leaves home.',
         licenseId,

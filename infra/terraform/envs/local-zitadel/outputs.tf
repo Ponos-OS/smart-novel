@@ -36,3 +36,15 @@ output "webhook_signing_key" {
   sensitive   = true
   value       = module.zitadel_config.webhook_signing_key
 }
+
+output "seeded_writers" {
+  description = "The users whose role is writer or admin, with what the backend's seeder needs to give each of them a writer record: their ID, name, email and pen name. They got their role from here, not from a writer request"
+  value = [
+    for username, user in local.users : {
+      user_id  = module.zitadel_config.user_ids[username]
+      name     = "${user.first_name} ${user.last_name}"
+      email    = user.email
+      pen_name = "${user.first_name}_${user.last_name}"
+    } if contains(["writer", "admin"], try(user.role, ""))
+  ]
+}

@@ -6,6 +6,8 @@ import { PrismaNovelRepository } from './prisma-novel.repository';
 describe(PrismaNovelRepository.name, () => {
   let uut: PrismaNovelRepository;
   let prismaService: PrismaService;
+  let logger: { error: ReturnType<typeof vi.fn> };
+  const writerId = '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10';
 
   beforeEach(async () => {
     // Mock PrismaService with all required methods
@@ -19,6 +21,7 @@ describe(PrismaNovelRepository.name, () => {
         update: vi.fn(),
         delete: vi.fn(),
       },
+      writer: { findUnique: vi.fn() },
       chapterContent: { deleteMany: vi.fn() },
       $queryRaw: vi.fn(),
       chapter: {
@@ -34,7 +37,11 @@ describe(PrismaNovelRepository.name, () => {
       $transaction: vi.fn((callback) => callback(prismaService)),
     } as any;
 
-    uut = new PrismaNovelRepository(prismaService);
+    logger = { error: vi.fn() };
+    uut = new PrismaNovelRepository(prismaService, logger as never);
+    vi.mocked(prismaService.writer.findUnique).mockResolvedValue({
+      id: writerId,
+    } as never);
   });
 
   describe('createNovel', () => {
@@ -42,10 +49,10 @@ describe(PrismaNovelRepository.name, () => {
 
     const novelRecord = {
       id: '78981754-46c4-4521-9216-b9b27dafeab2',
-      ownerId: '260311094522198751',
+      writerId,
+      writer: { userId: '260311094522198751' },
       licenseId,
       name: 'The Journey Begins',
-      author: 'Jane Doe',
       description: 'A young hero leaves home.',
       state: NovelState.ONGOING,
       coverUrl: null,
@@ -71,7 +78,6 @@ describe(PrismaNovelRepository.name, () => {
         ownerId: '260311094522198751',
         licenseId,
         name: 'The Journey Begins',
-        author: 'Jane Doe',
         description: 'A young hero leaves home.',
         categories: ['fantasy', 'sci-fi'],
       });
@@ -89,10 +95,9 @@ describe(PrismaNovelRepository.name, () => {
       expect(prismaService.novel.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: {
-            ownerId: '260311094522198751',
+            writerId,
             licenseId,
             name: 'The Journey Begins',
-            author: 'Jane Doe',
             description: 'A young hero leaves home.',
             categories: {
               create: [
@@ -111,10 +116,54 @@ describe(PrismaNovelRepository.name, () => {
         expect.objectContaining({
           id: novelRecord.id,
           ownerId: '260311094522198751',
+          writerId,
           licenseId,
           category: ['fantasy'],
         }),
       );
+    });
+
+    it('should look the writer up by the user ID and reference the row', async () => {
+      vi.mocked(prismaService.category.findMany).mockResolvedValue(
+        [] as any,
+      );
+      vi.mocked(prismaService.novel.create).mockResolvedValue(
+        novelRecord as any,
+      );
+
+      await uut.createNovel({
+        ownerId: '260311094522198751',
+        licenseId,
+        name: 'The Journey Begins',
+        description: 'A young hero leaves home.',
+      });
+
+      expect(prismaService.writer.findUnique).toHaveBeenCalledWith({
+        where: { userId: '260311094522198751' },
+        select: { id: true },
+      });
+    });
+
+    it('should fail loudly and log it when the caller has no writer row', async () => {
+      vi.mocked(prismaService.category.findMany).mockResolvedValue(
+        [] as any,
+      );
+      vi.mocked(prismaService.writer.findUnique).mockResolvedValue(
+        null,
+      );
+
+      const result = uut.createNovel({
+        ownerId: '260311094522198751',
+        licenseId,
+        name: 'The Journey Begins',
+        description: 'A young hero leaves home.',
+      });
+
+      await expect(result).rejects.toThrow('Writer integrity error');
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('260311094522198751'),
+      );
+      expect(prismaService.novel.create).not.toHaveBeenCalled();
     });
 
     it('should reject categories that are not approved, naming them', async () => {
@@ -129,7 +178,6 @@ describe(PrismaNovelRepository.name, () => {
         ownerId: '260311094522198751',
         licenseId,
         name: 'The Journey Begins',
-        author: 'Jane Doe',
         description: 'A young hero leaves home.',
         categories: ['fantasy', 'slice of life', 'steampunk'],
       });
@@ -150,7 +198,6 @@ describe(PrismaNovelRepository.name, () => {
         ownerId: '260311094522198751',
         licenseId,
         name: 'The Journey Begins',
-        author: 'Jane Doe',
         description: 'A young hero leaves home.',
       });
 
@@ -165,9 +212,9 @@ describe(PrismaNovelRepository.name, () => {
     const novelId = '78981754-46c4-4521-9216-b9b27dafeab2';
     const novelRecord = {
       id: novelId,
-      ownerId: '260311094522198751',
+      writerId,
+      writer: { userId: '260311094522198751' },
       name: 'Renamed',
-      author: 'Jane Doe',
       description: 'A young hero leaves home.',
       state: NovelState.FINISHED,
       coverUrl: null,
@@ -186,7 +233,6 @@ describe(PrismaNovelRepository.name, () => {
           where: { id: novelId },
           data: {
             name: 'Renamed',
-            author: undefined,
             description: undefined,
             state: undefined,
             categories: undefined,
@@ -253,9 +299,9 @@ describe(PrismaNovelRepository.name, () => {
       } as any);
       vi.mocked(prismaService.novel.update).mockResolvedValue({
         id: novelId,
-        ownerId: '260311094522198751',
+        writerId,
+        writer: { userId: '260311094522198751' },
         name: 'The Journey Begins',
-        author: 'Jane Doe',
         description: 'A young hero leaves home.',
         state: NovelState.ONGOING,
         coverUrl:
@@ -293,9 +339,9 @@ describe(PrismaNovelRepository.name, () => {
       } as any);
       vi.mocked(prismaService.novel.update).mockResolvedValue({
         id: '78981754-46c4-4521-9216-b9b27dafeab2',
-        ownerId: '260311094522198751',
+        writerId,
+        writer: { userId: '260311094522198751' },
         name: 'The Journey Begins',
-        author: 'Jane Doe',
         description: 'A young hero leaves home.',
         state: NovelState.ONGOING,
         coverUrl:
@@ -388,10 +434,10 @@ describe(PrismaNovelRepository.name, () => {
         {
           id: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
           name: 'Test Novel',
-          author: 'John Doe',
           description: 'A test novel description',
           state: NovelState.ONGOING,
           ownerId: '230104087265432001',
+          writerId: '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10',
           coverUrl: 'https://example.com/cover.jpg',
           category: ['fantasy', 'adventure'],
         },
@@ -586,10 +632,10 @@ describe(PrismaNovelRepository.name, () => {
       expect(result).toEqual({
         id: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
         name: 'Test Novel',
-        author: 'John Doe',
         description: 'A test novel description',
         state: NovelState.ONGOING,
         ownerId: '230104087265432001',
+        writerId: '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10',
         coverUrl: 'https://example.com/cover.jpg',
         category: ['fantasy', 'adventure'],
       });
@@ -603,6 +649,7 @@ describe(PrismaNovelRepository.name, () => {
               },
             },
           },
+          writer: { select: { userId: true } },
         },
       });
     });
@@ -635,10 +682,10 @@ function getMockedData() {
   const novel = {
     id: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
     name: 'Test Novel',
-    author: 'John Doe',
     description: 'A test novel description',
     state: 'ONGOING',
-    ownerId: '230104087265432001',
+    writerId: '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10',
+    writer: { userId: '230104087265432001' },
     coverUrl: 'https://example.com/cover.jpg',
     categories: [
       { category: { name: 'Fantasy' } },

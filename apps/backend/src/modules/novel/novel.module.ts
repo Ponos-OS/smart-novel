@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 
 import { LicenseModule } from '../license';
+import { WriterModule } from '../writer';
 import {
   ChapterContentDataLoader,
   ChapterNavigationDataLoader,
   ChapterViewerStateDataLoader,
+  NovelWriterDataLoader,
 } from './dataloaders';
 import {
   CHAPTER_CONTENT_REPOSITORY,
@@ -28,6 +30,7 @@ import {
   NovelConnectionFieldResolver,
   NovelLicenseFieldResolver,
   NovelResolver,
+  NovelWriterFieldResolver,
 } from './resolvers';
 import {
   ChapterNarrationService,
@@ -40,11 +43,12 @@ import {
 } from './services';
 
 @Module({
-  imports: [LicenseModule],
+  imports: [LicenseModule, WriterModule],
   providers: [
     NovelResolver,
     NovelConnectionFieldResolver,
     NovelLicenseFieldResolver,
+    NovelWriterFieldResolver,
     ChapterFieldResolver,
     ChapterNarrationResolver,
     ChapterResolver,
@@ -62,6 +66,7 @@ import {
     ChapterContentDataLoader,
     ChapterNavigationDataLoader,
     ChapterViewerStateDataLoader,
+    NovelWriterDataLoader,
     PubSubProvider,
     TtsTextService,
     {

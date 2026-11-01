@@ -84,7 +84,7 @@ function novel(allowedActions: NovelAction[]) {
     novel: {
       id: novelId,
       name: 'The Lantern Keeper',
-      author: 'Jane Doe',
+      writer: { penName: 'Jane_Doe' },
       description: 'A lighthouse keeper finds a door in the fog.',
       state: NovelState.Ongoing,
       category: ['fantasy', 'adventure'],

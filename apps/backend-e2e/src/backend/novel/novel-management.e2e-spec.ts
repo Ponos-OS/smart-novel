@@ -8,7 +8,9 @@ const CREATE_NOVEL = `#graphql
     createNovel(input: $input) {
       id
       name
-      author
+      writer {
+        penName
+      }
       description
       state
       category
@@ -22,7 +24,9 @@ const UPDATE_NOVEL = `#graphql
     updateNovel(id: $id, input: $input) {
       id
       name
-      author
+      writer {
+        penName
+      }
       description
       state
       category
@@ -102,19 +106,19 @@ describe('Novel management (e2e)', () => {
     it.each([
       {
         role: 'writer',
-        author: 'Writer User',
+        penName: 'Writer_User',
         getAuthorizationHeader:
           AuthorizationFixture.getWriterAuthorizationHeader,
       },
       {
         role: 'admin',
-        author: 'Admin User',
+        penName: 'Admin_User',
         getAuthorizationHeader:
           AuthorizationFixture.getAdminAuthorizationHeader,
       },
     ])(
       'should allow $role to create a novel, with defaults and categories',
-      async ({ author, getAuthorizationHeader }) => {
+      async ({ penName, getAuthorizationHeader }) => {
         const category = await approvedCategory('create');
         const authorization = await getAuthorizationHeader();
 
@@ -135,7 +139,7 @@ describe('Novel management (e2e)', () => {
         expect(data.data.createNovel).toStrictEqual({
           id: expect.toBeString(),
           name: 'The Lantern Keeper',
-          author,
+          writer: { penName },
           description: 'A lighthouse keeper finds a door in the fog.',
           state: 'ONGOING',
           category: [category],
@@ -236,7 +240,7 @@ describe('Novel management (e2e)', () => {
         expect(data.data.updateNovel).toStrictEqual({
           id: novel.id,
           name: 'Renamed',
-          author: 'Writer User',
+          writer: { penName: 'Writer_User' },
           description: novelInput.description,
           state: 'FINISHED',
           category: [category],

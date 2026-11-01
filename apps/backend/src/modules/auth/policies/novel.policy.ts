@@ -60,7 +60,7 @@ export class NovelPolicy implements IResourcePolicy {
 
         const novel = await this.prisma.novel.findUnique({
           where: { id: novelId },
-          select: { ownerId: true },
+          select: { writer: { select: { userId: true } } },
         });
 
         if (!novel) {
@@ -68,7 +68,10 @@ export class NovelPolicy implements IResourcePolicy {
           return false;
         }
 
-        return ability.can(caslAction, subject('Novel', novel));
+        return ability.can(
+          caslAction,
+          subject('Novel', { ownerId: novel.writer.userId }),
+        );
       }
       default:
         this.logger.warn(`Unknown novel action: ${action}`);

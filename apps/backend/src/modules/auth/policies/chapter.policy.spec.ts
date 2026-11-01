@@ -47,7 +47,7 @@ describe(ChapterPolicy.name, () => {
 
     it('should allow a writer who owns the target novel', async () => {
       vi.mocked(prisma.novel.findUnique).mockResolvedValue({
-        ownerId: '234980127461293847',
+        writer: { userId: '234980127461293847' },
       } as any);
 
       const result = await uut.isAllowed({
@@ -60,13 +60,13 @@ describe(ChapterPolicy.name, () => {
       expect(result).toBeTrue();
       expect(prisma.novel.findUnique).toHaveBeenCalledWith({
         where: { id: '4754496a-ccb4-4a6b-805d-809a6cea97c8' },
-        select: { ownerId: true },
+        select: { writer: { select: { userId: true } } },
       });
     });
 
     it('should deny a writer who does not own the target novel — regression test: an unconditional CASL create rule would silently let this through', async () => {
       vi.mocked(prisma.novel.findUnique).mockResolvedValue({
-        ownerId: '268103642598401',
+        writer: { userId: '268103642598401' },
       } as any);
 
       const result = await uut.isAllowed({
@@ -123,7 +123,7 @@ describe(ChapterPolicy.name, () => {
 
     it('should allow a writer who owns the chapter’s parent novel', async () => {
       vi.mocked(prisma.chapter.findUnique).mockResolvedValue({
-        novel: { ownerId: '234980127461293847' },
+        novel: { writer: { userId: '234980127461293847' } },
       } as any);
 
       const result = await uut.isAllowed({
@@ -136,13 +136,15 @@ describe(ChapterPolicy.name, () => {
       expect(result).toBeTrue();
       expect(prisma.chapter.findUnique).toHaveBeenCalledWith({
         where: { id: '4bbc4da9-107c-4872-9809-78f6191a092d' },
-        select: { novel: { select: { ownerId: true } } },
+        select: {
+          novel: { select: { writer: { select: { userId: true } } } },
+        },
       });
     });
 
     it('should deny a writer who does not own the chapter’s parent novel', async () => {
       vi.mocked(prisma.chapter.findUnique).mockResolvedValue({
-        novel: { ownerId: '268103642598401' },
+        novel: { writer: { userId: '268103642598401' } },
       } as any);
 
       const result = await uut.isAllowed({
@@ -206,7 +208,7 @@ describe(ChapterPolicy.name, () => {
       'should return $expected for a writer when the novel owner is $ownerId',
       async ({ ownerId, expected }) => {
         vi.mocked(prisma.chapter.findUnique).mockResolvedValue({
-          novel: { ownerId },
+          novel: { writer: { userId: ownerId } },
         } as any);
 
         const result = await uut.isAllowed({

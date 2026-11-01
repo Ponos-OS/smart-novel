@@ -5,7 +5,9 @@ query SearchNovels($filters: NovelFiltersInput) {
       node {
         id
         name
-        author
+        writer {
+          penName
+        }
         category
         state
         coverUrl

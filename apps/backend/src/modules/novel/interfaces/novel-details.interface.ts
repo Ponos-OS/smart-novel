@@ -1,7 +1,6 @@
 import { NovelState } from '@prisma/client';
 
 export interface NovelDetails {
-  author: string;
   category: string[];
   coverUrl?: string;
   description: string;
@@ -13,7 +12,6 @@ export interface NovelDetails {
 export interface INovel {
   id: string;
   name: string;
-  author: string;
   category: string[];
   state: NovelState;
   /**
@@ -21,6 +19,8 @@ export interface INovel {
    * @example "230104087265432001"
    */
   ownerId: string;
+  /** @description The `Writer` row the novel references; its `userId` is the `ownerId` above. */
+  writerId: string;
   licenseId: string;
   coverUrl?: string;
   description: string;

@@ -68,7 +68,17 @@ locals {
   zitadel_backend_environment        = local.zitadel == null ? {} : { ZITADEL_CLIENT_ID = local.zitadel.client_id, ZITADEL_PROJECT_ID = local.zitadel.project_id }
   zitadel_backend_secret_environment = local.zitadel == null ? {} : { ZITADEL_PAT = local.zitadel.pat, ZITADEL_MANAGEMENT_PAT = local.zitadel.backend_pat, ZITADEL_WEBHOOK_SIGNING_KEY = local.zitadel.webhook_signing_key }
   zitadel_frontend_environment       = local.zitadel == null ? {} : { VITE_OIDC_CLIENT_ID = local.zitadel.client_id }
-  init_job_environment               = local.zitadel == null ? {} : { ZITADEL_WRITER_USER_ID = local.zitadel.user_ids["writer"] }
+  init_job_environment = local.zitadel == null ? {} : {
+    ZITADEL_WRITER_USER_ID = local.zitadel.user_ids["writer"]
+    SEEDED_WRITERS = jsonencode([
+      for writer in local.zitadel.seeded_writers : {
+        userId  = writer.user_id
+        name    = writer.name
+        email   = writer.email
+        penName = writer.pen_name
+      }
+    ])
+  }
 
   backend_environment_by_mode = merge(
     local.hot_reload ? local.backend_environment : merge(local.backend_environment, { OLLAMA_RETRY_COUNT = "1" }),
