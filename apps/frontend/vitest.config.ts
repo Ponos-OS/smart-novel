@@ -25,6 +25,9 @@ export default defineConfig({
     // If you import CSS or SVGs in components
     css: true,
 
+    // user-event and axe specs exceed the 5s default when every file runs in parallel
+    testTimeout: 15000,
+
     // Coverage (optional but common)
     coverage: {
       reporter: ['text', 'lcov', 'html'],
