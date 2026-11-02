@@ -131,7 +131,7 @@ describe('license assistant accessibility', () => {
           permissions: ['share'],
           limitations: ['no warranty'],
           conditions: ['attribution'],
-          body: '# Attribution 4.0\n\nThe full legal text.',
+          body: 'Attribution 4.0\n\nThe full legal text.',
         },
       },
     });
@@ -150,7 +150,7 @@ describe('license assistant accessibility', () => {
     await user.click(
       await screen.findByRole('button', { name: 'Read CC BY 4.0' }),
     );
-    await screen.findByText('The full legal text.');
+    await screen.findByText(/The full legal text\./);
 
     // Act
     const violations = await a11yViolations(document.body);

@@ -11,12 +11,6 @@ vi.mock('../../generated/graphql', async () => ({
   useCanonicalLicenseQuery: () => query.value,
 }));
 
-vi.mock('react-markdown', () => ({
-  default: ({ children }: { children: string }) => (
-    <div>{children}</div>
-  ),
-}));
-
 const license = {
   id: 'CC-BY-NC-4.0',
   name: 'Creative Commons Attribution-NonCommercial 4.0 International',
