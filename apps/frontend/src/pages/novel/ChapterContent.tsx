@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { Button } from '../../components/Button';
 import { Chapter } from '../../generated/graphql';
@@ -38,6 +38,18 @@ export function ChapterContent({
   onEditClick,
 }: ChapterContentProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    return () => {
+      if (!audio) {
+        return;
+      }
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+    };
+  }, []);
 
   return (
     <div className="space-y-6">

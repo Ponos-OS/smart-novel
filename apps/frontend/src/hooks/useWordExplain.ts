@@ -28,11 +28,11 @@ const tokenBucket = new TokenBucket({
   ),
 });
 
+// Module-level so explained words survive chapter-to-chapter navigation.
+const cacheByKey = new Map<string, WordExplanation>();
+const requestToCacheKey = new Map<string, string>();
+
 export function useWordExplain() {
-  const cacheByKeyRef = useRef<Map<string, WordExplanation>>(
-    new Map(),
-  );
-  const requestToCacheKeyRef = useRef<Map<string, string>>(new Map());
   const inFlightRequestRef = useRef<Promise<ExplainState> | null>(
     null,
   );
@@ -40,7 +40,7 @@ export function useWordExplain() {
   const { mutateAsync } = useExplainWordMutation();
 
   const addToCache = useCallback((data: WordExplanation) => {
-    const cache = cacheByKeyRef.current;
+    const cache = cacheByKey;
     cache.set(data.cacheKey, data);
 
     while (cache.size > cacheEntryLimit) {
@@ -54,10 +54,10 @@ export function useWordExplain() {
   const explain = useCallback(
     async (input: ExplainInput): Promise<ExplainState> => {
       const signature = `${input.word.toLowerCase()}::${input.context}`;
-      const existingKey = requestToCacheKeyRef.current.get(signature);
+      const existingKey = requestToCacheKey.get(signature);
 
       if (existingKey) {
-        const cached = cacheByKeyRef.current.get(existingKey);
+        const cached = cacheByKey.get(existingKey);
         if (cached) {
           return { data: cached };
         }
@@ -87,10 +87,7 @@ export function useWordExplain() {
             return { error: 'No explanation returned.' };
           }
 
-          requestToCacheKeyRef.current.set(
-            signature,
-            explained.cacheKey,
-          );
+          requestToCacheKey.set(signature, explained.cacheKey);
           addToCache(explained);
           return { data: explained };
         })

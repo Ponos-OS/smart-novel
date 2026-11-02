@@ -75,6 +75,7 @@ export function ChapterReadPage() {
           <LoadingSpinner label="Loading chapter..." />
         ) : (
           <ChapterContent
+            key={currentChapter.id}
             chapter={currentChapter}
             onPrevious={handlePrevious}
             onNext={handleNext}

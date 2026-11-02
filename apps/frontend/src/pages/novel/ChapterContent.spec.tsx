@@ -144,4 +144,32 @@ describe('ChapterContent', () => {
     // Assert
     expect(links.length).toBe(0);
   });
+
+  it('pauses and releases the audio source when unmounted', () => {
+    // Arrange
+    const pause = vi
+      .spyOn(HTMLMediaElement.prototype, 'pause')
+      .mockImplementation(() => undefined);
+    const load = vi
+      .spyOn(HTMLMediaElement.prototype, 'load')
+      .mockImplementation(() => undefined);
+    const { container, unmount } = renderChapterContent({
+      chapter: {
+        ...baseChapter,
+        narrationUrl:
+          'http://storage.localhost/narrations/4dd92f16-4743-47b9-960c-6529678e9bc5.mp3',
+      },
+      hasPrevious: false,
+      hasNext: false,
+    });
+    const audio = container.querySelector('audio');
+
+    // Act
+    unmount();
+
+    // Assert
+    expect(pause).toHaveBeenCalledOnce();
+    expect(load).toHaveBeenCalledOnce();
+    expect(audio?.hasAttribute('src')).toBe(false);
+  });
 });
