@@ -1,8 +1,8 @@
 import { WRITER_NOTE_MAX_LENGTH } from '@smart-novel/shared';
 import { useState } from 'react';
 
-import { Button } from '../../components/Button';
 import { Dialog } from '../../components/Dialog';
+import { DialogFormFooter } from '../../components/DialogFormFooter';
 import { useRejectWriterMutation } from '../../generated/graphql';
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 import { showApiError, showSuccess } from '../../utils/notification';
@@ -87,34 +87,14 @@ export function RejectWriterDialog({
             {reason.length} / {WRITER_NOTE_MAX_LENGTH}
           </span>
         </div>
-        {refusal && (
-          <p
-            id="reject-writer-error"
-            role="alert"
-            className="text-sm text-red-300"
-          >
-            {refusal}
-          </p>
-        )}
-        <div className="flex justify-end gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            color="gray"
-            onClick={onClose}
-            disabled={reject.isPending}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            variant="solid"
-            color="red"
-            disabled={reject.isPending}
-          >
-            Reject request
-          </Button>
-        </div>
+        <DialogFormFooter
+          refusal={refusal}
+          refusalId="reject-writer-error"
+          isPending={reject.isPending}
+          submitLabel="Reject request"
+          submitColor="red"
+          onCancel={onClose}
+        />
       </form>
     </Dialog>
   );

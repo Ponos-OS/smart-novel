@@ -6,8 +6,8 @@ import {
 } from '@smart-novel/shared';
 import { useEffect, useState } from 'react';
 
-import { Button } from '../../components/Button';
 import { Dialog } from '../../components/Dialog';
+import { DialogFormFooter } from '../../components/DialogFormFooter';
 import { useRequestWriterAccessMutation } from '../../generated/graphql';
 import {
   GraphqlRequestError,
@@ -184,34 +184,14 @@ export function RequestWriterAccessDialog({
             {note.length} / {WRITER_NOTE_MAX_LENGTH}
           </span>
         </div>
-        {refusal && (
-          <p
-            id="request-writer-access-error"
-            role="alert"
-            className="text-sm text-red-300"
-          >
-            {refusal}
-          </p>
-        )}
-        <div className="flex justify-end gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            color="gray"
-            onClick={onClose}
-            disabled={requestWriterAccess.isPending}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            variant="solid"
-            color="blue"
-            disabled={!canSubmit}
-          >
-            Send request
-          </Button>
-        </div>
+        <DialogFormFooter
+          refusal={refusal}
+          refusalId="request-writer-access-error"
+          isPending={requestWriterAccess.isPending}
+          submitLabel="Send request"
+          submitDisabled={!canSubmit}
+          onCancel={onClose}
+        />
       </form>
     </Dialog>
   );

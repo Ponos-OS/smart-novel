@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
-import { Button } from '../../components/Button';
 import { Dialog } from '../../components/Dialog';
+import { DialogFormFooter } from '../../components/DialogFormFooter';
 import { useRequestCategoryMutation } from '../../generated/graphql';
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 import { showApiError, showSuccess } from '../../utils/notification';
@@ -96,34 +96,14 @@ export function RequestCategoryDialog({
             className="w-full rounded-lg border border-gray-600 bg-gray-900 px-3 py-2 text-white disabled:opacity-50"
           />
         </label>
-        {refusal && (
-          <p
-            id="request-category-error"
-            role="alert"
-            className="text-sm text-red-300"
-          >
-            {refusal}
-          </p>
-        )}
-        <div className="flex justify-end gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            color="gray"
-            onClick={onClose}
-            disabled={requestCategory.isPending}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            variant="solid"
-            color="blue"
-            disabled={!canSubmit}
-          >
-            Request category
-          </Button>
-        </div>
+        <DialogFormFooter
+          refusal={refusal}
+          refusalId="request-category-error"
+          isPending={requestCategory.isPending}
+          submitLabel="Request category"
+          submitDisabled={!canSubmit}
+          onCancel={onClose}
+        />
       </form>
     </Dialog>
   );

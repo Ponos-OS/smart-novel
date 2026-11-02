@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
-import { useId, useState } from 'react';
+import { useId } from 'react';
 
+import { useComboboxState } from '../../hooks/useComboboxState';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useCategorySuggestions } from './use-category-suggestions';
 
@@ -22,9 +23,16 @@ export function CategoryPicker({
 }: CategoryPickerProps) {
   const id = useId();
   const listboxId = `${id}-listbox`;
-  const [text, setText] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const {
+    text,
+    isOpen,
+    setIsOpen,
+    activeIndex,
+    setActiveIndex,
+    changeText,
+    reset,
+    handleKeyDown,
+  } = useComboboxState();
   const search = useDebouncedValue(
     text.trim().toLowerCase(),
     SEARCH_DEBOUNCE_MS,
@@ -45,58 +53,11 @@ export function CategoryPicker({
 
   const select = (name: string) => {
     onChange([...value, name]);
-    setText('');
-    setActiveIndex(0);
+    reset();
   };
 
   const remove = (name: string) => {
     onChange(value.filter((category) => category !== name));
-  };
-
-  const handleKeyDown = (
-    event: React.KeyboardEvent<HTMLInputElement>,
-  ) => {
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      setIsOpen(true);
-      setActiveIndex((index) =>
-        options.length === 0 ? 0 : (index + 1) % options.length,
-      );
-      return;
-    }
-
-    if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      setActiveIndex((index) =>
-        options.length === 0
-          ? 0
-          : (index - 1 + options.length) % options.length,
-      );
-      return;
-    }
-
-    if (event.key === 'Enter') {
-      // Enter inside the input must never submit the novel form.
-      event.preventDefault();
-      if (isOpen && activeOption) {
-        select(activeOption);
-      }
-      return;
-    }
-
-    if (event.key === 'Escape' && isOpen) {
-      event.stopPropagation();
-      setIsOpen(false);
-      return;
-    }
-
-    if (
-      event.key === 'Backspace' &&
-      text === '' &&
-      value.length > 0
-    ) {
-      remove(value[value.length - 1]);
-    }
   };
 
   return (
@@ -142,14 +103,20 @@ export function CategoryPicker({
         disabled={disabled}
         placeholder="Search categories"
         autoComplete="off"
-        onChange={(event) => {
-          setText(event.target.value);
-          setActiveIndex(0);
-          setIsOpen(true);
-        }}
+        onChange={(event) => changeText(event.target.value)}
         onFocus={() => setIsOpen(true)}
         onBlur={() => setIsOpen(false)}
-        onKeyDown={handleKeyDown}
+        onKeyDown={(event) =>
+          handleKeyDown(event, {
+            options,
+            onSelect: select,
+            onRemoveLast: () => {
+              if (value.length > 0) {
+                remove(value[value.length - 1]);
+              }
+            },
+          })
+        }
         className="w-full rounded-lg border border-gray-600 bg-gray-900 px-3 py-2 text-white disabled:opacity-50"
       />
 

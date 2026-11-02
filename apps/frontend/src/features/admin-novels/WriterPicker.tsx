@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
-import { useId, useState } from 'react';
+import { useId } from 'react';
 
+import { useComboboxState } from '../../hooks/useComboboxState';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { type PickedWriter } from './novel-filters';
 import { useWriterSuggestions } from './use-writer-suggestions';
@@ -30,9 +31,16 @@ function WriterDetails({ writer }: { writer: PickedWriter }) {
 export function WriterPicker({ value, onChange }: WriterPickerProps) {
   const id = useId();
   const listboxId = `${id}-listbox`;
-  const [text, setText] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const {
+    text,
+    isOpen,
+    setIsOpen,
+    activeIndex,
+    setActiveIndex,
+    changeText,
+    reset,
+    handleKeyDown,
+  } = useComboboxState();
   const search = useDebouncedValue(text.trim(), SEARCH_DEBOUNCE_MS);
   const suggestions = useWriterSuggestions(search, isOpen);
   const options = suggestions.writers.filter(
@@ -43,57 +51,11 @@ export function WriterPicker({ value, onChange }: WriterPickerProps) {
 
   const select = (writer: PickedWriter) => {
     onChange([...value, writer]);
-    setText('');
-    setActiveIndex(0);
+    reset();
   };
 
   const remove = (userId: string) => {
     onChange(value.filter((writer) => writer.userId !== userId));
-  };
-
-  const handleKeyDown = (
-    event: React.KeyboardEvent<HTMLInputElement>,
-  ) => {
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      setIsOpen(true);
-      setActiveIndex((index) =>
-        options.length === 0 ? 0 : (index + 1) % options.length,
-      );
-      return;
-    }
-
-    if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      setActiveIndex((index) =>
-        options.length === 0
-          ? 0
-          : (index - 1 + options.length) % options.length,
-      );
-      return;
-    }
-
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      if (isOpen && activeOption) {
-        select(activeOption);
-      }
-      return;
-    }
-
-    if (event.key === 'Escape' && isOpen) {
-      event.stopPropagation();
-      setIsOpen(false);
-      return;
-    }
-
-    if (
-      event.key === 'Backspace' &&
-      text === '' &&
-      value.length > 0
-    ) {
-      remove(value[value.length - 1].userId);
-    }
   };
 
   return (
@@ -137,14 +99,20 @@ export function WriterPicker({ value, onChange }: WriterPickerProps) {
         value={text}
         placeholder="Search writers by pen name"
         autoComplete="off"
-        onChange={(event) => {
-          setText(event.target.value);
-          setActiveIndex(0);
-          setIsOpen(true);
-        }}
+        onChange={(event) => changeText(event.target.value)}
         onFocus={() => setIsOpen(true)}
         onBlur={() => setIsOpen(false)}
-        onKeyDown={handleKeyDown}
+        onKeyDown={(event) =>
+          handleKeyDown(event, {
+            options,
+            onSelect: select,
+            onRemoveLast: () => {
+              if (value.length > 0) {
+                remove(value[value.length - 1].userId);
+              }
+            },
+          })
+        }
         className="w-full rounded-lg border border-gray-600 bg-gray-900 px-3 py-2 text-sm text-white"
       />
 

@@ -1,10 +1,10 @@
 import { Role } from '@smart-novel/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { ToggleGroup } from 'radix-ui';
 import { useState } from 'react';
 
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { StatusToggleGroup } from '../../components/StatusToggleGroup';
 import {
   CategoryStatus,
   useDeleteCategoryMutation,
@@ -131,28 +131,11 @@ export function AdminCategoriesPage() {
           onChange={(event) => setSearch(event.target.value)}
           className="w-full max-w-xs rounded-lg border border-gray-600 bg-gray-900 px-3 py-2 text-sm text-white"
         />
-        <ToggleGroup.Root
-          type="single"
+        <StatusToggleGroup
           value={statusFilter}
-          // Pressing the selected item again would leave nothing selected.
-          onValueChange={(value) => {
-            if (value) {
-              setStatusFilter(value as StatusFilter);
-            }
-          }}
-          aria-label="Filter by status"
-          className="flex gap-2"
-        >
-          {STATUS_FILTERS.map(({ value, label }) => (
-            <ToggleGroup.Item
-              key={value}
-              value={value}
-              className="cursor-pointer rounded-lg border border-gray-600 px-3 py-1.5 text-sm text-gray-300 outline-none transition-colors hover:bg-gray-700 focus-visible:ring-2 focus-visible:ring-blue-500 data-[state=on]:border-blue-500 data-[state=on]:bg-blue-900 data-[state=on]:text-blue-100"
-            >
-              {label}
-            </ToggleGroup.Item>
-          ))}
-        </ToggleGroup.Root>
+          options={STATUS_FILTERS}
+          onChange={setStatusFilter}
+        />
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-gray-700 bg-gray-800">

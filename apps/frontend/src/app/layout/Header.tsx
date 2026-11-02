@@ -2,6 +2,7 @@ import {
   isAdmin as hasAdminRole,
   isWriterOrHigher,
 } from '@smart-novel/shared';
+import { LogIn } from 'lucide-react';
 import { DropdownMenu } from 'radix-ui';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -149,21 +150,7 @@ export function Header() {
                       aria-label="Login"
                       className="cursor-pointer rounded-md p-2 text-white transition-colors bg-blue-500 hover:bg-blue-600"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                        aria-hidden="true"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1"
-                        />
-                      </svg>
+                      <LogIn className="h-5 w-5" aria-hidden="true" />
                     </button>
                   </Tooltip>
                 ))}
@@ -314,21 +301,7 @@ export function Header() {
                       aria-label="Login"
                       className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 text-white transition-colors bg-blue-500 hover:bg-blue-600"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                        aria-hidden="true"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1"
-                        />
-                      </svg>
+                      <LogIn className="h-5 w-5" aria-hidden="true" />
                       <span>Login</span>
                     </button>
                   </div>

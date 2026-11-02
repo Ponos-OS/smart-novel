@@ -1,10 +1,8 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
-
 import {
   CategoryStatus,
   useAdminCategoriesQuery,
 } from '../../generated/graphql';
-import { useResetOnInvalidCursor } from '../../hooks/useResetOnInvalidCursor';
+import { useConnectionList } from '../../hooks/useConnectionList';
 
 const PAGE_SIZE = 20;
 
@@ -15,34 +13,19 @@ export function useAdminCategories(
   statuses: CategoryStatus[],
   enabled: boolean,
 ) {
-  const queryKey = [ADMIN_CATEGORIES_KEY, search, statuses];
-  const query = useInfiniteQuery({
-    queryKey,
+  const { nodes, ...list } = useConnectionList({
+    queryKey: [ADMIN_CATEGORIES_KEY, search, statuses],
     enabled,
-    initialPageParam: undefined as string | undefined,
-    queryFn: ({ pageParam }) =>
-      useAdminCategoriesQuery.fetcher({
-        search: search || null,
-        statuses,
-        first: PAGE_SIZE,
-        after: pageParam,
-      })(),
-    getNextPageParam: ({ categoriesConnection }) =>
-      categoriesConnection.pageInfo.hasNextPage
-        ? categoriesConnection.pageInfo.endCursor
-        : undefined,
+    fetchPage: async (after) =>
+      (
+        await useAdminCategoriesQuery.fetcher({
+          search: search || null,
+          statuses,
+          first: PAGE_SIZE,
+          after,
+        })()
+      ).categoriesConnection,
   });
 
-  useResetOnInvalidCursor(queryKey, query.error);
-
-  return {
-    categories: (query.data?.pages ?? []).flatMap((page) =>
-      page.categoriesConnection.edges.map(({ node }) => node),
-    ),
-    isLoading: query.isLoading,
-    isError: query.isError,
-    hasMore: query.hasNextPage,
-    isLoadingMore: query.isFetchingNextPage,
-    loadMore: () => query.fetchNextPage(),
-  };
+  return { categories: nodes, ...list };
 }

@@ -1,9 +1,9 @@
 import { Role } from '@smart-novel/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { ToggleGroup } from 'radix-ui';
 import { useState } from 'react';
 
 import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { StatusToggleGroup } from '../../components/StatusToggleGroup';
 import { WriterStatus } from '../../generated/graphql';
 import { useAuth } from '../../hooks/useAuth';
 import { RejectWriterDialog } from './RejectWriterDialog';
@@ -57,28 +57,11 @@ export function AdminWritersPage() {
       </p>
 
       <div className="mb-4 flex justify-end">
-        <ToggleGroup.Root
-          type="single"
+        <StatusToggleGroup
           value={status}
-          // Pressing the selected item again would leave nothing selected.
-          onValueChange={(value) => {
-            if (value) {
-              setStatus(value as WriterStatus);
-            }
-          }}
-          aria-label="Filter by status"
-          className="flex gap-2"
-        >
-          {STATUS_FILTERS.map(({ value, label }) => (
-            <ToggleGroup.Item
-              key={value}
-              value={value}
-              className="cursor-pointer rounded-lg border border-gray-600 px-3 py-1.5 text-sm text-gray-300 outline-none transition-colors hover:bg-gray-700 focus-visible:ring-2 focus-visible:ring-blue-500 data-[state=on]:border-blue-500 data-[state=on]:bg-blue-900 data-[state=on]:text-blue-100"
-            >
-              {label}
-            </ToggleGroup.Item>
-          ))}
-        </ToggleGroup.Root>
+          options={STATUS_FILTERS}
+          onChange={setStatus}
+        />
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-gray-700 bg-gray-800">

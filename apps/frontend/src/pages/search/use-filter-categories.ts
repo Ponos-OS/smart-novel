@@ -1,10 +1,5 @@
-import {
-  keepPreviousData,
-  useInfiniteQuery,
-} from '@tanstack/react-query';
-
 import { useFilterCategoriesQuery } from '../../generated/graphql';
-import { useResetOnInvalidCursor } from '../../hooks/useResetOnInvalidCursor';
+import { useConnectionList } from '../../hooks/useConnectionList';
 
 const PAGE_SIZE = 100;
 const FRESH_FOR_MS = 30_000;
@@ -14,35 +9,19 @@ const FRESH_FOR_MS = 30_000;
  * The categories whose name contains `search`, a page at a time. The caller debounces what the user types; the query is cached per text, so typing back to something already searched costs no request, and the list stays on screen while the next text loads.
  */
 export function useFilterCategories(search: string) {
-  const queryKey = ['FilterCategoriesInfinite', search];
-  const query = useInfiniteQuery({
-    queryKey,
-    initialPageParam: undefined as string | undefined,
+  const { nodes, ...list } = useConnectionList({
+    queryKey: ['FilterCategoriesInfinite', search],
     staleTime: FRESH_FOR_MS,
-    placeholderData: keepPreviousData,
-    queryFn: ({ pageParam }) =>
-      useFilterCategoriesQuery.fetcher({
-        search: search || null,
-        first: PAGE_SIZE,
-        after: pageParam,
-      })(),
-    getNextPageParam: ({ categoriesConnection }) =>
-      categoriesConnection.pageInfo.hasNextPage
-        ? categoriesConnection.pageInfo.endCursor
-        : undefined,
+    keepPrevious: true,
+    fetchPage: async (after) =>
+      (
+        await useFilterCategoriesQuery.fetcher({
+          search: search || null,
+          first: PAGE_SIZE,
+          after,
+        })()
+      ).categoriesConnection,
   });
 
-  useResetOnInvalidCursor(queryKey, query.error);
-
-  return {
-    categories: (query.data?.pages ?? []).flatMap((page) =>
-      page.categoriesConnection.edges.map(({ node }) => node),
-    ),
-    isLoading: query.isLoading,
-    isError: query.isError,
-    isFetching: query.isFetching,
-    hasMore: query.hasNextPage,
-    isLoadingMore: query.isFetchingNextPage,
-    loadMore: () => query.fetchNextPage(),
-  };
+  return { categories: nodes, ...list };
 }
