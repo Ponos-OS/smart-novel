@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 
 import { Button } from '../../components/Button';
 import { Chapter } from '../../generated/graphql';
+import { useArrowKeyNavigation } from '../../hooks/useArrowKeyNavigation';
 import { ChapterContentEditor } from './ChapterContentEditor';
 
 type ChapterContentData = Pick<
@@ -38,6 +39,8 @@ export function ChapterContent({
   onEditClick,
 }: ChapterContentProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  useArrowKeyNavigation({ onPrevious, onNext, hasPrevious, hasNext });
 
   useEffect(() => {
     const audio = audioRef.current;
