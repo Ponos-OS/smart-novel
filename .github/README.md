@@ -27,6 +27,7 @@ smart-novel/
 │   │       │   ├── auth/         # Zitadel OIDC auth & RBAC guards
 │   │       │   ├── background-runner/
 │   │       │   ├── category/
+│   │       │   ├── cursor/
 │   │       │   ├── fithara/
 │   │       │   ├── license/
 │   │       │   ├── license-assistant/
@@ -36,7 +37,10 @@ smart-novel/
 │   │       │   ├── platform-terms/
 │   │       │   ├── prisma/       # Prisma service
 │   │       │   ├── redis/        # Redis caching service
-│   │       │   └── tts-callbacks/
+│   │       │   ├── stats/
+│   │       │   ├── tts-callbacks/
+│   │       │   ├── writer/
+│   │       │   └── zitadel-events/
 │   │       └── shared/
 │   ├── backend-e2e/              # Backend E2E tests (Vitest)
 │   ├── frontend/                 # React SPA
