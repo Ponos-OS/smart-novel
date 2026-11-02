@@ -199,6 +199,18 @@ export async function seedNovels(
 
         await batchInsertChapters(tx, details.id, chapters);
 
+        const earliestChapter = await tx.chapter.findFirst({
+          where: { novelId: details.id },
+          orderBy: { createdAt: 'asc' },
+          select: { createdAt: true },
+        });
+        await tx.novel.update({
+          where: { id: details.id },
+          data: {
+            firstChapterCreatedAt: earliestChapter?.createdAt ?? null,
+          },
+        });
+
         if (categoryIds.length === 0) {
           return;
         }
