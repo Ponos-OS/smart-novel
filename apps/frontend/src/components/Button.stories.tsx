@@ -32,7 +32,8 @@ export const ChipGreen: Story = {
   args: {
     variant: 'chip',
     color: 'green',
-    children: '🔊 Generate Audio',
+    children:
+      '<span role="img" aria-label="Speaker">🔊</span> Generate Audio',
   },
 };
 
@@ -73,7 +74,10 @@ export const AllVariants: Story = {
         Edit
       </Button>
       <Button variant="chip" color="green">
-        🔊 Generate Audio
+        <span role="img" aria-label="Speaker">
+          🔊
+        </span>{' '}
+        Generate Audio
       </Button>
       <Button variant="solid" color="gray">
         ← Previous

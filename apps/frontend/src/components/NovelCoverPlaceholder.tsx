@@ -7,7 +7,7 @@ export function getCoverGradient(title: string): string {
   let hash = 0;
 
   for (const char of title) {
-    hash = (hash * 31 + char.codePointAt(0)!) % 360;
+    hash = (hash * 31 + (char.codePointAt(0) ?? 0)) % 360;
   }
 
   const startHue = hash;

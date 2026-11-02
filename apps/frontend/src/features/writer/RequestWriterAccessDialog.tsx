@@ -64,7 +64,6 @@ export function RequestWriterAccessDialog({
       return;
     }
 
-    setIsPenNameHighlighted(true);
     const timer = setTimeout(
       () => setIsPenNameHighlighted(false),
       PEN_NAME_TAKEN_HIGHLIGHT_MS,
@@ -93,6 +92,7 @@ export function RequestWriterAccessDialog({
         },
         onError: (error) => {
           if (isPenNameTakenError(error)) {
+            setIsPenNameHighlighted(true);
             setTakenAttempt((attempt) => attempt + 1);
             showApiError(
               `The pen name "${trimmedPenName}" is already taken. Please choose another one.`,

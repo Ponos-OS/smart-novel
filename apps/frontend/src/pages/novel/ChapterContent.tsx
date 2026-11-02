@@ -39,9 +39,6 @@ export function ChapterContent({
 }: ChapterContentProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Derive UI state directly from the chapter prop (sourced from TanStack Query cache)
-  const hasNarrationUrl = !!chapter.narrationUrl;
-
   return (
     <div className="space-y-6">
       {/* Navigation Buttons - Top */}
@@ -65,7 +62,7 @@ export function ChapterContent({
       </div>
 
       {/* Audio Narration Section */}
-      {hasNarrationUrl && (
+      {chapter.narrationUrl && (
         <div className="rounded-lg border p-4 border-blue-800 bg-blue-900/20">
           <div className="mb-2 flex items-center gap-2">
             <svg
@@ -89,7 +86,7 @@ export function ChapterContent({
             ref={audioRef}
             controls
             className="w-full"
-            src={chapter.narrationUrl!}
+            src={chapter.narrationUrl}
             preload="metadata"
           >
             Your browser does not support the audio element.

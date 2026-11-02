@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Button } from '../../components/Button';
@@ -25,14 +25,13 @@ export function HomePage() {
     { placeholderData: (prev) => prev },
   );
 
-  useEffect(() => {
-    if (!isInvalidCursorError(error)) {
-      return;
-    }
+  const [handledError, setHandledError] = useState<unknown>(null);
 
+  if (isInvalidCursorError(error) && handledError !== error) {
+    setHandledError(error);
     setPageCursors(new Map([[1, null]]));
     setCurrentPage(1);
-  }, [error]);
+  }
 
   const novelsData = data?.novelsConnection;
   const pageInfo = novelsData?.pageInfo;
