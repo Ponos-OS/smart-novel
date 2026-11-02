@@ -27,7 +27,7 @@ export function NovelCoverPlaceholder({
       style={{ backgroundImage: getCoverGradient(title) }}
       className={`flex items-center justify-center rounded p-2 text-center shadow-inner ${className}`}
     >
-      <span className="line-clamp-4 break-words text-sm font-semibold leading-tight text-white drop-shadow">
+      <span className="line-clamp-4 wrap-break-word text-sm font-semibold leading-tight text-white drop-shadow">
         {title}
       </span>
     </div>
