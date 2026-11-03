@@ -34,6 +34,11 @@ resource "kubernetes_deployment_v1" "llm_gateway" {
           }
 
           env {
+            name  = "LLM_EXTRA_ARGS"
+            value = var.llm_extra_args
+          }
+
+          env {
             name  = "LLM_CTX_SIZE"
             value = tostring(var.context_length)
           }

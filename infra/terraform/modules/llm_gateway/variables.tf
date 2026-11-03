@@ -24,3 +24,9 @@ variable "context_length" {
   type        = number
   default     = 32768
 }
+
+variable "llm_extra_args" {
+  description = "Extra llama-server flags. Reasoning is off by default: thinking tokens on a CPU-only model take longer than the callers' timeouts, and the structured outputs do not need them"
+  type        = string
+  default     = "--reasoning off"
+}

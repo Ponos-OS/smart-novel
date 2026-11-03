@@ -23,3 +23,12 @@ run "serves_a_context_long_enough_for_drafting_licenses" {
     error_message = "the gateway must be told the context length to serve"
   }
 }
+
+run "turns_reasoning_off_by_default" {
+  command = plan
+
+  assert {
+    condition     = one([for e in kubernetes_deployment_v1.llm_gateway.spec[0].template[0].spec[0].container[0].env : e.value if e.name == "LLM_EXTRA_ARGS"]) == "--reasoning off"
+    error_message = "thinking tokens outlast the callers' timeouts on a CPU-only model, so reasoning must be off unless overridden"
+  }
+}
