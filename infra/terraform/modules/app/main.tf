@@ -46,8 +46,8 @@ module "object_storage" {
 }
 
 locals {
-  llm_base_url    = var.run_local_ai_models ? module.ollama[0].base_url : var.llm_base_url
-  tts_base_url    = var.run_local_ai_models ? module.openai_compatible_tts[0].base_url : var.tts_base_url
+  llm_base_url    = var.run_local_ai_models ? module.llm_gateway[0].base_url : var.llm_base_url
+  tts_base_url    = var.run_local_ai_models ? module.llm_gateway[0].base_url : var.tts_base_url
   deploy_beatrice = local.llm_base_url != null && local.tts_base_url != null
   otlp_endpoint   = var.otlp_endpoint
   otlp_logs       = var.log_shipping == "otlp"
@@ -68,23 +68,15 @@ locals {
   )
 }
 
-module "ollama" {
-  source = "../ollama"
+module "llm_gateway" {
+  source = "../llm_gateway"
   count  = var.run_local_ai_models ? 1 : 0
 
-  namespace = module.namespace.name
-  labels    = var.labels
-  image     = var.images["ollama"]
-  model     = var.llm_model
-}
-
-module "openai_compatible_tts" {
-  source = "../openai_compatible_tts"
-  count  = var.run_local_ai_models ? 1 : 0
-
-  namespace = module.namespace.name
-  labels    = var.labels
-  image     = var.images["openai_compatible_tts"]
+  namespace      = module.namespace.name
+  labels         = var.labels
+  image          = var.images["llm_gateway"]
+  llm_hf_model   = var.llm_gateway_model
+  context_length = var.llm_gateway_context_length
 }
 
 module "rabbitmq" {
@@ -109,14 +101,14 @@ module "beatrice" {
   llm_model          = var.llm_model
   tts_base_url       = local.tts_base_url
   tts_model          = var.tts_model
-  llm_api_key        = coalesce(var.llm_api_key, "ollama")
+  llm_api_key        = coalesce(var.llm_api_key, "local-dev-key")
   tts_api_key        = coalesce(var.tts_api_key, "local-dev-key")
   tts_voices         = coalesce(var.tts_voices, "default")
   otlp_http_endpoint = local.otlp_endpoint
   log_shipping       = var.log_shipping
 
   # Beatrice does not reconnect when the broker is unreachable at startup.
-  depends_on = [module.rabbitmq, module.ollama, module.openai_compatible_tts]
+  depends_on = [module.rabbitmq, module.llm_gateway]
 }
 
 module "fithara" {
@@ -133,7 +125,7 @@ module "fithara" {
   otlp_http_endpoint = local.otlp_endpoint
   log_shipping       = var.log_shipping
 
-  depends_on = [module.ollama]
+  depends_on = [module.llm_gateway]
 }
 
 module "pre_deploy_job" {
@@ -192,7 +184,7 @@ module "devtools" {
   open_webui_image    = var.images["open_webui"]
   redis               = module.redis.connection
   postgres            = module.postgres.connection
-  ollama_base_url     = one(module.ollama[*].host_url)
+  openai_base_url     = one(module.llm_gateway[*].base_url)
 }
 
 resource "kubernetes_ingress_v1" "app" {

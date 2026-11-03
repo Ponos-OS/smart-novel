@@ -4,20 +4,19 @@ variables {
   namespace = "smart-novel"
   labels    = { Project = "smart-novel" }
   images = {
-    postgres              = "postgres:18.2-bookworm"
-    redis                 = "redis:8.6-alpine3.23"
-    object_storage        = "rustfs/rustfs:1.0.1"
-    aws_cli               = "amazon/aws-cli:2.38.1"
-    rabbitmq              = "rabbitmq:3.13-management-alpine"
-    beatrice              = "9109679196/smart-novel-beatrice:5.0.0"
-    fithara               = "9109679196/fithara:2.0.0"
-    ollama                = "smart-novel-ollama:dev"
-    openai_compatible_tts = "smart-novel-openai-compatible-tts:dev"
-    backend               = "smart-novel-backend:1.4.0"
-    frontend              = "smart-novel-frontend:1.4.0"
-    redis_insight         = "redis/redisinsight:2.70.1"
-    pgadmin               = "dpage/pgadmin4:8.4"
-    open_webui            = "ghcr.io/open-webui/open-webui:v0.8.0"
+    postgres       = "postgres:18.2-bookworm"
+    redis          = "redis:8.6-alpine3.23"
+    object_storage = "rustfs/rustfs:1.0.1"
+    aws_cli        = "amazon/aws-cli:2.38.1"
+    rabbitmq       = "rabbitmq:3.13-management-alpine"
+    beatrice       = "9109679196/smart-novel-beatrice:5.0.0"
+    fithara        = "9109679196/fithara:2.0.0"
+    llm_gateway    = "9109679196/smart-novel-llm-gateway:1.0.1"
+    backend        = "smart-novel-backend:1.4.0"
+    frontend       = "smart-novel-frontend:1.4.0"
+    redis_insight  = "redis/redisinsight:2.70.1"
+    pgadmin        = "dpage/pgadmin4:8.4"
+    open_webui     = "ghcr.io/open-webui/open-webui:v0.8.0"
   }
 }
 
@@ -94,8 +93,8 @@ run "deploys_ai_and_beatrice_by_default" {
   command = plan
 
   assert {
-    condition     = length(module.ollama) == 1 && length(module.openai_compatible_tts) == 1 && length(module.rabbitmq) == 1 && output.beatrice_url == "http://beatrice:3000/graphql"
-    error_message = "ollama, openai-compatible-tts, rabbitmq and beatrice must be deployed by default"
+    condition     = length(module.llm_gateway) == 1 && length(module.rabbitmq) == 1 && output.beatrice_url == "http://beatrice:3000/graphql"
+    error_message = "llm-gateway, rabbitmq and beatrice must be deployed by default"
   }
 }
 
@@ -155,7 +154,7 @@ run "disabling_ai_without_endpoints_skips_beatrice_and_rabbitmq" {
   }
 
   assert {
-    condition     = length(module.ollama) == 0 && length(module.openai_compatible_tts) == 0 && length(module.beatrice) == 0 && length(module.rabbitmq) == 0 && output.fithara_url == "http://fithara:8000"
+    condition     = length(module.llm_gateway) == 0 && length(module.beatrice) == 0 && length(module.rabbitmq) == 0 && output.fithara_url == "http://fithara:8000"
     error_message = "without the AI components or external endpoints nothing of the pipeline must remain"
   }
 }
@@ -170,7 +169,7 @@ run "disabling_ai_with_external_endpoints_keeps_beatrice" {
   }
 
   assert {
-    condition     = length(module.ollama) == 0 && length(module.openai_compatible_tts) == 0 && length(module.beatrice) == 1 && length(module.rabbitmq) == 1
+    condition     = length(module.llm_gateway) == 0 && length(module.beatrice) == 1 && length(module.rabbitmq) == 1
     error_message = "Beatrice and Fithara must run against the external endpoints"
   }
 }

@@ -81,7 +81,7 @@ locals {
   }
 
   backend_environment_by_mode = merge(
-    local.hot_reload ? local.backend_environment : merge(local.backend_environment, { OLLAMA_RETRY_COUNT = "1" }),
+    local.hot_reload ? local.backend_environment : merge(local.backend_environment),
     local.zitadel_backend_environment,
   )
   backend_volumes = local.hot_reload ? [local.apps_volume, local.libs_volume, local.data_volume] : []
@@ -97,9 +97,8 @@ locals {
   built_images = concat(
     [local.tooling_image],
     local.hot_reload ? [local.frontend_image] : [local.backend_image, local.frontend_image],
-    var.run_local_ai_models ? values(var.ai_images) : [],
   )
-  third_party_images = merge(var.third_party_images, var.enable_devtools ? var.devtools_images : {}, {
+  third_party_images = merge(var.third_party_images, var.enable_devtools ? var.devtools_images : {}, var.run_local_ai_models ? { llm_gateway = var.llm_gateway_image } : {}, {
     beatrice = "9109679196/smart-novel-beatrice:${local.dotenv["BEATRICE_VERSION"]}"
     fithara  = "9109679196/fithara:${local.dotenv["FITHARA_VERSION"]}"
   })
@@ -192,14 +191,15 @@ module "app" {
   source = "../../modules/app"
 
   labels = var.tags
-  images = merge(local.third_party_images, var.ai_images, {
+  images = merge(local.third_party_images, {
     backend  = local.backend_image
     frontend = local.frontend_image
   })
   wait_for_zitadel_credentials = var.wait_for_zitadel_credentials
   run_local_ai_models          = var.run_local_ai_models
   llm_base_url                 = var.llm_base_url
-  llm_model                    = lookup(local.dotenv, "BEATRICE_LLM_MODEL", "llama3.2:1b")
+  llm_model                    = lookup(local.dotenv, "BEATRICE_LLM_MODEL", "default")
+  llm_gateway_model            = lookup(local.dotenv, "LLM_GATEWAY_HF_MODEL", "unsloth/Qwen3.6-35B-A3B-GGUF:Q4_K_M")
   fithara_llm_provider         = lookup(local.dotenv, "FITHARA_LLM_PROVIDER", null)
   fithara_llm_model            = lookup(local.dotenv, "FITHARA_LLM_MODEL", null)
   fithara_llm_base_url         = lookup(local.dotenv, "FITHARA_LLM_BASE_URL", null)

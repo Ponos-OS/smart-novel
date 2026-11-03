@@ -40,6 +40,7 @@ COPY nx.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
 COPY apps/frontend ./apps/frontend
 COPY libs ./libs
+COPY apps/backend/schema.gql ./apps/backend/schema.gql
 RUN npx nx build frontend --prod
 
 FROM nginx:alpine AS production

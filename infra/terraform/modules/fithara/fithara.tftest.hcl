@@ -3,8 +3,8 @@ mock_provider "kubernetes" {}
 variables {
   namespace    = "smart-novel"
   image        = "9109679196/fithara:2.0.0"
-  llm_provider = "ollama"
-  llm_base_url = "http://ollama:11434/v1"
+  llm_provider = "openai"
+  llm_base_url = "http://llm-gateway:8000/v1"
   llm_model    = "llama3.2:3b"
 }
 
@@ -12,7 +12,7 @@ run "the_llm_comes_from_the_variables" {
   command = plan
 
   assert {
-    condition     = one([for e in kubernetes_deployment_v1.fithara.spec[0].template[0].spec[0].container[0].env : e.value if e.name == "LLM__BASE_URL"]) == "http://ollama:11434/v1"
+    condition     = one([for e in kubernetes_deployment_v1.fithara.spec[0].template[0].spec[0].container[0].env : e.value if e.name == "LLM__BASE_URL"]) == "http://llm-gateway:8000/v1"
     error_message = "the LLM endpoint must come from llm_base_url"
   }
 
@@ -22,7 +22,7 @@ run "the_llm_comes_from_the_variables" {
   }
 
   assert {
-    condition     = one([for e in kubernetes_deployment_v1.fithara.spec[0].template[0].spec[0].container[0].env : e.value if e.name == "LLM__PROVIDER"]) == "ollama"
+    condition     = one([for e in kubernetes_deployment_v1.fithara.spec[0].template[0].spec[0].container[0].env : e.value if e.name == "LLM__PROVIDER"]) == "openai"
     error_message = "the provider must come from llm_provider"
   }
 }

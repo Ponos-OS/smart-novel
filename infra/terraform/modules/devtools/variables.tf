@@ -64,8 +64,8 @@ variable "pgadmin_password" {
   sensitive   = true
 }
 
-variable "ollama_base_url" {
-  description = "Base URL of Ollama's native API; null skips Open WebUI"
+variable "openai_base_url" {
+  description = "OpenAI-compatible base URL Open WebUI talks to; null skips Open WebUI"
   type        = string
   default     = null
 }

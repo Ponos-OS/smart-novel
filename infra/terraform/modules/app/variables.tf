@@ -11,7 +11,7 @@ variable "labels" {
 }
 
 variable "images" {
-  description = "Container images: postgres, redis, object_storage, aws_cli, rabbitmq, beatrice, fithara, ollama, openai_compatible_tts, backend and frontend, plus redis_insight, pgadmin and open_webui when enable_devtools is true"
+  description = "Container images: postgres, redis, object_storage, aws_cli, rabbitmq, beatrice, fithara, llm_gateway, backend and frontend, plus redis_insight, pgadmin and open_webui when enable_devtools is true"
   type        = map(string)
 }
 
@@ -101,7 +101,7 @@ variable "create_zitadel_database" {
 }
 
 variable "run_local_ai_models" {
-  description = "Deploy Ollama and OpenAI-compatible TTS, the heavy models Beatrice uses. When false, Beatrice is deployed only if llm_base_url and tts_base_url point at other services"
+  description = "Deploy the LLM gateway, which serves the heavy models Beatrice and Fithara use. When false, Beatrice is deployed only if llm_base_url and tts_base_url point at other services"
   type        = bool
   default     = true
 }
@@ -113,9 +113,21 @@ variable "llm_base_url" {
 }
 
 variable "llm_model" {
-  description = "LLM model name Beatrice asks for; with run_local_ai_models it is the model baked into the Ollama image"
+  description = "LLM model name Beatrice asks for; the gateway serves one model whatever name is sent"
   type        = string
-  default     = "llama3.2:1b"
+  default     = "default"
+}
+
+variable "llm_gateway_model" {
+  description = "GGUF model the in-cluster gateway downloads and serves, as <Hugging Face repo>:<quant>; used when run_local_ai_models is true"
+  type        = string
+  default     = "unsloth/Qwen3.6-35B-A3B-GGUF:Q4_K_M"
+}
+
+variable "llm_gateway_context_length" {
+  description = "Context length in tokens the in-cluster gateway serves; Fithara drafts with the whole license in the prompt and in the answer"
+  type        = number
+  default     = 32768
 }
 
 variable "fithara_llm_model" {
@@ -125,13 +137,13 @@ variable "fithara_llm_model" {
 }
 
 variable "fithara_llm_provider" {
-  description = "PydanticAI provider id of Fithara's LLM, e.g. ollama or openai; null leaves it unset and Fithara refuses to start"
+  description = "PydanticAI provider id of Fithara's LLM, e.g. openai; null leaves it unset and Fithara refuses to start"
   type        = string
   default     = null
 }
 
 variable "fithara_llm_base_url" {
-  description = "OpenAI-compatible base URL of Fithara's LLM; independent of Beatrice's. With run_local_ai_models it is the in-cluster Ollama, http://ollama:11434/v1"
+  description = "OpenAI-compatible base URL of Fithara's LLM; independent of Beatrice's. With run_local_ai_models it is the in-cluster gateway, http://llm-gateway:8000/v1"
   type        = string
   default     = null
 }
@@ -150,13 +162,13 @@ variable "fithara_llm_timeout_ms" {
 }
 
 variable "tts_model" {
-  description = "Text-to-speech model name Beatrice sends in every speech request; with run_local_ai_models it is the model baked into the OpenAI-compatible TTS image"
+  description = "Text-to-speech model name Beatrice sends in every speech request; the gateway serves one TTS model whatever name is sent"
   type        = string
   default     = "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
 }
 
 variable "llm_api_key" {
-  description = "API key for the external LLM; null keeps the module default, which Ollama accepts"
+  description = "API key for the external LLM; null keeps the module default, which the local gateway accepts"
   type        = string
   default     = null
   sensitive   = true

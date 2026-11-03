@@ -8,7 +8,7 @@ type Workload =
   | 'deploy/backend'
   | 'deploy/zitadel'
   | 'deploy/beatrice'
-  | 'deploy/openai-compatible-tts'
+  | 'deploy/llm-gateway'
   | 'job/backend-init';
 
 const namespace = 'smart-novel';
@@ -101,11 +101,11 @@ export class ClusterFixture {
       );
 
       Logger.log(
-        `Beatrice/Ollama warmup (${label}) completed in ${Math.round((Date.now() - startedAt) / 1000)}s`,
+        `Beatrice/LLM gateway warmup (${label}) completed in ${Math.round((Date.now() - startedAt) / 1000)}s`,
       );
     } catch (error) {
       Logger.warn(
-        `Beatrice/Ollama warmup (${label}) failed (continuing anyway): ${error instanceof Error ? error.message : String(error)}`,
+        `Beatrice/LLM gateway warmup (${label}) failed (continuing anyway): ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

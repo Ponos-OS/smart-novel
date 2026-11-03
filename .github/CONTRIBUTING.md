@@ -6,13 +6,13 @@ Prerequisites are Docker, Terraform and the [`kind` CLI](https://kind.sigs.k8s.i
 enable_devtools = true
 ```
 
-<details><summary>To skip the heavy models (Ollama, OpenAI-compatible TTS, and with them Beatrice), set <code>RUN_LOCAL_AI_MODELS=false</code> in the <code>.env</code></summary>
+<details><summary>To skip the heavy models (the LLM gateway, and with it Beatrice), set <code>RUN_LOCAL_AI_MODELS=false</code> in the <code>.env</code></summary>
 
 Beatrice talks to an OpenAI-compatible LLM and an OpenAI-compatible speech endpoint; Fithara (the license assistant) talks to the same LLM endpoint with its own model, one that the `llmcapa` model catalog knows.
 
 `RUN_LOCAL_AI_MODELS` in `.env`, picks where the requests must go when starting the app (`npm run start:dev`) or running the tests (`nx e2e backend-e2e`).
 
-Local models utilize Ollama and the bundled `local-setup/openai-compatible-tts`. Then we do not need to change anything [`terraform.tfvars`](../infra/terraform/envs/local/terraform.tfvars); set these in `.env`:
+Local models run in the published `9109679196/smart-novel-llm-gateway` image, which serves both the LLM and text-to-speech and downloads the LLM (`LLM_GATEWAY_HF_MODEL` in `.env`) on first start. Then we do not need to change anything [`terraform.tfvars`](../infra/terraform/envs/local/terraform.tfvars); set these in `.env`:
 
 ```bash
 RUN_LOCAL_AI_MODELS=false

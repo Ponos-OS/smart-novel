@@ -71,7 +71,7 @@ groups:
           # Short title in notifications.
           summary: "The audio generation queue is backing up"
           # Longer explanation and next step.
-          description: "More than 100 audio jobs have been waiting for over 5 minutes. Check Beatrice, Ollama and the TTS server, or add replicas."
+          description: "More than 100 audio jobs have been waiting for over 5 minutes. Check Beatrice and the LLM gateway, or add replicas."
         # Labels used for routing and filtering.
         labels:
           # Severity of this alert.

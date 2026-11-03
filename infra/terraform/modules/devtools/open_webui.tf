@@ -1,5 +1,5 @@
 resource "kubernetes_deployment_v1" "open_webui" {
-  count = var.ollama_base_url == null ? 0 : 1
+  count = var.openai_base_url == null ? 0 : 1
 
   metadata {
     name      = "open-webui"
@@ -25,8 +25,18 @@ resource "kubernetes_deployment_v1" "open_webui" {
           image = var.open_webui_image
 
           env {
-            name  = "OLLAMA_BASE_URL"
-            value = var.ollama_base_url
+            name  = "OPENAI_API_BASE_URL"
+            value = var.openai_base_url
+          }
+
+          env {
+            name  = "OPENAI_API_KEY"
+            value = "local-dev-key"
+          }
+
+          env {
+            name  = "ENABLE_OLLAMA_API"
+            value = "false"
           }
 
           env {
@@ -55,7 +65,7 @@ resource "kubernetes_deployment_v1" "open_webui" {
 }
 
 resource "kubernetes_service_v1" "open_webui" {
-  count = var.ollama_base_url == null ? 0 : 1
+  count = var.openai_base_url == null ? 0 : 1
 
   metadata {
     name      = "open-webui"

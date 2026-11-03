@@ -31,7 +31,7 @@ smart-novel/
 │   │       │   ├── fithara/
 │   │       │   ├── license/
 │   │       │   ├── license-assistant/
-│   │       │   ├── llm/          # Ollama LLM word explanation
+│   │       │   ├── llm/          # LLM word explanation
 │   │       │   ├── novel/        # Novel & chapter CRUD, narration (TTS)
 │   │       │   ├── object-storage/ # RustFS S3 file uploads
 │   │       │   ├── platform-terms/
@@ -60,9 +60,7 @@ smart-novel/
 │   └── frontend-e2e/             # Frontend E2E tests (Cypress)
 ├── infra/                        # Terraform modules and scripts for the local kind cluster (see infra/README.md)
 ├── libs/                         # Code shared by both apps (@smart-novel/shared)
-├── local-setup/                  # Images the cluster builds
-│   ├── ollama/                   # Ollama Dockerfile & healthcheck
-│   └── openai-compatible-tts/    # OpenAI-compatible TTS server Dockerfile & healthcheck
+├── local-setup/                  # Local development helpers
 ├── scripts/                      # Repo maintenance scripts
 ├── .env.example                  # Environment variables template
 ├── nx.json                       # Nx configuration

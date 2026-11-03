@@ -4,9 +4,9 @@ variables {
   namespace    = "smart-novel"
   image        = "9109679196/smart-novel-beatrice:5.0.0"
   broker_url   = "amqp://guest:guest@rabbitmq:5672/"
-  llm_base_url = "http://ollama:11434/v1"
+  llm_base_url = "http://llm-gateway:8000/v1"
   llm_model    = "llama3.2:3b"
-  tts_base_url = "http://openai-compatible-tts:8001/v1"
+  tts_base_url = "http://llm-gateway:8000/v1"
   tts_model    = "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
 }
 
@@ -14,12 +14,12 @@ run "endpoints_come_from_the_variables" {
   command = plan
 
   assert {
-    condition     = one([for e in kubernetes_deployment_v1.beatrice.spec[0].template[0].spec[0].container[0].env : e.value if e.name == "TTS__BASE_URL"]) == "http://openai-compatible-tts:8001/v1"
+    condition     = one([for e in kubernetes_deployment_v1.beatrice.spec[0].template[0].spec[0].container[0].env : e.value if e.name == "TTS__BASE_URL"]) == "http://llm-gateway:8000/v1"
     error_message = "the text-to-speech endpoint must come from tts_base_url"
   }
 
   assert {
-    condition     = one([for e in kubernetes_deployment_v1.beatrice.spec[0].template[0].spec[0].container[0].env : e.value if e.name == "LLM__BASE_URL"]) == "http://ollama:11434/v1"
+    condition     = one([for e in kubernetes_deployment_v1.beatrice.spec[0].template[0].spec[0].container[0].env : e.value if e.name == "LLM__BASE_URL"]) == "http://llm-gateway:8000/v1"
     error_message = "the LLM endpoint must come from llm_base_url"
   }
 }

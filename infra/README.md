@@ -14,8 +14,7 @@ infra/
     │   ├── object_storage/ S3-compatible storage (RustFS) plus a Job that creates the bucket and uploads the seed covers
     │   ├── ingress/    Traefik; serves the routes the other modules contribute
     │   ├── rabbitmq/   RabbitMQ
-    │   ├── ollama/     Ollama with the model baked into the image
-    │   ├── openai_compatible_tts/   OpenAI-compatible TTS server with the model baked into the image
+    │   ├── llm_gateway/ The published smart-novel-llm-gateway image: OpenAI-compatible chat completions (llama.cpp) and speech (Qwen3-TTS) behind one Service
     │   ├── beatrice/   Beatrice, the audio generation service
     │   ├── fithara/    Fithara, the license drafting assistant
     │   ├── backend/    NestJS API
@@ -86,11 +85,11 @@ On Hetzner the shared Grafana serves both apps, and `envs/hetzner` sets `publish
 
 ## Messaging and AI
 
-Beatrice consumes audio jobs from RabbitMQ, normalizes text with an LLM (Ollama) and synthesizes speech with OpenAI-compatible TTS. `local-setup/ollama` and `local-setup/openai-compatible-tts` stay where they are; `start-dev.sh` builds them (models are baked in, so the first build is large and slow) and `envs/local` loads them into kind. Beatrice does not reconnect if RabbitMQ is down when it starts, so `modules/app` makes it wait for RabbitMQ and the AI components.
+Beatrice consumes audio jobs from RabbitMQ, normalizes text with an LLM and synthesizes speech with OpenAI-compatible TTS, both served by the `9109679196/smart-novel-llm-gateway` image. `envs/local` pulls the image once on the host and loads it into kind (it is large); the LLM itself (`LLM_GATEWAY_HF_MODEL` in `.env`) is downloaded on the gateway's first start, into throwaway storage, so a recreated pod downloads it again. Beatrice does not reconnect if RabbitMQ is down when it starts, so `modules/app` makes it wait for RabbitMQ and the AI components.
 
-`RUN_LOCAL_AI_MODELS=false` (in `.env`) skips building and deploying Ollama and OpenAI-compatible TTS. Beatrice and RabbitMQ then run only if `llm_base_url` and `tts_base_url` point at other services, for example the host or a cloud provider; otherwise they are skipped too. `broker_url` skips RabbitMQ. Beatrice has no health endpoint, so its readiness probe checks that the port is open.
+`RUN_LOCAL_AI_MODELS=false` (in `.env`) skips deploying the LLM gateway. Beatrice and RabbitMQ then run only if `llm_base_url` and `tts_base_url` point at other services, for example the host or a cloud provider; otherwise they are skipped too. `broker_url` skips RabbitMQ. Beatrice has no health endpoint, so its readiness probe checks that the port is open.
 
-Fithara (the license assistant) needs only an LLM, so it is always deployed. It has its own LLM settings: `FITHARA_LLM_PROVIDER`, `FITHARA_LLM_MODEL` (baked into the Ollama image next to Beatrice's) and `FITHARA_LLM_BASE_URL`, `FITHARA_LLM_API_KEY` and `FITHARA_LLM_TIMEOUT_MS` in `.env`. Nothing falls back to Beatrice's LLM settings: one left unset is not passed on, and Fithara refuses to start. The model must be one the `llmcapa` model catalog knows, or Fithara refuses to start. It has a Service but no route in the `Ingress`: only the backend reaches it, through `FITHARA_URL`, which `modules/app` fills in. Its readiness probe is `GET /health`, and its first start takes a while because the catalog is read then. Ollama serves only `OLLAMA_CONTEXT_LENGTH` tokens (the `context_length` input of its module, 32768 by default) whatever the model could take, while Fithara trusts the catalog's window; a conversation longer than what Ollama serves is truncated by Ollama before Fithara would condense it.
+Fithara (the license assistant) needs only an LLM, so it is always deployed. It has its own LLM settings: `FITHARA_LLM_PROVIDER`, `FITHARA_LLM_MODEL` (a name only: the gateway serves one model whatever name is sent) and `FITHARA_LLM_BASE_URL`, `FITHARA_LLM_API_KEY` and `FITHARA_LLM_TIMEOUT_MS` in `.env`. Nothing falls back to Beatrice's LLM settings: one left unset is not passed on, and Fithara refuses to start. The model must be one the `llmcapa` model catalog knows, or Fithara refuses to start. It has a Service but no route in the `Ingress`: only the backend reaches it, through `FITHARA_URL`, which `modules/app` fills in. Its readiness probe is `GET /health`, and its first start takes a while because the catalog is read then. The gateway serves only `LLM_CTX_SIZE` tokens (the `context_length` input of its module, 32768 by default) whatever the model could take, while Fithara trusts the catalog's window; a conversation longer than what the gateway serves is truncated before Fithara would condense it.
 
 ## Backend and Frontend
 

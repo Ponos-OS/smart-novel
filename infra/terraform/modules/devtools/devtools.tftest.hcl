@@ -22,7 +22,7 @@ run "each_tool_follows_the_service_it_inspects" {
   variables {
     redis           = { host = "redis", port = 6379 }
     postgres        = { host = "postgres", port = 5432, database = "smart_novel", username = "postgres" }
-    ollama_base_url = "http://ollama:11434"
+    openai_base_url = "http://llm-gateway:8000/v1"
   }
 
   assert {

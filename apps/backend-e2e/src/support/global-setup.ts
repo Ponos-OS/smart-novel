@@ -17,7 +17,7 @@ export default async function setup() {
     'Starting the e2e cluster (builds the production images)...',
   );
   ClusterFixture.start(workspaceRoot);
-  Logger.section('Warming up Beatrice/Ollama');
+  Logger.section('Warming up Beatrice/LLM gateway');
   Logger.log('Sending a trivial LLM request to load the model...');
   ClusterFixture.warmupBeatrice(workspaceRoot);
   globalThis.__TEARDOWN_MESSAGE__ = '\nTearing down...\n';
@@ -49,8 +49,8 @@ export default async function setup() {
     );
     ClusterFixture.persistLogs(
       workspaceRoot,
-      'deploy/openai-compatible-tts',
-      'local-setup/logs/tts.log',
+      'deploy/llm-gateway',
+      'local-setup/logs/llm-gateway.log',
     );
     ClusterFixture.stop(workspaceRoot);
     Logger.log(globalThis.__TEARDOWN_MESSAGE__);

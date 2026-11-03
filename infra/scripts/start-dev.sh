@@ -32,6 +32,12 @@ if [ "$mode" = e2e ] && kind get clusters 2> /dev/null | grep -qx "$cluster_name
   exit 3
 fi
 
+# Terraform cannot refresh a kind_cluster that no longer exists, for example after Docker was reset or the cluster was deleted by hand, so a leftover state would fail the plan. The environment is throwaway: forget it.
+if ! kind get clusters 2> /dev/null | grep -qx "$cluster_name"; then
+  rm -f "$env_dir"/terraform.tfstate "$env_dir"/terraform.tfstate.backup "$env_dir/$cluster_name-config" \
+        "$zitadel_env_dir"/terraform.tfstate "$zitadel_env_dir"/terraform.tfstate.backup
+fi
+
 env_value() {
   sed -n "s/^$1=\\([^# ]*\\).*/\\1/p" "$repo_root/.env" 2> /dev/null | head -n 1
 }
@@ -76,14 +82,6 @@ run_local_ai_models="${run_local_ai_models:-true}"
 set -- "$@" -var "run_local_ai_models=$run_local_ai_models"
 if [ "$mode" = e2e ]; then
   set -- "$@" -var enable_devtools=false
-fi
-
-if [ "$run_local_ai_models" = true ]; then
-  docker build --build-arg "BEATRICE_LLM_MODEL=$(env_value BEATRICE_LLM_MODEL)" \
-         --build-arg "FITHARA_LLM_MODEL=$(env_value FITHARA_LLM_MODEL)" \
-         -t smart-novel-ollama:dev "$repo_root/local-setup/ollama"
-  docker build --build-arg "BEATRICE_TTS_MODEL=$(env_value BEATRICE_TTS_MODEL)" \
-         -t smart-novel-openai-compatible-tts:dev "$repo_root/local-setup/openai-compatible-tts"
 fi
 
 TF_VAR_run_as_user="$(id -u)"

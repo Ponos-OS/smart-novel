@@ -15,7 +15,7 @@ variable "image" {
 }
 
 variable "llm_provider" {
-  description = "PydanticAI provider id Fithara uses to talk to the LLM, e.g. ollama or openai; null leaves it unset and Fithara refuses to start"
+  description = "PydanticAI provider id Fithara uses to talk to the LLM, e.g. openai; null leaves it unset and Fithara refuses to start"
   type        = string
   default     = null
 }
@@ -33,7 +33,7 @@ variable "llm_model" {
 }
 
 variable "llm_api_key" {
-  description = "API key for the LLM; Ollama ignores it, Fithara only requires it to be non-empty; null leaves it unset and Fithara refuses to start"
+  description = "API key for the LLM; the local gateway ignores it, Fithara only requires it to be non-empty; null leaves it unset and Fithara refuses to start"
   type        = string
   default     = null
   sensitive   = true

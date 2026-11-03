@@ -31,9 +31,9 @@ variable "llm_model" {
 }
 
 variable "llm_api_key" {
-  description = "API key for the LLM; Ollama ignores it, Beatrice only requires it to be non-empty"
+  description = "API key for the LLM; the local gateway ignores it, Beatrice only requires it to be non-empty"
   type        = string
-  default     = "ollama"
+  default     = "local-dev-key"
   sensitive   = true
 }
 
