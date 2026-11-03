@@ -116,8 +116,8 @@ run "fithara_takes_its_own_model_when_given_one" {
   command = plan
 
   variables {
-    llm_model         = "llama3.2:3b"
-    fithara_llm_model = "qwen2.5:7b"
+    beatrice_llm_model = "llama3.2:3b"
+    fithara_llm_model  = "qwen2.5:7b"
   }
 
   assert {
@@ -163,9 +163,9 @@ run "disabling_ai_with_external_endpoints_keeps_beatrice" {
   command = plan
 
   variables {
-    run_local_ai_models = false
-    llm_base_url        = "https://api.openai.com/v1"
-    tts_base_url        = "https://api.openai.com/v1"
+    run_local_ai_models   = false
+    beatrice_llm_base_url = "https://api.openai.com/v1"
+    beatrice_tts_base_url = "https://api.openai.com/v1"
   }
 
   assert {

@@ -51,6 +51,7 @@ variable "images" {
     aws_cli        = optional(string, "amazon/aws-cli:2.38.1")
     rabbitmq       = optional(string, "rabbitmq:3.13-management-alpine")
     beatrice       = string
+    fithara        = string
     object_storage = optional(string, "unused")
   })
 }
@@ -60,41 +61,68 @@ variable "object_storage_endpoint" {
   type        = string
 }
 
-variable "llm_base_url" {
+variable "beatrice_llm_base_url" {
   description = "OpenAI-compatible base URL of the LLM Beatrice calls"
   type        = string
 }
 
-variable "llm_model" {
+variable "beatrice_llm_model" {
   description = "LLM model name Beatrice asks for"
   type        = string
 }
 
-variable "llm_api_key" {
+variable "beatrice_llm_api_key" {
   description = "API key for the LLM"
   type        = string
   sensitive   = true
 }
 
-variable "tts_base_url" {
+variable "beatrice_tts_base_url" {
   description = "OpenAI-compatible base URL of the text-to-speech server Beatrice calls"
   type        = string
 }
 
-variable "tts_model" {
+variable "beatrice_tts_model" {
   description = "Text-to-speech model name Beatrice asks for"
   type        = string
 }
 
-variable "tts_api_key" {
+variable "beatrice_tts_api_key" {
   description = "API key for the text-to-speech server"
   type        = string
   sensitive   = true
 }
 
-variable "tts_voices" {
+variable "beatrice_tts_voices" {
   description = "Voices the text-to-speech server offers, comma separated; null keeps the module default"
   type        = string
+  default     = null
+}
+
+variable "fithara_llm_provider" {
+  description = "PydanticAI provider id of Fithara's LLM, e.g. openai"
+  type        = string
+}
+
+variable "fithara_llm_base_url" {
+  description = "OpenAI-compatible base URL of the LLM Fithara calls; independent of Beatrice's"
+  type        = string
+}
+
+variable "fithara_llm_model" {
+  description = "LLM model name Fithara asks for; it must be one the llmcapa model catalog knows, or Fithara refuses to start"
+  type        = string
+}
+
+variable "fithara_llm_api_key" {
+  description = "API key for Fithara's LLM"
+  type        = string
+  sensitive   = true
+}
+
+variable "fithara_llm_timeout_ms" {
+  description = "Timeout of a single LLM call of Fithara in milliseconds; null leaves Fithara's own default"
+  type        = number
   default     = null
 }
 

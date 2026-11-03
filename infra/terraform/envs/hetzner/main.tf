@@ -37,14 +37,20 @@ module "app" {
 
   publish_grafana_configmaps = true
 
-  run_local_ai_models = false
-  llm_base_url        = var.llm_base_url
-  llm_model           = var.llm_model
-  llm_api_key         = var.llm_api_key
-  tts_base_url        = var.tts_base_url
-  tts_model           = var.tts_model
-  tts_api_key         = var.tts_api_key
-  tts_voices          = var.tts_voices
+  run_local_ai_models   = false
+  beatrice_llm_base_url = var.beatrice_llm_base_url
+  beatrice_llm_model    = var.beatrice_llm_model
+  beatrice_llm_api_key  = var.beatrice_llm_api_key
+  beatrice_tts_base_url = var.beatrice_tts_base_url
+  beatrice_tts_model    = var.beatrice_tts_model
+  beatrice_tts_api_key  = var.beatrice_tts_api_key
+  beatrice_tts_voices   = var.beatrice_tts_voices
+
+  fithara_llm_provider   = var.fithara_llm_provider
+  fithara_llm_base_url   = var.fithara_llm_base_url
+  fithara_llm_model      = var.fithara_llm_model
+  fithara_llm_api_key    = var.fithara_llm_api_key
+  fithara_llm_timeout_ms = var.fithara_llm_timeout_ms
 
   wait_for_zitadel_credentials = !local.zitadel_ready
   backend_environment          = local.backend_environment

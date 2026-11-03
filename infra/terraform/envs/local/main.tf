@@ -197,19 +197,18 @@ module "app" {
   })
   wait_for_zitadel_credentials = var.wait_for_zitadel_credentials
   run_local_ai_models          = var.run_local_ai_models
-  llm_base_url                 = var.llm_base_url
-  llm_model                    = lookup(local.dotenv, "BEATRICE_LLM_MODEL", "default")
-  llm_gateway_model            = lookup(local.dotenv, "LLM_GATEWAY_HF_MODEL", "unsloth/Qwen3.6-35B-A3B-GGUF:Q4_K_M")
+  beatrice_llm_base_url        = lookup(local.dotenv, "BEATRICE_LLM_BASE_URL", null)
+  beatrice_llm_model           = lookup(local.dotenv, "BEATRICE_LLM_MODEL", "unsloth/Qwen3.6-35B-A3B-GGUF:Q4_K_M")
   fithara_llm_provider         = lookup(local.dotenv, "FITHARA_LLM_PROVIDER", null)
   fithara_llm_model            = lookup(local.dotenv, "FITHARA_LLM_MODEL", null)
   fithara_llm_base_url         = lookup(local.dotenv, "FITHARA_LLM_BASE_URL", null)
   fithara_llm_api_key          = lookup(local.dotenv, "FITHARA_LLM_API_KEY", null)
   fithara_llm_timeout_ms       = tonumber(lookup(local.dotenv, "FITHARA_LLM_TIMEOUT_MS", null))
-  tts_model                    = lookup(local.dotenv, "BEATRICE_TTS_MODEL", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice")
-  tts_base_url                 = var.tts_base_url
-  llm_api_key                  = var.llm_api_key
-  tts_api_key                  = var.tts_api_key
-  tts_voices                   = var.tts_voices
+  beatrice_tts_model           = lookup(local.dotenv, "BEATRICE_TTS_MODEL", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice")
+  beatrice_tts_base_url        = var.beatrice_tts_base_url
+  beatrice_llm_api_key         = var.beatrice_llm_api_key
+  beatrice_tts_api_key         = var.beatrice_tts_api_key
+  beatrice_tts_voices          = var.beatrice_tts_voices
 
   backend_port               = tonumber(local.dotenv["BACKEND_PORT"])
   backend_environment        = local.backend_environment_by_mode

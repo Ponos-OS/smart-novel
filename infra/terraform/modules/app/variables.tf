@@ -101,25 +101,19 @@ variable "create_zitadel_database" {
 }
 
 variable "run_local_ai_models" {
-  description = "Deploy the LLM gateway, which serves the heavy models Beatrice and Fithara use. When false, Beatrice is deployed only if llm_base_url and tts_base_url point at other services"
+  description = "Deploy the LLM gateway, which serves the heavy models Beatrice and Fithara use. When false, Beatrice is deployed only if beatrice_llm_base_url and beatrice_tts_base_url point at other services"
   type        = bool
   default     = true
 }
 
-variable "llm_base_url" {
+variable "beatrice_llm_base_url" {
   description = "OpenAI-compatible base URL of an external LLM; used when run_local_ai_models is false"
   type        = string
   default     = null
 }
 
-variable "llm_model" {
-  description = "LLM model name Beatrice asks for; the gateway serves one model whatever name is sent"
-  type        = string
-  default     = "default"
-}
-
-variable "llm_gateway_model" {
-  description = "GGUF model the in-cluster gateway downloads and serves, as <Hugging Face repo>:<quant>; used when run_local_ai_models is true"
+variable "beatrice_llm_model" {
+  description = "LLM model name Beatrice asks for. With run_local_ai_models it is also the GGUF model the in-cluster gateway downloads and serves, as <Hugging Face repo>:<quant>"
   type        = string
   default     = "unsloth/Qwen3.6-35B-A3B-GGUF:Q4_K_M"
 }
@@ -161,33 +155,33 @@ variable "fithara_llm_timeout_ms" {
   default     = null
 }
 
-variable "tts_model" {
+variable "beatrice_tts_model" {
   description = "Text-to-speech model name Beatrice sends in every speech request; the gateway serves one TTS model whatever name is sent"
   type        = string
   default     = "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
 }
 
-variable "llm_api_key" {
+variable "beatrice_llm_api_key" {
   description = "API key for the external LLM; null keeps the module default, which the local gateway accepts"
   type        = string
   default     = null
   sensitive   = true
 }
 
-variable "tts_api_key" {
+variable "beatrice_tts_api_key" {
   description = "API key for the external text-to-speech server; null keeps the module default, which the local shim accepts"
   type        = string
   default     = null
   sensitive   = true
 }
 
-variable "tts_voices" {
+variable "beatrice_tts_voices" {
   description = "Voices the text-to-speech server offers, comma separated; null keeps the module default"
   type        = string
   default     = null
 }
 
-variable "tts_base_url" {
+variable "beatrice_tts_base_url" {
   description = "Base URL of an external OpenAI-compatible text-to-speech server; used when run_local_ai_models is false"
   type        = string
   default     = null

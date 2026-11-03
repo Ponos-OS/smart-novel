@@ -46,13 +46,13 @@ module "object_storage" {
 }
 
 locals {
-  llm_base_url    = var.run_local_ai_models ? module.llm_gateway[0].base_url : var.llm_base_url
-  tts_base_url    = var.run_local_ai_models ? module.llm_gateway[0].base_url : var.tts_base_url
-  deploy_beatrice = local.llm_base_url != null && local.tts_base_url != null
-  otlp_endpoint   = var.otlp_endpoint
-  otlp_logs       = var.log_shipping == "otlp"
-  beatrice_url    = one(module.beatrice[*].graphql_url)
-  fithara_url     = module.fithara.url
+  beatrice_llm_base_url = var.run_local_ai_models ? module.llm_gateway[0].base_url : var.beatrice_llm_base_url
+  beatrice_tts_base_url = var.run_local_ai_models ? module.llm_gateway[0].base_url : var.beatrice_tts_base_url
+  deploy_beatrice       = local.beatrice_llm_base_url != null && local.beatrice_tts_base_url != null
+  otlp_endpoint         = var.otlp_endpoint
+  otlp_logs             = var.log_shipping == "otlp"
+  beatrice_url          = one(module.beatrice[*].graphql_url)
+  fithara_url           = module.fithara.url
 
   backend_environment = merge(
     var.backend_environment,
@@ -75,7 +75,7 @@ module "llm_gateway" {
   namespace      = module.namespace.name
   labels         = var.labels
   image          = var.images["llm_gateway"]
-  llm_hf_model   = var.llm_gateway_model
+  llm_hf_model   = var.beatrice_llm_model
   context_length = var.llm_gateway_context_length
 }
 
@@ -97,13 +97,13 @@ module "beatrice" {
   labels             = var.labels
   image              = var.images["beatrice"]
   broker_url         = module.rabbitmq[0].broker_url
-  llm_base_url       = local.llm_base_url
-  llm_model          = var.llm_model
-  tts_base_url       = local.tts_base_url
-  tts_model          = var.tts_model
-  llm_api_key        = coalesce(var.llm_api_key, "local-dev-key")
-  tts_api_key        = coalesce(var.tts_api_key, "local-dev-key")
-  tts_voices         = coalesce(var.tts_voices, "default")
+  llm_base_url       = local.beatrice_llm_base_url
+  llm_model          = var.beatrice_llm_model
+  tts_base_url       = local.beatrice_tts_base_url
+  tts_model          = var.beatrice_tts_model
+  llm_api_key        = coalesce(var.beatrice_llm_api_key, "local-dev-key")
+  tts_api_key        = coalesce(var.beatrice_tts_api_key, "local-dev-key")
+  tts_voices         = coalesce(var.beatrice_tts_voices, "default")
   otlp_http_endpoint = local.otlp_endpoint
   log_shipping       = var.log_shipping
 
