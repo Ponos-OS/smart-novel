@@ -9,10 +9,11 @@ locals {
     match[0] => trim(trimspace(replace(match[1], "/\\s+#.*$/", "")), "'\"")
   } : {}
 
+  llm_api_key_names  = ["FITHARA_LLM_API_KEY", "BEATRICE_LLM_API_KEY", "BEATRICE_TTS_API_KEY"]
   secret_key_pattern = "PASSWORD|SECRET|MASTERKEY|ACCESS_KEY"
   backend_environment = {
     for key, value in local.dotenv : key => value
-    if !startswith(key, "VITE_") && !can(regex(local.secret_key_pattern, key)) && key != "FITHARA_LLM_API_KEY"
+    if !startswith(key, "VITE_") && !can(regex(local.secret_key_pattern, key)) && !contains(local.llm_api_key_names, key)
   }
   backend_secret_environment = {
     for key, value in local.dotenv : key => value
@@ -205,10 +206,10 @@ module "app" {
   fithara_llm_api_key          = lookup(local.dotenv, "FITHARA_LLM_API_KEY", null)
   fithara_llm_timeout_ms       = tonumber(lookup(local.dotenv, "FITHARA_LLM_TIMEOUT_MS", null))
   beatrice_tts_model           = lookup(local.dotenv, "BEATRICE_TTS_MODEL", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice")
-  beatrice_tts_base_url        = var.beatrice_tts_base_url
-  beatrice_llm_api_key         = var.beatrice_llm_api_key
-  beatrice_tts_api_key         = var.beatrice_tts_api_key
-  beatrice_tts_voices          = var.beatrice_tts_voices
+  beatrice_tts_base_url        = lookup(local.dotenv, "BEATRICE_TTS_BASE_URL", null)
+  beatrice_llm_api_key         = lookup(local.dotenv, "BEATRICE_LLM_API_KEY", null)
+  beatrice_tts_api_key         = lookup(local.dotenv, "BEATRICE_TTS_API_KEY", null)
+  beatrice_tts_voices          = lookup(local.dotenv, "BEATRICE_TTS_VOICES", null)
 
   backend_port               = tonumber(local.dotenv["BACKEND_PORT"])
   backend_environment        = local.backend_environment_by_mode

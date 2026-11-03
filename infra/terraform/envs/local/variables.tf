@@ -50,7 +50,7 @@ variable "tags" {
 }
 
 variable "run_local_ai_models" {
-  description = "Run the LLM gateway (LLM and text-to-speech) in the cluster. Its image is large and downloads the LLM on first start, so loading and starting it is slow; false skips it, and with it Beatrice unless BEATRICE_LLM_BASE_URL (in .env) and beatrice_tts_base_url are set"
+  description = "Run the LLM gateway (LLM and text-to-speech) in the cluster. Its image is large and downloads the LLM on first start, so loading and starting it is slow; false skips it, and with it Beatrice unless BEATRICE_LLM_BASE_URL (in .env) and BEATRICE_TTS_BASE_URL (in .env) are set"
   type        = bool
   default     = true
 }
@@ -59,32 +59,6 @@ variable "llm_gateway_image" {
   description = "Published smart-novel-llm-gateway image, pulled once on the host and loaded into the cluster when run_local_ai_models is true"
   type        = string
   default     = "9109679196/smart-novel-llm-gateway:1.0.1"
-}
-
-variable "beatrice_tts_base_url" {
-  description = "Base URL of a OpenAI-compatible text-to-speech server outside the cluster, used when run_local_ai_models is false"
-  type        = string
-  default     = null
-}
-
-variable "beatrice_llm_api_key" {
-  description = "API key for the external LLM; null keeps the module default, which the local gateway accepts"
-  type        = string
-  default     = null
-  sensitive   = true
-}
-
-variable "beatrice_tts_api_key" {
-  description = "API key for the external text-to-speech server; null keeps the module default, which the local shim accepts"
-  type        = string
-  default     = null
-  sensitive   = true
-}
-
-variable "beatrice_tts_voices" {
-  description = "Voices the text-to-speech server offers, comma separated; null keeps the module default"
-  type        = string
-  default     = null
 }
 
 variable "run_as_user" {

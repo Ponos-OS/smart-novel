@@ -12,7 +12,7 @@ Beatrice talks to an OpenAI-compatible LLM and an OpenAI-compatible speech endpo
 
 `RUN_LOCAL_AI_MODELS` in `.env`, picks where the requests must go when starting the app (`npm run start:dev`) or running the tests (`nx e2e backend-e2e`).
 
-Local models run in the published `9109679196/smart-novel-llm-gateway` image, which serves both the LLM and text-to-speech and downloads the LLM (`BEATRICE_LLM_MODEL` in `.env`) on first start. Then we do not need to change anything [`terraform.tfvars`](../infra/terraform/envs/local/terraform.tfvars); set these in `.env`:
+Local models run in the published `9109679196/smart-novel-llm-gateway` image, which serves both the LLM and text-to-speech and downloads the LLM (`BEATRICE_LLM_MODEL` in `.env`) on first start. Set these in `.env`:
 
 ```bash
 RUN_LOCAL_AI_MODELS=false
@@ -21,18 +21,14 @@ BEATRICE_LLM_MODEL=gpt-4o-mini
 FITHARA_LLM_MODEL=gpt-4.1-mini
 BEATRICE_TTS_MODEL=gpt-4o-mini-tts
 BEATRICE_DEFAULT_VOICE=alloy
+BEATRICE_LLM_API_KEY=sk-...
+BEATRICE_TTS_BASE_URL=https://api.openai.com/v1
+BEATRICE_TTS_API_KEY=sk-...
+BEATRICE_TTS_VOICES=alloy,nova
+FITHARA_LLM_API_KEY=sk-...
 ```
 
-Then put the endpoints and keys in `infra/terraform/envs/local/terraform.tfvars`:
-
-```hcl
-beatrice_llm_api_key  = "sk-..."
-beatrice_tts_base_url = "https://api.openai.com/v1"
-beatrice_tts_api_key  = "sk-..."
-beatrice_tts_voices   = "alloy,nova"
-```
-
-`BEATRICE_DEFAULT_VOICE` must be one of `beatrice_tts_voices`.
+`BEATRICE_DEFAULT_VOICE` must be one of `BEATRICE_TTS_VOICES`.
 
 > [!IMPORTANT]
 >
