@@ -11,7 +11,8 @@ import unusedImports from 'eslint-plugin-unused-imports';
  * @description What each frontend feature offers to the others; anything else in a feature is internal. There is no `index.ts` per feature (it hurts Vite's dev server), so the public surface is named here.
  */
 const featurePublicFiles = {
-  'admin-licenses': ['AdminDefaultLicensePage'],
+  'admin-licenses': ['AdminLicensesPage'],
+  'license-list': ['LicensesTab'],
   'license-assistant': ['LicenseDraftingAssistant'],
   'novel-license': [
     'LicenseField',

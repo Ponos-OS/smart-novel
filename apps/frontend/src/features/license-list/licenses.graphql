@@ -1,0 +1,25 @@
+query Licenses($search: String, $first: Int!, $after: String) {
+  licensesConnection(
+    first: $first
+    after: $after
+    filters: { search: $search }
+  ) {
+    edges {
+      node {
+        id
+        name
+        scope
+        isDefault
+        sourceType
+        canonicalId
+        officialUrl
+        text
+        updatedAt
+      }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+  }
+}

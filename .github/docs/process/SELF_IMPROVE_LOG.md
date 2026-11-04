@@ -432,3 +432,11 @@
 - Verified: `tsc`, lint, specs for the page, the dialog and the header, `nx test frontend` (690 pass; one `feature-boundaries` case timed out under load and passes alone), `nx build-storybook frontend`.
 - Not done: manual check in a browser and `frontend-e2e` (a stack was already on `localhost:8080`, left alone); the stories were only built, not played.
 - Process change: `SELF_IMPROVE.md` item 2f.
+
+## License management, Step 4 (2026-11-04)
+
+- Added the `license-list` feature (`LicensesTab`, `LicenseTextDialog`, `use-licenses`): the first tab of `/licenses` is a `licensesConnection` table (name, scope, source, updated, default badge) with name search and "Load more"; a name opens a dialog with the text and the official link; the default license is a link above the table; admins also get "Manage licenses". `DefaultLicenseTab` and its tab are gone. `eslint.config.mjs` lists `license-list` and the renamed `AdminLicensesPage` (it still said `AdminDefaultLicensePage`).
+- The list query fetches `text` and `officialUrl` for every row so a dialog needs no second call; there is no `license(id)` query. Up to 20 rows of up to about 20k characters per page.
+- Bug from Step 3 fixed here: after "Set as default" the page invalidated `useDefaultLicenseQuery.getKey({})`, which does not match the no-variable hook key `['DefaultLicense']`; it now uses `getKey()` and the spec asserts it.
+- `feature-boundaries.spec.ts` timed out on its first (cold ESLint) case in two full runs; its cases now have a 60s timeout.
+- Verified: `tsc`, lint, specs for the tab and the page, `nx test frontend` was run before the timeout change (701 pass, the one failure being that timeout; the file passes alone, 10/10, after it), `nx build-storybook frontend`. Not done: browser check, `frontend-e2e`, the stories were not played.

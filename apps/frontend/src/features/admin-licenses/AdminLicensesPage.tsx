@@ -61,7 +61,7 @@ export function AdminLicensesPage() {
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: [ADMIN_LICENSES_KEY] });
     queryClient.invalidateQueries({
-      queryKey: useDefaultLicenseQuery.getKey({}),
+      queryKey: useDefaultLicenseQuery.getKey(),
     });
   };
 

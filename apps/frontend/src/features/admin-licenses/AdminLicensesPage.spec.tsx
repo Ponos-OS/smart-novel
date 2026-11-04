@@ -273,6 +273,9 @@ describe('AdminLicensesPage', () => {
       expect(invalidate).toHaveBeenCalledWith({
         queryKey: ['AdminLicensesInfinite'],
       });
+      expect(invalidate).toHaveBeenCalledWith({
+        queryKey: ['DefaultLicense'],
+      });
     });
 
     it('changes nothing when the admin cancels', async () => {

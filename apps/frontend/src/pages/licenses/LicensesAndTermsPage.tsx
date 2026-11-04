@@ -2,17 +2,13 @@ import { isWriterOrHigher } from '@smart-novel/shared';
 import { Tabs } from 'radix-ui';
 import { Link } from 'react-router-dom';
 
-import { DefaultLicenseTab } from '../../features/license-assistant/DefaultLicenseTab';
+import { LicensesTab } from '../../features/license-list/LicensesTab';
 import { PlatformTermsTab } from '../../features/platform-terms/PlatformTermsTab';
 import { useAuth } from '../../hooks/useAuth';
 
 const TABS = [
+  { id: 'licenses', label: 'Licenses', Panel: LicensesTab },
   { id: 'terms', label: 'Platform terms', Panel: PlatformTermsTab },
-  {
-    id: 'default-license',
-    label: 'Default license',
-    Panel: DefaultLicenseTab,
-  },
 ] as const;
 
 export function LicensesAndTermsPage() {
