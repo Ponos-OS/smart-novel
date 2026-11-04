@@ -109,7 +109,7 @@ describe(ContentStatChart.name, () => {
     expect(chart.api.addSeries).toHaveBeenCalledWith(
       'Area',
       expect.objectContaining({
-        lineColor: '#8791f6',
+        lineColor: '#4dacff',
         topColor: 'rgba(135, 145, 246, 0.35)',
         bottomColor: 'rgba(135, 145, 246, 0)',
       }),

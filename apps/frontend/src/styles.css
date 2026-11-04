@@ -4,38 +4,38 @@
 @plugin "@tailwindcss/typography";
 
 /*
- * The app only has a dark theme. Redefining the `gray` and `blue` scales and `white` here re-skins every existing utility at once: `gray` is a deep indigo ink for surfaces and borders, `blue` the dusk accent, `white` a warm paper white for text.
+ * The app only has a dark theme. Redefining the `gray` and `blue` scales and `white` here re-skins every existing utility at once: `gray` is the Ponos-OS navy ink for surfaces and borders, `blue` the Ponos-OS sky accent, `white` a cool near-white for text.
  */
 @theme {
   --font-sans:
     'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif;
   --font-serif: 'Literata Variable', ui-serif, Georgia, serif;
 
-  --color-white: #f7f5ef;
+  --color-white: #f1f5f9;
 
-  --color-gray-50: #f7f5ef;
-  --color-gray-100: #ece9e1;
-  --color-gray-200: #d9d7d2;
-  --color-gray-300: #b8bac6;
-  --color-gray-400: #8f93a6;
-  --color-gray-500: #6b7088;
-  --color-gray-600: #444a63;
-  --color-gray-700: #2c3148;
-  --color-gray-800: #1d2133;
-  --color-gray-900: #141725;
-  --color-gray-950: #0e101b;
+  --color-gray-50: #f8fafc;
+  --color-gray-100: #f1f5f9;
+  --color-gray-200: #d5dde8;
+  --color-gray-300: #b4c0d3;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #5b6b8c;
+  --color-gray-600: #2c3c5e;
+  --color-gray-700: #1d2a47;
+  --color-gray-800: #131f38;
+  --color-gray-900: #0d1526;
+  --color-gray-950: #050a18;
 
-  --color-blue-50: #eef0ff;
-  --color-blue-100: #dfe2ff;
-  --color-blue-200: #c6ccff;
-  --color-blue-300: #a6aefc;
-  --color-blue-400: #8791f6;
-  --color-blue-500: #6f78ee;
-  --color-blue-600: #5a61d8;
-  --color-blue-700: #484dbb;
-  --color-blue-800: #3a3e95;
-  --color-blue-900: #2e3173;
-  --color-blue-950: #1c1d4a;
+  --color-blue-50: #eff8ff;
+  --color-blue-100: #dbeeff;
+  --color-blue-200: #b8dcff;
+  --color-blue-300: #7cc2ff;
+  --color-blue-400: #4dacff;
+  --color-blue-500: #2b9bff;
+  --color-blue-600: #1b86ec;
+  --color-blue-700: #1669bd;
+  --color-blue-800: #14558f;
+  --color-blue-900: #123f6b;
+  --color-blue-950: #0a2540;
 }
 
 :root {
@@ -44,7 +44,7 @@
 
 @layer base {
   body {
-    background-color: var(--color-gray-900);
+    background-color: var(--color-gray-950);
     color: var(--color-gray-100);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;

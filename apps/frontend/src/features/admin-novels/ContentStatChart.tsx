@@ -10,9 +10,9 @@ import { useEffect, useRef } from 'react';
 import { type StatSeries } from './content-stat-series';
 
 const FALLBACK = {
-  line: '#8791f6',
-  text: '#8f93a6',
-  grid: '#2c3148',
+  line: '#4dacff',
+  text: '#94a3b8',
+  grid: '#1d2a47',
 };
 
 const WHOLE_NUMBERS = {

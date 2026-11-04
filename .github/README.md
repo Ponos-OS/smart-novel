@@ -1,4 +1,4 @@
-# Smart Novel
+<h1><img src="../apps/frontend/public/logo.png" width="40" height="40" alt="smart-novel logo" />Smart Novel</h1>
 
 A modern monorepo project for managing and reading novels with AI-powered word explanations. Built with Nx, NestJS, GraphQL, and React.
 
@@ -8,8 +8,8 @@ A modern monorepo project for managing and reading novels with AI-powered word e
 | Backend ([NestJS + Prisma](https://github.com/Ponos-OS/infra/blob/main/.github/docs/nodejs.md))   |        1 |    1 |   1 GB |     - |                                                                             |
 | Beatrice ([FastAPI](https://github.com/Ponos-OS/infra/blob/main/.github/docs/python.md))          |        1 |  0.5 | 512 MB |     - | LLM + TTS service, port 3000. Also runs the RabbitMQ audio worker.          |
 | [Redis](docs/redis.md)                                                                            |        1 | 0.25 | 256 MB |     - | Cache only, no persistence.                                                 |
-| smart-novel [Postgres](https://github.com/Ponos-OS/infra/blob/main/.github/docs/postgres.md)      |        1 |    1 |   2 GB | 20 GB | Daily backup, its own CronJob.                                              |
-| smart-novel [RabbitMQ](https://github.com/Ponos-OS/infra/blob/main/.github/docs/rabbitmq.md)      |        1 |  0.5 | 512 MB |  2 GB | Private only.                                                               |
+| [Postgres](https://github.com/Ponos-OS/infra/blob/main/.github/docs/postgres.md)                  |        1 |    1 |   2 GB | 20 GB | Daily backup, its own CronJob.                                              |
+| [RabbitMQ](https://github.com/Ponos-OS/infra/blob/main/.github/docs/rabbitmq.md)                  |        1 |  0.5 | 512 MB |  2 GB | Private only.                                                               |
 | [Object storage](https://github.com/Ponos-OS/infra/blob/main/.github/docs/object-storage.md) (S3) |        - |    - |      - | 50 GB | Cloudflare R2, not a pod. Not in the disk totals. Covers and narration.     |
 
 ## Project Structure
@@ -26,7 +26,6 @@ smart-novel/
 │   │       ├── modules/
 │   │       │   ├── auth/         # Zitadel OIDC auth & RBAC guards
 │   │       │   ├── background-runner/
-│   │       │   ├── tag/
 │   │       │   ├── cursor/
 │   │       │   ├── fithara/
 │   │       │   ├── license/
@@ -38,6 +37,7 @@ smart-novel/
 │   │       │   ├── prisma/       # Prisma service
 │   │       │   ├── redis/        # Redis caching service
 │   │       │   ├── stats/
+│   │       │   ├── tag/
 │   │       │   ├── tts-callbacks/
 │   │       │   ├── writer/
 │   │       │   └── zitadel-events/
