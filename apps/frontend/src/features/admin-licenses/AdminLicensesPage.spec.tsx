@@ -173,17 +173,31 @@ describe('AdminLicensesPage', () => {
       expect(rowOf('Untitled draft')).toHaveTextContent('Draft');
     });
 
-    it('offers "Set as default" only on a shared license that is not the default', () => {
+    it('has a switch only on the shared licenses, on and locked for the default', () => {
+      renderPage();
+
+      const defaultSwitch = within(rowOf('CC BY 4.0')).getByRole(
+        'switch',
+        { name: 'CC BY 4.0 is the default license' },
+      );
+      expect(defaultSwitch).toBeChecked();
+      expect(defaultSwitch).toBeDisabled();
+      const otherSwitch = within(
+        rowOf('Read it, do not copy it'),
+      ).getByRole('switch', {
+        name: 'Make Read it, do not copy it the default license',
+      });
+      expect(otherSwitch).not.toBeChecked();
+      expect(otherSwitch).toBeEnabled();
+      expect(screen.getAllByRole('switch')).toHaveLength(2);
+    });
+
+    it('has a Default column for the switch', () => {
       renderPage();
 
       expect(
-        within(rowOf('Read it, do not copy it')).getByRole('button', {
-          name: 'Set as default',
-        }),
+        screen.getByRole('columnheader', { name: 'Default' }),
       ).toBeVisible();
-      expect(
-        screen.getAllByRole('button', { name: 'Set as default' }),
-      ).toHaveLength(1);
     });
 
     it('says so when nothing matches', () => {
@@ -247,7 +261,7 @@ describe('AdminLicensesPage', () => {
     });
   });
 
-  describe('set as default', () => {
+  describe('default switch', () => {
     it('asks first, then changes the default and refreshes the list', async () => {
       mutations.setDefault.mutate.mockImplementation(
         (_, { onSuccess }) => onSuccess(),
@@ -255,9 +269,7 @@ describe('AdminLicensesPage', () => {
       const { user, invalidate } = renderPage();
 
       await user.click(
-        within(rowOf('Read it, do not copy it')).getByRole('button', {
-          name: 'Set as default',
-        }),
+        within(rowOf('Read it, do not copy it')).getByRole('switch'),
       );
       await user.click(
         screen.getByRole('button', { name: 'Change default' }),
@@ -282,7 +294,9 @@ describe('AdminLicensesPage', () => {
       const { user } = renderPage();
 
       await user.click(
-        screen.getByRole('button', { name: 'Set as default' }),
+        screen.getByRole('switch', {
+          name: 'Make Read it, do not copy it the default license',
+        }),
       );
       await user.click(
         screen.getByRole('button', { name: 'Cancel' }),

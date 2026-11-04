@@ -1,3 +1,5 @@
+import { Switch } from 'radix-ui';
+
 import {
   type AdminLicensesQuery,
   LicenseScope,
@@ -36,8 +38,7 @@ export function LicenseRow({
   license,
   onSetDefault,
 }: LicenseRowProps) {
-  const canBeDefault =
-    license.scope === LicenseScope.Shared && !license.isDefault;
+  const isShared = license.scope === LicenseScope.Shared;
 
   return (
     <tr className="border-t border-gray-700 align-top">
@@ -73,14 +74,21 @@ export function LicenseRow({
         {new Date(license.updatedAt).toLocaleDateString('en-US')}
       </td>
       <td className="px-4 py-3 text-right">
-        {canBeDefault && (
-          <button
-            type="button"
-            onClick={() => onSetDefault(license)}
-            className="cursor-pointer text-sm font-medium text-blue-400"
+        {isShared && (
+          <Switch.Root
+            checked={license.isDefault}
+            // The default cannot be unset: turning another license on is what moves it.
+            disabled={license.isDefault}
+            onCheckedChange={() => onSetDefault(license)}
+            aria-label={
+              license.isDefault
+                ? `${license.name} is the default license`
+                : `Make ${license.name} the default license`
+            }
+            className="relative h-6 w-11 cursor-pointer rounded-full bg-gray-600 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed data-[state=checked]:bg-blue-600 data-[disabled]:opacity-70"
           >
-            Set as default
-          </button>
+            <Switch.Thumb className="block h-5 w-5 translate-x-0.5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-[22px]" />
+          </Switch.Root>
         )}
       </td>
     </tr>

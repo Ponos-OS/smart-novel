@@ -138,8 +138,10 @@ export const Overview: Story = {
 
     await expect(canvas.getByText('Default')).toBeVisible();
     await expect(
-      canvas.getByRole('button', { name: 'Set as default' }),
-    ).toBeVisible();
+      canvas.getByRole('switch', {
+        name: 'CC BY 4.0 is the default license',
+      }),
+    ).toBeChecked();
     await expect(canvas.getByText('Untitled draft')).toBeVisible();
     await expect(
       canvas.getByRole('button', { name: 'Load more' }),
@@ -169,7 +171,9 @@ export const ConfirmDefault: Story = {
     const canvas = within(canvasElement);
 
     await userEvent.click(
-      canvas.getByRole('button', { name: 'Set as default' }),
+      canvas.getByRole('switch', {
+        name: 'Make Read it, do not copy it the default license',
+      }),
     );
 
     await expect(
