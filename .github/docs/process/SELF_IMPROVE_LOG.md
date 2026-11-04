@@ -419,3 +419,9 @@
 - Built `licensesConnection` in `LicenseService.licensesConnection` (first put in a separate service, which was wrong: `WriterService` and `LicenseDraftService` keep theirs in the main service), `kind` as a field resolver derived from `isDraft`/`ownerId`, and unit plus `backend-e2e` specs. `tsc` and the 1060 backend unit tests pass.
 - Not done: `backend-e2e` and graphql-api-tester were not run. A `smart-novel` kind cluster already answered on `localhost:8080`, which looked like the user's own dev stack, so it was left alone. `REQUIREMENTS.md` says not to commit; the tree is left uncommitted.
 - Process change: `SELF_IMPROVE.md` item 2d, ask before replacing a running stack.
+
+## License management, Step 2 (2026-11-04)
+
+- Built `createLicense` (admin only): a `create` case in `LicensePolicy` and a mutation that calls `getOrCreate(input, 'system')`, so it reuses the existing validation and dedup and leaves the default alone. Unit specs for the policy and the resolver, five `backend-e2e` cases in `license.e2e-spec.ts` (permissions, no default change, same text twice, fake canonical, a writer using the new license on a novel).
+- Not done: `backend-e2e` and graphql-api-tester were not run (a stack was already on `localhost:8080`, left alone). Step 1 was committed at the user's request; step 2 is left uncommitted for review, per `REQUIREMENTS.md`.
+- Process change: `SELF_IMPROVE.md` item 2e; a scripted replace missed because prettier had reformatted the import, and only `tsc` showed it.

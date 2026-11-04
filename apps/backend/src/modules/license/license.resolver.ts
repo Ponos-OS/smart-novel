@@ -13,7 +13,9 @@ import {
   type IAuthUser,
   RequireRole,
 } from '../auth';
+import { SYSTEM_LICENSE_OWNER } from './constants';
 import {
+  LicenseDraftInput,
   LicenseFiltersInput,
   SetDefaultLicenseInput,
 } from './inputs';
@@ -55,6 +57,21 @@ export class LicenseResolver {
       { id: user.sub, isAdmin: user.roles.includes(Role.admin) },
       { first, last, after, before },
       filters,
+    );
+  }
+
+  @CheckPolicy('license', 'create')
+  @Mutation(() => License, {
+    description:
+      'Admin only. Store a license every writer can use. An already stored text is returned as it is. The default license does not change.',
+  })
+  async createLicense(
+    @Args('input', { type: () => LicenseDraftInput })
+    input: LicenseDraftInput,
+  ): Promise<License> {
+    return this.licenseService.getOrCreate(
+      input,
+      SYSTEM_LICENSE_OWNER,
     );
   }
 

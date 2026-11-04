@@ -29,6 +29,33 @@ describe(LicensePolicy.name, () => {
     );
   });
 
+  describe('create', () => {
+    it('should allow an admin', async () => {
+      const result = await uut.isAllowed({
+        userId: '260311094522198751',
+        userRoles: ['admin'],
+        resourceId: 'unknown',
+        action: 'create',
+      });
+
+      expect(result).toBeTrue();
+    });
+
+    it.each([['user'], ['writer'], []])(
+      'should deny roles %s',
+      async (...roles) => {
+        const result = await uut.isAllowed({
+          userId: '260311094522198751',
+          userRoles: roles,
+          resourceId: 'unknown',
+          action: 'create',
+        });
+
+        expect(result).toBeFalse();
+      },
+    );
+  });
+
   describe('update', () => {
     it('should allow an admin', async () => {
       const result = await uut.isAllowed({
@@ -56,7 +83,7 @@ describe(LicensePolicy.name, () => {
     );
   });
 
-  it.each(['create', 'delete', 'publish'])(
+  it.each(['delete', 'publish'])(
     'should deny the unsupported %s action even for an admin and log it',
     async (action) => {
       const result = await uut.isAllowed({

@@ -27,6 +27,21 @@ const SET_DEFAULT_LICENSE = `#graphql
   }
 `;
 
+const CREATE_LICENSE = `#graphql
+  mutation CreateLicense($input: LicenseDraftInput!) {
+    createLicense(input: $input) {
+      id
+      name
+      sourceType
+      canonicalId
+      text
+      scope
+      isDefault
+      ownerId
+    }
+  }
+`;
+
 const CREATE_NOVEL = `#graphql
   mutation CreateNovel($input: CreateNovelInput!) {
     createNovel(input: $input) {
@@ -231,6 +246,127 @@ describe('Licenses (e2e)', () => {
       expect(data.errors[0].message).toContain(
         'Pass either licenseId or licenseDraft',
       );
+    });
+  });
+
+  describe('createLicense', () => {
+    it.each([
+      {
+        role: 'user',
+        getAuthorizationHeader:
+          AuthorizationFixture.getUserAuthorizationHeader,
+      },
+      {
+        role: 'writer',
+        getAuthorizationHeader:
+          AuthorizationFixture.getWriterAuthorizationHeader,
+      },
+    ])(
+      'should not allow $role to create a shared license',
+      async ({ getAuthorizationHeader }) => {
+        const authorization = await getAuthorizationHeader();
+
+        const data = await graphql(
+          CREATE_LICENSE,
+          { input: uniqueDraft() },
+          authorization,
+        );
+
+        expect(data.errors[0].message).toContain(
+          'You do not have permission to create this license',
+        );
+      },
+    );
+
+    it('should let an admin store a shared license without changing the default', async () => {
+      const draft = uniqueDraft();
+
+      const created = await graphql(
+        CREATE_LICENSE,
+        { input: draft },
+        adminAuthorization,
+      );
+      const current = await graphql(
+        DEFAULT_LICENSE,
+        {},
+        adminAuthorization,
+      );
+
+      expect(created.errors).toBeUndefined();
+      expect(created.data.createLicense).toStrictEqual({
+        id: expect.toBeString(),
+        name: draft.title,
+        sourceType: 'CUSTOM',
+        canonicalId: null,
+        text: draft.text,
+        scope: 'SHARED',
+        isDefault: false,
+        ownerId: 'system',
+      });
+      expect(current.data.defaultLicense.id).not.toBe(
+        created.data.createLicense.id,
+      );
+    });
+
+    it('should return the stored license when the same text is created again', async () => {
+      const draft = uniqueDraft();
+
+      const first = await graphql(
+        CREATE_LICENSE,
+        { input: draft },
+        adminAuthorization,
+      );
+      const second = await graphql(
+        CREATE_LICENSE,
+        { input: draft },
+        adminAuthorization,
+      );
+
+      expect(second.data.createLicense.id).toBe(
+        first.data.createLicense.id,
+      );
+    });
+
+    it('should refuse a text that claims to be canonical but is not', async () => {
+      const data = await graphql(
+        CREATE_LICENSE,
+        {
+          input: {
+            ...uniqueDraft(),
+            source: { type: 'CANONICAL', canonicalId: 'CC-BY-4.0' },
+          },
+        },
+        adminAuthorization,
+      );
+
+      expect(data.errors[0].message).toContain(
+        'is not the canonical license',
+      );
+    });
+
+    it('should give a writer a license they can put on their novel', async () => {
+      const writer =
+        await AuthorizationFixture.getWriterAuthorizationHeader();
+      const created = await graphql(
+        CREATE_LICENSE,
+        { input: uniqueDraft() },
+        adminAuthorization,
+      );
+      const licenseId = created.data.createLicense.id;
+
+      const novel = await graphql(
+        CREATE_NOVEL,
+        { input: { ...novelInput, licenseId } },
+        writer,
+      );
+      const licensed = await graphql(
+        NOVEL_LICENSE,
+        { id: novel.data.createNovel.id },
+        writer,
+      );
+
+      expect(novel.errors).toBeUndefined();
+      expect(licensed.data.novel.license.id).toBe(licenseId);
     });
   });
 

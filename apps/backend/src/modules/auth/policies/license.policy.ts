@@ -9,7 +9,7 @@ import {
 
 /**
  * @description
- * Permission model for `license` resources, declared as CASL rules in `CaslAbilityFactory`: read for any authenticated user, everything else (as of now only changing the default license, `update`) for admins. Licenses are immutable rows, and writers pick or draft one through the novel they own, so no writer rule is needed here.
+ * Permission model for `license` resources, declared as CASL rules in `CaslAbilityFactory`: read for any authenticated user, everything else for admins: `create` a shared license, `update` the default license. Licenses are immutable rows, and writers pick or draft one through the novel they own, so no writer rule is needed here.
  */
 @Injectable()
 export class LicensePolicy implements IResourcePolicy {
@@ -31,6 +31,8 @@ export class LicensePolicy implements IResourcePolicy {
     switch (action) {
       case 'read':
         return ability.can(Action.Read, 'License');
+      case 'create':
+        return ability.can(Action.Create, 'License');
       case 'update':
         return ability.can(Action.Update, 'License');
       default:
