@@ -89,7 +89,7 @@ describe(PrismaNovelRepository.name, () => {
 
       expect(prismaService.tag.findMany).toHaveBeenCalledWith({
         where: {
-          name: { in: ['fantasy', 'sci-fi'], mode: 'insensitive' },
+          name: { in: ['fantasy', 'sci-fi'] },
           status: 'APPROVED',
         },
         select: { id: true, name: true },
@@ -462,7 +462,7 @@ describe(PrismaNovelRepository.name, () => {
           ownerId: '230104087265432001',
           writerId: '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10',
           coverUrl: 'https://example.com/cover.jpg',
-          tags: ['fantasy', 'adventure'],
+          tags: ['Fantasy', 'Adventure'],
         },
       ]);
     });
@@ -652,7 +652,7 @@ describe(PrismaNovelRepository.name, () => {
         ownerId: '230104087265432001',
         writerId: '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10',
         coverUrl: 'https://example.com/cover.jpg',
-        tags: ['fantasy', 'adventure'],
+        tags: ['Fantasy', 'Adventure'],
       });
       expect(prismaService.novel.findUnique).toHaveBeenCalledWith({
         where: { id: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec' },

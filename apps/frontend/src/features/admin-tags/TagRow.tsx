@@ -71,7 +71,7 @@ export function TagRow({ tag, onDelete }: TagRowProps) {
     }
 
     const changes = {
-      ...(name.toLowerCase() !== tag.name && { name }),
+      ...(name !== tag.name && { name }),
       ...(description !== tag.description && { description }),
     };
 

@@ -33,15 +33,12 @@ export function TagPicker({
     reset,
     handleKeyDown,
   } = useComboboxState();
-  const search = useDebouncedValue(
-    text.trim().toLowerCase(),
-    SEARCH_DEBOUNCE_MS,
-  );
+  const search = useDebouncedValue(text.trim(), SEARCH_DEBOUNCE_MS);
   const suggestions = useTagSuggestions(search, isOpen);
   const options = suggestions.names.filter(
     (name) => !value.includes(name),
   );
-  const isSettled = search === text.trim().toLowerCase();
+  const isSettled = search === text.trim();
   const hasNoMatch =
     isSettled &&
     !suggestions.isLoading &&

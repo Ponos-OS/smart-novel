@@ -3,13 +3,12 @@ import { TAG_DESCRIPTION_MAX_LENGTH } from '@smart-novel/shared';
 import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
-import { normalizeTagName } from '../../novel/utils';
 import { TAG_NAME_MAX_LENGTH } from '../constants';
 
 @InputType()
 export class RequestTagInput {
   @Field(() => String, {
-    description: `Normalized: trimmed and lower-cased. At most ${TAG_NAME_MAX_LENGTH} characters.`,
+    description: `Trimmed, and unique regardless of case. At most ${TAG_NAME_MAX_LENGTH} characters.`,
   })
   @IsString()
   @IsNotEmpty({ message: 'A tag name cannot be empty' })
@@ -17,7 +16,7 @@ export class RequestTagInput {
     message: `A tag name can have at most ${TAG_NAME_MAX_LENGTH} characters`,
   })
   @Transform(({ value }) =>
-    typeof value === 'string' ? normalizeTagName(value) : value,
+    typeof value === 'string' ? value.trim() : value,
   )
   name!: string;
 

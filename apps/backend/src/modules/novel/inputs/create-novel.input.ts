@@ -12,7 +12,6 @@ import {
 } from 'class-validator';
 
 import { LicenseDraftInput } from '../../license/inputs';
-import { normalizeTagNames } from '../utils';
 
 @InputType()
 export class CreateNovelInput {
@@ -44,7 +43,13 @@ export class CreateNovelInput {
   @IsArray()
   @IsString({ each: true })
   @IsNotEmpty({ each: true })
-  @Transform(({ value }) => normalizeTagNames(value))
+  @Transform(({ value }) =>
+    Array.isArray(value)
+      ? value.map((name) =>
+          typeof name === 'string' ? name.trim() : name,
+        )
+      : value,
+  )
   tags?: string[];
 
   @Field(() => ID, {

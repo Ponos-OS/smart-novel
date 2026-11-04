@@ -18,7 +18,7 @@ export function useRequestTagMutation() {
         onError?: (error: unknown) => void;
       },
     ) => {
-      const name = variables.input.name.trim().toLowerCase();
+      const name = variables.input.name.trim();
 
       if (mockRequestTagState.outcome === 'success') {
         options?.onSuccess?.({ requestTag: { name } });

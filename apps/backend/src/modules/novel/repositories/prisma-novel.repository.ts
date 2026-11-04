@@ -250,7 +250,7 @@ export class PrismaNovelRepository implements INovelRepository {
   }
 
   /**
-   * @description Existing tags are matched case-insensitively (seed data has mixed casing); only the missing ones are created.
+   * @description Tag names are citext, so they match case-insensitively.
    */
   private async resolveTagIds(
     tx: Prisma.TransactionClient,
@@ -262,7 +262,7 @@ export class PrismaNovelRepository implements INovelRepository {
 
     const approved = await tx.tag.findMany({
       where: {
-        name: { in: names, mode: 'insensitive' },
+        name: { in: names },
         status: TagStatus.APPROVED,
       },
       select: { id: true, name: true },
@@ -271,7 +271,7 @@ export class PrismaNovelRepository implements INovelRepository {
       approved.map((tag) => tag.name.toLowerCase()),
     );
     const unavailable = names.filter(
-      (name) => !approvedNames.has(name),
+      (name) => !approvedNames.has(name.toLowerCase()),
     );
 
     if (unavailable.length > 0) {
@@ -300,9 +300,7 @@ export class PrismaNovelRepository implements INovelRepository {
       coverUrl: record.coverUrl ?? undefined,
       firstChapterCreatedAt:
         record.firstChapterCreatedAt ?? undefined,
-      tags: record.tags.map((novelTag) =>
-        novelTag.tag.name.toLowerCase(),
-      ),
+      tags: record.tags.map((novelTag) => novelTag.tag.name),
     };
   }
 }

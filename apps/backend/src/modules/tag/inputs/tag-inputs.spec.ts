@@ -6,7 +6,7 @@ import { UpdateTagInput } from './update-tag.input';
 
 describe('Tag inputs', () => {
   describe(RequestTagInput.name, () => {
-    it('should trim the description and normalize the name', async () => {
+    it('should trim the description and trim the name', async () => {
       const input = plainToInstance(RequestTagInput, {
         name: '  Slice Of LIFE ',
         description: '  Quiet, everyday stories.  ',
@@ -16,7 +16,7 @@ describe('Tag inputs', () => {
 
       expect(errors).toBeEmpty();
       expect(input).toMatchObject({
-        name: 'slice of life',
+        name: 'Slice Of LIFE',
         description: 'Quiet, everyday stories.',
       });
     });

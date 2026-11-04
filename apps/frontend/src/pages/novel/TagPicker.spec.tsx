@@ -80,7 +80,7 @@ describe('TagPicker', () => {
     expect(screen.getAllByRole('option')).toHaveLength(3);
   });
 
-  it('searches with the typed text, trimmed and lower-cased', async () => {
+  it('searches with the typed text, trimmed', async () => {
     const { user } = renderPicker();
 
     await user.type(
@@ -88,7 +88,7 @@ describe('TagPicker', () => {
       '  FAN ',
     );
 
-    expect(useTagSuggestions).toHaveBeenLastCalledWith('fan', true);
+    expect(useTagSuggestions).toHaveBeenLastCalledWith('FAN', true);
   });
 
   it('does not suggest a tag that is already selected', async () => {

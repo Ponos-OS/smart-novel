@@ -17,7 +17,7 @@ export class Tag {
   @Field(() => ID)
   id: string;
 
-  @Field({ description: 'Normalized: trimmed and lower-cased' })
+  @Field({ description: 'Unique regardless of case' })
   name: string;
 
   @Field({
