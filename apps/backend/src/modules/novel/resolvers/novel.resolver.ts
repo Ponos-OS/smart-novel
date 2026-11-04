@@ -106,7 +106,7 @@ export class NovelResolver {
   @CheckPolicy('novel', 'create')
   @Mutation(() => Novel, {
     description:
-      'Create a novel owned by the caller. Categories must already be approved.',
+      'Create a novel owned by the caller. Tags must already be approved.',
   })
   async createNovel(
     @Args('input', {
@@ -123,7 +123,7 @@ export class NovelResolver {
   @CheckPolicy('novel', 'update')
   @Mutation(() => Novel, {
     description:
-      'Update a novel. Only the passed fields change; passed categories replace the current ones.',
+      'Update a novel. Only the passed fields change; passed tags replace the current ones.',
   })
   async updateNovel(
     @Args(

@@ -1,0 +1,26 @@
+query SearchTags($search: String, $first: Int!, $after: String) {
+  tagsConnection(
+    first: $first
+    after: $after
+    filters: { search: $search }
+  ) {
+    edges {
+      node {
+        id
+        name
+      }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+  }
+}
+
+mutation RequestTag($input: RequestTagInput!) {
+  requestTag(input: $input) {
+    id
+    name
+    status
+  }
+}

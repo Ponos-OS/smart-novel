@@ -5,7 +5,7 @@ query GetNovel($id: ID!) {
     writer {
       penName
     }
-    category
+    tags
     state
     coverUrl
     description

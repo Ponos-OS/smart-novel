@@ -122,15 +122,15 @@ const router = createBrowserRouter([
       },
 
       {
-        path: '/admin/categories',
+        path: '/admin/tags',
         lazy: async () => {
-          const { AdminCategoriesPage } =
-            await import('../features/admin-categories/AdminCategoriesPage');
+          const { AdminTagsPage } =
+            await import('../features/admin-tags/AdminTagsPage');
 
           return {
             element: (
               <Layout>
-                <AdminCategoriesPage />
+                <AdminTagsPage />
               </Layout>
             ),
           };

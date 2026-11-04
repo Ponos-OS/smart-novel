@@ -35,7 +35,7 @@ describe(PrismaNovelRepository.name, () => {
         update: vi.fn(),
         updateMany: vi.fn(),
       },
-      category: {
+      tag: {
         findMany: vi.fn(),
         createMany: vi.fn(),
       },
@@ -61,11 +61,11 @@ describe(PrismaNovelRepository.name, () => {
       description: 'A young hero leaves home.',
       state: NovelState.ONGOING,
       coverUrl: null,
-      categories: [{ category: { name: 'fantasy' } }],
+      tags: [{ tag: { name: 'fantasy' } }],
     };
 
-    it('should link the approved categories', async () => {
-      vi.mocked(prismaService.category.findMany).mockResolvedValue([
+    it('should link the approved tags', async () => {
+      vi.mocked(prismaService.tag.findMany).mockResolvedValue([
         {
           id: '6e0b6b86-8b2d-4d9a-8d7e-0c1a2b3c4d5e',
           name: 'Fantasy',
@@ -84,19 +84,17 @@ describe(PrismaNovelRepository.name, () => {
         licenseId,
         name: 'The Journey Begins',
         description: 'A young hero leaves home.',
-        categories: ['fantasy', 'sci-fi'],
+        tags: ['fantasy', 'sci-fi'],
       });
 
-      expect(prismaService.category.findMany).toHaveBeenCalledWith({
+      expect(prismaService.tag.findMany).toHaveBeenCalledWith({
         where: {
           name: { in: ['fantasy', 'sci-fi'], mode: 'insensitive' },
           status: 'APPROVED',
         },
         select: { id: true, name: true },
       });
-      expect(
-        prismaService.category.createMany,
-      ).not.toHaveBeenCalled();
+      expect(prismaService.tag.createMany).not.toHaveBeenCalled();
       expect(prismaService.novel.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: {
@@ -104,13 +102,13 @@ describe(PrismaNovelRepository.name, () => {
             licenseId,
             name: 'The Journey Begins',
             description: 'A young hero leaves home.',
-            categories: {
+            tags: {
               create: [
                 {
-                  categoryId: '6e0b6b86-8b2d-4d9a-8d7e-0c1a2b3c4d5e',
+                  tagId: '6e0b6b86-8b2d-4d9a-8d7e-0c1a2b3c4d5e',
                 },
                 {
-                  categoryId: 'a5b1f3c2-71d4-4f0e-9a3b-2d6c8e1f7a90',
+                  tagId: 'a5b1f3c2-71d4-4f0e-9a3b-2d6c8e1f7a90',
                 },
               ],
             },
@@ -123,13 +121,13 @@ describe(PrismaNovelRepository.name, () => {
           ownerId: '260311094522198751',
           writerId,
           licenseId,
-          category: ['fantasy'],
+          tags: ['fantasy'],
         }),
       );
     });
 
     it('should look the writer up by the user ID and reference the row', async () => {
-      vi.mocked(prismaService.category.findMany).mockResolvedValue(
+      vi.mocked(prismaService.tag.findMany).mockResolvedValue(
         [] as any,
       );
       vi.mocked(prismaService.novel.create).mockResolvedValue(
@@ -150,7 +148,7 @@ describe(PrismaNovelRepository.name, () => {
     });
 
     it('should fail loudly and log it when the caller has no writer row', async () => {
-      vi.mocked(prismaService.category.findMany).mockResolvedValue(
+      vi.mocked(prismaService.tag.findMany).mockResolvedValue(
         [] as any,
       );
       vi.mocked(prismaService.writer.findUnique).mockResolvedValue(
@@ -171,8 +169,8 @@ describe(PrismaNovelRepository.name, () => {
       expect(prismaService.novel.create).not.toHaveBeenCalled();
     });
 
-    it('should reject categories that are not approved, naming them', async () => {
-      vi.mocked(prismaService.category.findMany).mockResolvedValue([
+    it('should reject tags that are not approved, naming them', async () => {
+      vi.mocked(prismaService.tag.findMany).mockResolvedValue([
         {
           id: '6e0b6b86-8b2d-4d9a-8d7e-0c1a2b3c4d5e',
           name: 'fantasy',
@@ -184,19 +182,19 @@ describe(PrismaNovelRepository.name, () => {
         licenseId,
         name: 'The Journey Begins',
         description: 'A young hero leaves home.',
-        categories: ['fantasy', 'slice of life', 'steampunk'],
+        tags: ['fantasy', 'slice of life', 'steampunk'],
       });
 
       await expect(result).rejects.toThrow(
-        'These categories are not available: slice of life, steampunk.',
+        'These tags are not available: slice of life, steampunk.',
       );
       expect(prismaService.novel.create).not.toHaveBeenCalled();
     });
 
-    it('should not touch the categories table when none are passed', async () => {
+    it('should not touch the tags table when none are passed', async () => {
       vi.mocked(prismaService.novel.create).mockResolvedValue({
         ...novelRecord,
-        categories: [],
+        tags: [],
       } as any);
 
       await uut.createNovel({
@@ -206,10 +204,8 @@ describe(PrismaNovelRepository.name, () => {
         description: 'A young hero leaves home.',
       });
 
-      expect(prismaService.category.findMany).not.toHaveBeenCalled();
-      expect(
-        prismaService.category.createMany,
-      ).not.toHaveBeenCalled();
+      expect(prismaService.tag.findMany).not.toHaveBeenCalled();
+      expect(prismaService.tag.createMany).not.toHaveBeenCalled();
     });
   });
 
@@ -223,10 +219,10 @@ describe(PrismaNovelRepository.name, () => {
       description: 'A young hero leaves home.',
       state: NovelState.FINISHED,
       coverUrl: null,
-      categories: [],
+      tags: [],
     };
 
-    it('should only send the passed fields and keep the categories when they are omitted', async () => {
+    it('should only send the passed fields and keep the tags when they are omitted', async () => {
       vi.mocked(prismaService.novel.update).mockResolvedValue(
         novelRecord as any,
       );
@@ -240,15 +236,15 @@ describe(PrismaNovelRepository.name, () => {
             name: 'Renamed',
             description: undefined,
             state: undefined,
-            categories: undefined,
+            tags: undefined,
           },
         }),
       );
-      expect(prismaService.category.findMany).not.toHaveBeenCalled();
+      expect(prismaService.tag.findMany).not.toHaveBeenCalled();
     });
 
-    it('should replace the categories when they are passed', async () => {
-      vi.mocked(prismaService.category.findMany).mockResolvedValue([
+    it('should replace the tags when they are passed', async () => {
+      vi.mocked(prismaService.tag.findMany).mockResolvedValue([
         {
           id: '6e0b6b86-8b2d-4d9a-8d7e-0c1a2b3c4d5e',
           name: 'adventure',
@@ -258,16 +254,16 @@ describe(PrismaNovelRepository.name, () => {
         novelRecord as any,
       );
 
-      await uut.updateNovel(novelId, { categories: ['adventure'] });
+      await uut.updateNovel(novelId, { tags: ['adventure'] });
 
       expect(prismaService.novel.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            categories: {
+            tags: {
               deleteMany: {},
               create: [
                 {
-                  categoryId: '6e0b6b86-8b2d-4d9a-8d7e-0c1a2b3c4d5e',
+                  tagId: '6e0b6b86-8b2d-4d9a-8d7e-0c1a2b3c4d5e',
                 },
               ],
             },
@@ -276,17 +272,17 @@ describe(PrismaNovelRepository.name, () => {
       );
     });
 
-    it('should clear the categories when an empty list is passed', async () => {
+    it('should clear the tags when an empty list is passed', async () => {
       vi.mocked(prismaService.novel.update).mockResolvedValue(
         novelRecord as any,
       );
 
-      await uut.updateNovel(novelId, { categories: [] });
+      await uut.updateNovel(novelId, { tags: [] });
 
       expect(prismaService.novel.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            categories: { deleteMany: {}, create: [] },
+            tags: { deleteMany: {}, create: [] },
           }),
         }),
       );
@@ -311,7 +307,7 @@ describe(PrismaNovelRepository.name, () => {
         state: NovelState.ONGOING,
         coverUrl:
           'http://s3.localhost:8080/smart-novel/covers/new.png',
-        categories: [],
+        tags: [],
       } as any);
 
       const result = await uut.setCoverUrl(
@@ -351,7 +347,7 @@ describe(PrismaNovelRepository.name, () => {
         state: NovelState.ONGOING,
         coverUrl:
           'http://s3.localhost:8080/smart-novel/covers/new.png',
-        categories: [],
+        tags: [],
       } as any);
 
       const result = await uut.setCoverUrl(
@@ -437,7 +433,7 @@ describe(PrismaNovelRepository.name, () => {
       return { sql: text.replace(/\s+/g, ' '), values };
     };
 
-    it('should read the ids of the page by name, then load those novels with their categories', async () => {
+    it('should read the ids of the page by name, then load those novels with their tags', async () => {
       const { novel } = getMockedData();
       vi.mocked(prismaService.$queryRaw).mockResolvedValue([
         { id: novel.id },
@@ -466,7 +462,7 @@ describe(PrismaNovelRepository.name, () => {
           ownerId: '230104087265432001',
           writerId: '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10',
           coverUrl: 'https://example.com/cover.jpg',
-          category: ['fantasy', 'adventure'],
+          tags: ['fantasy', 'adventure'],
         },
       ]);
     });
@@ -539,7 +535,7 @@ describe(PrismaNovelRepository.name, () => {
         page,
         order,
         filters: {
-          categoryIn: ['fantasy'],
+          tagIn: ['fantasy'],
           state: NovelState.FINISHED,
         },
       });
@@ -656,14 +652,14 @@ describe(PrismaNovelRepository.name, () => {
         ownerId: '230104087265432001',
         writerId: '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10',
         coverUrl: 'https://example.com/cover.jpg',
-        category: ['fantasy', 'adventure'],
+        tags: ['fantasy', 'adventure'],
       });
       expect(prismaService.novel.findUnique).toHaveBeenCalledWith({
         where: { id: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec' },
         include: {
-          categories: {
+          tags: {
             select: {
-              category: {
+              tag: {
                 select: { name: true },
               },
             },
@@ -706,9 +702,9 @@ function getMockedData() {
     writerId: '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10',
     writer: { userId: '230104087265432001' },
     coverUrl: 'https://example.com/cover.jpg',
-    categories: [
-      { category: { name: 'Fantasy' } },
-      { category: { name: 'Adventure' } },
+    tags: [
+      { tag: { name: 'Fantasy' } },
+      { tag: { name: 'Adventure' } },
     ],
     chapters: [
       { id: 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c' },

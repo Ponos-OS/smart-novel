@@ -8,7 +8,7 @@ query SearchNovels($filters: NovelFiltersInput) {
         writer {
           penName
         }
-        category
+        tags
         state
         coverUrl
         description
@@ -24,12 +24,8 @@ query SearchNovels($filters: NovelFiltersInput) {
   }
 }
 
-query FilterCategories(
-  $search: String
-  $first: Int!
-  $after: String
-) {
-  categoriesConnection(
+query FilterTags($search: String, $first: Int!, $after: String) {
+  tagsConnection(
     first: $first
     after: $after
     filters: { search: $search }

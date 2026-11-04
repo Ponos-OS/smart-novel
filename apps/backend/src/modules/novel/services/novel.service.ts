@@ -131,8 +131,8 @@ export class NovelService {
     orderBy?: NovelOrderByInput,
   ): Promise<NovelConnection> {
     const connectionFilters: NovelConnectionFilters = {
-      categoryIn: filters?.category?.in,
-      categoryNin: filters?.category?.nin,
+      tagIn: filters?.tags?.in,
+      tagNin: filters?.tags?.nin,
       chapterCountMin: filters?.chapterCount?.min,
       chapterCountMax: filters?.chapterCount?.max,
       firstChapterCreatedFrom: filters?.firstChapterCreatedAt?.from,

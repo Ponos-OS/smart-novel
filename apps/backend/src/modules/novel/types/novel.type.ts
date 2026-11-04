@@ -25,9 +25,9 @@ export class Novel implements INovel {
   name: string;
 
   @Field(() => [String], {
-    description: 'The categories of the novel',
+    description: 'The tags of the novel',
   })
-  category: string[];
+  tags: string[];
 
   @Field(() => NovelState, { description: 'The state of the novel' })
   state: NovelState;

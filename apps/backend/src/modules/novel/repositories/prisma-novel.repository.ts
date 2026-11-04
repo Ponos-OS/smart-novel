@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import {
-  CategoryStatus,
   Prisma,
   Novel as PrismaNovel,
+  TagStatus,
 } from '@prisma/client';
 import {
   CustomLoggerService,
@@ -30,7 +30,7 @@ import {
 const NOVELS_PAGE_SIZE_FALLBACK = 21;
 
 const NOVEL_INCLUDE = {
-  categories: { select: { category: { select: { name: true } } } },
+  tags: { select: { tag: { select: { name: true } } } },
   writer: { select: { userId: true } },
 } satisfies Prisma.NovelInclude;
 
@@ -43,7 +43,7 @@ export class PrismaNovelRepository implements INovelRepository {
 
   /**
    * @description
-   * Prisma cannot filter by a count and its cursor breaks on a nullable sort column (a row comparison with NULL is never true), so the page of ids is raw SQL with its own keyset, see {@link buildOrderBy}. The novels themselves are then loaded with their categories and put back in that order.
+   * Prisma cannot filter by a count and its cursor breaks on a nullable sort column (a row comparison with NULL is never true), so the page of ids is raw SQL with its own keyset, see {@link buildOrderBy}. The novels themselves are then loaded with their tags and put back in that order.
    */
   async findNovelsPage({
     page: { cursor, take, shouldReverse },
@@ -128,13 +128,10 @@ export class PrismaNovelRepository implements INovelRepository {
   }
 
   async createNovel(data: CreateNovelData): Promise<Novel> {
-    const { categories, ownerId, ...fields } = data;
+    const { tags, ownerId, ...fields } = data;
 
     return this.prisma.$transaction(async (tx) => {
-      const categoryIds = await this.resolveCategoryIds(
-        tx,
-        categories ?? [],
-      );
+      const tagIds = await this.resolveTagIds(tx, tags ?? []);
       const writer = await tx.writer.findUnique({
         where: { userId: ownerId },
         select: { id: true },
@@ -151,8 +148,8 @@ export class PrismaNovelRepository implements INovelRepository {
         data: {
           ...fields,
           writerId: writer.id,
-          categories: {
-            create: categoryIds.map((categoryId) => ({ categoryId })),
+          tags: {
+            create: tagIds.map((tagId) => ({ tagId })),
           },
         },
         include: NOVEL_INCLUDE,
@@ -166,11 +163,11 @@ export class PrismaNovelRepository implements INovelRepository {
     id: string,
     data: UpdateNovelData,
   ): Promise<Novel> {
-    const { name, description, state, categories, licenseId } = data;
+    const { name, description, state, tags, licenseId } = data;
 
     return this.prisma.$transaction(async (tx) => {
-      const categoryIds = categories
-        ? await this.resolveCategoryIds(tx, categories)
+      const tagIds = tags
+        ? await this.resolveTagIds(tx, tags)
         : undefined;
       const novel = await tx.novel.update({
         where: { id },
@@ -179,9 +176,9 @@ export class PrismaNovelRepository implements INovelRepository {
           description: description ?? undefined,
           state: state ?? undefined,
           licenseId: licenseId ?? undefined,
-          categories: categoryIds && {
+          tags: tagIds && {
             deleteMany: {},
-            create: categoryIds.map((categoryId) => ({ categoryId })),
+            create: tagIds.map((tagId) => ({ tagId })),
           },
         },
         include: NOVEL_INCLUDE,
@@ -232,7 +229,7 @@ export class PrismaNovelRepository implements INovelRepository {
         return null;
       }
 
-      // The novel delete cascades to chapters, read history and category links, but the relation between a chapter and its content cascades the other way, so the content rows are removed explicitly.
+      // The novel delete cascades to chapters, read history and tag links, but the relation between a chapter and its content cascades the other way, so the content rows are removed explicitly.
       await tx.novel.delete({ where: { id } });
       await tx.chapterContent.deleteMany({
         where: {
@@ -253,9 +250,9 @@ export class PrismaNovelRepository implements INovelRepository {
   }
 
   /**
-   * @description Existing categories are matched case-insensitively (seed data has mixed casing); only the missing ones are created.
+   * @description Existing tags are matched case-insensitively (seed data has mixed casing); only the missing ones are created.
    */
-  private async resolveCategoryIds(
+  private async resolveTagIds(
     tx: Prisma.TransactionClient,
     names: string[],
   ): Promise<string[]> {
@@ -263,15 +260,15 @@ export class PrismaNovelRepository implements INovelRepository {
       return [];
     }
 
-    const approved = await tx.category.findMany({
+    const approved = await tx.tag.findMany({
       where: {
         name: { in: names, mode: 'insensitive' },
-        status: CategoryStatus.APPROVED,
+        status: TagStatus.APPROVED,
       },
       select: { id: true, name: true },
     });
     const approvedNames = new Set(
-      approved.map((category) => category.name.toLowerCase()),
+      approved.map((tag) => tag.name.toLowerCase()),
     );
     const unavailable = names.filter(
       (name) => !approvedNames.has(name),
@@ -279,16 +276,16 @@ export class PrismaNovelRepository implements INovelRepository {
 
     if (unavailable.length > 0) {
       throw new BadRequestException(
-        `These categories are not available: ${unavailable.join(', ')}. Request a new category and add it once an admin approved it.`,
+        `These tags are not available: ${unavailable.join(', ')}. Request a new tag and add it once an admin approved it.`,
       );
     }
 
-    return approved.map((category) => category.id);
+    return approved.map((tag) => tag.id);
   }
 
   private toNovel(
     record: PrismaNovel & {
-      categories: { category: { name: string } }[];
+      tags: { tag: { name: string } }[];
       writer: { userId: string };
     },
   ): Novel {
@@ -303,8 +300,8 @@ export class PrismaNovelRepository implements INovelRepository {
       coverUrl: record.coverUrl ?? undefined,
       firstChapterCreatedAt:
         record.firstChapterCreatedAt ?? undefined,
-      category: record.categories.map((novelCategory) =>
-        novelCategory.category.name.toLowerCase(),
+      tags: record.tags.map((novelTag) =>
+        novelTag.tag.name.toLowerCase(),
       ),
     };
   }

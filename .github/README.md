@@ -26,7 +26,7 @@ smart-novel/
 │   │       ├── modules/
 │   │       │   ├── auth/         # Zitadel OIDC auth & RBAC guards
 │   │       │   ├── background-runner/
-│   │       │   ├── category/
+│   │       │   ├── tag/
 │   │       │   ├── cursor/
 │   │       │   ├── fithara/
 │   │       │   ├── license/

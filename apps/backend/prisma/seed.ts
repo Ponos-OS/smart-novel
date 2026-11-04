@@ -3,9 +3,9 @@ import { PrismaClient } from '@prisma/client';
 import { join } from 'path';
 import { Pool } from 'pg';
 
-import { seedCategories } from './seeders/category.seeder';
 import { seedLicenses } from './seeders/license.seeder';
 import { seedNovels } from './seeders/novel.seeder';
+import { seedTags } from './seeders/tag.seeder';
 import { seedWriters } from './seeders/writer.seeder';
 
 const pool = new Pool({
@@ -20,19 +20,13 @@ async function main() {
   console.log(`📂 Data path: ${DATA_PATH}\n`);
 
   try {
-    const categoryMap = await seedCategories(prisma, DATA_PATH);
+    const tagMap = await seedTags(prisma, DATA_PATH);
 
     const licenses = await seedLicenses(prisma);
 
     const writerIds = await seedWriters(prisma);
 
-    await seedNovels(
-      prisma,
-      DATA_PATH,
-      categoryMap,
-      licenses,
-      writerIds,
-    );
+    await seedNovels(prisma, DATA_PATH, tagMap, licenses, writerIds);
 
     console.log('\n✅ Database seeding completed successfully!');
   } catch (error) {

@@ -10,7 +10,7 @@ import { fn } from 'storybook/test';
 import { NovelState } from '../../generated/graphql';
 import { NovelForm } from './NovelForm';
 
-/** @description The category picker reads its suggestions from the query cache, so the stories need no API. */
+/** @description The tag picker reads its suggestions from the query cache, so the stories need no API. */
 function SeededQueryDecorator(Story: ComponentType) {
   const client = new QueryClient({
     defaultOptions: {
@@ -18,10 +18,10 @@ function SeededQueryDecorator(Story: ComponentType) {
     },
   });
 
-  client.setQueryData(['SearchCategoriesInfinite', ''], {
+  client.setQueryData(['SearchTagsInfinite', ''], {
     pages: [
       {
-        categoriesConnection: {
+        tagsConnection: {
           edges: ['adventure', 'fantasy', 'mystery'].map((name) => ({
             node: { id: `id-${name}`, name },
           })),
@@ -64,7 +64,7 @@ export const Prefilled: Story = {
       name: 'The Lantern Keeper',
       description: 'A lighthouse keeper finds a door in the fog.',
       state: NovelState.Finished,
-      categories: ['fantasy', 'adventure'],
+      tags: ['fantasy', 'adventure'],
     },
   },
 };
@@ -76,7 +76,7 @@ export const Submitting: Story = {
       name: 'The Lantern Keeper',
       description: 'A lighthouse keeper finds a door in the fog.',
       state: NovelState.Ongoing,
-      categories: ['fantasy'],
+      tags: ['fantasy'],
     },
   },
 };

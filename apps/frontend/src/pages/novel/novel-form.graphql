@@ -19,6 +19,6 @@ mutation UpdateNovel($id: ID!, $input: UpdateNovelInput!) {
     }
     description
     state
-    category
+    tags
   }
 }

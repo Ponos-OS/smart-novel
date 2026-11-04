@@ -27,8 +27,8 @@ let novelQuery: {
   error: unknown;
 };
 
-vi.mock('./use-category-suggestions', () => ({
-  useCategorySuggestions: () => ({
+vi.mock('./use-tag-suggestions', () => ({
+  useTagSuggestions: () => ({
     names: [],
     isLoading: false,
     isError: false,
@@ -87,7 +87,7 @@ function novel(allowedActions: NovelAction[]) {
       writer: { penName: 'Jane_Doe' },
       description: 'A lighthouse keeper finds a door in the fog.',
       state: NovelState.Ongoing,
-      category: ['fantasy', 'adventure'],
+      tags: ['fantasy', 'adventure'],
       allowedActions,
       license: ccBy,
     },
@@ -149,7 +149,7 @@ describe('NovelEditPage', () => {
       'The Lantern Keeper',
     );
     expect(
-      screen.getByRole('list', { name: 'Selected categories' }),
+      screen.getByRole('list', { name: 'Selected tags' }),
     ).toHaveTextContent('fantasyadventure');
   });
 
@@ -174,7 +174,7 @@ describe('NovelEditPage', () => {
           name: 'The Lantern Keeper II',
           description: 'A lighthouse keeper finds a door in the fog.',
           state: NovelState.Ongoing,
-          categories: ['fantasy', 'adventure'],
+          tags: ['fantasy', 'adventure'],
         },
       },
       expect.objectContaining({

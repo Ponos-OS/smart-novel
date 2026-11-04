@@ -12,7 +12,7 @@ import {
 } from 'class-validator';
 
 import { LicenseDraftInput } from '../../license/inputs';
-import { normalizeCategoryNames } from '../utils';
+import { normalizeTagNames } from '../utils';
 
 @InputType()
 export class CreateNovelInput {
@@ -38,14 +38,14 @@ export class CreateNovelInput {
   @Field(() => [String], {
     nullable: true,
     description:
-      'Names of approved categories, compared case-insensitively. Unknown or pending ones are rejected.',
+      'Names of approved tags, compared case-insensitively. Unknown or pending ones are rejected.',
   })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   @IsNotEmpty({ each: true })
-  @Transform(({ value }) => normalizeCategoryNames(value))
-  categories?: string[];
+  @Transform(({ value }) => normalizeTagNames(value))
+  tags?: string[];
 
   @Field(() => ID, {
     nullable: true,

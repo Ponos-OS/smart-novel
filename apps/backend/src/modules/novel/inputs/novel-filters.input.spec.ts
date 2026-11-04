@@ -7,7 +7,7 @@ import { NovelOrderByInput } from './novel-order-by.input';
 describe(NovelFiltersInput.name, () => {
   it('should accept every filter', async () => {
     const input = plainToInstance(NovelFiltersInput, {
-      category: { in: ['Fantasy'], nin: ['Mystery'] },
+      tags: { in: ['Fantasy'], nin: ['Mystery'] },
       chapterCount: { min: 1, max: 20 },
       firstChapterCreatedAt: {
         from: new Date('2026-01-01T00:00:00.000Z'),
@@ -20,7 +20,7 @@ describe(NovelFiltersInput.name, () => {
     const errors = await validate(input);
 
     expect(errors).toBeEmpty();
-    expect(input.category?.in).toStrictEqual(['fantasy']);
+    expect(input.tags?.in).toStrictEqual(['fantasy']);
   });
 
   it('should accept no filter at all', async () => {
@@ -59,12 +59,12 @@ describe(NovelFiltersInput.name, () => {
       input: { ownerIds: ["1'; DROP TABLE novels;--"] },
     },
     {
-      scenario: 'a category name with a NUL character',
-      input: { category: { in: ['fan\u0000tasy'] } },
+      scenario: 'a tag name with a NUL character',
+      input: { tags: { in: ['fan\u0000tasy'] } },
     },
     {
-      scenario: 'an excluded category name with a NUL character',
-      input: { category: { nin: ['\u0000'] } },
+      scenario: 'an excluded tag name with a NUL character',
+      input: { tags: { nin: ['\u0000'] } },
     },
     {
       scenario: 'more than 100 owners',

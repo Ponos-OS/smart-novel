@@ -9,8 +9,6 @@ import { join } from 'path';
 
 import { AppResolver } from './src/app/app.resolver';
 import { AuthResolver } from './src/modules/auth/auth.resolver';
-import { CategoryFieldResolver } from './src/modules/category/category.field-resolver';
-import { CategoryResolver } from './src/modules/category/category.resolver';
 import { LicenseAssistantResolver } from './src/modules/license-assistant/license-assistant.resolver';
 import { LicenseDraftResolver } from './src/modules/license/license-draft.resolver';
 import { LicenseFieldResolver } from './src/modules/license/license.field-resolver';
@@ -29,6 +27,8 @@ import {
 } from './src/modules/novel/resolvers';
 import { PlatformTermsResolver } from './src/modules/platform-terms/platform-terms.resolver';
 import { ContentStatsResolver } from './src/modules/stats/content-stats.resolver';
+import { TagFieldResolver } from './src/modules/tag/tag.field-resolver';
+import { TagResolver } from './src/modules/tag/tag.resolver';
 import { WriterResolver } from './src/modules/writer/writer.resolver';
 
 async function generateSchema() {
@@ -41,8 +41,8 @@ async function generateSchema() {
   const schema = await gqlSchemaFactory.create([
     AppResolver,
     AuthResolver,
-    CategoryResolver,
-    CategoryFieldResolver,
+    TagResolver,
+    TagFieldResolver,
     LicenseResolver,
     LicenseFieldResolver,
     LicenseDraftResolver,

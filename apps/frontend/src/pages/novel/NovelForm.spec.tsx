@@ -20,13 +20,13 @@ const finalizedLicense = {
 const suggestions = vi.hoisted(() => ({
   names: ['fantasy', 'adventure', 'mystery'],
 }));
-const requestCategory = vi.hoisted(() => ({
+const requestTag = vi.hoisted(() => ({
   mutate: vi.fn(),
   isPending: false,
 }));
 
-vi.mock('./use-category-suggestions', () => ({
-  useCategorySuggestions: () => ({
+vi.mock('./use-tag-suggestions', () => ({
+  useTagSuggestions: () => ({
     names: suggestions.names,
     isLoading: false,
     isError: false,
@@ -62,7 +62,7 @@ vi.mock('../../generated/graphql', async () => ({
     data: { canonicalLicenses: [] },
   }),
   useCanonicalLicenseQuery: () => ({ data: undefined }),
-  useRequestCategoryMutation: () => requestCategory,
+  useRequestTagMutation: () => requestTag,
 }));
 
 function renderForm(
@@ -105,7 +105,7 @@ describe('NovelForm', () => {
     ).toBeEnabled();
   });
 
-  it('submits trimmed values with the picked categories as a list', async () => {
+  it('submits trimmed values with the picked tags as a list', async () => {
     // Arrange
     const user = userEvent.setup();
     const { onSubmit } = renderForm();
@@ -123,9 +123,7 @@ describe('NovelForm', () => {
     fireEvent.change(screen.getByLabelText('State'), {
       target: { value: NovelState.Finished },
     });
-    await user.click(
-      screen.getByRole('combobox', { name: 'Categories' }),
-    );
+    await user.click(screen.getByRole('combobox', { name: 'Tags' }));
     await user.click(screen.getByRole('option', { name: 'fantasy' }));
     await user.click(
       screen.getByRole('option', { name: 'adventure' }),
@@ -141,7 +139,7 @@ describe('NovelForm', () => {
       name: 'The Lantern Keeper',
       description: 'A lighthouse keeper finds a door in the fog.',
       state: NovelState.Finished,
-      categories: ['fantasy', 'adventure'],
+      tags: ['fantasy', 'adventure'],
     });
   });
 
@@ -152,7 +150,7 @@ describe('NovelForm', () => {
         name: 'The Lantern Keeper',
         description: 'A lighthouse keeper finds a door in the fog.',
         state: NovelState.Finished,
-        categories: ['fantasy', 'adventure'],
+        tags: ['fantasy', 'adventure'],
       },
       submitLabel: 'Save',
     });
@@ -165,7 +163,7 @@ describe('NovelForm', () => {
       NovelState.Finished,
     );
     expect(
-      screen.getByRole('list', { name: 'Selected categories' }),
+      screen.getByRole('list', { name: 'Selected tags' }),
     ).toHaveTextContent('fantasyadventure');
     expect(
       screen.getByRole('button', { name: 'Save' }),
@@ -180,7 +178,7 @@ describe('NovelForm', () => {
         name: 'The Lantern Keeper',
         description: '',
         state: NovelState.Ongoing,
-        categories: [],
+        tags: [],
       },
     });
 
@@ -336,10 +334,10 @@ describe('NovelForm license', () => {
   });
 });
 
-describe('NovelForm category request', () => {
+describe('NovelForm tag request', () => {
   beforeEach(() => {
     suggestions.names = [];
-    requestCategory.mutate.mockReset();
+    requestTag.mutate.mockReset();
   });
   afterEach(() => {
     suggestions.names = ['fantasy', 'adventure', 'mystery'];
@@ -349,12 +347,12 @@ describe('NovelForm category request', () => {
     user: ReturnType<typeof userEvent.setup>,
   ) {
     await user.type(
-      screen.getByRole('combobox', { name: 'Categories' }),
+      screen.getByRole('combobox', { name: 'Tags' }),
       'slice of life',
     );
     // The picker waits for the debounce before it knows nothing matches.
     await user.click(
-      await screen.findByRole('button', { name: 'Request category' }),
+      await screen.findByRole('button', { name: 'Request tag' }),
     );
   }
 
@@ -365,35 +363,39 @@ describe('NovelForm category request', () => {
     await openRequestDialog(user);
 
     expect(
-      screen.getByRole('dialog', { name: 'Request a category' }),
+      screen.getByRole('dialog', { name: 'Request a tag' }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('Category name')).toHaveValue(
+    expect(screen.getByLabelText('Tag name')).toHaveValue(
       'slice of life',
     );
   });
 
-  it('clears the typed text and does not add the category once it was requested', async () => {
+  it('clears the typed text and does not add the tag once it was requested', async () => {
     const user = userEvent.setup();
     const { onSubmit } = renderForm();
-    requestCategory.mutate.mockImplementation((_variables, options) =>
+    requestTag.mutate.mockImplementation((_variables, options) =>
       options.onSuccess({
-        requestCategory: { name: 'slice of life' },
+        requestTag: { name: 'slice of life' },
       }),
     );
     await openRequestDialog(user);
+    await user.type(
+      within(
+        screen.getByRole('dialog', { name: 'Request a tag' }),
+      ).getByLabelText('Description'),
+      'Quiet, everyday stories.',
+    );
 
     await user.click(
-      screen
-        .getAllByRole('button', { name: 'Request category' })
-        .at(-1)!,
+      screen.getAllByRole('button', { name: 'Request tag' }).at(-1)!,
     );
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('combobox', { name: 'Categories' }),
+      screen.getByRole('combobox', { name: 'Tags' }),
     ).toHaveValue('');
     expect(
-      screen.queryByRole('list', { name: 'Selected categories' }),
+      screen.queryByRole('list', { name: 'Selected tags' }),
     ).not.toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });
@@ -411,7 +413,7 @@ describe('NovelForm category request', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('combobox', { name: 'Categories' }),
+      screen.getByRole('combobox', { name: 'Tags' }),
     ).toHaveValue('slice of life');
   });
 });

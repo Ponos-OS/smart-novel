@@ -30,9 +30,8 @@ const config: StorybookConfig = {
           mockPath: './mocks/chapter-create-page.mock.ts',
         },
         {
-          importerPath:
-            '../src/pages/novel/RequestCategoryDialog.tsx',
-          mockPath: './mocks/request-category-dialog.mock.ts',
+          importerPath: '../src/pages/novel/RequestTagDialog.tsx',
+          mockPath: './mocks/request-tag-dialog.mock.ts',
         },
         {
           importerPath:
@@ -55,13 +54,12 @@ const config: StorybookConfig = {
         },
         {
           importerPath:
-            '../src/features/admin-categories/AdminCategoriesPage.tsx',
-          mockPath: './mocks/admin-categories.mock.ts',
+            '../src/features/admin-tags/AdminTagsPage.tsx',
+          mockPath: './mocks/admin-tags.mock.ts',
         },
         {
-          importerPath:
-            '../src/features/admin-categories/CategoryRow.tsx',
-          mockPath: './mocks/admin-categories.mock.ts',
+          importerPath: '../src/features/admin-tags/TagRow.tsx',
+          mockPath: './mocks/admin-tags.mock.ts',
         },
       ]),
     );

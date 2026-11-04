@@ -9,7 +9,7 @@ import { type ReactNode } from 'react';
 import { GraphqlRequestError } from '../lib/graphql-fetcher';
 import { useResetOnInvalidCursor } from './useResetOnInvalidCursor';
 
-const queryKey = ['AdminCategoriesInfinite', 'fan'];
+const queryKey = ['AdminTagsInfinite', 'fan'];
 const firstPage = {
   names: ['fantasy'],
   endCursor: 'eyJhIjoiY2F0ZWdvcmllcyJ9.c2lnbmF0dXJl',

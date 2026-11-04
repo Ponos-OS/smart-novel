@@ -1,6 +1,5 @@
 export * from './auth';
 export * from './background-runner';
-export * from './category';
 export * from './cursor';
 export * from './fithara';
 export * from './license';
@@ -12,6 +11,7 @@ export * from './platform-terms';
 export * from './prisma';
 export * from './redis';
 export * from './stats';
+export * from './tag';
 export * from './tts-callbacks';
 export * from './writer';
 export * from './zitadel-events';

@@ -1,0 +1,48 @@
+query AdminTags(
+  $search: String
+  $statuses: [TagStatus!]
+  $first: Int!
+  $after: String
+) {
+  tagsConnection(
+    first: $first
+    after: $after
+    filters: { search: $search, statuses: $statuses }
+  ) {
+    edges {
+      node {
+        id
+        name
+        description
+        status
+        requesterUserId
+        approximateNovelCount
+      }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+  }
+}
+
+mutation ApproveTag($id: ID!) {
+  approveTag(id: $id) {
+    id
+    status
+  }
+}
+
+mutation UpdateTag($id: ID!, $input: UpdateTagInput!) {
+  updateTag(id: $id, input: $input) {
+    id
+    name
+    description
+  }
+}
+
+mutation DeleteTag($id: ID!) {
+  deleteTag(id: $id) {
+    id
+  }
+}

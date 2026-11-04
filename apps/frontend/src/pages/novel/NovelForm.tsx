@@ -8,8 +8,8 @@ import {
   type LicenseDraftInput,
   NovelState,
 } from '../../generated/graphql';
-import { CategoryPicker } from './CategoryPicker';
-import { RequestCategoryDialog } from './RequestCategoryDialog';
+import { RequestTagDialog } from './RequestTagDialog';
+import { TagPicker } from './TagPicker';
 
 const LicenseDraftingAssistant = lazy(async () => ({
   default: (
@@ -21,7 +21,7 @@ export interface NovelFormValues {
   name: string;
   description: string;
   state: NovelState;
-  categories: string[];
+  tags: string[];
   licenseDraft?: LicenseDraftInput;
   /** @description A license the author finalized with the assistant; exclusive with `licenseDraft`. */
   licenseId?: string;
@@ -41,7 +41,7 @@ const EMPTY_VALUES: NovelFormValues = {
   name: '',
   description: '',
   state: NovelState.Ongoing,
-  categories: [],
+  tags: [],
 };
 
 const INPUT_CLASSES =
@@ -60,9 +60,7 @@ export function NovelForm({
     initialValues.description,
   );
   const [state, setState] = useState(initialValues.state);
-  const [categories, setCategories] = useState(
-    initialValues.categories,
-  );
+  const [tags, setTags] = useState(initialValues.tags);
 
   const [licenseDraft, setLicenseDraft] = useState<
     LicenseDraftInput | undefined
@@ -71,7 +69,7 @@ export function NovelForm({
   const [requestedName, setRequestedName] = useState<string | null>(
     null,
   );
-  // Remounting the picker clears what was typed once a category was requested.
+  // Remounting the picker clears what was typed once a tag was requested.
   const [pickerKey, setPickerKey] = useState(0);
   const [assistantLicense, setAssistantLicense] = useState<{
     id: string;
@@ -94,7 +92,7 @@ export function NovelForm({
       name: name.trim(),
       description: description.trim(),
       state,
-      categories,
+      tags,
       ...(assistantLicense
         ? { licenseId: assistantLicense.id }
         : { licenseDraft }),
@@ -157,14 +155,14 @@ export function NovelForm({
 
         <div>
           <span className="mb-1 block text-sm font-medium text-gray-300">
-            Categories
+            Tags
           </span>
-          <CategoryPicker
+          <TagPicker
             key={pickerKey}
-            value={categories}
-            onChange={setCategories}
+            value={tags}
+            onChange={setTags}
             disabled={isSubmitting}
-            onRequestCategory={setRequestedName}
+            onRequestTag={setRequestedName}
           />
         </div>
 
@@ -215,7 +213,7 @@ export function NovelForm({
         </div>
       </form>
       {requestedName !== null && (
-        <RequestCategoryDialog
+        <RequestTagDialog
           initialName={requestedName}
           onClose={() => setRequestedName(null)}
           onRequested={() => {

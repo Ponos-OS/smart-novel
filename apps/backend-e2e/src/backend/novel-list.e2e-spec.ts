@@ -428,8 +428,8 @@ describe('Novel list (e2e)', () => {
         filters: { ownerIds: ['mina'] },
       },
       {
-        scenario: 'a category name with a NUL character',
-        filters: { category: { in: ['\u0000'] } },
+        scenario: 'a tag name with a NUL character',
+        filters: { tags: { in: ['\u0000'] } },
       },
       {
         scenario: 'more than 100 owners',

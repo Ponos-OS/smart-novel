@@ -22,7 +22,7 @@ describe(PrismaChapterRepository.name, () => {
         update: vi.fn(),
         updateMany: vi.fn(),
       },
-      category: {
+      tag: {
         findMany: vi.fn(),
       },
       $transaction: vi.fn(),
@@ -963,9 +963,9 @@ function getMockedData() {
     description: 'A test novel description',
     state: 'ONGOING',
     coverUrl: 'https://example.com/cover.jpg',
-    categories: [
-      { category: { name: 'Fantasy' } },
-      { category: { name: 'Adventure' } },
+    tags: [
+      { tag: { name: 'Fantasy' } },
+      { tag: { name: 'Adventure' } },
     ],
     chapters: [
       { id: 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c' },
@@ -1012,7 +1012,7 @@ function getMockedData() {
     description: 'Another novel description',
     state: 'COMPLETED',
     coverUrl: 'https://example.com/another-cover.jpg',
-    categories: [{ category: { name: 'Sci-Fi' } }],
+    tags: [{ tag: { name: 'Sci-Fi' } }],
     chapters: [{ id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }],
   };
   const novel2Chapter1 = {

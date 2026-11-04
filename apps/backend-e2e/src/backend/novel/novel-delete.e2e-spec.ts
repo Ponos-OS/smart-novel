@@ -34,26 +34,31 @@ describe('Novel deletion (e2e)', () => {
     const requested = await graphql(
       `
         #graphql
-        mutation RequestCategory($name: String!) {
-          requestCategory(name: $name) {
+        mutation RequestTag($name: String!, $description: String!) {
+          requestTag(
+            input: { name: $name, description: $description }
+          ) {
             id
             name
           }
         }
       `,
-      { name: `e2e-delete-${randomUUID().slice(0, 8)}` },
+      {
+        name: `e2e-delete-${randomUUID().slice(0, 8)}`,
+        description: 'Tag for the delete spec.',
+      },
       writer,
     );
     await graphql(
       `
         #graphql
-        mutation ApproveCategory($id: ID!) {
-          approveCategory(id: $id) {
+        mutation ApproveTag($id: ID!) {
+          approveTag(id: $id) {
             id
           }
         }
       `,
-      { id: requested.data.requestCategory.id },
+      { id: requested.data.requestTag.id },
       admin,
     );
     const created = await graphql(
@@ -69,7 +74,7 @@ describe('Novel deletion (e2e)', () => {
         input: {
           name: 'The Lantern Keeper',
           description: 'A lighthouse keeper finds a door in the fog.',
-          categories: [requested.data.requestCategory.name],
+          tags: [requested.data.requestTag.name],
         },
       },
       writer,
@@ -180,7 +185,7 @@ describe('Novel deletion (e2e)', () => {
     expect(data.errors[0].message).toContain('not found');
   });
 
-  it('should remove the chapters, their contents, read history and category links, and leave other novels untouched', async () => {
+  it('should remove the chapters, their contents, read history and tag links, and leave other novels untouched', async () => {
     const doomed = await createNovelWithChapters(2);
     const survivor = await createNovelWithChapters(1);
     const writer =
@@ -209,7 +214,7 @@ describe('Novel deletion (e2e)', () => {
       count('chapter_user_states', `novel_id = '${doomed.novelId}'`),
     ).toBe(2);
     expect(
-      count('novel_categories', `novel_id = '${doomed.novelId}'`),
+      count('novel_tags', `novel_id = '${doomed.novelId}'`),
     ).toBe(1);
 
     const data = await deleteNovel(doomed.novelId, writer);
@@ -225,7 +230,7 @@ describe('Novel deletion (e2e)', () => {
       count('chapter_user_states', `novel_id = '${doomed.novelId}'`),
     ).toBe(0);
     expect(
-      count('novel_categories', `novel_id = '${doomed.novelId}'`),
+      count('novel_tags', `novel_id = '${doomed.novelId}'`),
     ).toBe(0);
     expect(count('novels', `id = '${survivor.novelId}'`)).toBe(1);
     expect(
@@ -238,7 +243,7 @@ describe('Novel deletion (e2e)', () => {
       ),
     ).toBe(1);
     expect(
-      count('novel_categories', `novel_id = '${survivor.novelId}'`),
+      count('novel_tags', `novel_id = '${survivor.novelId}'`),
     ).toBe(1);
 
     await deleteNovel(survivor.novelId, writer);

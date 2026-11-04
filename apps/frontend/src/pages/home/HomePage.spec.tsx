@@ -12,7 +12,7 @@ const novel = {
   writer: { penName: 'Jane_Doe' },
   description: 'A young hero leaves home.',
   state: 'ONGOING',
-  category: ['fantasy'],
+  tags: ['fantasy'],
   coverUrl: null,
 };
 const novelsQuery = vi.hoisted(() => vi.fn());

@@ -13,7 +13,7 @@ const CREATE_NOVEL = `#graphql
       }
       description
       state
-      category
+      tags
       allowedActions
     }
   }
@@ -29,7 +29,7 @@ const UPDATE_NOVEL = `#graphql
       }
       description
       state
-      category
+      tags
     }
   }
 `;
@@ -52,32 +52,36 @@ async function graphql(
   return data;
 }
 
-// Novels cannot be deleted yet and categories are shared with the other specs' filters, so every run uses its own category names.
-const REQUEST_CATEGORY = `
-  mutation RequestCategory($name: String!) {
-    requestCategory(name: $name) { id }
+// Novels cannot be deleted yet and tags are shared with the other specs' filters, so every run uses its own tag names.
+const REQUEST_TAG = `
+  mutation RequestTag($name: String!, $description: String!) {
+    requestTag(input: { name: $name, description: $description }) { id }
   }
 `;
-const APPROVE_CATEGORY = `
-  mutation ApproveCategory($id: ID!) {
-    approveCategory(id: $id) { id }
+const APPROVE_TAG = `
+  mutation ApproveTag($id: ID!) {
+    approveTag(id: $id) { id }
   }
 `;
 
 /**
- * @description Novels can only use approved categories, so each one goes through the request and the admin's approval first.
+ * @description Novels can only use approved tags, so each one goes through the request and the admin's approval first.
  */
-async function approvedCategory(label: string) {
+async function approvedTag(label: string) {
   const name = `e2e-${label}-${randomUUID().slice(0, 8)}`;
   const writer =
     await AuthorizationFixture.getWriterAuthorizationHeader();
   const admin =
     await AuthorizationFixture.getAdminAuthorizationHeader();
-  const requested = await graphql(REQUEST_CATEGORY, { name }, writer);
+  const requested = await graphql(
+    REQUEST_TAG,
+    { name, description: 'Tag for the management spec.' },
+    writer,
+  );
 
   await graphql(
-    APPROVE_CATEGORY,
-    { id: requested.data.requestCategory.id },
+    APPROVE_TAG,
+    { id: requested.data.requestTag.id },
     admin,
   );
 
@@ -90,12 +94,12 @@ describe('Novel management (e2e)', () => {
     description: 'A lighthouse keeper finds a door in the fog.',
   };
 
-  async function createNovelAsWriter(categories?: string[]) {
+  async function createNovelAsWriter(tags?: string[]) {
     const writer =
       await AuthorizationFixture.getWriterAuthorizationHeader();
     const data = await graphql(
       CREATE_NOVEL,
-      { input: { ...novelInput, categories } },
+      { input: { ...novelInput, tags } },
       writer,
     );
 
@@ -117,9 +121,9 @@ describe('Novel management (e2e)', () => {
           AuthorizationFixture.getAdminAuthorizationHeader,
       },
     ])(
-      'should allow $role to create a novel, with defaults and categories',
+      'should allow $role to create a novel, with defaults and tags',
       async ({ penName, getAuthorizationHeader }) => {
-        const category = await approvedCategory('create');
+        const tag = await approvedTag('create');
         const authorization = await getAuthorizationHeader();
 
         const data = await graphql(
@@ -129,7 +133,7 @@ describe('Novel management (e2e)', () => {
               name: '  The Lantern Keeper  ',
               description:
                 'A lighthouse keeper finds a door in the fog.',
-              categories: [category.toUpperCase(), category],
+              tags: [tag.toUpperCase(), tag],
             },
           },
           authorization,
@@ -142,7 +146,7 @@ describe('Novel management (e2e)', () => {
           writer: { penName },
           description: 'A lighthouse keeper finds a door in the fog.',
           state: 'ONGOING',
-          category: [category],
+          tags: [tag],
           allowedActions: ['MANAGE_TTS', 'EDIT_CONTENT'],
         });
       },
@@ -189,7 +193,7 @@ describe('Novel management (e2e)', () => {
 
     it.each([
       { field: 'name', value: '   ' },
-      { field: 'categories', value: ['fantasy-ish', '  '] },
+      { field: 'tags', value: ['fantasy-ish', '  '] },
     ])(
       'should reject an invalid $field',
       async ({ field, value }) => {
@@ -223,8 +227,8 @@ describe('Novel management (e2e)', () => {
     ])(
       'should allow the $role to update only the passed fields',
       async ({ getAuthorizationHeader }) => {
-        const category = await approvedCategory('keep');
-        const novel = await createNovelAsWriter([category]);
+        const tag = await approvedTag('keep');
+        const novel = await createNovelAsWriter([tag]);
         const authorization = await getAuthorizationHeader();
 
         const data = await graphql(
@@ -243,33 +247,31 @@ describe('Novel management (e2e)', () => {
           writer: { penName: 'Writer_User' },
           description: novelInput.description,
           state: 'FINISHED',
-          category: [category],
+          tags: [tag],
         });
       },
     );
 
-    it('should replace the categories when passed and clear them for an empty list', async () => {
-      const before = await approvedCategory('before');
-      const after = await approvedCategory('after');
+    it('should replace the tags when passed and clear them for an empty list', async () => {
+      const before = await approvedTag('before');
+      const after = await approvedTag('after');
       const novel = await createNovelAsWriter([before]);
       const writer =
         await AuthorizationFixture.getWriterAuthorizationHeader();
 
       const replaced = await graphql(
         UPDATE_NOVEL,
-        { id: novel.id, input: { categories: [after] } },
+        { id: novel.id, input: { tags: [after] } },
         writer,
       );
       const cleared = await graphql(
         UPDATE_NOVEL,
-        { id: novel.id, input: { categories: [] } },
+        { id: novel.id, input: { tags: [] } },
         writer,
       );
 
-      expect(replaced.data.updateNovel.category).toStrictEqual([
-        after,
-      ]);
-      expect(cleared.data.updateNovel.category).toStrictEqual([]);
+      expect(replaced.data.updateNovel.tags).toStrictEqual([after]);
+      expect(cleared.data.updateNovel.tags).toStrictEqual([]);
     });
 
     it.each([

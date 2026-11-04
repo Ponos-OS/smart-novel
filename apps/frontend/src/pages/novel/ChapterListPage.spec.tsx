@@ -26,7 +26,7 @@ function renderPage(canEditContent: boolean) {
       name: 'The Lantern Keeper',
       writer: { penName: 'Jane_Doe' },
       description: 'A lighthouse keeper finds a door in the fog.',
-      category: [],
+      tags: [],
       license: {
         id: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
         name: 'CC BY 4.0',

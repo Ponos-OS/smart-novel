@@ -14,7 +14,7 @@ const now = new Date('2026-11-02T12:00:00.000Z');
 const baseNovel = {
   id: novelId,
   name: 'The Lighthouse Keeper',
-  category: ['Fantasy', 'Mystery'],
+  tags: ['Fantasy', 'Mystery'],
   state: 'ONGOING',
   coverUrl: null,
   description: 'A keeper guards a light that no ship has seen.',
@@ -154,15 +154,15 @@ describe(NovelCard.name, () => {
     },
   );
 
-  it('searches the category of a clicked chip instead of opening the novel', async () => {
-    const { user } = renderCard({ category: ['Sci-Fi & Fantasy'] });
+  it('searches the tag of a clicked chip instead of opening the novel', async () => {
+    const { user } = renderCard({ tags: ['Sci-Fi & Fantasy'] });
 
     await user.click(
       screen.getByRole('button', { name: 'Sci-Fi & Fantasy' }),
     );
 
     expect(screen.getByTestId('location')).toHaveTextContent(
-      '/search?category=Sci-Fi%20%26%20Fantasy',
+      '/search?tag=Sci-Fi%20%26%20Fantasy',
     );
   });
 });

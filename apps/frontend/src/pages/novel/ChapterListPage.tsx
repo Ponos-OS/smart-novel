@@ -104,7 +104,7 @@ export function ChapterListPage() {
           )}
           <p className="mb-4 text-gray-300">{novel.description}</p>
           <div className="mb-4 flex flex-wrap gap-2">
-            {novel.category.map((cat) => (
+            {novel.tags.map((cat) => (
               <span
                 key={cat}
                 className="rounded-full px-3 py-1 text-sm font-medium bg-blue-900 text-blue-200"

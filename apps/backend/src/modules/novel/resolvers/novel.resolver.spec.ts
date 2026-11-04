@@ -294,7 +294,7 @@ function getNovel({ ownerId }: { ownerId: string }): Novel {
   return {
     id: '78981754-46c4-4521-9216-b9b27dafeab2',
     name: 'Test Novel',
-    category: ['fantasy'],
+    tags: ['fantasy'],
     state: NovelState.ONGOING,
     description: 'A test novel',
     ownerId,

@@ -8,50 +8,46 @@ import {
 } from '../../generated/graphql';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { showApiError } from '../../utils/notification';
-import { CategoryFilter } from './CategoryFilter';
-import { useFilterCategories } from './use-filter-categories';
+import { TagFilter } from './TagFilter';
+import { useFilterTags } from './use-filter-tags';
 
-const CATEGORY_SEARCH_DEBOUNCE_MS = 300;
+const TAG_SEARCH_DEBOUNCE_MS = 300;
 
-const capitalizeCategory = (category: string): string => {
-  return category.charAt(0).toUpperCase() + category.slice(1);
+const capitalizeTag = (tag: string): string => {
+  return tag.charAt(0).toUpperCase() + tag.slice(1);
 };
 
-function getInitialIncludeCategories(
+function getInitialIncludeTags(
   searchParams: URLSearchParams,
 ): string[] {
-  const categoryParam = searchParams.get('category');
-  return categoryParam ? [categoryParam] : [];
+  const tagParam = searchParams.get('tag');
+  return tagParam ? [tagParam] : [];
 }
 
 export function SearchPage() {
   const [searchParams] = useSearchParams();
-  const [includeCategories, setIncludeCategories] = useState<
-    string[]
-  >(() => getInitialIncludeCategories(searchParams));
-  const [excludeCategories, setExcludeCategories] = useState<
-    string[]
-  >([]);
+  const [includeTags, setIncludeTags] = useState<string[]>(() =>
+    getInitialIncludeTags(searchParams),
+  );
+  const [excludeTags, setExcludeTags] = useState<string[]>([]);
   const [filters, setFilters] = useState<
     NovelFiltersInput | undefined
   >(undefined);
   const [searchTriggered, setSearchTriggered] = useState(false);
 
-  const [categorySearch, setCategorySearch] = useState('');
+  const [tagSearch, setTagSearch] = useState('');
   // The request waits until the user pauses typing.
-  const debouncedCategorySearch = useDebouncedValue(
-    categorySearch.trim(),
-    CATEGORY_SEARCH_DEBOUNCE_MS,
+  const debouncedTagSearch = useDebouncedValue(
+    tagSearch.trim(),
+    TAG_SEARCH_DEBOUNCE_MS,
   );
-  const categories = useFilterCategories(debouncedCategorySearch);
+  const tags = useFilterTags(debouncedTagSearch);
 
   useEffect(() => {
-    if (categories.isError) {
-      showApiError(
-        'The categories could not be loaded. Try again later.',
-      );
+    if (tags.isError) {
+      showApiError('The tags could not be loaded. Try again later.');
     }
-  }, [categories.isError]);
+  }, [tags.isError]);
 
   const {
     data: searchData,
@@ -61,12 +57,12 @@ export function SearchPage() {
 
   const handleSearch = () => {
     const newFilters: NovelFiltersInput = {
-      category: {
-        ...(includeCategories.length > 0 && {
-          in: includeCategories,
+      tags: {
+        ...(includeTags.length > 0 && {
+          in: includeTags,
         }),
-        ...(excludeCategories.length > 0 && {
-          nin: excludeCategories,
+        ...(excludeTags.length > 0 && {
+          nin: excludeTags,
         }),
       },
     };
@@ -74,19 +70,19 @@ export function SearchPage() {
     setSearchTriggered(true);
   };
 
-  const handleToggleInclude = (category: string) => {
-    setIncludeCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category],
+  const handleToggleInclude = (tag: string) => {
+    setIncludeTags((prev) =>
+      prev.includes(tag)
+        ? prev.filter((c) => c !== tag)
+        : [...prev, tag],
     );
   };
 
-  const handleToggleExclude = (category: string) => {
-    setExcludeCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category],
+  const handleToggleExclude = (tag: string) => {
+    setExcludeTags((prev) =>
+      prev.includes(tag)
+        ? prev.filter((c) => c !== tag)
+        : [...prev, tag],
     );
   };
 
@@ -94,26 +90,21 @@ export function SearchPage() {
     searchData?.novelsConnection?.edges.map((edge) => edge.node) ??
     [];
 
-  // Transform categories from lowercase to capitalized for display
-  const listedCategories = categories.categories.map(
+  // Transform tags from lowercase to capitalized for display
+  const listedTags = tags.tags.map(
     ({ name, approximateNovelCount }) => ({
-      name: capitalizeCategory(name),
+      name: capitalizeTag(name),
       approximateNovelCount,
     }),
   );
-  // A category picked earlier stays visible when a later search no longer lists it.
-  const listedNames = new Set(
-    listedCategories.map(({ name }) => name),
-  );
+  // A tag picked earlier stays visible when a later search no longer lists it.
+  const listedNames = new Set(listedTags.map(({ name }) => name));
   const hiddenSelected = [
-    ...new Set([...includeCategories, ...excludeCategories]),
+    ...new Set([...includeTags, ...excludeTags]),
   ]
     .filter((name) => !listedNames.has(name))
     .map((name) => ({ name }));
-  const availableCategories = [
-    ...hiddenSelected,
-    ...listedCategories,
-  ];
+  const availableTags = [...hiddenSelected, ...listedTags];
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -123,25 +114,23 @@ export function SearchPage() {
 
       {/* Filter Section */}
       <div className="mb-8 rounded-xl border border-gray-700/70 bg-gray-800 p-6">
-        {categories.isLoading ? (
+        {tags.isLoading ? (
           <div className="text-center text-gray-400">
-            <p>Loading categories...</p>
+            <p>Loading tags...</p>
           </div>
         ) : (
-          <CategoryFilter
-            availableCategories={availableCategories}
-            includeCategories={includeCategories}
-            excludeCategories={excludeCategories}
+          <TagFilter
+            availableTags={availableTags}
+            includeTags={includeTags}
+            excludeTags={excludeTags}
             onToggleInclude={handleToggleInclude}
             onToggleExclude={handleToggleExclude}
-            searchText={categorySearch}
-            onSearchTextChange={setCategorySearch}
-            isSearching={
-              categories.isFetching && !categories.isLoadingMore
-            }
-            hasMore={categories.hasMore}
-            isLoadingMore={categories.isLoadingMore}
-            onShowMore={() => categories.loadMore()}
+            searchText={tagSearch}
+            onSearchTextChange={setTagSearch}
+            isSearching={tags.isFetching && !tags.isLoadingMore}
+            hasMore={tags.hasMore}
+            isLoadingMore={tags.isLoadingMore}
+            onShowMore={() => tags.loadMore()}
           />
         )}
 
@@ -188,7 +177,7 @@ export function SearchPage() {
         </div>
       ) : (
         <div className="text-center text-gray-400">
-          <p>Select categories and click "Search" to find novels.</p>
+          <p>Select tags and click "Search" to find novels.</p>
         </div>
       )}
     </div>

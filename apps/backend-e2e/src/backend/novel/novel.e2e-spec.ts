@@ -15,7 +15,7 @@ describe('Novel (e2e)', () => {
             writer {
               penName
             }
-            category
+            tags
             chaptersConnection(first: 10, orderBy: { field: CHAPTER_NUMBER, direction: ASC }) {
               edges {
                 cursor
@@ -58,7 +58,7 @@ describe('Novel (e2e)', () => {
           'A young hero leaves home to uncover an ancient mystery and shape the fate of the realm.',
         state: 'ONGOING',
         writer: { penName: 'Writer_User' },
-        category: expect.arrayContaining(['fantasy', 'adventure']),
+        tags: expect.arrayContaining(['fantasy', 'adventure']),
         lastPublishedChapter: {
           id: '6d908673-b125-4729-9da9-4fb907afe2a1',
         },

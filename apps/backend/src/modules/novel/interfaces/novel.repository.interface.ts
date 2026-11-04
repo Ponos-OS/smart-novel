@@ -8,8 +8,8 @@ import { NovelOrderField } from '../enums';
 import { INovel } from './novel-details.interface';
 
 export interface NovelConnectionFilters {
-  categoryIn?: string[];
-  categoryNin?: string[];
+  tagIn?: string[];
+  tagNin?: string[];
   chapterCountMin?: number;
   chapterCountMax?: number;
   firstChapterCreatedFrom?: Date;
@@ -37,7 +37,7 @@ export interface CreateNovelData {
   name: string;
   description: string;
   state?: NovelState;
-  categories?: string[];
+  tags?: string[];
 }
 
 export type UpdateNovelData = Partial<

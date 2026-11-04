@@ -12,7 +12,7 @@ async function get(url: string) {
 describe('Ingress routing (e2e)', () => {
   it.each([
     '/admin/novels',
-    '/admin/categories',
+    '/admin/tags',
     '/admin/writers',
     '/admin/licenses',
     '/administrator',

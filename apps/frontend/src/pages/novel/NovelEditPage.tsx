@@ -129,7 +129,7 @@ export function NovelEditPage() {
             name: novel.name,
             description: novel.description,
             state: novel.state,
-            categories: novel.category,
+            tags: novel.tags,
           }}
           license={novel.license}
           submitLabel="Save"

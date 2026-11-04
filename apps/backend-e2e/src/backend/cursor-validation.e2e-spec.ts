@@ -30,9 +30,9 @@ const CHAPTERS = `#graphql
   }
 `;
 
-const CATEGORIES = `#graphql
-  query Categories($after: String, $before: String) {
-    categoriesConnection(first: 1, after: $after, before: $before) {
+const TAGS = `#graphql
+  query Tags($after: String, $before: String) {
+    tagsConnection(first: 1, after: $after, before: $before) {
       edges {
         cursor
       }
@@ -117,7 +117,7 @@ describe('Cursor validation (e2e)', () => {
   ][] = [
     ['novelsConnection', NOVELS, async () => undefined],
     ['chaptersConnection', CHAPTERS, async () => undefined],
-    ['categoriesConnection', CATEGORIES, async () => undefined],
+    ['tagsConnection', TAGS, async () => undefined],
     [
       'licenseDraftsConnection',
       LICENSE_DRAFTS,
@@ -230,9 +230,7 @@ describe('Cursor validation (e2e)', () => {
     });
 
     it('should refuse a cursor issued by another connection', async () => {
-      const cursor = await issuedCursor(CATEGORIES, [
-        'categoriesConnection',
-      ]);
+      const cursor = await issuedCursor(TAGS, ['tagsConnection']);
 
       const data = await graphql(NOVELS, { after: cursor });
 

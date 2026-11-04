@@ -6,11 +6,11 @@ import { UpdateNovelInput } from './update-novel.input';
 
 describe('Novel inputs', () => {
   describe(CreateNovelInput.name, () => {
-    it('should trim the text fields and normalize the categories', async () => {
+    it('should trim the text fields and normalize the tags', async () => {
       const input = plainToInstance(CreateNovelInput, {
         name: '  The Journey Begins ',
         description: ' A young hero leaves home. ',
-        categories: [' Fantasy', 'fantasy'],
+        tags: [' Fantasy', 'fantasy'],
       });
 
       const errors = await validate(input);
@@ -20,7 +20,7 @@ describe('Novel inputs', () => {
         expect.objectContaining({
           name: 'The Journey Begins',
           description: 'A young hero leaves home.',
-          categories: ['fantasy'],
+          tags: ['fantasy'],
         }),
       );
     });
@@ -28,7 +28,7 @@ describe('Novel inputs', () => {
     it.each([
       { field: 'name', value: '   ' },
       { field: 'state', value: 'ABANDONED' },
-      { field: 'categories', value: ['fantasy', '  '] },
+      { field: 'tags', value: ['fantasy', '  '] },
     ])(
       'should reject an invalid $field',
       async ({ field, value }) => {

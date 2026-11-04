@@ -18,8 +18,8 @@ const defaultLicense = {
   text: 'Attribution 4.0 International',
 };
 
-vi.mock('./use-category-suggestions', () => ({
-  useCategorySuggestions: () => ({
+vi.mock('./use-tag-suggestions', () => ({
+  useTagSuggestions: () => ({
     names: [],
     isLoading: false,
     isError: false,
@@ -130,7 +130,7 @@ describe('NovelCreatePage', () => {
           name: 'The Lantern Keeper',
           description: '',
           state: 'ONGOING',
-          categories: [],
+          tags: [],
         },
       },
       expect.objectContaining({

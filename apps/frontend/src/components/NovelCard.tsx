@@ -7,7 +7,7 @@ type NovelCardData = Pick<
   Novel,
   | 'id'
   | 'name'
-  | 'category'
+  | 'tags'
   | 'state'
   | 'coverUrl'
   | 'description'
@@ -50,12 +50,9 @@ function getLastUpdateDate(novel: NovelCardData): string {
 export function NovelCard({ novel }: NovelCardProps) {
   const navigate = useNavigate();
 
-  const handleCategoryClick = (
-    e: React.MouseEvent,
-    category: string,
-  ) => {
+  const handleTagClick = (e: React.MouseEvent, tag: string) => {
     e.preventDefault();
-    navigate(`/search?category=${encodeURIComponent(category)}`);
+    navigate(`/search?tag=${encodeURIComponent(tag)}`);
   };
 
   return (
@@ -93,10 +90,10 @@ export function NovelCard({ novel }: NovelCardProps) {
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="flex flex-wrap gap-1.5">
-            {novel.category.map((cat) => (
+            {novel.tags.map((cat) => (
               <button
                 key={cat}
-                onClick={(e) => handleCategoryClick(e, cat)}
+                onClick={(e) => handleTagClick(e, cat)}
                 className="cursor-pointer rounded-full bg-blue-950 px-2.5 py-1 text-xs font-medium text-blue-200 ring-1 ring-blue-800/60 transition-colors hover:bg-blue-900"
               >
                 {cat}

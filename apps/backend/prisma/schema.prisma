@@ -22,7 +22,7 @@ enum NovelState {
   FINISHED
 }
 
-enum CategoryStatus {
+enum TagStatus {
   APPROVED
   PENDING
 }
@@ -90,7 +90,7 @@ model Novel {
   writer            Writer             @relation(fields: [writerId], references: [id], onDelete: Restrict)
   license           License            @relation(fields: [licenseId], references: [id], onDelete: Restrict)
   chapters          Chapter[]
-  categories        NovelCategory[]
+  tags              NovelTag[]
   chapterUserStates ChapterUserState[]
 
   @@index([writerId], name: "IDX_novels_writer")
@@ -140,31 +140,32 @@ model ChapterContent {
   @@map("chapter_contents")
 }
 
-model Category {
-  id              String         @id @default(uuid()) @db.Uuid
-  name            String         @unique
-  status          CategoryStatus @default(APPROVED)
-  requesterUserId String?        @map("requester_user_id")
-  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+model Tag {
+  id              String    @id @default(uuid()) @db.Uuid
+  name            String    @unique
+  description     String    @default("")
+  status          TagStatus @default(APPROVED)
+  requesterUserId String?   @map("requester_user_id")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
-  novels NovelCategory[]
+  novels NovelTag[]
 
-  @@index([status, name], name: "IDX_categories_status_name")
-  @@map("categories")
+  @@index([status, name], name: "IDX_tags_status_name")
+  @@map("tags")
 }
 
-model NovelCategory {
-  novelId    String @map("novel_id") @db.Uuid
-  categoryId String @map("category_id") @db.Uuid
+model NovelTag {
+  novelId String @map("novel_id") @db.Uuid
+  tagId   String @map("tag_id") @db.Uuid
 
-  novel    Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
-  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  novel Novel @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  tag   Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
-  @@id([novelId, categoryId])
-  @@index([novelId], name: "IDX_novel_categories_novel")
-  @@index([categoryId], name: "IDX_novel_categories_category")
-  @@map("novel_categories")
+  @@id([novelId, tagId])
+  @@index([novelId], name: "IDX_novel_tags_novel")
+  @@index([tagId], name: "IDX_novel_tags_tag")
+  @@map("novel_tags")
 }
 
 model ChapterUserState {

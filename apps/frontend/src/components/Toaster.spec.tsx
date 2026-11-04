@@ -39,10 +39,9 @@ describe('Toaster', () => {
     },
     {
       name: 'an api error with its own description',
-      raise: () =>
-        showApiError('The categories could not be loaded.'),
+      raise: () => showApiError('The tags could not be loaded.'),
       title: 'ERROR',
-      description: 'The categories could not be loaded.',
+      description: 'The tags could not be loaded.',
     },
     {
       name: 'an info',

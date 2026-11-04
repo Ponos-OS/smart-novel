@@ -23,11 +23,11 @@ describe(buildFilterConditions.name, () => {
     expect(buildFilterConditions({})).toStrictEqual([]);
   });
 
-  it('should match the categories by name, case-insensitively, and leave out the excluded ones', () => {
+  it('should match the tags by name, case-insensitively, and leave out the excluded ones', () => {
     const result = toSql(
       buildFilterConditions({
-        categoryIn: ['Fantasy', 'sci-fi'],
-        categoryNin: ['Mystery'],
+        tagIn: ['Fantasy', 'sci-fi'],
+        tagNin: ['Mystery'],
       }),
     );
 

@@ -15,7 +15,7 @@ describe('Novels (e2e)', () => {
                 writer {
                   penName
                 }
-                category
+                tags
               }
             }
             pageInfo {
@@ -62,7 +62,7 @@ describe('Novels (e2e)', () => {
     ).toHaveProperty('writer');
     expect(
       res.data.data.novelsConnection.edges[0].node,
-    ).toHaveProperty('category');
+    ).toHaveProperty('tags');
   });
 
   it('should return first two novels', async () => {
@@ -106,14 +106,14 @@ describe('Novels (e2e)', () => {
     expect(res.status).toBe(200);
   });
 
-  it('should filter novels by category', async () => {
+  it('should filter novels by tag', async () => {
     const res = await axios.post('/graphql', {
       query: `#graphql
         query {
-          novelsConnection(filters: { category: { in: ["fantasy"], nin: ["adventure"] } }) {
+          novelsConnection(filters: { tags: { in: ["fantasy"], nin: ["adventure"] } }) {
             edges {
               node {
-                category
+                tags
               }
             }
           }
@@ -124,14 +124,14 @@ describe('Novels (e2e)', () => {
     expect(res.status).toBe(200);
   });
 
-  it('should treat category values as canonical (case-insensitive)', async () => {
+  it('should treat tag values as canonical (case-insensitive)', async () => {
     const res = await axios.post('/graphql', {
       query: `#graphql
         query {
-          novelsConnection(filters: { category: { in: ["Fantasy"] } }) {
+          novelsConnection(filters: { tags: { in: ["Fantasy"] } }) {
             edges {
               node {
-                category
+                tags
               }
             }
           }
@@ -141,7 +141,7 @@ describe('Novels (e2e)', () => {
 
     expect(res.status).toBe(200);
     expect(
-      res.data.data.novelsConnection.edges[0].node.category,
+      res.data.data.novelsConnection.edges[0].node.tags,
     ).toContain('fantasy');
   });
 });

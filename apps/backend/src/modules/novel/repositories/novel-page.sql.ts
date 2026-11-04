@@ -26,10 +26,10 @@ const SORT_COLUMNS: Record<NovelOrderField, SortColumn> = {
   },
 };
 
-const categoryNameIn = (names: string[]) =>
+const tagNameIn = (names: string[]) =>
   Prisma.sql`EXISTS (
-    SELECT 1 FROM novel_categories nc
-    JOIN categories c ON c.id = nc.category_id
+    SELECT 1 FROM novel_tags nc
+    JOIN tags c ON c.id = nc.tag_id
     WHERE nc.novel_id = n.id AND lower(c.name) = ANY(${names.map((name) => name.toLowerCase())}::text[]))`;
 
 /**
@@ -41,14 +41,12 @@ export function buildFilterConditions(
 ): Prisma.Sql[] {
   const conditions: Prisma.Sql[] = [];
 
-  if (filters?.categoryIn?.length) {
-    conditions.push(categoryNameIn(filters.categoryIn));
+  if (filters?.tagIn?.length) {
+    conditions.push(tagNameIn(filters.tagIn));
   }
 
-  if (filters?.categoryNin?.length) {
-    conditions.push(
-      Prisma.sql`NOT ${categoryNameIn(filters.categoryNin)}`,
-    );
+  if (filters?.tagNin?.length) {
+    conditions.push(Prisma.sql`NOT ${tagNameIn(filters.tagNin)}`);
   }
 
   if (filters?.state) {

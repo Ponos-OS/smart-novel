@@ -12,7 +12,7 @@ import {
 } from 'class-validator';
 
 import { LicenseDraftInput } from '../../license/inputs';
-import { normalizeCategoryNames } from '../utils';
+import { normalizeTagNames } from '../utils';
 
 @InputType()
 export class UpdateNovelInput {
@@ -40,14 +40,14 @@ export class UpdateNovelInput {
   @Field(() => [String], {
     nullable: true,
     description:
-      'Replaces the current categories; omit to keep them. Names must be approved categories.',
+      'Replaces the current tags; omit to keep them. Names must be approved tags.',
   })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   @IsNotEmpty({ each: true })
-  @Transform(({ value }) => normalizeCategoryNames(value))
-  categories?: string[];
+  @Transform(({ value }) => normalizeTagNames(value))
+  tags?: string[];
 
   @Field(() => ID, {
     nullable: true,

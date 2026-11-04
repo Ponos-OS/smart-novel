@@ -78,7 +78,7 @@ describe(NovelService.name, () => {
     it('should return a novel when id exists', async () => {
       const novel: Novel = {
         author: `Great Calamity Of Fire`,
-        category: [
+        tags: [
           'action',
           'comedy',
           'fantasy',
@@ -128,7 +128,7 @@ describe(NovelService.name, () => {
       const input = {
         name: 'The Journey Begins',
         description: 'A young hero leaves home.',
-        categories: ['fantasy'],
+        tags: ['fantasy'],
       };
       const created = { id: '78981754-46c4-4521-9216-b9b27dafeab2' };
       vi.mocked(novelRepository.createNovel).mockResolvedValue(
@@ -284,7 +284,7 @@ describe(NovelService.name, () => {
 
   describe('findNovelsConnection', () => {
     const novelOne = {
-      category: ['action', 'fantasy'],
+      tags: ['action', 'fantasy'],
       ownerId: '224691739954204673',
       writerId: '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10',
       licenseId: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
@@ -295,7 +295,7 @@ describe(NovelService.name, () => {
     };
     const novelTwo = {
       ...novelOne,
-      category: ['romance', 'drama'],
+      tags: ['romance', 'drama'],
       id: '6c439896-3c3b-5c57-a27e-026ebbf9e34c',
       name: 'Novel Two',
       state: NovelState.FINISHED,
@@ -305,8 +305,8 @@ describe(NovelService.name, () => {
       direction: OrderDirection.ASC,
     };
     const noFilters = {
-      categoryIn: undefined,
-      categoryNin: undefined,
+      tagIn: undefined,
+      tagNin: undefined,
       chapterCountMin: undefined,
       chapterCountMax: undefined,
       firstChapterCreatedFrom: undefined,
@@ -345,7 +345,7 @@ describe(NovelService.name, () => {
         undefined,
         undefined,
         {
-          category: { in: ['action'], nin: ['mystery'] },
+          tags: { in: ['action'], nin: ['mystery'] },
           chapterCount: { min: 2, max: 40 },
           firstChapterCreatedAt: { from, to },
           state: NovelState.FINISHED,
@@ -356,8 +356,8 @@ describe(NovelService.name, () => {
       expect(novelRepository.findNovelsPage).toHaveBeenCalledWith(
         expect.objectContaining({
           filters: {
-            categoryIn: ['action'],
-            categoryNin: ['mystery'],
+            tagIn: ['action'],
+            tagNin: ['mystery'],
             chapterCountMin: 2,
             chapterCountMax: 40,
             firstChapterCreatedFrom: from,

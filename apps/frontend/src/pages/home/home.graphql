@@ -12,7 +12,7 @@ query GetNovels(
         writer {
           penName
         }
-        category
+        tags
         state
         coverUrl
         description

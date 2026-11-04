@@ -11,7 +11,7 @@ interface NovelDetails {
   id: string;
   name: string;
   description: string;
-  category: string[];
+  tags: string[];
   state: 'ONGOING' | 'FINISHED';
   coverUrl?: string;
   license?: string;
@@ -129,7 +129,7 @@ function getWriterUserId(): string {
 export async function seedNovels(
   prisma: PrismaClient,
   dataPath: string,
-  categoryMap: Map<string, string>,
+  tagMap: Map<string, string>,
   licenses: SeededLicenses,
   writerIds: Map<string, string>,
 ): Promise<void> {
@@ -166,12 +166,12 @@ export async function seedNovels(
       const chapters = await loadChapters(novelPath);
       console.log(`   Found ${chapters.length} chapters`);
 
-      const categoryIds = details.category
-        .map((category) => categoryMap.get(category.toLowerCase()))
+      const tagIds = details.tags
+        .map((tag) => tagMap.get(tag.toLowerCase()))
         .filter((id): id is string => id !== undefined);
 
-      if (categoryIds.length !== details.category.length) {
-        console.warn(`   ⚠️  Some categories not found in database`);
+      if (tagIds.length !== details.tags.length) {
+        console.warn(`   ⚠️  Some tags not found in database`);
       }
 
       const licenseId = details.license
@@ -211,14 +211,14 @@ export async function seedNovels(
           },
         });
 
-        if (categoryIds.length === 0) {
+        if (tagIds.length === 0) {
           return;
         }
 
-        await tx.novelCategory.createMany({
-          data: categoryIds.map((categoryId) => ({
+        await tx.novelTag.createMany({
+          data: tagIds.map((tagId) => ({
             novelId: details.id,
-            categoryId,
+            tagId,
           })),
           skipDuplicates: true,
         });

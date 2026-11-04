@@ -11,22 +11,22 @@ describe('Search Page', () => {
   });
 
   it('should display search controls', () => {
-    cy.contains('h3', /include categories/i).should('be.visible');
-    cy.contains('h3', /exclude categories/i).should('be.visible');
+    cy.contains('h3', /include tags/i).should('be.visible');
+    cy.contains('h3', /exclude tags/i).should('be.visible');
     cy.contains('button', /^search$/i).should('be.visible');
   });
 
-  it('should display category filters', () => {
-    cy.contains('h3', /include categories/i)
+  it('should display tag filters', () => {
+    cy.contains('h3', /include tags/i)
       .parent()
       .find('button')
       .should('have.length.greaterThan', 0);
   });
 
-  it('should filter novels when selecting categories and searching', () => {
+  it('should filter novels when selecting tags and searching', () => {
     cy.intercept('POST', '**/graphql').as('searchNovels');
 
-    cy.contains('h3', /include categories/i)
+    cy.contains('h3', /include tags/i)
       .parent()
       .find('button')
       .first()
@@ -38,10 +38,10 @@ describe('Search Page', () => {
     cy.contains('h2', /results/i).should('be.visible');
   });
 
-  it('should filter novels by category when selecting a category', () => {
+  it('should filter novels by tag when selecting a tag', () => {
     cy.intercept('POST', '**/graphql').as('searchNovels');
 
-    cy.contains('h3', /include categories/i)
+    cy.contains('h3', /include tags/i)
       .parent()
       .find('button')
       .first()
@@ -54,27 +54,24 @@ describe('Search Page', () => {
   });
 
   it('should clear search filters', () => {
-    cy.contains('h3', /include categories/i)
+    cy.contains('h3', /include tags/i)
       .parent()
       .find('button')
       .first()
-      .as('includeCategory');
+      .as('includeTag');
 
-    cy.get('@includeCategory').click();
-    cy.get('@includeCategory').should('have.class', 'bg-green-600');
+    cy.get('@includeTag').click();
+    cy.get('@includeTag').should('have.class', 'bg-green-600');
 
     // Toggle again to clear
-    cy.get('@includeCategory').click();
-    cy.get('@includeCategory').should(
-      'not.have.class',
-      'bg-green-600',
-    );
+    cy.get('@includeTag').click();
+    cy.get('@includeTag').should('not.have.class', 'bg-green-600');
   });
 
   it('should navigate to novel detail page when clicking on a search result', () => {
     cy.intercept('POST', '**/graphql').as('searchNovels');
 
-    cy.contains('h3', /include categories/i)
+    cy.contains('h3', /include tags/i)
       .parent()
       .find('button')
       .first()
@@ -94,28 +91,28 @@ describe('Search Page', () => {
   it('should display message when no results are found', () => {
     cy.intercept('POST', '**/graphql').as('searchNovels');
 
-    cy.contains('h3', /include categories/i)
+    cy.contains('h3', /include tags/i)
       .parent()
       .find('button')
       .first()
-      .as('includeCategory');
+      .as('includeTag');
 
-    cy.contains('h3', /exclude categories/i)
+    cy.contains('h3', /exclude tags/i)
       .parent()
       .find('button')
       .first()
-      .as('excludeCategory');
+      .as('excludeTag');
 
-    // Select the same category in include and exclude to force empty results.
-    cy.get('@includeCategory')
+    // Select the same tag in include and exclude to force empty results.
+    cy.get('@includeTag')
       .invoke('text')
       .then((label) => {
-        const category = label.trim();
-        cy.get('@includeCategory').click();
-        cy.contains('h3', /exclude categories/i)
+        const tag = label.trim();
+        cy.get('@includeTag').click();
+        cy.contains('h3', /exclude tags/i)
           .parent()
           .find('button')
-          .contains(category)
+          .contains(tag)
           .click();
       });
 

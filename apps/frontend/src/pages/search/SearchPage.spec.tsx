@@ -8,7 +8,7 @@ import { MemoryRouter } from 'react-router-dom';
 
 import { showApiError } from '../../utils/notification';
 import { SearchPage } from './SearchPage';
-import { useFilterCategories } from './use-filter-categories';
+import { useFilterTags } from './use-filter-tags';
 
 const search = vi.hoisted(() => ({ useSearchNovelsQuery: vi.fn() }));
 
@@ -18,21 +18,21 @@ vi.mock('../../hooks/useDebouncedValue', () => ({
 vi.mock('../../utils/notification', () => ({
   showApiError: vi.fn(),
 }));
-vi.mock('./use-filter-categories', () => ({
-  useFilterCategories: vi.fn(),
+vi.mock('./use-filter-tags', () => ({
+  useFilterTags: vi.fn(),
 }));
 vi.mock('../../generated/graphql', async () => ({
   ...(await vi.importActual('../../generated/graphql')),
   useSearchNovelsQuery: search.useSearchNovelsQuery,
 }));
 
-function mockCategories(
-  overrides: Partial<ReturnType<typeof useFilterCategories>> = {},
+function mockTags(
+  overrides: Partial<ReturnType<typeof useFilterTags>> = {},
 ) {
   const loadMore = vi.fn();
 
-  vi.mocked(useFilterCategories).mockReturnValue({
-    categories: [
+  vi.mocked(useFilterTags).mockReturnValue({
+    tags: [
       {
         id: '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10',
         name: 'fantasy',
@@ -70,7 +70,7 @@ function renderPage(url = '/search') {
 
 describe('SearchPage', () => {
   beforeEach(() => {
-    mockCategories();
+    mockTags();
     vi.mocked(showApiError).mockReset();
     search.useSearchNovelsQuery.mockReset();
     search.useSearchNovelsQuery.mockReturnValue({
@@ -80,11 +80,11 @@ describe('SearchPage', () => {
     });
   });
 
-  it('shows the categories capitalized, with their estimated counts', () => {
+  it('shows the tags capitalized, with their estimated counts', () => {
     renderPage();
 
     const include = within(
-      screen.getByRole('heading', { name: 'Include Categories' })
+      screen.getByRole('heading', { name: 'Include Tags' })
         .parentElement!,
     );
     expect(
@@ -95,50 +95,50 @@ describe('SearchPage', () => {
     ).toHaveTextContent('~87');
   });
 
-  it('shows a loading and an error state for the categories', () => {
-    mockCategories({ categories: [], isLoading: true });
+  it('shows a loading and an error state for the tags', () => {
+    mockTags({ tags: [], isLoading: true });
     renderPage();
-    expect(screen.getByText('Loading categories...')).toBeVisible();
+    expect(screen.getByText('Loading tags...')).toBeVisible();
   });
 
-  it('notifies when the categories could not be loaded, once', () => {
-    mockCategories({ categories: [], isError: true });
+  it('notifies when the tags could not be loaded, once', () => {
+    mockTags({ tags: [], isError: true });
 
     renderPage();
 
     expect(showApiError).toHaveBeenCalledExactlyOnceWith(
-      'The categories could not be loaded. Try again later.',
+      'The tags could not be loaded. Try again later.',
     );
   });
 
-  it('does not notify when the categories were loaded', () => {
+  it('does not notify when the tags were loaded', () => {
     renderPage();
 
     expect(showApiError).not.toHaveBeenCalled();
   });
 
-  it('loads more categories on demand', async () => {
-    const { loadMore } = mockCategories({ hasMore: true });
+  it('loads more tags on demand', async () => {
+    const { loadMore } = mockTags({ hasMore: true });
     const user = renderPage();
 
     await user.click(
-      screen.getByRole('button', { name: 'Show more categories' }),
+      screen.getByRole('button', { name: 'Show more tags' }),
     );
 
     expect(loadMore).toHaveBeenCalledOnce();
   });
 
-  it('searches with the included and the excluded categories', async () => {
+  it('searches with the included and the excluded tags', async () => {
     const user = renderPage();
     await user.click(
       within(
-        screen.getByRole('heading', { name: 'Include Categories' })
+        screen.getByRole('heading', { name: 'Include Tags' })
           .parentElement!,
       ).getByRole('button', { name: /Fantasy/ }),
     );
     await user.click(
       within(
-        screen.getByRole('heading', { name: 'Exclude Categories' })
+        screen.getByRole('heading', { name: 'Exclude Tags' })
           .parentElement!,
       ).getByRole('button', { name: /Mystery/ }),
     );
@@ -147,7 +147,7 @@ describe('SearchPage', () => {
 
     expect(search.useSearchNovelsQuery).toHaveBeenLastCalledWith(
       {
-        filters: { category: { in: ['Fantasy'], nin: ['Mystery'] } },
+        filters: { tags: { in: ['Fantasy'], nin: ['Mystery'] } },
       },
       { enabled: true },
     );
@@ -162,21 +162,18 @@ describe('SearchPage', () => {
     );
   });
 
-  describe('searching the categories', () => {
+  describe('searching the tags', () => {
     it('asks for all of them first, then for the ones matching what is typed', async () => {
       const user = renderPage();
-      expect(useFilterCategories).toHaveBeenLastCalledWith('');
+      expect(useFilterTags).toHaveBeenLastCalledWith('');
 
-      await user.type(
-        screen.getByLabelText('Search categories'),
-        '  sci ',
-      );
+      await user.type(screen.getByLabelText('Search tags'), '  sci ');
 
-      expect(useFilterCategories).toHaveBeenLastCalledWith('sci');
+      expect(useFilterTags).toHaveBeenLastCalledWith('sci');
     });
 
     it('says it is searching while the next list loads', () => {
-      mockCategories({ isFetching: true });
+      mockTags({ isFetching: true });
 
       renderPage();
 
@@ -185,16 +182,16 @@ describe('SearchPage', () => {
       );
     });
 
-    it('keeps a picked category visible when a later search does not list it', async () => {
+    it('keeps a picked tag visible when a later search does not list it', async () => {
       const user = renderPage();
       await user.click(
         within(
-          screen.getByRole('heading', { name: 'Include Categories' })
+          screen.getByRole('heading', { name: 'Include Tags' })
             .parentElement!,
         ).getByRole('button', { name: /Fantasy/ }),
       );
-      mockCategories({
-        categories: [
+      mockTags({
+        tags: [
           {
             id: '3c1d9a52-7e08-4f6b-b2a4-91d05c7e6f13',
             name: 'sci-fi',
@@ -203,13 +200,10 @@ describe('SearchPage', () => {
         ],
       });
 
-      await user.type(
-        screen.getByLabelText('Search categories'),
-        'sci',
-      );
+      await user.type(screen.getByLabelText('Search tags'), 'sci');
 
       const include = within(
-        screen.getByRole('heading', { name: 'Include Categories' })
+        screen.getByRole('heading', { name: 'Include Tags' })
           .parentElement!,
       );
       expect(

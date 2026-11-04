@@ -19,7 +19,7 @@ describe(NovelLicenseFieldResolver.name, () => {
     const novel: Novel = {
       id: '78981754-46c4-4521-9216-b9b27dafeab2',
       name: 'The Journey Begins',
-      category: ['fantasy'],
+      tags: ['fantasy'],
       state: NovelState.ONGOING,
       description: 'A young hero leaves home.',
       ownerId: '260311094522198751',

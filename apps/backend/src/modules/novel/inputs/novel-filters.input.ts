@@ -20,11 +20,10 @@ export const NOVEL_OWNER_IDS_MAX_SIZE = 100;
 /** @description PostgreSQL text cannot hold a NUL character, so it would fail the query as a 500. */
 // eslint-disable-next-line no-control-regex -- the NUL character is exactly what is refused
 const NO_NUL_CHARACTER = /^[^\u0000]*$/;
-const NO_NUL_MESSAGE =
-  'category names cannot contain a NUL character';
+const NO_NUL_MESSAGE = 'tag names cannot contain a NUL character';
 
 @InputType()
-export class CategoryFilterInput extends ListFilterInputMixin<string>(
+export class TagFilterInput extends ListFilterInputMixin<string>(
   () => String,
 ) {
   @Transform(({ value }) => value.map((v: string) => v.toLowerCase()))
@@ -74,14 +73,14 @@ export class DateRangeInput {
 
 @InputType()
 export class NovelFiltersInput {
-  @Field(() => CategoryFilterInput, {
+  @Field(() => TagFilterInput, {
     nullable: true,
-    description: 'Filter by category',
+    description: 'Filter by tag',
   })
   @IsOptional()
   @ValidateNested()
-  @Type(() => CategoryFilterInput)
-  category?: CategoryFilterInput;
+  @Type(() => TagFilterInput)
+  tags?: TagFilterInput;
 
   @Field(() => ChapterCountRangeInput, {
     nullable: true,

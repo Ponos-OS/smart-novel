@@ -102,9 +102,7 @@ export function Header() {
                             asChild
                             className={MENU_ITEM_CLASSES}
                           >
-                            <Link to="/admin/categories">
-                              Manage categories
-                            </Link>
+                            <Link to="/admin/tags">Manage tags</Link>
                           </DropdownMenu.Item>
                         )}
                         {isAdmin && (
@@ -248,11 +246,11 @@ export function Header() {
                     )}
                     {isAdmin && (
                       <Link
-                        to="/admin/categories"
+                        to="/admin/tags"
                         onClick={closeMenu}
                         className="rounded-md px-3 py-2 text-sm transition-colors text-gray-300 hover:bg-gray-600"
                       >
-                        Manage categories
+                        Manage tags
                       </Link>
                     )}
                     {isAdmin && (
