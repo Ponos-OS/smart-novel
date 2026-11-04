@@ -1,9 +1,9 @@
 import { LicenseSourceType } from '@prisma/client';
 
 import type { CanonicalLicenseCatalog } from '../fithara';
-import type { License } from './types';
 
 import { LicenseFieldResolver } from './license.field-resolver';
+import { type License, LicenseScope } from './types';
 
 describe(LicenseFieldResolver.name, () => {
   let uut: LicenseFieldResolver;
@@ -15,6 +15,11 @@ describe(LicenseFieldResolver.name, () => {
     text: 'Attribution 4.0 International',
     sourceType: LicenseSourceType.CANONICAL,
     canonicalId: 'CC-BY-4.0',
+    isDefault: true,
+    isDraft: false,
+    ownerId: 'system',
+    createdAt: new Date('2026-01-10T08:00:00.000Z'),
+    updatedAt: new Date('2026-01-10T08:00:00.000Z'),
   };
 
   beforeEach(() => {
@@ -47,5 +52,23 @@ describe(LicenseFieldResolver.name, () => {
 
     expect(result).toBeNull();
     expect(catalog.getOfficialUrl).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['a shared license', { ownerId: 'system' }, LicenseScope.SHARED],
+    [
+      "a writer's license",
+      { ownerId: '230104087265432001' },
+      LicenseScope.PERSONAL,
+    ],
+    [
+      "a writer's draft",
+      { ownerId: '230104087265432001', isDraft: true },
+      LicenseScope.DRAFT,
+    ],
+  ])('should tell the scope of %s', (_, overrides, expected) => {
+    const result = uut.scope({ ...license, ...overrides });
+
+    expect(result).toBe(expected);
   });
 });

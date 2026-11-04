@@ -1,9 +1,24 @@
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import {
+  Args,
+  Int,
+  Mutation,
+  Query,
+  Resolver,
+} from '@nestjs/graphql';
+import { Role } from '@smart-novel/shared';
 
-import { CheckPolicy } from '../auth';
-import { SetDefaultLicenseInput } from './inputs';
+import {
+  CheckPolicy,
+  CurrentUser,
+  type IAuthUser,
+  RequireRole,
+} from '../auth';
+import {
+  LicenseFiltersInput,
+  SetDefaultLicenseInput,
+} from './inputs';
 import { LicenseService } from './services';
-import { License } from './types';
+import { License, LicenseConnection } from './types';
 
 @Resolver(() => License)
 export class LicenseResolver {
@@ -14,6 +29,33 @@ export class LicenseResolver {
   })
   async defaultLicense(): Promise<License> {
     return this.licenseService.getDefault();
+  }
+
+  @RequireRole(Role.writer)
+  @Query(() => LicenseConnection, {
+    description:
+      'Paginated licenses, newest first, narrowed by `filters.scope` and `filters.search` (the name contains it). An admin gets every license; a writer gets the shared ones and their own licenses and drafts. Without `first` or `last` a page of 20 is returned, at most 100 are allowed.',
+  })
+  async licensesConnection(
+    @CurrentUser() user: IAuthUser,
+    @Args('first', { type: () => Int, nullable: true })
+    first?: number,
+    @Args('last', { type: () => Int, nullable: true }) last?: number,
+    @Args('after', { type: () => String, nullable: true })
+    after?: string,
+    @Args('before', { type: () => String, nullable: true })
+    before?: string,
+    @Args('filters', {
+      type: () => LicenseFiltersInput,
+      nullable: true,
+    })
+    filters?: LicenseFiltersInput,
+  ): Promise<LicenseConnection> {
+    return this.licenseService.licensesConnection(
+      { id: user.sub, isAdmin: user.roles.includes(Role.admin) },
+      { first, last, after, before },
+      filters,
+    );
   }
 
   @CheckPolicy('license', 'update')

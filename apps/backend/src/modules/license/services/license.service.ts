@@ -3,13 +3,25 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { LicenseSourceType } from '@prisma/client';
+import { LicenseSourceType, Prisma } from '@prisma/client';
 
+import {
+  boundPagination,
+  buildAudience,
+  escapeLikePattern,
+  paginateConnection,
+  type PaginationArgs,
+} from '../../../shared';
+import { CursorCodec } from '../../cursor';
 import { CanonicalLicenseCatalog } from '../../fithara';
 import { PrismaService } from '../../prisma';
-import { SYSTEM_LICENSE_OWNER } from '../constants';
-import { LicenseDraftInput } from '../inputs';
-import { License } from '../types';
+import {
+  LICENSES_PAGE_SIZE_DEFAULT,
+  LICENSES_PAGE_SIZE_MAX,
+  SYSTEM_LICENSE_OWNER,
+} from '../constants';
+import { LicenseDraftInput, LicenseFiltersInput } from '../inputs';
+import { License, LicenseConnection, LicenseScope } from '../types';
 import {
   computeLicenseTextHash,
   normalizeLicenseText,
@@ -24,6 +36,23 @@ export interface NewLicense {
   canonicalId: string | null;
 }
 
+export interface LicenseViewer {
+  id: string;
+  isAdmin: boolean;
+}
+
+const SCOPE_WHERE: Record<LicenseScope, Prisma.LicenseWhereInput> = {
+  [LicenseScope.SHARED]: {
+    isDraft: false,
+    ownerId: SYSTEM_LICENSE_OWNER,
+  },
+  [LicenseScope.PERSONAL]: {
+    isDraft: false,
+    ownerId: { not: SYSTEM_LICENSE_OWNER },
+  },
+  [LicenseScope.DRAFT]: { isDraft: true },
+};
+
 export interface LicenseSelection {
   licenseId?: string;
   licenseDraft?: LicenseDraftInput;
@@ -34,6 +63,7 @@ export class LicenseService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly canonicalLicenseCatalog: CanonicalLicenseCatalog,
+    private readonly cursorCodec: CursorCodec,
   ) {}
 
   async getDefault(): Promise<License> {
@@ -61,6 +91,62 @@ export class LicenseService {
     }
 
     return license;
+  }
+
+  /**
+   * @description An admin sees every license; a writer sees the shared ones and their own licenses and drafts, never another writer's.
+   */
+  async licensesConnection(
+    viewer: LicenseViewer,
+    pagination: PaginationArgs,
+    filters?: LicenseFiltersInput,
+  ): Promise<LicenseConnection> {
+    const page = boundPagination(pagination, {
+      defaultSize: LICENSES_PAGE_SIZE_DEFAULT,
+      maxSize: LICENSES_PAGE_SIZE_MAX,
+    });
+    const search =
+      filters?.search && escapeLikePattern(filters.search);
+    const where: Prisma.LicenseWhereInput = {
+      AND: [
+        viewer.isAdmin
+          ? {}
+          : {
+              OR: [
+                SCOPE_WHERE[LicenseScope.SHARED],
+                { ownerId: viewer.id },
+              ],
+            },
+        filters?.scope ? SCOPE_WHERE[filters.scope] : {},
+        search
+          ? { name: { contains: search, mode: 'insensitive' } }
+          : {},
+      ],
+    };
+    const { edges, pageInfo } = await paginateConnection({
+      codec: this.cursorCodec,
+      audience: buildAudience('licenses', {
+        where,
+      }),
+      pagination: page,
+      findMany: ({ cursor, skip, take, shouldReverse }) => {
+        const direction = shouldReverse ? 'asc' : 'desc';
+
+        return this.prisma.license.findMany({
+          where,
+          orderBy: [{ updatedAt: direction }, { id: direction }],
+          cursor,
+          skip,
+          take,
+        });
+      },
+      toNode: (row) => row,
+    });
+
+    return Object.assign(new LicenseConnection(), {
+      edges,
+      pageInfo,
+    });
   }
 
   async findByIds(ids: string[]): Promise<Map<string, License>> {

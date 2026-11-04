@@ -2,7 +2,8 @@ import { Parent, ResolveField, Resolver } from '@nestjs/graphql';
 
 import { Public } from '../auth';
 import { CanonicalLicenseCatalog } from '../fithara';
-import { License } from './types';
+import { SYSTEM_LICENSE_OWNER } from './constants';
+import { License, LicenseScope } from './types';
 
 @Public()
 @Resolver(() => License)
@@ -26,5 +27,16 @@ export class LicenseFieldResolver {
     return this.canonicalLicenseCatalog.getOfficialUrl(
       license.canonicalId,
     );
+  }
+
+  @ResolveField(() => LicenseScope)
+  scope(@Parent() license: License): LicenseScope {
+    if (license.isDraft) {
+      return LicenseScope.DRAFT;
+    }
+
+    return license.ownerId === SYSTEM_LICENSE_OWNER
+      ? LicenseScope.SHARED
+      : LicenseScope.PERSONAL;
   }
 }

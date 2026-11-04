@@ -3,14 +3,22 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { ConfigType } from '@nestjs/config';
 import { LicenseSourceType } from '@prisma/client';
 
 import type { CanonicalLicenseCatalog } from '../../fithara';
 import type { PrismaService } from '../../prisma';
 import type { LicenseDraftInput } from '../inputs';
 
+import { appConfigs } from '../../../app/configs/app.config';
+import { CursorCodec } from '../../cursor';
+import { LicenseScope } from '../types';
 import { computeLicenseTextHash } from '../utils';
 import { LicenseService } from './license.service';
+
+const cursorCodec = new CursorCodec({
+  CURSOR_SIGNING_SECRET: 'b7e1f0c2a94d4c1f8d3e6a5b09c27f41',
+} as ConfigType<typeof appConfigs>);
 
 describe(LicenseService.name, () => {
   let uut: LicenseService;
@@ -55,7 +63,7 @@ describe(LicenseService.name, () => {
 
     catalog = { findVerbatim: vi.fn() } as any;
 
-    uut = new LicenseService(prisma, catalog);
+    uut = new LicenseService(prisma, catalog, cursorCodec);
   });
 
   describe('getDefault', () => {
@@ -465,6 +473,99 @@ describe(LicenseService.name, () => {
 
       await expect(result).rejects.toThrow(BadRequestException);
       expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('licensesConnection', () => {
+    const admin = { id: otherWriterId, isAdmin: true };
+    const writer = { id: writerId, isAdmin: false };
+
+    beforeEach(() => {
+      vi.mocked(prisma.license.findMany).mockResolvedValue([
+        ccBy as any,
+      ]);
+    });
+
+    it('should list every license, newest first, for an admin who filters nothing', async () => {
+      const result = await uut.licensesConnection(admin, {
+        first: 10,
+      });
+
+      expect(prisma.license.findMany).toHaveBeenCalledWith({
+        where: { AND: [{}, {}, {}] },
+        orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+        cursor: undefined,
+        skip: undefined,
+        take: 11,
+      });
+      expect(result.edges.map(({ node }) => node.id)).toEqual([
+        ccBy.id,
+      ]);
+    });
+
+    it('should limit a writer to the shared licenses and their own', async () => {
+      await uut.licensesConnection(writer, { first: 10 });
+
+      expect(prisma.license.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            AND: [
+              {
+                OR: [
+                  { isDraft: false, ownerId: 'system' },
+                  { ownerId: writerId },
+                ],
+              },
+              {},
+              {},
+            ],
+          },
+        }),
+      );
+    });
+
+    it.each([
+      [LicenseScope.SHARED, { isDraft: false, ownerId: 'system' }],
+      [
+        LicenseScope.PERSONAL,
+        { isDraft: false, ownerId: { not: 'system' } },
+      ],
+      [LicenseScope.DRAFT, { isDraft: true }],
+    ])('should narrow to the %s scope', async (scope, expected) => {
+      await uut.licensesConnection(admin, { first: 10 }, { scope });
+
+      expect(prisma.license.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { AND: [{}, expected, {}] },
+        }),
+      );
+    });
+
+    it('should match the name case-insensitively and escape LIKE wildcards', async () => {
+      await uut.licensesConnection(
+        admin,
+        { first: 10 },
+        { search: '100%' },
+      );
+
+      expect(prisma.license.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            AND: [
+              {},
+              {},
+              { name: { contains: '100\\%', mode: 'insensitive' } },
+            ],
+          },
+        }),
+      );
+    });
+
+    it('should refuse a page larger than the maximum', async () => {
+      const result = uut.licensesConnection(admin, { first: 101 });
+
+      await expect(result).rejects.toThrow(BadRequestException);
+      expect(prisma.license.findMany).not.toHaveBeenCalled();
     });
   });
 });

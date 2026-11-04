@@ -413,3 +413,9 @@
 - Tests: a module test that no route mentions `/admin` or `/management`, `ingress-routing.e2e-spec.ts` (admin pages return the frontend, ZITADEL answers on its own host), `admin-categories.cy.ts` now loads `/admin/categories` directly. The Cypress login runs its ZITADEL steps inside `cy.origin`, in one self-contained function (`Cypress.require` needs an experimental flag).
 - Verification on a fresh stack: 87 backend-e2e tests in six specs, three Cypress specs with real logins (categories, settings, manage-novel).
 - Worth knowing: `*.localhost` resolves on its own in browsers, curl and Node, so the host needs no `/etc/hosts` entry (the stack already used it for Grafana and S3). Changing ZITADEL's external domain needs a fresh instance (`stop:dev`, `start:dev`). Two `start:dev`/`stop:dev` runs at once fail on the Terraform state lock; kill the earlier `terraform` first. `Cypress.env()` is deprecated in Cypress 15, so a constant is used.
+
+## License management, Step 1 (2026-11-04)
+
+- Built `licensesConnection` in `LicenseService.licensesConnection` (first put in a separate service, which was wrong: `WriterService` and `LicenseDraftService` keep theirs in the main service), `kind` as a field resolver derived from `isDraft`/`ownerId`, and unit plus `backend-e2e` specs. `tsc` and the 1060 backend unit tests pass.
+- Not done: `backend-e2e` and graphql-api-tester were not run. A `smart-novel` kind cluster already answered on `localhost:8080`, which looked like the user's own dev stack, so it was left alone. `REQUIREMENTS.md` says not to commit; the tree is left uncommitted.
+- Process change: `SELF_IMPROVE.md` item 2d, ask before replacing a running stack.
