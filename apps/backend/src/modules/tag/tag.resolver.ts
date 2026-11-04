@@ -18,6 +18,7 @@ import {
 } from '../auth';
 import { RequireAcceptedTerms } from '../platform-terms';
 import {
+  CreateTagInput,
   RequestTagInput,
   TagFiltersInput,
   UpdateTagInput,
@@ -68,6 +69,19 @@ export class TagResolver {
     @CurrentUser() user: IAuthUser,
   ): Promise<Tag> {
     return this.tagService.request(user.sub, input);
+  }
+
+  @RequireRole(Role.admin)
+  @RequireAcceptedTerms()
+  @Mutation(() => Tag, {
+    description:
+      'Admin only. Create a tag that is APPROVED right away, so writers can put it on novels. A name that already exists, even in another case, is a 400 that names the existing tag.',
+  })
+  async createTag(
+    @Args('input', { type: () => CreateTagInput })
+    input: CreateTagInput,
+  ): Promise<Tag> {
+    return this.tagService.create(input);
   }
 
   @RequireRole(Role.admin)

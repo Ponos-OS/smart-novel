@@ -23,6 +23,7 @@ import {
   TAGS_PAGE_SIZE_MAX,
 } from '../constants';
 import {
+  CreateTagInput,
   RequestTagInput,
   TagFiltersInput,
   UpdateTagInput,
@@ -102,18 +103,25 @@ export class TagService {
 
   async request(
     requesterUserId: string,
+    input: RequestTagInput,
+  ): Promise<Tag> {
+    return this.insert(input, {
+      status: TagStatus.PENDING,
+      requesterUserId,
+    });
+  }
+
+  async create(input: CreateTagInput): Promise<Tag> {
+    return this.insert(input, { status: TagStatus.APPROVED });
+  }
+
+  private async insert(
     { name, description }: RequestTagInput,
+    origin: { status: TagStatus; requesterUserId?: string },
   ): Promise<Tag> {
     // `skipDuplicates` (ON CONFLICT DO NOTHING) keeps two concurrent requests for one name from failing on the unique index.
     const { count } = await this.prisma.tag.createMany({
-      data: [
-        {
-          name,
-          description,
-          status: TagStatus.PENDING,
-          requesterUserId,
-        },
-      ],
+      data: [{ name, description, ...origin }],
       skipDuplicates: true,
     });
 

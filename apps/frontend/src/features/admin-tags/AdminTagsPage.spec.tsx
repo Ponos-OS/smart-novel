@@ -15,6 +15,7 @@ const mutations = vi.hoisted(() => ({
   approve: { mutate: vi.fn(), isPending: false },
   rename: { mutate: vi.fn(), isPending: false },
   remove: { mutate: vi.fn(), isPending: false },
+  create: { mutate: vi.fn(), isPending: false },
 }));
 let auth: { user: { roles: string[] } | null; loading: boolean };
 
@@ -35,6 +36,7 @@ vi.mock('../../generated/graphql', async () => ({
   useApproveTagMutation: () => mutations.approve,
   useUpdateTagMutation: () => mutations.rename,
   useDeleteTagMutation: () => mutations.remove,
+  useCreateTagMutation: () => mutations.create,
 }));
 
 const fantasy = {
@@ -634,6 +636,90 @@ describe('AdminTagsPage', () => {
           name: 'Delete',
         }),
       );
+
+      expect(showApiError).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe('create', () => {
+    async function fillAndSubmit(
+      user: ReturnType<typeof userEvent.setup>,
+    ) {
+      await user.click(
+        screen.getByRole('button', { name: 'Create tag' }),
+      );
+      const dialog = screen.getByRole('dialog');
+      await user.type(
+        within(dialog).getByLabelText('Tag name'),
+        '  Slice Of Life ',
+      );
+      await user.type(
+        within(dialog).getByLabelText('Description'),
+        ' Quiet, everyday stories. ',
+      );
+      await user.click(
+        within(dialog).getByRole('button', { name: 'Create tag' }),
+      );
+    }
+
+    it('creates the tag, closes the dialog and refreshes the list', async () => {
+      const { user, invalidate } = renderPage();
+      mutations.create.mutate.mockImplementation(
+        (_variables, options) =>
+          options.onSuccess({
+            createTag: { id: fantasy.id, name: 'Slice Of Life' },
+          }),
+      );
+
+      await fillAndSubmit(user);
+
+      expect(mutations.create.mutate).toHaveBeenCalledWith(
+        {
+          input: {
+            name: 'Slice Of Life',
+            description: 'Quiet, everyday stories.',
+          },
+        },
+        expect.any(Object),
+      );
+      expect(showSuccess).toHaveBeenCalledOnce();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(invalidate).toHaveBeenCalledWith({
+        queryKey: ['AdminTagsInfinite'],
+      });
+    });
+
+    it('shows the refusal of an existing name and keeps the dialog open', async () => {
+      const { user } = renderPage();
+      mutations.create.mutate.mockImplementation(
+        (_variables, options) =>
+          options.onError(
+            new GraphqlRequestError(
+              'The tag "fantasy" already exists',
+              {
+                code: 'BAD_REQUEST',
+              },
+            ),
+          ),
+      );
+
+      await fillAndSubmit(user);
+
+      expect(
+        within(screen.getByRole('dialog')).getByText(
+          /already exists/,
+        ),
+      ).toBeInTheDocument();
+      expect(showApiError).not.toHaveBeenCalled();
+    });
+
+    it('uses the generic error for anything else', async () => {
+      const { user } = renderPage();
+      mutations.create.mutate.mockImplementation(
+        (_variables, options) => options.onError(new Error('boom')),
+      );
+
+      await fillAndSubmit(user);
 
       expect(showApiError).toHaveBeenCalledOnce();
     });

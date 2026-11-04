@@ -15,6 +15,7 @@ describe(TagResolver.name, () => {
     tagService = {
       findConnection: vi.fn(),
       request: vi.fn(),
+      create: vi.fn(),
       approve: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -93,6 +94,21 @@ describe(TagResolver.name, () => {
 
       expect(tagService.request).toHaveBeenCalledExactlyOnceWith(
         '300311094522198754',
+        input,
+      );
+      expect(result).toBe(tag);
+    });
+
+    it('should create the tag', async () => {
+      vi.mocked(tagService.create).mockResolvedValue(tag);
+      const input = {
+        name: 'fantasy',
+        description: 'Worlds with magic and quests.',
+      };
+
+      const result = await uut.createTag(input);
+
+      expect(tagService.create).toHaveBeenCalledExactlyOnceWith(
         input,
       );
       expect(result).toBe(tag);

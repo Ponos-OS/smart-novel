@@ -46,3 +46,10 @@ mutation DeleteTag($id: ID!) {
     id
   }
 }
+
+mutation CreateTag($input: CreateTagInput!) {
+  createTag(input: $input) {
+    id
+    name
+  }
+}

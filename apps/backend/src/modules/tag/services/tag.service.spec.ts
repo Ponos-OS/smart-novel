@@ -362,6 +362,51 @@ describe(TagService.name, () => {
     });
   });
 
+  describe('create', () => {
+    it('should store the tag as APPROVED without a requester', async () => {
+      const approved = {
+        id: fantasy.id,
+        name: 'Slice Of Life',
+        status: TagStatus.APPROVED,
+      };
+      prisma.tag.createMany.mockResolvedValue({ count: 1 });
+      prisma.tag.findUniqueOrThrow.mockResolvedValue(approved);
+
+      const result = await uut.create({
+        name: 'Slice Of Life',
+        description: 'Quiet, everyday stories.',
+      });
+
+      expect(prisma.tag.createMany).toHaveBeenCalledWith({
+        data: [
+          {
+            name: 'Slice Of Life',
+            description: 'Quiet, everyday stories.',
+            status: TagStatus.APPROVED,
+          },
+        ],
+        skipDuplicates: true,
+      });
+      expect(result).toBe(approved);
+    });
+
+    it('should reject a name that exists, naming it', async () => {
+      prisma.tag.createMany.mockResolvedValue({ count: 0 });
+
+      const result = uut.create({
+        name: 'fantasy',
+        description: 'Magic and quests.',
+      });
+
+      await expect(result).rejects.toThrow(
+        expect.objectContaining({
+          status: 400,
+          message: expect.stringContaining('"fantasy"'),
+        }),
+      );
+    });
+  });
+
   describe('request', () => {
     const requesterUserId = '300311094522198754';
 

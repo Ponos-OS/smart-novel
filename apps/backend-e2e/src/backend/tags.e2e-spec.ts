@@ -169,6 +169,11 @@ const REQUEST_TAG = `#graphql
     requestTag(input: { name: $name, description: $description }) { id name description status }
   }
 `;
+const CREATE_TAG = `#graphql
+  mutation CreateTag($name: String!, $description: String!) {
+    createTag(input: { name: $name, description: $description }) { id name description status }
+  }
+`;
 const APPROVE_TAG = `#graphql
   mutation ApproveTag($id: ID!) {
     approveTag(id: $id) { id name status }
@@ -265,14 +270,14 @@ describe('Tag requests and management (e2e)', () => {
       { caller: 'a writer', header: () => writer },
       { caller: 'an admin', header: () => admin },
     ])(
-      'should let $caller request a tag, normalized and PENDING',
+      'should let $caller request a tag, trimmed and PENDING',
       async ({ header }) => {
         const name = uniqueName('request');
 
         const data = await graphql(
           REQUEST_TAG,
           {
-            name: `  ${name.toUpperCase()} `,
+            name: `  ${name} `,
             description: `  ${DESCRIPTION}  `,
           },
           header(),
@@ -312,7 +317,7 @@ describe('Tag requests and management (e2e)', () => {
     });
 
     it.each(['fantasy', 'FANTASY'])(
-      'should answer 400 with the normalized name when asking for the existing %s',
+      'should answer 400 naming the tag when asking for the existing %s',
       async (name) => {
         const data = await graphql(
           REQUEST_TAG,
@@ -320,12 +325,12 @@ describe('Tag requests and management (e2e)', () => {
           writer,
         );
 
-        expect(data.errors[0].message).toContain('"fantasy"');
+        expect(data.errors[0].message).toContain(`"${name}"`);
         expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
       },
     );
 
-    it('should answer 400 with the normalized name when the request is already pending', async () => {
+    it('should answer 400 naming the tag when the request is already pending', async () => {
       const name = uniqueName('twice');
       await requestAsWriter(name);
 
@@ -335,7 +340,9 @@ describe('Tag requests and management (e2e)', () => {
         writer,
       );
 
-      expect(data.errors[0].message).toContain(`"${name}"`);
+      expect(data.errors[0].message).toContain(
+        `"${name.toUpperCase()}"`,
+      );
     });
 
     it('should reject a name longer than 50 characters', async () => {
@@ -514,6 +521,58 @@ describe('Tag requests and management (e2e)', () => {
     });
   });
 
+  describe('createTag', () => {
+    it('should let an admin create a tag that is APPROVED right away', async () => {
+      const name = uniqueName('create');
+
+      const data = await graphql(
+        CREATE_TAG,
+        { name: ` ${name} `, description: DESCRIPTION },
+        admin,
+      );
+
+      expect(data.errors).toBeUndefined();
+      expect(data.data.createTag).toStrictEqual({
+        id: expect.toBeString(),
+        name,
+        description: DESCRIPTION,
+        status: 'APPROVED',
+      });
+    });
+
+    it.each([
+      { caller: 'a writer', header: () => writer },
+      { caller: 'a plain user', header: () => user },
+    ])('should NOT let $caller create a tag', async ({ header }) => {
+      const data = await graphql(
+        CREATE_TAG,
+        { name: uniqueName('denied'), description: DESCRIPTION },
+        header(),
+      );
+
+      expect(data.errors[0].message).toContain(
+        'You need at least the "admin" role',
+      );
+    });
+
+    it('should answer 400 when the name exists in another case', async () => {
+      const name = uniqueName('dup');
+      await graphql(
+        CREATE_TAG,
+        { name, description: DESCRIPTION },
+        admin,
+      );
+
+      const data = await graphql(
+        CREATE_TAG,
+        { name: name.toUpperCase(), description: DESCRIPTION },
+        admin,
+      );
+
+      expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
+    });
+  });
+
   describe('approveTag, updateTag and deleteTag', () => {
     it.each([
       {
@@ -585,7 +644,7 @@ describe('Tag requests and management (e2e)', () => {
       );
     });
 
-    it('should rename a tag, normalized, and the novels follow', async () => {
+    it('should rename a tag, trimmed, and the novels follow', async () => {
       const { id, name } = await requestAsWriter(
         uniqueName('rename'),
       );
@@ -606,7 +665,7 @@ describe('Tag requests and management (e2e)', () => {
 
       const data = await graphql(
         UPDATE_TAG,
-        { id, name: `  ${renamed.toUpperCase()} ` },
+        { id, name: `  ${renamed} ` },
         admin,
       );
       const read = await graphql(NOVEL_TAGS, {
@@ -622,7 +681,7 @@ describe('Tag requests and management (e2e)', () => {
       expect(read.data.novel.tags).toEqual([renamed]);
     });
 
-    it('should answer 400 with the normalized name when renaming to an existing one', async () => {
+    it('should answer 400 naming the tag when renaming to an existing one', async () => {
       const { id } = await requestAsWriter(uniqueName('clash'));
 
       const data = await graphql(
@@ -631,7 +690,7 @@ describe('Tag requests and management (e2e)', () => {
         admin,
       );
 
-      expect(data.errors[0].message).toContain('"fantasy"');
+      expect(data.errors[0].message).toContain('"FANTASY"');
       expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
     });
 

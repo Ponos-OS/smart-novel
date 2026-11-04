@@ -12,6 +12,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { showApiError, showSuccess } from '../../utils/notification';
+import { CreateTagDialog } from './CreateTagDialog';
 import { type AdminTag, TagRow } from './TagRow';
 import { ADMIN_TAGS_KEY, useAdminTags } from './use-admin-tags';
 
@@ -57,6 +58,7 @@ export function AdminTagsPage() {
   const [statusFilter, setStatusFilter] =
     useState<StatusFilter>('all');
   const [deleting, setDeleting] = useState<AdminTag | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   const deleteTag = useDeleteTagMutation();
   const debouncedSearch = useDebouncedValue(
     search.trim(),
@@ -104,7 +106,16 @@ export function AdminTagsPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-      <h1 className="mb-2 text-3xl font-bold text-white">Tags</h1>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <h1 className="text-3xl font-bold text-white">Tags</h1>
+        <button
+          type="button"
+          onClick={() => setIsCreating(true)}
+          className="cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500"
+        >
+          Create tag
+        </button>
+      </div>
       <p className="mb-6 text-sm text-gray-400">
         Writers can only use approved tags. Approve the requests of
         the writers, rename a tag, or delete one; deleting removes it
@@ -193,6 +204,18 @@ export function AdminTagsPage() {
             {tags.isLoadingMore ? 'Loading...' : 'Load more'}
           </button>
         </div>
+      )}
+
+      {isCreating && (
+        <CreateTagDialog
+          onCreated={() => {
+            setIsCreating(false);
+            queryClient.invalidateQueries({
+              queryKey: [ADMIN_TAGS_KEY],
+            });
+          }}
+          onClose={() => setIsCreating(false)}
+        />
       )}
 
       {deleting && (
