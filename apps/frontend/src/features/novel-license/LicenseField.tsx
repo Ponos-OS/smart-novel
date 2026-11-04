@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 
 import {
   type LicenseDraftInput,
+  LicenseScope,
   LicenseSourceType,
   useCanonicalLicenseQuery,
   useCanonicalLicensesQuery,
+  useSelectableLicensesQuery,
 } from '../../generated/graphql';
 import {
   getLicenseNotice,
@@ -19,8 +21,17 @@ interface LicenseFieldProps {
   disabled?: boolean;
   /** @description Called with the draft to save, and with `undefined` when the license in use is kept as it is. */
   onDraftChange: (draft: LicenseDraftInput | undefined) => void;
+  /**
+   * @description Turns on picking a shared license or one of the writer's own: called with its id while one is picked and left as it is, and with `undefined` otherwise. Like `onDraftChange`, it must be stable (a state setter).
+   */
+  onLicenseIdChange?: (licenseId: string | undefined) => void;
   onDraftWithAssistant?: () => void;
 }
+
+type StoredLicense = LicenseSummary;
+
+const STORED_PREFIX = 'stored:';
+const STORED_LICENSES_PAGE_SIZE = 100;
 
 interface LicenseBase extends LicenseSummary {
   /** @description Already a row of the licenses table. A canonical license of the registry is not until a novel uses it. */
@@ -62,13 +73,54 @@ function buildDraft(
   };
 }
 
-export function LicenseField({
+export function LicenseField(props: LicenseFieldProps) {
+  if (props.onLicenseIdChange) {
+    return <LicenseFieldWithStored {...props} />;
+  }
+
+  return <LicenseFieldBody {...props} />;
+}
+
+function LicenseFieldWithStored(props: LicenseFieldProps) {
+  const { data: sharedData } = useSelectableLicensesQuery({
+    scope: LicenseScope.Shared,
+    first: STORED_LICENSES_PAGE_SIZE,
+  });
+  const { data: personalData } = useSelectableLicensesQuery({
+    scope: LicenseScope.Personal,
+    first: STORED_LICENSES_PAGE_SIZE,
+  });
+  const toLicenses = (data: typeof sharedData): StoredLicense[] =>
+    (data?.licensesConnection.edges ?? [])
+      .map(({ node }) => node)
+      .filter(({ id }) => id !== props.license.id);
+
+  return (
+    <LicenseFieldBody
+      {...props}
+      sharedLicenses={toLicenses(sharedData)}
+      personalLicenses={toLicenses(personalData)}
+    />
+  );
+}
+
+function LicenseFieldBody({
   license,
   disabled = false,
   onDraftChange,
+  onLicenseIdChange,
   onDraftWithAssistant,
-}: LicenseFieldProps) {
-  const [pickedId, setPickedId] = useState('');
+  sharedLicenses = [],
+  personalLicenses = [],
+}: LicenseFieldProps & {
+  sharedLicenses?: StoredLicense[];
+  personalLicenses?: StoredLicense[];
+}) {
+  const [picked, setPicked] = useState('');
+  const pickedStored = [...sharedLicenses, ...personalLicenses].find(
+    ({ id }) => `${STORED_PREFIX}${id}` === picked,
+  );
+  const pickedId = pickedStored ? '' : picked;
   const { data: listData } = useCanonicalLicensesQuery();
   const { data: detailData } = useCanonicalLicenseQuery(
     { id: pickedId },
@@ -85,11 +137,13 @@ export function LicenseField({
         text: '',
         source: { type: LicenseSourceType.Canonical },
       });
+      onLicenseIdChange?.(undefined);
     }
-  }, [isLoadingPick, onDraftChange]);
+  }, [isLoadingPick, onDraftChange, onLicenseIdChange]);
 
-  const base: LicenseBase =
-    pickedId && detail?.id === pickedId
+  const base: LicenseBase = pickedStored
+    ? { ...pickedStored, isStored: true }
+    : pickedId && detail?.id === pickedId
       ? {
           id: detail.id,
           name: detail.shortName,
@@ -111,11 +165,29 @@ export function LicenseField({
           Start from
         </span>
         <select
-          value={pickedId}
-          onChange={(event) => setPickedId(event.target.value)}
+          value={picked}
+          onChange={(event) => setPicked(event.target.value)}
           className={INPUT_CLASSES}
         >
           <option value="">Keep {license.name}</option>
+          {sharedLicenses.length > 0 && (
+            <optgroup label="Shared licenses">
+              {sharedLicenses.map(({ id, name }) => (
+                <option key={id} value={`${STORED_PREFIX}${id}`}>
+                  {name}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {personalLicenses.length > 0 && (
+            <optgroup label="Your licenses">
+              {personalLicenses.map(({ id, name }) => (
+                <option key={id} value={`${STORED_PREFIX}${id}`}>
+                  {name}
+                </option>
+              ))}
+            </optgroup>
+          )}
           {listData?.canonicalLicenses.map((canonical) => (
             <option key={canonical.id} value={canonical.id}>
               {canonical.shortName}
@@ -131,7 +203,9 @@ export function LicenseField({
         <LicenseTextEditor
           key={base.id}
           base={base}
+          storedId={pickedStored?.id}
           onDraftChange={onDraftChange}
+          onLicenseIdChange={onLicenseIdChange}
         />
       )}
       {onDraftWithAssistant && (
@@ -150,10 +224,15 @@ export function LicenseField({
 
 function LicenseTextEditor({
   base,
+  storedId,
   onDraftChange,
+  onLicenseIdChange,
 }: {
   base: LicenseBase;
+  /** @description The stored license picked as the base: it is what the form sends while its text is left alone. */
+  storedId?: string;
   onDraftChange: (draft: LicenseDraftInput | undefined) => void;
+  onLicenseIdChange?: (licenseId: string | undefined) => void;
 }) {
   const [text, setText] = useState(base.text);
   const [title, setTitle] = useState('');
@@ -163,25 +242,38 @@ function LicenseTextEditor({
 
   useEffect(() => {
     // The base is rebuilt on every render, so only what it is made of may retrigger this.
-    onDraftChange(
-      buildDraft(
-        {
-          id,
-          name,
-          canonicalId,
-          text: baseText,
-          isStored,
-        } as LicenseBase,
-        '',
-        baseText,
-      ),
+    const draft = buildDraft(
+      {
+        id,
+        name,
+        canonicalId,
+        text: baseText,
+        isStored,
+      } as LicenseBase,
+      '',
+      baseText,
     );
-  }, [id, name, canonicalId, baseText, isStored, onDraftChange]);
+
+    onDraftChange(draft);
+    onLicenseIdChange?.(draft ? undefined : storedId);
+  }, [
+    id,
+    name,
+    canonicalId,
+    baseText,
+    isStored,
+    storedId,
+    onDraftChange,
+    onLicenseIdChange,
+  ]);
 
   const handleChange = (nextText: string, nextTitle: string) => {
+    const draft = buildDraft(base, nextTitle.trim(), nextText);
+
     setText(nextText);
     setTitle(nextTitle);
-    onDraftChange(buildDraft(base, nextTitle.trim(), nextText));
+    onDraftChange(draft);
+    onLicenseIdChange?.(draft ? undefined : storedId);
   };
 
   return (

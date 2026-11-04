@@ -52,6 +52,7 @@ vi.mock('../../generated/graphql', async () => {
       data: { canonicalLicenses: [] },
     }),
     useCanonicalLicenseQuery: () => ({ data: undefined }),
+    useSelectableLicensesQuery: () => ({ data: undefined }),
     useUpdateNovelMutation: () => ({
       mutate: updateNovelMutate,
       isPending: false,

@@ -65,6 +65,7 @@ export function NovelForm({
   const [licenseDraft, setLicenseDraft] = useState<
     LicenseDraftInput | undefined
   >();
+  const [pickedLicenseId, setPickedLicenseId] = useState<string>();
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [requestedName, setRequestedName] = useState<string | null>(
     null,
@@ -93,8 +94,8 @@ export function NovelForm({
       description: description.trim(),
       state,
       tags,
-      ...(assistantLicense
-        ? { licenseId: assistantLicense.id }
+      ...(assistantLicense || pickedLicenseId
+        ? { licenseId: assistantLicense?.id ?? pickedLicenseId }
         : { licenseDraft }),
     });
   };
@@ -189,6 +190,7 @@ export function NovelForm({
             license={license}
             disabled={isSubmitting}
             onDraftChange={setLicenseDraft}
+            onLicenseIdChange={setPickedLicenseId}
             onDraftWithAssistant={() => setIsAssistantOpen(true)}
           />
         )}

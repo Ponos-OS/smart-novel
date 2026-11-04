@@ -1,0 +1,14 @@
+query SelectableLicenses($scope: LicenseScope!, $first: Int!) {
+  licensesConnection(first: $first, filters: { scope: $scope }) {
+    edges {
+      node {
+        id
+        name
+        sourceType
+        canonicalId
+        officialUrl
+        text
+      }
+    }
+  }
+}

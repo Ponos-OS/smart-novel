@@ -440,3 +440,10 @@
 - Bug from Step 3 fixed here: after "Set as default" the page invalidated `useDefaultLicenseQuery.getKey({})`, which does not match the no-variable hook key `['DefaultLicense']`; it now uses `getKey()` and the spec asserts it.
 - `feature-boundaries.spec.ts` timed out on its first (cold ESLint) case in two full runs; its cases now have a 60s timeout.
 - Verified: `tsc`, lint, specs for the tab and the page, `nx test frontend` was run before the timeout change (701 pass, the one failure being that timeout; the file passes alone, 10/10, after it), `nx build-storybook frontend`. Not done: browser check, `frontend-e2e`, the stories were not played.
+
+## License management, Step 5 (2026-11-04)
+
+- `LicenseField` takes an optional `onLicenseIdChange`; when given, a child component fetches the shared and the writer's personal licenses (`selectable-licenses.graphql`, 100 each, with text) and the "Start from" select lists them in two groups before the canonical ones. Picking one and leaving its text alone calls `onLicenseIdChange(id)` and `onDraftChange(undefined)`; editing the text, picking a canonical license or keeping the original sends an undefined id and the draft as before. `NovelForm` passes the setter and submits `licenseId`. The admin create dialog does not pass it, so it still offers only the canonical ones.
+- First attempt called the new query hook in `LicenseField` itself and broke every spec that mocks the generated module (No QueryClient), then a `useCallback` wrapper hit the React Compiler lint rule. Both were replaced by the child component and by passing `storedId` into `LicenseTextEditor`, which already runs the effect that reports the draft.
+- Verified: `tsc`, lint, new `LicenseField` and `NovelForm` specs, `nx test frontend` (709 pass; one `NovelEditPage` case timed out under load and passes alone twice), `nx build-storybook frontend`, a `PickingASharedLicense` story. Not done: browser check, `frontend-e2e`; the 100-row limit means a platform with more shared licenses would not show them all.
+- Process change: `SELF_IMPROVE.md` item 2g.

@@ -62,6 +62,27 @@ vi.mock('../../generated/graphql', async () => ({
     data: { canonicalLicenses: [] },
   }),
   useCanonicalLicenseQuery: () => ({ data: undefined }),
+  useSelectableLicensesQuery: ({ scope }: { scope: string }) => ({
+    data: {
+      licensesConnection: {
+        edges:
+          scope === 'SHARED'
+            ? [
+                {
+                  node: {
+                    id: 'e7a1c9d2-5b34-4f68-8c01-6d2f4a9b3e17',
+                    name: 'Read it, do not copy it',
+                    sourceType: 'CUSTOM',
+                    canonicalId: null,
+                    officialUrl: null,
+                    text: 'You may read this novel. You may not copy it.',
+                  },
+                },
+              ]
+            : [],
+      },
+    },
+  }),
   useRequestTagMutation: () => requestTag,
 }));
 
@@ -246,6 +267,57 @@ describe('NovelForm license', () => {
 
     // Assert
     expect(onSubmit.mock.calls[0][0].licenseDraft).toBeUndefined();
+  });
+
+  describe('shared license', () => {
+    const sharedId = 'e7a1c9d2-5b34-4f68-8c01-6d2f4a9b3e17';
+
+    function pickShared() {
+      const { onSubmit } = renderForm({ license });
+      fireEvent.change(screen.getByPlaceholderText('Novel name'), {
+        target: { value: 'The Lantern Keeper' },
+      });
+      fireEvent.change(screen.getByLabelText('Start from'), {
+        target: { value: `stored:${sharedId}` },
+      });
+
+      return onSubmit;
+    }
+
+    it('submits the picked shared license by id, without a license draft', () => {
+      const onSubmit = pickShared();
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Create novel' }),
+      );
+
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ licenseId: sharedId }),
+      );
+      expect(onSubmit.mock.calls[0][0].licenseDraft).toBeUndefined();
+    });
+
+    it('submits a draft, and no id, once the picked license is edited', () => {
+      const onSubmit = pickShared();
+      fireEvent.change(screen.getByLabelText('License text'), {
+        target: {
+          value: 'You may read this novel. Share it freely.',
+        },
+      });
+      fireEvent.change(
+        screen.getByLabelText('Name of your modified license'),
+        { target: { value: 'Share it freely' } },
+      );
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Create novel' }),
+      );
+
+      expect(onSubmit.mock.calls[0][0].licenseId).toBeUndefined();
+      expect(onSubmit.mock.calls[0][0].licenseDraft).toMatchObject({
+        title: 'Share it freely',
+      });
+    });
   });
 
   describe('license assistant', () => {
