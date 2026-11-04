@@ -425,3 +425,10 @@
 - Built `createLicense` (admin only): a `create` case in `LicensePolicy` and a mutation that calls `getOrCreate(input, 'system')`, so it reuses the existing validation and dedup and leaves the default alone. Unit specs for the policy and the resolver, five `backend-e2e` cases in `license.e2e-spec.ts` (permissions, no default change, same text twice, fake canonical, a writer using the new license on a novel).
 - Not done: `backend-e2e` and graphql-api-tester were not run (a stack was already on `localhost:8080`, left alone). Step 1 was committed at the user's request; step 2 is left uncommitted for review, per `REQUIREMENTS.md`.
 - Process change: `SELF_IMPROVE.md` item 2e; a scripted replace missed because prettier had reformatted the import, and only `tsc` showed it.
+
+## License management, Step 3 (2026-11-04)
+
+- Replaced `AdminDefaultLicensePage` with `AdminLicensesPage` at `/admin/licenses`: a `licensesConnection` table (scope, default badge, source, owner, updated), scope filter, debounced name search, "Load more" (the existing admin pages use it, so `REQUIREMENTS.md` was changed from "previous/next"), "Set as default" on shared rows, and a create dialog around `LicenseField` calling `createLicense`. "Manage licenses" is in the header menu (desktop and mobile). Uses `useConnectionList`, as `use-admin-tags` does.
+- Verified: `tsc`, lint, specs for the page, the dialog and the header, `nx test frontend` (690 pass; one `feature-boundaries` case timed out under load and passes alone), `nx build-storybook frontend`.
+- Not done: manual check in a browser and `frontend-e2e` (a stack was already on `localhost:8080`, left alone); the stories were only built, not played.
+- Process change: `SELF_IMPROVE.md` item 2f.

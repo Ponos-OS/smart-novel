@@ -110,6 +110,16 @@ export function Header() {
                             asChild
                             className={MENU_ITEM_CLASSES}
                           >
+                            <Link to="/admin/licenses">
+                              Manage licenses
+                            </Link>
+                          </DropdownMenu.Item>
+                        )}
+                        {isAdmin && (
+                          <DropdownMenu.Item
+                            asChild
+                            className={MENU_ITEM_CLASSES}
+                          >
                             <Link to="/admin/novels">
                               Manage novels
                             </Link>
@@ -251,6 +261,15 @@ export function Header() {
                         className="rounded-md px-3 py-2 text-sm transition-colors text-gray-300 hover:bg-gray-600"
                       >
                         Manage tags
+                      </Link>
+                    )}
+                    {isAdmin && (
+                      <Link
+                        to="/admin/licenses"
+                        onClick={closeMenu}
+                        className="rounded-md px-3 py-2 text-sm transition-colors text-gray-300 hover:bg-gray-600"
+                      >
+                        Manage licenses
                       </Link>
                     )}
                     {isAdmin && (

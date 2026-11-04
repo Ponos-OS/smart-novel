@@ -41,7 +41,7 @@ Unit for the policy case and the resolver. `backend-e2e`: admin creates, writer 
 
 ## Step 3: Admin licenses table (frontend)
 
-Replace `AdminDefaultLicensePage` at `/admin/licenses` with a table backed by `licensesConnection`: name, scope badge, default badge, source, owner, updated. Scope filter, search, previous/next paging (follow `AdminWritersPage`). Row action "Set as default" (shared rows only, via `licenseId`, with the existing confirm dialog). "Create license" button opens a dialog using `LicenseField`, calling `createLicense`. Add "Manage licenses" to the admin header menu (desktop and mobile), next to "Manage tags".
+Replace `AdminDefaultLicensePage` at `/admin/licenses` with a table backed by `licensesConnection`: name, scope badge, default badge, source, owner, updated. Scope filter, search and a "Load more" button (as `AdminTagsPage` and `AdminWritersPage` do). Row action "Set as default" (shared rows only, via `licenseId`, with the existing confirm dialog). "Create license" button opens a dialog using `LicenseField`, calling `createLicense`. Add "Manage licenses" to the admin header menu (desktop and mobile), next to "Manage tags".
 
 - AC: the page is reachable from the header; non-admins see the permission message.
 - AC: creating a license adds it to the table; setting the default moves the badge.

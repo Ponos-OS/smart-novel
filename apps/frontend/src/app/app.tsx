@@ -108,13 +108,13 @@ const router = createBrowserRouter([
       {
         path: '/admin/licenses',
         lazy: async () => {
-          const { AdminDefaultLicensePage } =
-            await import('../features/admin-licenses/AdminDefaultLicensePage');
+          const { AdminLicensesPage } =
+            await import('../features/admin-licenses/AdminLicensesPage');
 
           return {
             element: (
               <Layout>
-                <AdminDefaultLicensePage />
+                <AdminLicensesPage />
               </Layout>
             ),
           };

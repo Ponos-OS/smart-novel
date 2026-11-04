@@ -66,6 +66,7 @@ describe('Header user menu', () => {
         'Manage account',
         'Licenses and terms',
         'Manage tags',
+        'Manage licenses',
         'Manage novels',
         'Writer requests',
         'Settings',
@@ -92,6 +93,9 @@ describe('Header user menu', () => {
     expect(
       screen.getByRole('menuitem', { name: 'Manage tags' }),
     ).toHaveAttribute('href', '/admin/tags');
+    expect(
+      screen.getByRole('menuitem', { name: 'Manage licenses' }),
+    ).toHaveAttribute('href', '/admin/licenses');
     expect(
       screen.getByRole('menuitem', { name: 'Manage novels' }),
     ).toHaveAttribute('href', '/admin/novels');

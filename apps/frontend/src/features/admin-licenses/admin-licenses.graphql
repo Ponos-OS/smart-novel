@@ -1,3 +1,33 @@
+query AdminLicenses(
+  $scope: LicenseScope
+  $search: String
+  $first: Int!
+  $after: String
+) {
+  licensesConnection(
+    first: $first
+    after: $after
+    filters: { scope: $scope, search: $search }
+  ) {
+    edges {
+      node {
+        id
+        name
+        scope
+        isDefault
+        sourceType
+        canonicalId
+        ownerId
+        updatedAt
+      }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+  }
+}
+
 mutation SetDefaultLicense($input: SetDefaultLicenseInput!) {
   setDefaultLicense(input: $input) {
     id
@@ -6,5 +36,12 @@ mutation SetDefaultLicense($input: SetDefaultLicenseInput!) {
     canonicalId
     officialUrl
     text
+  }
+}
+
+mutation CreateLicense($input: LicenseDraftInput!) {
+  createLicense(input: $input) {
+    id
+    name
   }
 }
