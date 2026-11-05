@@ -1,0 +1,42 @@
+{
+  "name": "chat completions: WordExplanation",
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/chat/completions",
+    "bodyPatterns": [
+      {
+        "matchesJsonPath": {
+          "expression": "$.response_format.json_schema.name",
+          "equalTo": "WordExplanation"
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "id": "chatcmpl-9f3c1a7e2b",
+      "object": "chat.completion",
+      "created": 1767225600,
+      "model": "gpt-4.1-mini",
+      "choices": [
+        {
+          "index": 0,
+          "finish_reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": "{\"meaning\": \"To examine something closely and carefully.\", \"simplified_explanation\": \"To look at something very carefully to find out more about it.\", \"synonyms\": [\"examine\", \"inspect\", \"study\"], \"antonyms\": [\"ignore\", \"overlook\", \"neglect\"]}"
+          }
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 120,
+        "completion_tokens": 60,
+        "total_tokens": 180
+      }
+    }
+  }
+}

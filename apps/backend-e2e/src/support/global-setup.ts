@@ -17,9 +17,6 @@ export default async function setup() {
     'Starting the e2e cluster (builds the production images)...',
   );
   ClusterFixture.start(workspaceRoot);
-  Logger.section('Warming up Beatrice/LLM gateway');
-  Logger.log('Sending a trivial LLM request to load the model...');
-  ClusterFixture.warmupBeatrice(workspaceRoot);
   globalThis.__TEARDOWN_MESSAGE__ = '\nTearing down...\n';
 
   // Clean up logic here (stopping the cluster).
@@ -49,8 +46,8 @@ export default async function setup() {
     );
     ClusterFixture.persistLogs(
       workspaceRoot,
-      'deploy/llm-gateway',
-      'local-setup/logs/llm-gateway.log',
+      'deploy/wiremock-openai',
+      'local-setup/logs/wiremock-openai.log',
     );
     ClusterFixture.stop(workspaceRoot);
     Logger.log(globalThis.__TEARDOWN_MESSAGE__);

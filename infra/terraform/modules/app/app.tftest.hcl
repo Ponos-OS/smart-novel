@@ -11,7 +11,7 @@ variables {
     rabbitmq       = "rabbitmq:3.13-management-alpine"
     beatrice       = "9109679196/smart-novel-beatrice:5.0.0"
     fithara        = "9109679196/fithara:2.0.0"
-    llm_gateway    = "9109679196/smart-novel-llm-gateway:1.0.1"
+    wiremock       = "wiremock/wiremock:3.13.1"
     backend        = "smart-novel-backend:1.4.0"
     frontend       = "smart-novel-frontend:1.4.0"
     redis_insight  = "redis/redisinsight:2.70.1"
@@ -40,6 +40,10 @@ run "deploys_every_data_component_by_default" {
 
 run "serves_backend_and_frontend_through_one_ingress" {
   command = plan
+
+  variables {
+    mock_ai_providers = true
+  }
 
   assert {
     condition     = kubernetes_ingress_v1.app.spec[0].ingress_class_name == "traefik" && length(kubernetes_ingress_v1.app.spec[0].rule[0].http[0].path) == 4
@@ -89,12 +93,22 @@ run "tracing_is_off_without_an_otlp_endpoint" {
   }
 }
 
-run "deploys_ai_and_beatrice_by_default" {
+run "mocks_the_ai_providers_and_deploys_beatrice_when_asked" {
   command = plan
 
+  variables {
+    mock_ai_providers    = true
+    fithara_llm_base_url = "https://api.openai.com/v1"
+  }
+
   assert {
-    condition     = length(module.llm_gateway) == 1 && length(module.rabbitmq) == 1 && output.beatrice_url == "http://beatrice:3000/graphql"
-    error_message = "llm-gateway, rabbitmq and beatrice must be deployed by default"
+    condition     = length(module.wiremock_openai) == 1 && length(module.rabbitmq) == 1 && output.beatrice_url == "http://beatrice:3000/graphql"
+    error_message = "wiremock, rabbitmq and beatrice must be deployed when the providers are mocked"
+  }
+
+  assert {
+    condition     = module.fithara.llm_base_url == "http://wiremock-openai:8080/v1"
+    error_message = "Fithara must talk to WireMock, not to the configured provider, when the providers are mocked"
   }
 }
 
@@ -146,30 +160,25 @@ run "fithara_takes_its_own_endpoint_provider_key_and_timeout" {
   }
 }
 
-run "disabling_ai_without_endpoints_skips_beatrice_and_rabbitmq" {
+run "without_mocks_or_endpoints_skips_beatrice_and_rabbitmq" {
   command = plan
 
-  variables {
-    run_local_ai_models = false
-  }
-
   assert {
-    condition     = length(module.llm_gateway) == 0 && length(module.beatrice) == 0 && length(module.rabbitmq) == 0 && output.fithara_url == "http://fithara:8000"
+    condition     = length(module.wiremock_openai) == 0 && length(module.beatrice) == 0 && length(module.rabbitmq) == 0 && output.fithara_url == "http://fithara:8000"
     error_message = "without the AI components or external endpoints nothing of the pipeline must remain"
   }
 }
 
-run "disabling_ai_with_external_endpoints_keeps_beatrice" {
+run "external_endpoints_keep_beatrice_without_wiremock" {
   command = plan
 
   variables {
-    run_local_ai_models   = false
     beatrice_llm_base_url = "https://api.openai.com/v1"
     beatrice_tts_base_url = "https://api.openai.com/v1"
   }
 
   assert {
-    condition     = length(module.llm_gateway) == 0 && length(module.beatrice) == 1 && length(module.rabbitmq) == 1
+    condition     = length(module.wiremock_openai) == 0 && length(module.beatrice) == 1 && length(module.rabbitmq) == 1
     error_message = "Beatrice and Fithara must run against the external endpoints"
   }
 }
@@ -178,7 +187,8 @@ run "broker_url_skips_rabbitmq_only" {
   command = plan
 
   variables {
-    broker_url = "amqps://smart-novel:3c9a1f0e7b2d@b-93fec4bf-2f66.mq.eu-central-1.amazonaws.com:5671"
+    mock_ai_providers = true
+    broker_url        = "amqps://smart-novel:3c9a1f0e7b2d@b-93fec4bf-2f66.mq.eu-central-1.amazonaws.com:5671"
   }
 
   assert {
@@ -322,6 +332,7 @@ run "the_dashboards_and_alert_rules_are_published_for_a_shared_grafana" {
   command = plan
 
   variables {
+    mock_ai_providers          = true
     publish_grafana_configmaps = true
   }
 

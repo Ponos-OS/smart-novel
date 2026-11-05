@@ -77,11 +77,9 @@ else
 fi
 
 set -- -var "mode=$mode"
-run_local_ai_models="$(env_value RUN_LOCAL_AI_MODELS)"
-run_local_ai_models="${run_local_ai_models:-true}"
-set -- "$@" -var "run_local_ai_models=$run_local_ai_models"
 if [ "$mode" = e2e ]; then
-  set -- "$@" -var enable_devtools=false
+  # e2e never calls a paid provider: Beatrice and Fithara talk to WireMock.
+  set -- "$@" -var enable_devtools=false -var mock_ai_providers=true
 fi
 
 TF_VAR_run_as_user="$(id -u)"
@@ -112,7 +110,6 @@ Everything is behind Traefik on port 8080:
   RustFS console    http://s3-console.localhost:8080           S3 API on http://s3.localhost:8080
   RedisInsight      http://redis-insight.localhost:8080        needs enable_devtools = true
   pgAdmin           http://pgadmin.localhost:8080              needs enable_devtools = true, admin@admin.com / admin
-  Open WebUI        http://open-webui.localhost:8080           needs enable_devtools = true
 
 Beatrice is cluster-internal, forward it to reach http://localhost:3001/graphql:
 

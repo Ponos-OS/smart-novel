@@ -14,13 +14,13 @@ infra/
     │   ├── object_storage/ S3-compatible storage (RustFS) plus a Job that creates the bucket and uploads the seed covers
     │   ├── ingress/    Traefik; serves the routes the other modules contribute
     │   ├── rabbitmq/   RabbitMQ
-    │   ├── llm_gateway/ The published smart-novel-llm-gateway image: OpenAI-compatible chat completions (llama.cpp) and speech (Qwen3-TTS) behind one Service
+    │   ├── wiremock/   Generic WireMock: serves the mapping files of one directory under its own name, one instance per mocked API. Deployed only by the e2e mode
     │   ├── beatrice/   Beatrice, the audio generation service
     │   ├── fithara/    Fithara, the license drafting assistant
     │   ├── backend/    NestJS API
     │   ├── frontend/   Vite SPA
     │   ├── job/        A one-shot Job
-    │   ├── devtools/   RedisInsight, pgAdmin, Open WebUI; off by default
+    │   ├── devtools/   RedisInsight, pgAdmin; off by default
     │   ├── observability/  OpenTelemetry Collector, Tempo, Loki, Prometheus and Grafana
     │   ├── backup/     CronJobs that pg_dump to the backup bucket
     │   ├── zitadel/    ZITADEL (init Job, server, login UI); it writes its first-instance PATs to a volume
@@ -54,11 +54,11 @@ Code changes need no rebuild: `local/1-app` mounts `apps/` into the kind node an
 
 The `hetzner` root (see Hetzner below) reads three things from the shared cluster of the Ponos-OS infra repo:
 
-| Input                  | Where it comes from                                                               | Used for                                  |
-| ---------------------- | --------------------------------------------------------------------------------- | ----------------------------------------- |
-| `kubeconfig_path`      | `terraform output -raw kubeconfig` in the infra repo's `hetzner/1-server`          | `kubernetes` provider, and reading the Secret below |
-| `zitadel_domain`       | `zitadel_issuer_url` output of the infra repo's `hetzner/2-platform`, no scheme   | `zitadel` provider                        |
-| `zitadel_admin_secret` | Secret `zitadel-admin` in namespace `zitadel` (default), key `jwt_profile_json`    | Authenticates the `zitadel` provider      |
+| Input                  | Where it comes from                                                             | Used for                                            |
+| ---------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `kubeconfig_path`      | `terraform output -raw kubeconfig` in the infra repo's `hetzner/1-server`       | `kubernetes` provider, and reading the Secret below |
+| `zitadel_domain`       | `zitadel_issuer_url` output of the infra repo's `hetzner/2-platform`, no scheme | `zitadel` provider                                  |
+| `zitadel_admin_secret` | Secret `zitadel-admin` in namespace `zitadel` (default), key `jwt_profile_json` | Authenticates the `zitadel` provider                |
 
 The infra repo publishes `zitadel-admin` itself (an IAM_OWNER machine user's token and JSON key). The `kubernetes_secret_v1` data source here reads it through the kubeconfig, so the key is never copied into this repo or into GitHub. It does end up in this root's Terraform state, so protect the state bucket like a secret.
 
@@ -86,10 +86,10 @@ The kubeconfig that `1-server` outputs is k3s' own, which is cluster-admin. That
 
 Whatever runs Terraform (your laptop or a CI runner) must reach two endpoints:
 
-| Endpoint                                | Port | Who may reach it                                                        |
-| --------------------------------------- | ---- | ----------------------------------------------------------------------- |
+| Endpoint                                      | Port | Who may reach it                                                        |
+| --------------------------------------------- | ---- | ----------------------------------------------------------------------- |
 | Kubernetes API (`server_ipv4` of the cluster) | 6443 | Only the source ranges in `admin_cidrs` of the infra repo's `1-server`  |
-| ZITADEL (`auth.<domain>`)               | 443  | Everyone; it is public behind Traefik, and DNS must already point at it |
+| ZITADEL (`auth.<domain>`)                     | 443  | Everyone; it is public behind Traefik, and DNS must already point at it |
 
 The Kubernetes API is the one that needs a decision. GitHub-hosted runners come from changing IP ranges, so they cannot be listed in `admin_cidrs` in any useful way, and opening 6443 to `0.0.0.0/0` is not an option. Use one of:
 
@@ -137,11 +137,11 @@ On Hetzner the shared Grafana serves both apps, and `hetzner` sets `publish_graf
 
 ## Messaging and AI
 
-Beatrice consumes audio jobs from RabbitMQ, normalizes text with an LLM and synthesizes speech with OpenAI-compatible TTS, both served by the `9109679196/smart-novel-llm-gateway` image. `local/1-app` pulls the image once on the host and loads it into kind (it is large); the LLM itself (`BEATRICE_LLM_MODEL` in `.env`) is downloaded on the gateway's first start, into throwaway storage, so a recreated pod downloads it again. Beatrice does not reconnect if RabbitMQ is down when it starts, so `modules/app` makes it wait for RabbitMQ and the AI components.
+Beatrice consumes audio jobs from RabbitMQ, normalizes text with an LLM and synthesizes speech with OpenAI-compatible TTS. Locally and in production these are real external providers, set by `BEATRICE_LLM_BASE_URL` and `BEATRICE_TTS_BASE_URL` (and their keys and models) in `.env`. Beatrice does not reconnect if RabbitMQ is down when it starts, so `modules/app` makes it wait for RabbitMQ and the mock.
 
-`RUN_LOCAL_AI_MODELS=false` (in `.env`) skips deploying the LLM gateway. Beatrice and RabbitMQ then run only if `BEATRICE_LLM_BASE_URL` (in `.env`) and `BEATRICE_TTS_BASE_URL` (in `.env`) point at other services, for example the host or a cloud provider; otherwise they are skipped too. `broker_url` skips RabbitMQ. Beatrice has no health endpoint, so its readiness probe checks that the port is open.
+Without `BEATRICE_LLM_BASE_URL` and `BEATRICE_TTS_BASE_URL`, Beatrice and RabbitMQ are skipped. The e2e mode sets `mock_ai_providers = true`, which deploys `modules/wiremock` as `wiremock-openai` and points Beatrice's LLM and speech and Fithara's LLM at it (`http://wiremock-openai:8080/v1`), ignoring the URLs in `.env`. The stubs are the files in `modules/app/mocks/openai`: they match a chat completion by the name of its structured output (`WordExplanation`, `NormalizedText`) and answer `/audio/speech` with a few frames of silent MP3. `broker_url` skips RabbitMQ. Beatrice has no health endpoint, so its readiness probe checks that the port is open.
 
-Fithara (the license assistant) needs only an LLM, so it is always deployed. It has its own LLM settings: `FITHARA_LLM_PROVIDER`, `FITHARA_LLM_MODEL` (a name only: the gateway serves one model whatever name is sent) and `FITHARA_LLM_BASE_URL`, `FITHARA_LLM_API_KEY` and `FITHARA_LLM_TIMEOUT_MS` in `.env`. Nothing falls back to Beatrice's LLM settings: one left unset is not passed on, and Fithara refuses to start. The model must be one the `llmcapa` model catalog knows, or Fithara refuses to start. It has a Service but no route in the `Ingress`: only the backend reaches it, through `FITHARA_URL`, which `modules/app` fills in. Its readiness probe is `GET /health`, and its first start takes a while because the catalog is read then. The gateway serves only `LLM_CTX_SIZE` tokens (the `context_length` input of its module, 32768 by default) whatever the model could take, while Fithara trusts the catalog's window; a conversation longer than what the gateway serves is truncated before Fithara would condense it.
+Fithara (the license assistant) needs only an LLM, so it is always deployed. It has its own LLM settings: `FITHARA_LLM_PROVIDER`, `FITHARA_LLM_MODEL` and `FITHARA_LLM_BASE_URL`, `FITHARA_LLM_API_KEY` and `FITHARA_LLM_TIMEOUT_MS` in `.env`. Nothing falls back to Beatrice's LLM settings: one left unset is not passed on, and Fithara refuses to start. The model must be one the `llmcapa` model catalog knows, or Fithara refuses to start. It has a Service but no route in the `Ingress`: only the backend reaches it, through `FITHARA_URL`, which `modules/app` fills in. Its readiness probe is `GET /health`, and its first start takes a while because the catalog is read then. WireMock has no stub for Fithara's drafting turns, so a test that makes Fithara call the LLM needs one added to `modules/app/mocks/openai` first. To mock another API, put its mapping files in `modules/app/mocks/<api>` and call `modules/wiremock` again with its own `name` and `mappings_dir`.
 
 ## Backend and Frontend
 
@@ -153,15 +153,15 @@ Everything specific to hot reload lives in `local/1-app/main.tf`: the developmen
 
 ## Devtools
 
-`enable_devtools = true` in `local/1-app/terraform.tfvars` adds RedisInsight (`redis-insight.localhost:8080`), pgAdmin (`pgadmin.localhost:8080`, `admin@admin.com` / `admin`, the database is pre-registered) and Open WebUI (`open-webui.localhost:8080`, no login). Like Grafana they are routed by host, because Open WebUI cannot be served under a path prefix. Their large images are pulled only when the flag is true.
+`enable_devtools = true` in `local/1-app/terraform.tfvars` adds RedisInsight (`redis-insight.localhost:8080`) and pgAdmin (`pgadmin.localhost:8080`, `admin@admin.com` / `admin`, the database is pre-registered). Like Grafana they are routed by host. Their large images are pulled only when the flag is true.
 
-Each tool is deployed only when the service it inspects runs in the cluster (an external `database_url`, `redis_url` or `run_local_ai_models = false` skips pgAdmin, RedisInsight or Open WebUI). Nothing outside `modules/devtools` refers to it, so a deployed environment leaves the module call out, or keeps `enable_devtools` false.
+Each tool is deployed only when the service it inspects runs in the cluster (an external `database_url` or `redis_url` skips pgAdmin or RedisInsight). Nothing outside `modules/devtools` refers to it, so a deployed environment leaves the module call out, or keeps `enable_devtools` false.
 
 `stop:dev` falls back to deleting the kind cluster when Terraform can no longer reach it, for example right after the cluster definition changed.
 
 ## End-to-End Tests
 
-`nx e2e backend-e2e` and `nx e2e frontend-e2e` run `infra/scripts/start-dev.sh e2e`, which builds the production backend and frontend images (the init Job still uses the development image and the mounted sources), applies `local/1-app` with `mode = e2e`, `enable_devtools = false` and `run_local_ai_models` taken from `RUN_LOCAL_AI_MODELS` in `.env`, and tears everything down with `stop-dev.sh` afterwards. Redis is exposed on `localhost:6379` because the backend suites subscribe to it directly. `backend-e2e` reads the project ID, the user IDs and the integration-test bot's key and client from `terraform output -json` of `local/2-zitadel-config`, so nothing is copied out of the cluster or written to the host.
+`nx e2e backend-e2e` and `nx e2e frontend-e2e` run `infra/scripts/start-dev.sh e2e`, which builds the production backend and frontend images (the init Job still uses the development image and the mounted sources), applies `local/1-app` with `mode = e2e`, `enable_devtools = false` and `mock_ai_providers = true`, and tears everything down with `stop-dev.sh` afterwards. Redis is exposed on `localhost:6379` because the backend suites subscribe to it directly. `backend-e2e` reads the project ID, the user IDs and the integration-test bot's key and client from `terraform output -json` of `local/2-zitadel-config`, so nothing is copied out of the cluster or written to the host.
 
 The dev and e2e environments both use the cluster name `smart-novel` and host port 8080, so they cannot run together: `start-dev.sh e2e` exits with code 3 and an instruction to run `npm run stop:dev` first when the cluster exists, and the callers then skip their teardown instead of destroying the environment that is running.
 

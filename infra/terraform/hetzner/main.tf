@@ -52,7 +52,6 @@ module "app" {
 
   publish_grafana_configmaps = true
 
-  run_local_ai_models   = false
   beatrice_llm_base_url = var.beatrice_llm_base_url
   beatrice_llm_model    = var.beatrice_llm_model
   beatrice_llm_api_key  = var.beatrice_llm_api_key

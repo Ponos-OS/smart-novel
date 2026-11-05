@@ -99,7 +99,7 @@ locals {
     [local.tooling_image],
     local.hot_reload ? [local.frontend_image] : [local.backend_image, local.frontend_image],
   )
-  third_party_images = merge(var.third_party_images, var.enable_devtools ? var.devtools_images : {}, var.run_local_ai_models ? { llm_gateway = var.llm_gateway_image } : {}, {
+  third_party_images = merge(var.third_party_images, var.enable_devtools ? var.devtools_images : {}, var.mock_ai_providers ? { wiremock = var.wiremock_image } : {}, {
     beatrice = "9109679196/smart-novel-beatrice:${local.dotenv["BEATRICE_VERSION"]}"
     fithara  = "9109679196/fithara:${local.dotenv["FITHARA_VERSION"]}"
   })
@@ -197,15 +197,15 @@ module "app" {
     frontend = local.frontend_image
   })
   wait_for_zitadel_credentials = var.wait_for_zitadel_credentials
-  run_local_ai_models          = var.run_local_ai_models
+  mock_ai_providers            = var.mock_ai_providers
   beatrice_llm_base_url        = lookup(local.dotenv, "BEATRICE_LLM_BASE_URL", null)
-  beatrice_llm_model           = lookup(local.dotenv, "BEATRICE_LLM_MODEL", "unsloth/Qwen3.6-35B-A3B-GGUF:Q4_K_M")
+  beatrice_llm_model           = lookup(local.dotenv, "BEATRICE_LLM_MODEL", "gpt-4.1-mini")
   fithara_llm_provider         = lookup(local.dotenv, "FITHARA_LLM_PROVIDER", null)
   fithara_llm_model            = lookup(local.dotenv, "FITHARA_LLM_MODEL", null)
   fithara_llm_base_url         = lookup(local.dotenv, "FITHARA_LLM_BASE_URL", null)
   fithara_llm_api_key          = lookup(local.dotenv, "FITHARA_LLM_API_KEY", null)
   fithara_llm_timeout_ms       = tonumber(lookup(local.dotenv, "FITHARA_LLM_TIMEOUT_MS", null))
-  beatrice_tts_model           = lookup(local.dotenv, "BEATRICE_TTS_MODEL", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice")
+  beatrice_tts_model           = lookup(local.dotenv, "BEATRICE_TTS_MODEL", "gpt-4o-mini-tts")
   beatrice_tts_base_url        = lookup(local.dotenv, "BEATRICE_TTS_BASE_URL", null)
   beatrice_llm_api_key         = lookup(local.dotenv, "BEATRICE_LLM_API_KEY", null)
   beatrice_tts_api_key         = lookup(local.dotenv, "BEATRICE_TTS_API_KEY", null)

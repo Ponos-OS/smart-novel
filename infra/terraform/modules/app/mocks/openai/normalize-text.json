@@ -1,0 +1,42 @@
+{
+  "name": "chat completions: NormalizedText",
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/chat/completions",
+    "bodyPatterns": [
+      {
+        "matchesJsonPath": {
+          "expression": "$.response_format.json_schema.name",
+          "equalTo": "NormalizedText"
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "id": "chatcmpl-9f3c1a7e2b",
+      "object": "chat.completion",
+      "created": 1767225600,
+      "model": "gpt-4.1-mini",
+      "choices": [
+        {
+          "index": 0,
+          "finish_reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": "{\"normalized_text\": \"Doctor Smith met with three clients at nine A M on December third, twenty twenty-four.\"}"
+          }
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 120,
+        "completion_tokens": 60,
+        "total_tokens": 180
+      }
+    }
+  }
+}

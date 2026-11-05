@@ -1,21 +1,17 @@
 ## 🚀 Quick Start
 
-Prerequisites are Docker, Terraform and the [`kind` CLI](https://kind.sigs.k8s.io/docs/user/quick-start). Learn more about kind cluster here [`infra/README.md`](../infra/README.md). If you need DevTools such as RedisInsight, pgAdmin or Open WebUI, put this in `infra/terraform/local/1-app/terraform.tfvars` (git-ignored) and run `npm run start:dev` again:
+Prerequisites are Docker, Terraform and the [`kind` CLI](https://kind.sigs.k8s.io/docs/user/quick-start). Learn more about kind cluster here [`infra/README.md`](../infra/README.md). If you need DevTools such as RedisInsight or pgAdmin, put this in `infra/terraform/local/1-app/terraform.tfvars` (git-ignored) and run `npm run start:dev` again:
 
 ```hcl
 enable_devtools = true
 ```
 
-<details><summary>To skip the heavy models (the LLM gateway, and with it Beatrice), set <code>RUN_LOCAL_AI_MODELS=false</code> in the <code>.env</code></summary>
+Beatrice talks to an OpenAI-compatible LLM and an OpenAI-compatible speech endpoint; Fithara (the license assistant) talks to the same kind of LLM endpoint with its own model, one that the `llmcapa` model catalog knows.
 
-Beatrice talks to an OpenAI-compatible LLM and an OpenAI-compatible speech endpoint; Fithara (the license assistant) talks to the same LLM endpoint with its own model, one that the `llmcapa` model catalog knows.
-
-`RUN_LOCAL_AI_MODELS` in `.env`, picks where the requests must go when starting the app (`npm run start:dev`) or running the tests (`nx e2e backend-e2e`).
-
-Local models run in the published `9109679196/smart-novel-llm-gateway` image, which serves both the LLM and text-to-speech and downloads the LLM (`BEATRICE_LLM_MODEL` in `.env`) on first start. Set these in `.env`:
+- `npm run start:dev` sends the requests to the real provider you set in `.env`. Every call costs money.
+- `nx e2e backend-e2e` and `nx e2e frontend-e2e` deploy WireMock (`infra/terraform/modules/app/mocks/openai`) and point Beatrice and Fithara at it, whatever `.env` says, so the tests are free, fast and deterministic. To change an answer, edit the stub there.
 
 ```bash
-RUN_LOCAL_AI_MODELS=false
 BEATRICE_LLM_BASE_URL=https://api.openai.com/v1
 BEATRICE_LLM_MODEL=gpt-4o-mini
 FITHARA_LLM_MODEL=gpt-4.1-mini
@@ -28,15 +24,7 @@ BEATRICE_TTS_VOICES=alloy,nova
 FITHARA_LLM_API_KEY=sk-...
 ```
 
-`BEATRICE_DEFAULT_VOICE` must be one of `BEATRICE_TTS_VOICES`.
-
-> [!IMPORTANT]
->
-> The LLM and speech endpoints cannot be mixed (one local, one external) with the current switch.
-
-Every call to a paid provider costs money, so run only the specs that you are interested in: Narrow `include` in [`apps/backend-e2e/vitest.config.ts`](../apps/backend-e2e/vitest.config.ts) to those specs, e.g. `src/backend/beatrice-callbacks.e2e-spec.ts`. Do not commit this change though.
-
-</details>
+`BEATRICE_DEFAULT_VOICE` must be one of `BEATRICE_TTS_VOICES`. Without `BEATRICE_LLM_BASE_URL` and `BEATRICE_TTS_BASE_URL`, `npm run start:dev` skips Beatrice and RabbitMQ.
 
 ```bash
 npm ci

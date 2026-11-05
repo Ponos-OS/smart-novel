@@ -49,16 +49,16 @@ variable "tags" {
   default     = { Project = "smart-novel" }
 }
 
-variable "run_local_ai_models" {
-  description = "Run the LLM gateway (LLM and text-to-speech) in the cluster. Its image is large and downloads the LLM on first start, so loading and starting it is slow; false skips it, and with it Beatrice unless BEATRICE_LLM_BASE_URL (in .env) and BEATRICE_TTS_BASE_URL (in .env) are set"
+variable "mock_ai_providers" {
+  description = "Run WireMock in the cluster and point Beatrice and Fithara at it instead of at the providers in .env, so tests never call a paid one. start-dev.sh sets it for the e2e mode"
   type        = bool
-  default     = true
+  default     = false
 }
 
-variable "llm_gateway_image" {
-  description = "Published smart-novel-llm-gateway image, pulled once on the host and loaded into the cluster when run_local_ai_models is true"
+variable "wiremock_image" {
+  description = "WireMock image, pulled once on the host and loaded into the cluster when mock_ai_providers is true"
   type        = string
-  default     = "9109679196/smart-novel-llm-gateway:1.0.1"
+  default     = "wiremock/wiremock:3.13.1"
 }
 
 variable "run_as_user" {

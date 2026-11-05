@@ -46,8 +46,9 @@ module "object_storage" {
 }
 
 locals {
-  beatrice_llm_base_url = var.run_local_ai_models ? module.llm_gateway[0].base_url : var.beatrice_llm_base_url
-  beatrice_tts_base_url = var.run_local_ai_models ? module.llm_gateway[0].base_url : var.beatrice_tts_base_url
+  beatrice_llm_base_url = var.mock_ai_providers ? "${module.wiremock_openai[0].base_url}/v1" : var.beatrice_llm_base_url
+  beatrice_tts_base_url = var.mock_ai_providers ? "${module.wiremock_openai[0].base_url}/v1" : var.beatrice_tts_base_url
+  fithara_llm_base_url  = var.mock_ai_providers ? "${module.wiremock_openai[0].base_url}/v1" : var.fithara_llm_base_url
   deploy_beatrice       = local.beatrice_llm_base_url != null && local.beatrice_tts_base_url != null
   otlp_endpoint         = var.otlp_endpoint
   otlp_logs             = var.log_shipping == "otlp"
@@ -68,15 +69,15 @@ locals {
   )
 }
 
-module "llm_gateway" {
-  source = "../llm_gateway"
-  count  = var.run_local_ai_models ? 1 : 0
+module "wiremock_openai" {
+  source = "../wiremock"
+  count  = var.mock_ai_providers ? 1 : 0
 
-  namespace      = module.namespace.name
-  labels         = var.labels
-  image          = var.images["llm_gateway"]
-  llm_hf_model   = var.beatrice_llm_model
-  context_length = var.llm_gateway_context_length
+  namespace    = module.namespace.name
+  labels       = var.labels
+  name         = "wiremock-openai"
+  mappings_dir = "${path.module}/mocks/openai"
+  image        = var.images["wiremock"]
 }
 
 module "rabbitmq" {
@@ -108,7 +109,7 @@ module "beatrice" {
   log_shipping       = var.log_shipping
 
   # Beatrice does not reconnect when the broker is unreachable at startup.
-  depends_on = [module.rabbitmq, module.llm_gateway]
+  depends_on = [module.rabbitmq, module.wiremock_openai]
 }
 
 module "fithara" {
@@ -118,14 +119,14 @@ module "fithara" {
   labels             = var.labels
   image              = var.images["fithara"]
   llm_provider       = var.fithara_llm_provider
-  llm_base_url       = var.fithara_llm_base_url
+  llm_base_url       = local.fithara_llm_base_url
   llm_model          = var.fithara_llm_model
   llm_api_key        = var.fithara_llm_api_key
   llm_timeout_ms     = var.fithara_llm_timeout_ms
   otlp_http_endpoint = local.otlp_endpoint
   log_shipping       = var.log_shipping
 
-  depends_on = [module.llm_gateway]
+  depends_on = [module.wiremock_openai]
 }
 
 module "pre_deploy_job" {
@@ -184,7 +185,6 @@ module "devtools" {
   open_webui_image    = var.images["open_webui"]
   redis               = module.redis.connection
   postgres            = module.postgres.connection
-  openai_base_url     = one(module.llm_gateway[*].base_url)
 }
 
 resource "kubernetes_ingress_v1" "app" {

@@ -8,7 +8,7 @@ type Workload =
   | 'deploy/backend'
   | 'deploy/zitadel'
   | 'deploy/beatrice'
-  | 'deploy/llm-gateway'
+  | 'deploy/wiremock-openai'
   | 'job/backend-init';
 
 const namespace = 'smart-novel';
@@ -65,48 +65,5 @@ export class ClusterFixture {
       cwd,
       stdio: 'inherit',
     });
-  }
-
-  static warmupBeatrice(cwd: string): void {
-    this.warmupBeatriceMutation(
-      cwd,
-      'explainWord',
-      'mutation { explainWord(word: "hello", context: "hello world") { meaning } }',
-    );
-    this.warmupBeatriceMutation(
-      cwd,
-      'normalizeTextForTts',
-      'mutation { normalizeTextForTts(text: "Dr. Smith met with 3 clients at 9am on 12/03/2024.") }',
-    );
-  }
-
-  private static warmupBeatriceMutation(
-    cwd: string,
-    label: string,
-    query: string,
-  ): void {
-    const body = JSON.stringify({ query });
-    const startedAt = Date.now();
-
-    try {
-      execSync(
-        `${kubectl} exec -i deploy/backend -- curl -sS --max-time 300 -H 'content-type: application/json' -d @- http://beatrice:3000/graphql`,
-        {
-          cwd,
-          input: body,
-          encoding: 'utf-8',
-          stdio: ['pipe', 'pipe', 'pipe'],
-          timeout: 5 * 60 * 1000,
-        },
-      );
-
-      Logger.log(
-        `Beatrice/LLM gateway warmup (${label}) completed in ${Math.round((Date.now() - startedAt) / 1000)}s`,
-      );
-    } catch (error) {
-      Logger.warn(
-        `Beatrice/LLM gateway warmup (${label}) failed (continuing anyway): ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
   }
 }

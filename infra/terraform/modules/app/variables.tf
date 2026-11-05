@@ -11,7 +11,7 @@ variable "labels" {
 }
 
 variable "images" {
-  description = "Container images: postgres, redis, object_storage, aws_cli, rabbitmq, beatrice, fithara, llm_gateway, backend and frontend, plus redis_insight, pgadmin and open_webui when enable_devtools is true"
+  description = "Container images: postgres, redis, object_storage, aws_cli, rabbitmq, beatrice, fithara, wiremock, backend and frontend, plus redis_insight, pgadmin and open_webui when enable_devtools is true"
   type        = map(string)
 }
 
@@ -100,28 +100,22 @@ variable "create_zitadel_database" {
   default     = true
 }
 
-variable "run_local_ai_models" {
-  description = "Deploy the LLM gateway, which serves the heavy models Beatrice and Fithara use. When false, Beatrice is deployed only if beatrice_llm_base_url and beatrice_tts_base_url point at other services"
+variable "mock_ai_providers" {
+  description = "Deploy WireMock and point Beatrice and Fithara at it instead of at beatrice_llm_base_url, beatrice_tts_base_url and fithara_llm_base_url, for tests that must not call a paid provider"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "beatrice_llm_base_url" {
-  description = "OpenAI-compatible base URL of an external LLM; used when run_local_ai_models is false"
+  description = "OpenAI-compatible base URL of Beatrice's LLM; ignored when mock_ai_providers is true"
   type        = string
   default     = null
 }
 
 variable "beatrice_llm_model" {
-  description = "LLM model name Beatrice asks for. With run_local_ai_models it is also the GGUF model the in-cluster gateway downloads and serves, as <Hugging Face repo>:<quant>"
+  description = "LLM model name Beatrice asks for"
   type        = string
-  default     = "unsloth/Qwen3.6-35B-A3B-GGUF:Q4_K_M"
-}
-
-variable "llm_gateway_context_length" {
-  description = "Context length in tokens the in-cluster gateway serves; Fithara drafts with the whole license in the prompt and in the answer"
-  type        = number
-  default     = 32768
+  default     = "gpt-4.1-mini"
 }
 
 variable "fithara_llm_model" {
@@ -137,7 +131,7 @@ variable "fithara_llm_provider" {
 }
 
 variable "fithara_llm_base_url" {
-  description = "OpenAI-compatible base URL of Fithara's LLM; independent of Beatrice's. With run_local_ai_models it is the in-cluster gateway, http://llm-gateway:8000/v1"
+  description = "OpenAI-compatible base URL of Fithara's LLM; independent of Beatrice's; ignored when mock_ai_providers is true"
   type        = string
   default     = null
 }
@@ -156,20 +150,20 @@ variable "fithara_llm_timeout_ms" {
 }
 
 variable "beatrice_tts_model" {
-  description = "Text-to-speech model name Beatrice sends in every speech request; the gateway serves one TTS model whatever name is sent"
+  description = "Text-to-speech model name Beatrice sends in every speech request"
   type        = string
-  default     = "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
+  default     = "gpt-4o-mini-tts"
 }
 
 variable "beatrice_llm_api_key" {
-  description = "API key for the external LLM; null keeps the module default, which the local gateway accepts"
+  description = "API key of Beatrice's LLM; null keeps the module default, which WireMock accepts"
   type        = string
   default     = null
   sensitive   = true
 }
 
 variable "beatrice_tts_api_key" {
-  description = "API key for the external text-to-speech server; null keeps the module default, which the local shim accepts"
+  description = "API key for the external text-to-speech server; null keeps the module default, which WireMock accepts"
   type        = string
   default     = null
   sensitive   = true
@@ -182,7 +176,7 @@ variable "beatrice_tts_voices" {
 }
 
 variable "beatrice_tts_base_url" {
-  description = "Base URL of an external OpenAI-compatible text-to-speech server; used when run_local_ai_models is false"
+  description = "Base URL of an OpenAI-compatible text-to-speech server; ignored when mock_ai_providers is true"
   type        = string
   default     = null
 }
