@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 
-env_dir="$(cd "$(dirname "$0")/../terraform/envs/local" && pwd)"
-zitadel_env_dir="$(cd "$(dirname "$0")/../terraform/envs/local-zitadel" && pwd)"
+env_dir="$(cd "$(dirname "$0")/../terraform/local/1-app" && pwd)"
+zitadel_env_dir="$(cd "$(dirname "$0")/../terraform/local/2-zitadel-config" && pwd)"
 cluster_name="smart-novel"
 
 # Destroying the cluster destroys what stage 2 configured in it, so only its state is left to forget.

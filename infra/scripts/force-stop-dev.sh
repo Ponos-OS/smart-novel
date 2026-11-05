@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Stops the local stack when `npm run stop:dev` cannot: kills what holds the Terraform
 # state lock, deletes the kind cluster directly and forgets the throwaway state.
-# Run it from anywhere: `bash local-setup/force-stop-dev.sh`
+# Run it from anywhere: `bash infra/scripts/force-stop-dev.sh`
 
 set -u
 
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-env_dir="$root/infra/terraform/envs/local"
-zitadel_env_dir="$root/infra/terraform/envs/local-zitadel"
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+env_dir="$root/infra/terraform/local/1-app"
+zitadel_env_dir="$root/infra/terraform/local/2-zitadel-config"
 cluster_name="smart-novel"
 
 echo "Stopping the scripts and Terraform processes of the stack..."

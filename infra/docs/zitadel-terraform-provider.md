@@ -1,6 +1,6 @@
 # Configuring a Deployed ZITADEL
 
-`modules/zitadel_config` configures ZITADEL with the `zitadel/zitadel` provider. `envs/local-zitadel` is the local root module for it; a deployed environment (QA, production) gets its own root module that calls the same module with its own inputs. This note lists what differs.
+`modules/zitadel_config` configures ZITADEL with the `zitadel/zitadel` provider. `local/2-zitadel-config` is the local root module for it; a deployed environment (QA, production) gets its own root module that calls the same module with its own inputs. This note lists what differs.
 
 ## Credential
 
@@ -19,7 +19,7 @@ Terraform runs where the pipeline runs and talks to ZITADEL's API: set `domain`,
 
 ## Outputs
 
-The root module outputs the client ID, and, where impersonation is set, the bot's key and PAT. Pass the client ID to the workloads as `ZITADEL_CLIENT_ID` and `VITE_OIDC_CLIENT_ID`, the way `envs/local` does from stage 2's outputs. The backend also needs a PAT in `ZITADEL_PAT`, to create sessions on behalf of users.
+The root module outputs the client ID, and, where impersonation is set, the bot's key and PAT. Pass the client ID to the workloads as `ZITADEL_CLIENT_ID` and `VITE_OIDC_CLIENT_ID`, the way `local/1-app` does from stage 2's outputs. The backend also needs a PAT in `ZITADEL_PAT`, to create sessions on behalf of users.
 
 ## State
 

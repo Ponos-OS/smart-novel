@@ -65,7 +65,7 @@ storybook-static
 **/.terraform/
 infra/terraform/**/terraform.tfstate*
 infra/terraform/**/.terraform.tfstate.lock.info
-infra/terraform/envs/local/*-config
+infra/terraform/local/1-app/*-config
 *.auto.tfvars
 terraform.tfvars
 infra/terraform/modules/*/.terraform.lock.hcl

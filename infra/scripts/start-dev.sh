@@ -6,8 +6,8 @@ set -eu
 
 mode="${1:-dev}"
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
-env_dir="$repo_root/infra/terraform/envs/local"
-zitadel_env_dir="$repo_root/infra/terraform/envs/local-zitadel"
+env_dir="$repo_root/infra/terraform/local/1-app"
+zitadel_env_dir="$repo_root/infra/terraform/local/2-zitadel-config"
 cluster_name="smart-novel"
 
 case "$mode" in
@@ -104,9 +104,9 @@ if [ "$mode" = dev ]; then
 
 Everything is behind Traefik on port 8080:
 
-  UI                http://localhost:8080                      login: infra/terraform/envs/local-zitadel/main.tf
+  UI                http://localhost:8080                      login: infra/terraform/local/2-zitadel-config/main.tf
   GraphQL (Apollo)  http://localhost:8080/graphql              needs a bearer token from a logged-in session
-  ZITADEL console   http://auth.localhost:8080/ui/console/     admin login: infra/terraform/envs/local-zitadel/main.tf
+  ZITADEL console   http://auth.localhost:8080/ui/console/     admin login: infra/terraform/local/2-zitadel-config/main.tf
   Grafana           http://grafana.localhost:8080              admin password: see infra/README.md
   RabbitMQ          http://rabbitmq.localhost:8080             guest / guest, only when Beatrice is deployed
   RustFS console    http://s3-console.localhost:8080           S3 API on http://s3.localhost:8080
@@ -116,9 +116,9 @@ Everything is behind Traefik on port 8080:
 
 Beatrice is cluster-internal, forward it to reach http://localhost:3001/graphql:
 
-  kubectl --kubeconfig infra/terraform/envs/local/smart-novel-config -n smart-novel port-forward deploy/beatrice 3001:3000
+  kubectl --kubeconfig infra/terraform/local/1-app/smart-novel-config -n smart-novel port-forward deploy/beatrice 3001:3000
 
 To login Grafana you can use "admin" as username and password:
-  kubectl --kubeconfig infra/terraform/envs/local/smart-novel-config -n smart-novel get secret grafana-admin -o jsonpath='{.data.password}' | base64 -d; echo
+  kubectl --kubeconfig infra/terraform/local/1-app/smart-novel-config -n smart-novel get secret grafana-admin -o jsonpath='{.data.password}' | base64 -d; echo
 EOT
 fi

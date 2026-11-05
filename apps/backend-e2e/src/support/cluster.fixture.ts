@@ -12,7 +12,7 @@ type Workload =
   | 'job/backend-init';
 
 const namespace = 'smart-novel';
-const kubeconfig = 'infra/terraform/envs/local/smart-novel-config';
+const kubeconfig = 'infra/terraform/local/1-app/smart-novel-config';
 const kubectl = `kubectl --kubeconfig ${kubeconfig} -n ${namespace}`;
 
 const workspaceRoot = resolve(__dirname, '../../../../');

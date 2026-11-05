@@ -124,7 +124,7 @@ data "terraform_remote_state" "zitadel" {
   backend = "local"
 
   config = {
-    path = "${path.module}/../local-zitadel/terraform.tfstate"
+    path = "${path.module}/../2-zitadel-config/terraform.tfstate"
   }
 }
 

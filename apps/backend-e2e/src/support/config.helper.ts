@@ -13,7 +13,7 @@ const zitadelIssuer =
 const workspaceRoot = resolve(__dirname, '../../../../');
 const zitadelEnvDir = resolve(
   workspaceRoot,
-  'infra/terraform/envs/local-zitadel',
+  'infra/terraform/local/2-zitadel-config',
 );
 const apiUrl = urlBuilder(zitadelIssuer, 'api');
 /**

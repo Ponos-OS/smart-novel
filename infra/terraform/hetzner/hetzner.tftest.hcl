@@ -1,7 +1,17 @@
-mock_provider "kubernetes" {}
+mock_provider "kubernetes" {
+  mock_data "kubernetes_secret_v1" {
+    defaults = {
+      data = { jwt_profile_json = "{\"type\":\"serviceaccount\",\"keyId\":\"312345678901234567\"}" }
+    }
+  }
+}
+
+mock_provider "zitadel" {}
 
 variables {
   kubeconfig_path         = "/dev/null"
+  zitadel_domain          = "auth.novel.example.com"
+  zitadel_pat             = "pat-example-token"
   domain                  = "novel.example.com"
   ingress_class           = "traefik"
   cluster_issuer          = "letsencrypt-prod"
@@ -56,25 +66,11 @@ run "the_dashboards_and_alert_rules_go_to_the_shared_grafana" {
   }
 }
 
-run "without_the_zitadel_values_the_workloads_are_held_back" {
+run "zitadel_is_configured_on_the_shared_instance" {
   command = plan
-
-  assert {
-    condition     = !module.app.workloads_enabled
-    error_message = "the backend needs the client ID and token at startup"
-  }
-}
-
-run "with_the_zitadel_values_the_workloads_run" {
-  command = plan
-
-  variables {
-    zitadel_client_id = "312345678901234567"
-    zitadel_pat       = "pat-example-token"
-  }
 
   assert {
     condition     = module.app.workloads_enabled
-    error_message = "the workloads must run once ZITADEL's values exist"
+    error_message = "the workloads run in one apply with the ZITADEL configuration"
   }
 }

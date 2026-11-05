@@ -1,23 +1,38 @@
-locals {
-  zitadel_ready = var.zitadel_client_id != null && var.zitadel_project_id != null && nonsensitive(var.zitadel_pat != null && var.zitadel_management_pat != null && var.zitadel_webhook_signing_key != null)
+# Its own organization on the shared instance, with its own users and login policy; instance-wide settings belong to the infra repo.
+module "zitadel_config" {
+  source = "../modules/zitadel_config"
 
-  backend_environment = merge(
-    var.backend_environment,
-    local.zitadel_ready ? { ZITADEL_CLIENT_ID = var.zitadel_client_id, ZITADEL_PROJECT_ID = var.zitadel_project_id } : {},
-  )
-  backend_secret_environment = merge(
-    var.backend_secret_environment,
-    local.zitadel_ready ? { ZITADEL_PAT = var.zitadel_pat, ZITADEL_MANAGEMENT_PAT = var.zitadel_management_pat, ZITADEL_WEBHOOK_SIGNING_KEY = var.zitadel_webhook_signing_key } : {},
-  )
-  frontend_environment = merge(
-    var.frontend_environment,
-    local.zitadel_ready ? { VITE_OIDC_CLIENT_ID = var.zitadel_client_id } : {},
-    var.zitadel_org_id == null ? {} : { VITE_OIDC_ORG_ID = var.zitadel_org_id },
-  )
+  redirect_uris             = ["https://${var.domain}${var.redirect_path}"]
+  post_logout_redirect_uris = ["https://${var.domain}"]
+
+  create_org                    = true
+  org_name                      = var.zitadel_org_name
+  allow_self_registration       = true
+  self_registration_webhook_url = "https://${var.domain}/zitadel-events/user-added"
+  login_default_redirect_uri    = "https://${var.domain}"
+  manage_instance_settings      = false
+
+  backend_access = {}
+}
+
+locals {
+  backend_environment = merge(var.backend_environment, {
+    ZITADEL_CLIENT_ID  = module.zitadel_config.client_id
+    ZITADEL_PROJECT_ID = module.zitadel_config.project_id
+  })
+  backend_secret_environment = merge(var.backend_secret_environment, {
+    ZITADEL_PAT                 = var.zitadel_pat
+    ZITADEL_MANAGEMENT_PAT      = module.zitadel_config.backend_pat
+    ZITADEL_WEBHOOK_SIGNING_KEY = module.zitadel_config.webhook_signing_key
+  })
+  frontend_environment = merge(var.frontend_environment, {
+    VITE_OIDC_CLIENT_ID = module.zitadel_config.client_id
+    VITE_OIDC_ORG_ID    = module.zitadel_config.org_id
+  })
 }
 
 module "app" {
-  source = "../../modules/app"
+  source = "../modules/app"
 
   namespace = var.namespace
   labels    = var.tags
@@ -52,7 +67,7 @@ module "app" {
   fithara_llm_api_key    = var.fithara_llm_api_key
   fithara_llm_timeout_ms = var.fithara_llm_timeout_ms
 
-  wait_for_zitadel_credentials = !local.zitadel_ready
+  wait_for_zitadel_credentials = false
   backend_environment          = local.backend_environment
   backend_secret_environment   = local.backend_secret_environment
   frontend_environment         = local.frontend_environment
@@ -70,7 +85,7 @@ module "app" {
 }
 
 module "backup" {
-  source = "../../modules/backup"
+  source = "../modules/backup"
 
   namespace      = module.app.namespace
   labels         = var.tags

@@ -145,42 +145,38 @@ variable "frontend_environment" {
   default     = {}
 }
 
-variable "zitadel_client_id" {
-  description = "client_id output of envs/hetzner-zitadel; null holds back the backend, the frontend and the migration until it exists, as do zitadel_project_id, zitadel_pat, zitadel_management_pat and zitadel_webhook_signing_key"
+variable "zitadel_domain" {
+  description = "Host of the shared ZITADEL: the zitadel_issuer_url output of the infra repo's hetzner/2-platform without the scheme"
   type        = string
-  default     = null
 }
 
-variable "zitadel_project_id" {
-  description = "project_id output of envs/hetzner-zitadel; the backend grants roles of this project"
-  type        = string
-  default     = null
+variable "zitadel_admin_secret" {
+  description = "Namespace and name of the Secret that holds the instance admin key (zitadel_admin_secret output of the infra repo's hetzner/2-platform, key jwt_profile_json)"
+  type = object({
+    namespace = string
+    name      = string
+  })
+  default = {
+    namespace = "zitadel"
+    name      = "zitadel-admin"
+  }
 }
 
-variable "zitadel_org_id" {
-  description = "org_id output of envs/hetzner-zitadel; the frontend signs in with this organization's login policy"
+variable "zitadel_org_name" {
+  description = "Name of the organization created on the shared ZITADEL for smart-novel's users"
   type        = string
-  default     = null
+  default     = "smart-novel"
+}
+
+variable "redirect_path" {
+  description = "Path of the app's OIDC callback"
+  type        = string
+  default     = "/auth/callback"
 }
 
 variable "zitadel_pat" {
   description = "Token the backend uses to create sessions in ZITADEL. Create a machine user for it; do not hand over the instance admin token"
   type        = string
-  default     = null
-  sensitive   = true
-}
-
-variable "zitadel_management_pat" {
-  description = "backend_pat output of envs/hetzner-zitadel: the token of the machine user the backend uses to grant project roles. Only that user's token, never the instance admin token"
-  type        = string
-  default     = null
-  sensitive   = true
-}
-
-variable "zitadel_webhook_signing_key" {
-  description = "webhook_signing_key output of envs/hetzner-zitadel: the key ZITADEL signs its call about a new user with, which the backend checks"
-  type        = string
-  default     = null
   sensitive   = true
 }
 

@@ -1,6 +1,6 @@
 ## 🚀 Quick Start
 
-Prerequisites are Docker, Terraform and the [`kind` CLI](https://kind.sigs.k8s.io/docs/user/quick-start). Learn more about kind cluster here [`infra/README.md`](../infra/README.md). If you need DevTools such as RedisInsight, pgAdmin or Open WebUI, put this in `infra/terraform/envs/local/terraform.tfvars` (git-ignored) and run `npm run start:dev` again:
+Prerequisites are Docker, Terraform and the [`kind` CLI](https://kind.sigs.k8s.io/docs/user/quick-start). Learn more about kind cluster here [`infra/README.md`](../infra/README.md). If you need DevTools such as RedisInsight, pgAdmin or Open WebUI, put this in `infra/terraform/local/1-app/terraform.tfvars` (git-ignored) and run `npm run start:dev` again:
 
 ```hcl
 enable_devtools = true
@@ -45,13 +45,13 @@ npm run start:dev
 
 ## Where to Change Things (Infrastructure)
 
-- A new component (a database, a worker, a tool): add `infra/terraform/modules/<component>` with only the inputs it needs and a `.tftest.hcl`, then call it from `infra/terraform/modules/app`. A module that serves HTTP contributes its ingress routes (`name`, `path`, `service_name`, `service_port`) through a `routes` output, and `modules/app` puts them in its `Ingress`. What a shared cluster would provide (ingress controller, ZITADEL server, observability) is called only from `envs/local`.
+- A new component (a database, a worker, a tool): add `infra/terraform/modules/<component>` with only the inputs it needs and a `.tftest.hcl`, then call it from `infra/terraform/modules/app`. A module that serves HTTP contributes its ingress routes (`name`, `path`, `service_name`, `service_port`) through a `routes` output, and `modules/app` puts them in its `Ingress`. What a shared cluster would provide (ingress controller, ZITADEL server, observability) is called only from `local/1-app`.
 - A new variable in a module: give it a default that suits local development, and set it in an environment only if that one differs.
-- A change to ZITADEL itself (a role, an application, a user, a policy): `infra/terraform/modules/zitadel_config`, with the local values in `infra/terraform/envs/local-zitadel/main.tf`. `npm run start:dev` applies it between the cluster and the workloads. What the workloads need from it (client ID, PAT) reaches them as environment settings from `envs/local`.
-- A new application setting (`.env` key): add it to `.env.example`. `envs/local` hands the whole `.env` to the backend, the `VITE_` keys to the frontend, and keys that look like secrets (`PASSWORD`, `SECRET`, `MASTERKEY`, `ACCESS_KEY`) go to a Secret. Values that depend on a deployed component are filled in by `modules/app`.
-- Anything specific to one environment (hot reload, host ports, devtools, which images run): `infra/terraform/envs/<name>`, passed to `module "app"` as generic inputs. Modules must be identical in every environment, so they never mention `dev`, `local` or `kind`.
+- A change to ZITADEL itself (a role, an application, a user, a policy): `infra/terraform/modules/zitadel_config`, with the local values in `infra/terraform/local/2-zitadel-config/main.tf`. `npm run start:dev` applies it between the cluster and the workloads. What the workloads need from it (client ID, PAT) reaches them as environment settings from `local/1-app`.
+- A new application setting (`.env` key): add it to `.env.example`. `local/1-app` hands the whole `.env` to the backend, the `VITE_` keys to the frontend, and keys that look like secrets (`PASSWORD`, `SECRET`, `MASTERKEY`, `ACCESS_KEY`) go to a Secret. Values that depend on a deployed component are filled in by `modules/app`.
+- Anything specific to one environment (hot reload, host ports, devtools, which images run): `infra/terraform/<environment>`, passed to `module "app"` as generic inputs. Modules must be identical in every environment, so they never mention `dev`, `local` or `kind`.
 - An external service instead of an in-cluster one: set the matching `*_url` input of `module "app"`.
-- Personal overrides: `infra/terraform/envs/local/terraform.tfvars`.
+- Personal overrides: `infra/terraform/local/1-app/terraform.tfvars`.
 
 ## Prisma Migration Guide
 
@@ -94,7 +94,7 @@ All contributors (including AI-assisted tools) should follow the project's codin
 - Do **NOT** add a barrel `index.ts` in the "frontend" app, for a Vite-powered SPA you should **NOT** because:
   - Tree-shaking happens still for the production builds, but it **hurts dev server startup and HMR performance** because Vite eagerly transforms every module the barrel re-exports, even if you only need one.
   - When you do `import { getInitials } from '../../utils'`, Vite (and Rollup under the hood) has to parse the entire barrel to figure out what's exported.
-- Code both apps need (a limit, a rule) lives once in `libs/shared`, imported as `@smart-novel/shared`; keep it plain TypeScript with no Node, browser or framework imports. A new lib or a new path needs the same treatment as `shared`: `paths` in `tsconfig.base.json`, a `COPY libs` in the app Dockerfiles, and the `libs` volume in `infra/terraform/envs/local`. The backend's `ts-node` scripts need `-r tsconfig-paths/register` to resolve it.
+- Code both apps need (a limit, a rule) lives once in `libs/shared`, imported as `@smart-novel/shared`; keep it plain TypeScript with no Node, browser or framework imports. A new lib or a new path needs the same treatment as `shared`: `paths` in `tsconfig.base.json`, a `COPY libs` in the app Dockerfiles, and the `libs` volume in `infra/terraform/local/1-app`. The backend's `ts-node` scripts need `-r tsconfig-paths/register` to resolve it.
 - When you add a new resolver in the "backend" app, you **MUST** add it to the `apps/backend/gen-graphql-schema.ts`.
 - Use Nx targets instead of raw commands whenever it is possible.
 - A side-effect call from within a mutation that already committed its primary write (e.g. triggering Beatrice's `generateAudio` after `updateContent` persists) must not let the side effect's failure fail the whole mutation — wrap it (`retryAsync` with `{ retry: 0 }`, or try/catch) and log-and-continue.

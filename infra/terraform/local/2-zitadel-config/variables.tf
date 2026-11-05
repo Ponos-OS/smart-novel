@@ -1,7 +1,7 @@
 variable "kubeconfig_path" {
-  description = "Kubeconfig of the cluster ZITADEL runs in, written by envs/local"
+  description = "Kubeconfig of the cluster ZITADEL runs in, written by local/1-app"
   type        = string
-  default     = "../local/smart-novel-config"
+  default     = "../1-app/smart-novel-config"
 }
 
 variable "namespace" {
@@ -11,13 +11,13 @@ variable "namespace" {
 }
 
 variable "backend_internal_url" {
-  description = "How ZITADEL reaches the backend inside the cluster, same as in envs/local"
+  description = "How ZITADEL reaches the backend inside the cluster, same as in local/1-app"
   type        = string
   default     = "http://backend:3000"
 }
 
 variable "host_port" {
-  description = "Port on the host that reaches ZITADEL through the ingress, same as in envs/local"
+  description = "Port on the host that reaches ZITADEL through the ingress, same as in local/1-app"
   type        = number
   default     = 8080
 }
