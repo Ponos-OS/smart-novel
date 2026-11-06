@@ -14,27 +14,27 @@ name: E2E
 on:
   pull_request:
     paths:
-      - 'apps/**'
-      - 'infra/**'
-      - 'local-setup/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'nx.json'
-      - 'tsconfig.base.json'
-      - '.env.example'
-      - '.github/workflows/e2e.yml'
+      - "apps/**"
+      - "infra/**"
+      - "local-setup/**"
+      - "package.json"
+      - "package-lock.json"
+      - "nx.json"
+      - "tsconfig.base.json"
+      - ".env.example"
+      - ".github/workflows/e2e.yml"
   push:
     branches: [main]
     paths:
-      - 'apps/**'
-      - 'infra/**'
-      - 'local-setup/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'nx.json'
-      - 'tsconfig.base.json'
-      - '.env.example'
-      - '.github/workflows/e2e.yml'
+      - "apps/**"
+      - "infra/**"
+      - "local-setup/**"
+      - "package.json"
+      - "package-lock.json"
+      - "nx.json"
+      - "tsconfig.base.json"
+      - ".env.example"
+      - ".github/workflows/e2e.yml"
 
 # Cancel in-flight runs when a new commit is pushed to the same PR/branch. This saves runner minutes and matches a trunk-based workflow where only the latest commit needs to be green.
 concurrency:
