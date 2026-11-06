@@ -60,7 +60,6 @@ smart-novel/
 │   └── frontend-e2e/             # Frontend E2E tests (Cypress)
 ├── infra/                        # Terraform modules and scripts for the local kind cluster (see infra/README.md)
 ├── libs/                         # Code shared by both apps (@smart-novel/shared)
-├── local-setup/                  # Local development helpers
 ├── scripts/                      # Repo maintenance scripts
 ├── .env.example                  # Environment variables template
 ├── nx.json                       # Nx configuration
