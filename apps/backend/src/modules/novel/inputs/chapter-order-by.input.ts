@@ -1,5 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { IsEnum } from 'class-validator';
+import { IsEnum, IsOptional } from 'class-validator';
 
 import { OrderDirection } from '../../../shared';
 import { ChapterOrderField } from '../enums';
@@ -12,6 +12,7 @@ export class ChapterOrderByInput {
     defaultValue: ChapterOrderField.CHAPTER_NUMBER,
     description: 'The field to order chapters by',
   })
+  @IsOptional()
   @IsEnum(ChapterOrderField)
   field: ChapterOrderField;
 
@@ -19,6 +20,7 @@ export class ChapterOrderByInput {
     defaultValue: OrderDirection.ASC,
     description: 'The direction to order chapters',
   })
+  @IsOptional()
   @IsEnum(OrderDirection)
   direction: OrderDirection;
 }

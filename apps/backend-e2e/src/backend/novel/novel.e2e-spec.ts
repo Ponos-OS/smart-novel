@@ -59,9 +59,8 @@ describe('Novel (e2e)', () => {
         state: 'ONGOING',
         writer: { penName: 'Writer_User' },
         tags: expect.arrayContaining(['fantasy', 'adventure']),
-        lastPublishedChapter: {
-          id: '6d908673-b125-4729-9da9-4fb907afe2a1',
-        },
+        // other specs add chapters to this seeded novel, so only its shape is stable
+        lastPublishedChapter: { id: expect.toBeString() },
         firstChapter: { id: '4dd92f16-4743-47b9-960c-6529678e9bc5' },
       }),
     );

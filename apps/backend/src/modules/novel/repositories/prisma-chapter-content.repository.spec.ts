@@ -12,9 +12,11 @@ describe(PrismaChapterContentRepository.name, () => {
     prismaService = {
       chapterContent: {
         findMany: vi.fn(),
+        update: vi.fn(),
       },
       chapter: {
         findUnique: vi.fn(),
+        findUniqueOrThrow: vi.fn(),
         update: vi.fn(),
       },
     } as any;
@@ -131,75 +133,73 @@ describe(PrismaChapterContentRepository.name, () => {
   });
 
   describe('upsertByChapterId', () => {
-    it('should upsert content and return the result', async () => {
+    const chapterId = '0ba68b7c-ca4e-4829-84f2-253c45c746dc';
+    const contentId = '0be4fe14-8fa6-48b5-b894-3b4fdca60943';
+
+    it('should update the content row and return it without touching the chapter row', async () => {
       const contentText = '# Chapter 1\n\nSome content';
       const expectedHash = createHash('sha256')
         .update(contentText)
         .digest('hex');
-      vi.mocked(prismaService.chapter.update).mockResolvedValue({
-        content: {
-          id: '0be4fe14-8fa6-48b5-b894-3b4fdca60943',
-          content: contentText,
-          contentHash: expectedHash,
-          updatedAt: new Date('2026-09-15T10:00:00.000Z'),
-        },
+      vi.mocked(
+        prismaService.chapter.findUniqueOrThrow,
+      ).mockResolvedValue({ contentId } as any);
+      vi.mocked(
+        prismaService.chapterContent.update,
+      ).mockResolvedValue({
+        id: contentId,
+        content: contentText,
+        contentHash: expectedHash,
+        updatedAt: new Date('2026-09-15T10:00:00.000Z'),
       } as any);
 
       const result = await uut.upsertByChapterId(
-        '0ba68b7c-ca4e-4829-84f2-253c45c746dc',
+        chapterId,
         contentText,
       );
 
       expect(result).toEqual({
-        id: '0be4fe14-8fa6-48b5-b894-3b4fdca60943',
+        id: contentId,
         content: contentText,
         contentHash: expectedHash,
         updatedAt: '2026-09-15T10:00:00.000Z',
       });
-      expect(prismaService.chapter.update).toHaveBeenCalledWith({
-        where: { id: '0ba68b7c-ca4e-4829-84f2-253c45c746dc' },
-        data: {
-          content: {
-            upsert: {
-              create: {
-                content: contentText,
-                contentHash: expectedHash,
-              },
-              update: {
-                content: contentText,
-                contentHash: expectedHash,
-              },
-            },
-          },
-        },
-        include: { content: true },
+      expect(
+        prismaService.chapterContent.update,
+      ).toHaveBeenCalledWith({
+        where: { id: contentId },
+        data: { content: contentText, contentHash: expectedHash },
       });
+      expect(prismaService.chapter.update).not.toHaveBeenCalled();
     });
 
     it('should use provided transaction client', async () => {
       const txClient = {
         chapter: {
+          findUniqueOrThrow: vi.fn().mockResolvedValue({ contentId }),
+        },
+        chapterContent: {
           update: vi.fn().mockResolvedValue({
-            content: {
-              id: 'b6c8df91-c655-4e76-bf16-ecfacb6e1aff',
-              content: 'tx content',
-              contentHash:
-                'd5bf5cb7cea90a4a42394a89ca5c06f9bbb27ae7bd87d1cb35cd1b65f73317c7',
-              updatedAt: new Date('2026-09-15T10:00:00.000Z'),
-            },
+            id: contentId,
+            content: 'tx content',
+            contentHash:
+              'd5bf5cb7cea90a4a42394a89ca5c06f9bbb27ae7bd87d1cb35cd1b65f73317c7',
+            updatedAt: new Date('2026-09-15T10:00:00.000Z'),
           }),
         },
       } as any;
 
       const result = await uut.upsertByChapterId(
-        '0ba68b7c-ca4e-4829-84f2-253c45c746dc',
+        chapterId,
         'tx content',
         txClient,
       );
 
-      expect(result.id).toBe('b6c8df91-c655-4e76-bf16-ecfacb6e1aff');
-      expect(txClient.chapter.update).toHaveBeenCalled();
-      expect(prismaService.chapter.update).not.toHaveBeenCalled();
+      expect(result.id).toBe(contentId);
+      expect(txClient.chapterContent.update).toHaveBeenCalled();
+      expect(
+        prismaService.chapterContent.update,
+      ).not.toHaveBeenCalled();
     });
   });
 });

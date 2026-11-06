@@ -66,7 +66,7 @@ describe('Writer requests (e2e)', () => {
     const data = await graphql(MY_WRITER, {});
 
     expect(data.errors).toBeDefined();
-    expect(data.data?.myWriter).toBeUndefined();
+    expect(data.data?.myWriter).toBeNull();
   });
 
   it.each([

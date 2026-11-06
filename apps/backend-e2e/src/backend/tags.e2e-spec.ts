@@ -198,12 +198,12 @@ const DELETE_TAG = `#graphql
 `;
 const CREATE_NOVEL = `#graphql
   mutation CreateNovel($input: CreateNovelInput!) {
-    createNovel(input: $input) { id tag }
+    createNovel(input: $input) { id tags }
   }
 `;
 const NOVEL_TAGS = `#graphql
   query NovelTags($id: ID!) {
-    novel(id: $id) { id tag }
+    novel(id: $id) { id tags }
   }
 `;
 
@@ -352,8 +352,8 @@ describe('Tag requests and management (e2e)', () => {
         writer,
       );
 
-      expect(data.errors[0].message).toContain(
-        'at most 50 characters',
+      expect(data.errors[0].extensions.originalError.message).toEqual(
+        [expect.stringContaining('at most 50 characters')],
       );
     });
 
@@ -377,7 +377,9 @@ describe('Tag requests and management (e2e)', () => {
           writer,
         );
 
-        expect(data.errors[0].message).toContain(message);
+        expect(
+          data.errors[0].extensions.originalError.message,
+        ).toEqual([expect.stringContaining(message)]);
         expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
       },
     );
@@ -389,7 +391,9 @@ describe('Tag requests and management (e2e)', () => {
         writer,
       );
 
-      expect(data.errors[0].message).toContain('cannot be empty');
+      expect(data.errors[0].extensions.originalError.message).toEqual(
+        [expect.stringContaining('cannot be empty')],
+      );
     });
   });
 
@@ -755,7 +759,9 @@ describe('Tag requests and management (e2e)', () => {
         admin,
       );
 
-      expect(data.errors[0].message).toContain('at most 650');
+      expect(data.errors[0].extensions.originalError.message).toEqual(
+        [expect.stringContaining('at most 650')],
+      );
       expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
     });
 

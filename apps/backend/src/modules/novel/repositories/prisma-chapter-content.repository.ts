@@ -50,20 +50,17 @@ export class PrismaChapterContentRepository implements IChapterContentRepository
     const client = tx ?? this.prisma;
     const contentHash = computeContentHash(content);
 
-    const chapter = await client.chapter.update({
+    const { contentId } = await client.chapter.findUniqueOrThrow({
       where: { id: chapterId },
-      data: {
-        content: {
-          upsert: {
-            create: { content, contentHash },
-            update: { content, contentHash },
-          },
-        },
-      },
-      include: { content: true },
+      select: { contentId: true },
+    });
+    // Written on its own so `Chapter.updatedAt` (the metadata version token) stays put.
+    const record = await client.chapterContent.update({
+      where: { id: contentId },
+      data: { content, contentHash },
     });
 
-    return this.toChapterContent(chapter.content!);
+    return this.toChapterContent(record);
   }
 
   private toChapterContent(

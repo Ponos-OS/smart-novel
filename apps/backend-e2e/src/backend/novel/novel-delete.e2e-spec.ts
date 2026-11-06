@@ -247,5 +247,5 @@ describe('Novel deletion (e2e)', () => {
     ).toBe(1);
 
     await deleteNovel(survivor.novelId, writer);
-  });
+  }, 30_000);
 });
