@@ -59,7 +59,9 @@ describe('Writer requests (e2e)', () => {
 
   beforeAll(async () => {
     userAuthorization =
-      await AuthorizationFixture.getUserAuthorizationHeader();
+      await AuthorizationFixture.getUserAuthorizationHeader({
+        fresh: true,
+      });
   });
 
   it('should refuse a caller without a token', async () => {

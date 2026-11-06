@@ -90,7 +90,10 @@ describe('Platform terms (e2e)', () => {
   describe('a writer who has not accepted them', () => {
     it('should be told the terms are not accepted', async () => {
       const authorization =
-        await AuthorizationFixture.getWriterWithoutAcceptedTermsAuthorizationHeader();
+        await AuthorizationFixture.getWriterAuthorizationHeader({
+          fresh: true,
+          acceptTerms: false,
+        });
 
       const data = await graphql(MY_STATUS, {}, authorization);
 
@@ -103,7 +106,10 @@ describe('Platform terms (e2e)', () => {
 
     it('should not be able to create a novel, with a typed error', async () => {
       const authorization =
-        await AuthorizationFixture.getWriterWithoutAcceptedTermsAuthorizationHeader();
+        await AuthorizationFixture.getWriterAuthorizationHeader({
+          fresh: true,
+          acceptTerms: false,
+        });
 
       const data = await graphql(
         CREATE_NOVEL,
@@ -119,7 +125,10 @@ describe('Platform terms (e2e)', () => {
 
     it('should not be able to use the license assistant, with a typed error and before any Fithara call', async () => {
       const authorization =
-        await AuthorizationFixture.getWriterWithoutAcceptedTermsAuthorizationHeader();
+        await AuthorizationFixture.getWriterAuthorizationHeader({
+          fresh: true,
+          acceptTerms: false,
+        });
 
       const data = await graphql(
         DRAFT_LICENSE,
@@ -134,7 +143,10 @@ describe('Platform terms (e2e)', () => {
 
     it('should not be able to accept a version other than the current one', async () => {
       const authorization =
-        await AuthorizationFixture.getWriterWithoutAcceptedTermsAuthorizationHeader();
+        await AuthorizationFixture.getWriterAuthorizationHeader({
+          fresh: true,
+          acceptTerms: false,
+        });
 
       const data = await graphql(
         ACCEPT,
@@ -149,7 +161,10 @@ describe('Platform terms (e2e)', () => {
 
     it('should be able to write once they accept, and accepting again changes nothing', async () => {
       const authorization =
-        await AuthorizationFixture.getWriterWithoutAcceptedTermsAuthorizationHeader();
+        await AuthorizationFixture.getWriterAuthorizationHeader({
+          fresh: true,
+          acceptTerms: false,
+        });
 
       const accepted = await graphql(
         ACCEPT,

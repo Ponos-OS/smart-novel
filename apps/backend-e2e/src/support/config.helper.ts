@@ -28,18 +28,9 @@ const tokenEndpoint = urlBuilder(
 
 interface ZitadelOutputs {
   project_id: { value: string };
+  pat: { value: string };
   user_ids: {
-    value: Record<
-      | 'admin'
-      | 'user'
-      | 'writer'
-      | 'writer2'
-      | 'writer3'
-      | 'no_role'
-      | 'applicant'
-      | 'applicant2',
-      string
-    >;
+    value: Record<'admin' | 'user' | 'writer' | 'no_role', string>;
   };
   integration_test: {
     value: {
@@ -70,15 +61,13 @@ const enrichedIntegrationTestBotKey: IntegrationTestBotKey = {
 
 export const config = {
   apiUrl,
+  projectId,
+  zitadelPat: outputs.pat.value,
   userIds: {
     user: userIds.user,
     admin: userIds.admin,
     writer: userIds.writer,
-    writer2: userIds.writer2,
-    writer3: userIds.writer3,
     noRole: userIds.no_role,
-    applicant: userIds.applicant,
-    applicant2: userIds.applicant2,
   },
   integrationTest: {
     scopes,

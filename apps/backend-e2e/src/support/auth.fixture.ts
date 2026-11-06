@@ -1,19 +1,33 @@
 import axios from 'axios';
-import { importPKCS8, SignJWT } from 'jose';
+import { decodeJwt, importPKCS8, SignJWT } from 'jose';
 import { createPrivateKey } from 'node:crypto';
 
 import { config } from './config.helper';
+import { uniquePenName } from './pen-name';
+import { ZitadelFixture } from './zitadel.fixture';
+
+interface AuthorizationOptions {
+  /**
+   * @description Create a new account instead of returning the seeded one, so the test starts from a clean state.
+   */
+  fresh?: boolean;
+  /**
+   * @description Only for a fresh writer: `false` leaves the platform terms unaccepted, for the specs that test the terms gate itself.
+   */
+  acceptTerms?: boolean;
+}
 
 export class AuthorizationFixture {
-  static async getUserAuthorizationHeader() {
-    const actorToken =
-      await AuthorizationFixture.getActorAccessToken();
-    const accessToken = await AuthorizationFixture.impersonate(
-      actorToken,
-      config.userIds.user,
-    );
+  static async getUserAuthorizationHeader({
+    fresh,
+  }: AuthorizationOptions = {}) {
+    if (!fresh) {
+      return AuthorizationFixture.getAuthorizationHeaderOf(
+        config.userIds.user,
+      );
+    }
 
-    return `Bearer ${accessToken}`;
+    return AuthorizationFixture.createAccount('user');
   }
 
   /**
@@ -30,75 +44,119 @@ export class AuthorizationFixture {
     return `Bearer ${accessToken}`;
   }
 
+  static async getAdminAuthorizationHeader({
+    fresh,
+  }: AuthorizationOptions = {}) {
+    if (!fresh) {
+      return AuthorizationFixture.withAcceptedTerms(
+        config.userIds.admin,
+        await AuthorizationFixture.getAuthorizationHeaderOf(
+          config.userIds.admin,
+        ),
+      );
+    }
+
+    const authorization =
+      await AuthorizationFixture.createAccount('admin');
+
+    return AuthorizationFixture.withAcceptedTerms(
+      AuthorizationFixture.userIdOf(authorization),
+      authorization,
+    );
+  }
+
+  static async getWriterAuthorizationHeader({
+    fresh,
+    acceptTerms = true,
+  }: AuthorizationOptions = {}) {
+    if (!fresh) {
+      return AuthorizationFixture.withAcceptedTerms(
+        config.userIds.writer,
+        await AuthorizationFixture.getAuthorizationHeaderOf(
+          config.userIds.writer,
+        ),
+      );
+    }
+
+    const requester =
+      await AuthorizationFixture.createAccount('user');
+    const adminAuthorization =
+      await AuthorizationFixture.getAdminAuthorizationHeader();
+    const requestId = await AuthorizationFixture.graphql<{
+      requestWriterAccess: { id: string };
+    }>(
+      `mutation ($note: String!, $penName: String!) {
+        requestWriterAccess(note: $note, penName: $penName) { id }
+      }`,
+      {
+        note: 'A fresh writer for an e2e test.',
+        penName: uniquePenName(),
+      },
+      requester,
+    ).then(({ requestWriterAccess }) => requestWriterAccess.id);
+
+    await AuthorizationFixture.graphql(
+      `mutation ($id: ID!) { approveWriter(id: $id) { id } }`,
+      { id: requestId },
+      adminAuthorization,
+    );
+
+    // The role is in the token, so the one from before the approval has to be replaced.
+    const authorization =
+      await AuthorizationFixture.refreshAuthorizationHeader(
+        requester,
+      );
+
+    if (!acceptTerms) {
+      return authorization;
+    }
+
+    return AuthorizationFixture.withAcceptedTerms(
+      AuthorizationFixture.userIdOf(authorization),
+      authorization,
+    );
+  }
+
   /**
-   * @description A `user` that the writer request specs may turn into a writer; nothing else uses it, so the shared `user` keeps its role.
+   * @description A new token of the same account, for after its roles changed.
    */
-  static async getApplicantAuthorizationHeader() {
+  static refreshAuthorizationHeader(authorization: string) {
     return AuthorizationFixture.getAuthorizationHeaderOf(
-      config.userIds.applicant,
+      AuthorizationFixture.userIdOf(authorization),
     );
   }
 
-  static async getSecondApplicantAuthorizationHeader() {
-    return AuthorizationFixture.getAuthorizationHeaderOf(
-      config.userIds.applicant2,
-    );
+  private static userIdOf(authorization: string) {
+    return decodeJwt(authorization.replace('Bearer ', ''))
+      .sub as string;
   }
 
-  static async getAdminAuthorizationHeader() {
-    const actorToken =
-      await AuthorizationFixture.getActorAccessToken();
-    const accessToken = await AuthorizationFixture.impersonate(
-      actorToken,
-      config.userIds.admin,
-    );
+  private static async createAccount(role: 'user' | 'admin') {
+    const userId = await ZitadelFixture.createHumanUser();
 
-    return AuthorizationFixture.withAcceptedTerms(
-      config.userIds.admin,
-      `Bearer ${accessToken}`,
-    );
+    await ZitadelFixture.setProjectRole(userId, role);
+
+    return AuthorizationFixture.getAuthorizationHeaderOf(userId);
   }
 
-  static async getWriterAuthorizationHeader() {
-    const actorToken =
-      await AuthorizationFixture.getActorAccessToken();
-    const accessToken = await AuthorizationFixture.impersonate(
-      actorToken,
-      config.userIds.writer,
+  private static async graphql<T>(
+    query: string,
+    variables: Record<string, unknown>,
+    authorization: string,
+  ): Promise<T> {
+    const { data } = await axios.post(
+      '/graphql',
+      { query, variables },
+      { headers: { Authorization: authorization } },
     );
 
-    return AuthorizationFixture.withAcceptedTerms(
-      config.userIds.writer,
-      `Bearer ${accessToken}`,
-    );
-  }
+    if (data.errors) {
+      throw new Error(
+        `Fixture request failed: ${JSON.stringify(data.errors)}`,
+      );
+    }
 
-  static async getSecondWriterAuthorizationHeader() {
-    const actorToken =
-      await AuthorizationFixture.getActorAccessToken();
-    const accessToken = await AuthorizationFixture.impersonate(
-      actorToken,
-      config.userIds.writer2,
-    );
-
-    return AuthorizationFixture.withAcceptedTerms(
-      config.userIds.writer2,
-      `Bearer ${accessToken}`,
-    );
-  }
-
-  /**
-   * @description The only writer that never accepts the platform terms on its own, for the specs that test the terms gate itself.
-   */
-  static async getWriterWithoutAcceptedTermsAuthorizationHeader() {
-    const actorToken =
-      await AuthorizationFixture.getActorAccessToken();
-    const accessToken = await AuthorizationFixture.impersonate(
-      actorToken,
-      config.userIds.writer3,
-    );
-
-    return `Bearer ${accessToken}`;
+    return data.data;
   }
 
   private static async getAuthorizationHeaderOf(userId: string) {

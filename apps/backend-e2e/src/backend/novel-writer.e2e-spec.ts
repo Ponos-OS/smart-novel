@@ -102,14 +102,20 @@ describe('Novel writer (e2e)', () => {
   let admin: string;
   let secondWriter: string;
   let secondWriterId: string;
+  let secondWriterPenName: string;
   let novelId: string;
 
   beforeAll(async () => {
     admin = await AuthorizationFixture.getAdminAuthorizationHeader();
     secondWriter =
-      await AuthorizationFixture.getSecondWriterAuthorizationHeader();
+      await AuthorizationFixture.getWriterAuthorizationHeader({
+        fresh: true,
+      });
     secondWriterId = (await graphql(WHO_AM_I, {}, secondWriter))
       .whoAmI.sub;
+    secondWriterPenName = (
+      await graphql('{ myWriter { penName } }', {}, secondWriter)
+    ).myWriter.penName;
     novelId = (
       await graphql(
         CREATE_NOVEL,
@@ -197,8 +203,8 @@ describe('Novel writer (e2e)', () => {
 
     expect(data.novel.writer).toMatchObject({
       userId: secondWriterId,
-      penName: 'Writer_Two',
-      name: 'Writer Two',
+      penName: secondWriterPenName,
+      name: 'Fresh User',
     });
   });
 

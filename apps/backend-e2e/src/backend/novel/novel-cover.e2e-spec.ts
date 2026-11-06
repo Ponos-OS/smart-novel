@@ -320,8 +320,10 @@ describe('Novel cover (e2e)', () => {
       },
       {
         role: 'writer who does not own the novel',
-        getAuthorizationHeader:
-          AuthorizationFixture.getSecondWriterAuthorizationHeader,
+        getAuthorizationHeader: () =>
+          AuthorizationFixture.getWriterAuthorizationHeader({
+            fresh: true,
+          }),
       },
     ])(
       'should NOT allow $role to request an upload URL or set a cover',

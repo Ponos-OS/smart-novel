@@ -157,7 +157,9 @@ describe('Novel management (e2e)', () => {
       const writer =
         await AuthorizationFixture.getWriterAuthorizationHeader();
       const otherWriter =
-        await AuthorizationFixture.getSecondWriterAuthorizationHeader();
+        await AuthorizationFixture.getWriterAuthorizationHeader({
+          fresh: true,
+        });
 
       const asOwner = await graphql(
         UPDATE_NOVEL,
@@ -282,8 +284,10 @@ describe('Novel management (e2e)', () => {
       },
       {
         role: 'writer who does not own the novel',
-        getAuthorizationHeader:
-          AuthorizationFixture.getSecondWriterAuthorizationHeader,
+        getAuthorizationHeader: () =>
+          AuthorizationFixture.getWriterAuthorizationHeader({
+            fresh: true,
+          }),
       },
     ])(
       'should NOT allow $role to update a novel',

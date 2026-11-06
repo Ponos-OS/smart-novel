@@ -142,8 +142,10 @@ describe('Chapter deletion (e2e)', () => {
     },
     {
       role: 'writer who does not own the novel',
-      getAuthorizationHeader:
-        AuthorizationFixture.getSecondWriterAuthorizationHeader,
+      getAuthorizationHeader: () =>
+        AuthorizationFixture.getWriterAuthorizationHeader({
+          fresh: true,
+        }),
     },
   ])(
     'should NOT allow $role to delete a chapter',

@@ -177,7 +177,9 @@ describe('Writer request review (e2e)', () => {
 
     beforeAll(async () => {
       applicantAuthorization =
-        await AuthorizationFixture.getApplicantAuthorizationHeader();
+        await AuthorizationFixture.getUserAuthorizationHeader({
+          fresh: true,
+        });
     });
 
     it('should show an admin the pending request with who asked', async () => {
@@ -204,8 +206,8 @@ describe('Writer request review (e2e)', () => {
         id: requestId,
         userId: expect.stringMatching(/^\d+$/),
         penName,
-        name: 'Applicant One',
-        email: 'applicant@test.com',
+        name: 'Fresh User',
+        email: expect.stringMatching(/^fresh-.+@test\.com$/),
         status: 'PENDING',
         createdAt: expect.any(String),
         applications: [
@@ -241,7 +243,9 @@ describe('Writer request review (e2e)', () => {
       });
 
       const freshAuthorization =
-        await AuthorizationFixture.getApplicantAuthorizationHeader();
+        await AuthorizationFixture.refreshAuthorizationHeader(
+          applicantAuthorization,
+        );
       const after = await graphql(WHO_AM_I, {}, freshAuthorization);
 
       expect(after.data.whoAmI.roles).toStrictEqual(['writer']);
@@ -287,7 +291,9 @@ describe('Writer request review (e2e)', () => {
 
     it('should tell the new writer that they cannot ask again', async () => {
       const freshAuthorization =
-        await AuthorizationFixture.getApplicantAuthorizationHeader();
+        await AuthorizationFixture.refreshAuthorizationHeader(
+          applicantAuthorization,
+        );
 
       const data = await graphql(
         REQUEST_WRITER_ACCESS,
@@ -306,7 +312,9 @@ describe('Writer request review (e2e)', () => {
 
     beforeAll(async () => {
       applicantAuthorization =
-        await AuthorizationFixture.getSecondApplicantAuthorizationHeader();
+        await AuthorizationFixture.getUserAuthorizationHeader({
+          fresh: true,
+        });
     });
 
     it('should store the trimmed reason and show it to the requester', async () => {
@@ -360,7 +368,9 @@ describe('Writer request review (e2e)', () => {
 
     it('should leave the requester a user in ZITADEL', async () => {
       const freshAuthorization =
-        await AuthorizationFixture.getSecondApplicantAuthorizationHeader();
+        await AuthorizationFixture.refreshAuthorizationHeader(
+          applicantAuthorization,
+        );
 
       const data = await graphql(WHO_AM_I, {}, freshAuthorization);
 
@@ -473,20 +483,25 @@ describe('Writer request review (e2e)', () => {
     let userPenName: string;
 
     beforeAll(async () => {
-      const userAuthorization =
-        await AuthorizationFixture.getUserAuthorizationHeader();
+      const requesterAuthorization =
+        await AuthorizationFixture.getUserAuthorizationHeader({
+          fresh: true,
+        });
 
-      // Another spec may have filed this one already, which is a 400 and fine here.
       await graphql(
         REQUEST_WRITER_ACCESS,
         {
-          note: 'Searching needs a request from the regular user.',
+          note: 'Searching needs a request from a user.',
           penName: uniquePenName(),
         },
-        userAuthorization,
+        requesterAuthorization,
       );
 
-      const mine = await graphql(MY_WRITER, {}, userAuthorization);
+      const mine = await graphql(
+        MY_WRITER,
+        {},
+        requesterAuthorization,
+      );
       userPenName = mine.data.myWriter.penName;
     });
 
@@ -504,8 +519,8 @@ describe('Writer request review (e2e)', () => {
     });
 
     it.each([
-      { scenario: 'the name', search: 'Regular User' },
-      { scenario: 'the email', search: 'user@test' },
+      { scenario: 'the name', search: 'Fresh User' },
+      { scenario: 'the email', search: 'fresh-' },
     ])(
       'should not search $scenario of the writer',
       async ({ search }) => {

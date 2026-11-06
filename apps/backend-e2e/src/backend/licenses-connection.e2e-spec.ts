@@ -128,7 +128,9 @@ describe('licensesConnection (e2e)', () => {
     writer =
       await AuthorizationFixture.getWriterAuthorizationHeader();
     otherWriter =
-      await AuthorizationFixture.getSecondWriterAuthorizationHeader();
+      await AuthorizationFixture.getWriterAuthorizationHeader({
+        fresh: true,
+      });
     writerLicenseId = await createPersonalLicense(writer);
     writerDraftId = await createDraft(writer);
     otherWriterLicenseId = await createPersonalLicense(otherWriter);

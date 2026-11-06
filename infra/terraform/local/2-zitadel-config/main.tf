@@ -31,32 +31,6 @@ locals {
       password   = "Writer123!"
       role       = "writer"
     }
-    writer2 = {
-      email      = "writer2@test.com"
-      first_name = "Writer"
-      last_name  = "Two"
-      password   = "Writer123!"
-      role       = "writer"
-    }
-    writer3 = {
-      email      = "writer3@test.com"
-      first_name = "Writer"
-      last_name  = "Three"
-      password   = "Writer123!"
-      role       = "writer"
-    }
-    applicant = {
-      email      = "applicant@test.com"
-      first_name = "Applicant"
-      last_name  = "One"
-      role       = "user"
-    }
-    applicant2 = {
-      email      = "applicant2@test.com"
-      first_name = "Applicant"
-      last_name  = "Two"
-      role       = "user"
-    }
     no_role = {
       email      = "no-role@test.com"
       first_name = "No"

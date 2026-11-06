@@ -54,7 +54,9 @@ describe('Novel allowedActions (e2e)', () => {
 
   it('should return an empty array for a writer who does not own the novel', async () => {
     const authorization =
-      await AuthorizationFixture.getSecondWriterAuthorizationHeader();
+      await AuthorizationFixture.getWriterAuthorizationHeader({
+        fresh: true,
+      });
 
     const { data } = await axios.post(
       '/graphql',

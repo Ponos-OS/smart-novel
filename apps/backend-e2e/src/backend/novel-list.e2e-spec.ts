@@ -131,6 +131,7 @@ describe('Novel list (e2e)', () => {
   let owner: string;
   let ownerId: string;
   let ownerEmail: string;
+  let ownerPenName: string;
   let emptyNovelId: string;
   let finishedNovelId: string;
   let ongoingNovelId: string;
@@ -213,11 +214,15 @@ describe('Novel list (e2e)', () => {
 
   beforeAll(async () => {
     admin = await AuthorizationFixture.getAdminAuthorizationHeader();
-    owner =
-      await AuthorizationFixture.getSecondWriterAuthorizationHeader();
+    owner = await AuthorizationFixture.getWriterAuthorizationHeader({
+      fresh: true,
+    });
     const me = await graphql(WHO_AM_I, {}, owner);
     ownerId = me.data.whoAmI.sub;
     ownerEmail = me.data.whoAmI.email;
+    ownerPenName = (
+      await graphql('{ myWriter { penName } }', {}, owner)
+    ).data.myWriter.penName;
 
     emptyNovelId = await createNovel('Empty', 0);
     finishedNovelId = await createNovel('Finished', 2, 'FINISHED');
@@ -256,7 +261,7 @@ describe('Novel list (e2e)', () => {
         expect(node.estimatedChapterCount).toBeNumber();
         expect(node.writer).toStrictEqual({
           userId: ownerId,
-          penName: 'Writer_Two',
+          penName: ownerPenName,
           name: null,
           email: null,
         });
@@ -271,8 +276,8 @@ describe('Novel list (e2e)', () => {
       )!.node;
       expect(node.writer).toStrictEqual({
         userId: ownerId,
-        penName: 'Writer_Two',
-        name: 'Writer Two',
+        penName: ownerPenName,
+        name: 'Fresh User',
         email: ownerEmail,
       });
     });

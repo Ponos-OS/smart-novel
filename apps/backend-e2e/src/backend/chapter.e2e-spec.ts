@@ -199,8 +199,10 @@ describe('Chapter (e2e)', () => {
     },
     {
       role: 'writer who does not own the novel',
-      getAuthorizationHeader:
-        AuthorizationFixture.getSecondWriterAuthorizationHeader,
+      getAuthorizationHeader: () =>
+        AuthorizationFixture.getWriterAuthorizationHeader({
+          fresh: true,
+        }),
       // Rejected by the CASL ownership check on the novel passed as `novelId`.
       expectedMessage:
         'You do not have permission to create this chapter',
@@ -298,8 +300,10 @@ describe('Chapter (e2e)', () => {
     },
     {
       role: 'writer who does not own the novel',
-      getAuthorizationHeader:
-        AuthorizationFixture.getSecondWriterAuthorizationHeader,
+      getAuthorizationHeader: () =>
+        AuthorizationFixture.getWriterAuthorizationHeader({
+          fresh: true,
+        }),
     },
   ])(
     'should NOT allow unauthorized errors when $role tries to update content',
@@ -400,8 +404,10 @@ describe('Chapter (e2e)', () => {
     },
     {
       role: 'writer who does not own the novel',
-      getAuthorizationHeader:
-        AuthorizationFixture.getSecondWriterAuthorizationHeader,
+      getAuthorizationHeader: () =>
+        AuthorizationFixture.getWriterAuthorizationHeader({
+          fresh: true,
+        }),
     },
   ])(
     'should NOT allow unauthorized errors when $role tries to update chapter metadata',
@@ -659,10 +665,6 @@ describe('Chapter (e2e)', () => {
   it('should succeed saving a title using an expectedUpdatedAt captured before an unrelated content-only change (independent version tokens)', async () => {
     const authorizationHeader =
       await AuthorizationFixture.getWriterAuthorizationHeader();
-    const expectedUpdatedAt = await getUpdatedAt(
-      CHAPTER_FIVE_ID,
-      authorizationHeader,
-    );
     const expectedContentUpdatedAt = await getContentUpdatedAt(
       CHAPTER_FIVE_ID,
       authorizationHeader,
@@ -688,6 +690,37 @@ describe('Chapter (e2e)', () => {
     );
 
     expect(contentSave.data.errors).toBeUndefined();
+
+    // The content save starts a narration that touches the chapter row, so wait for it to settle.
+    await vi.waitFor(async () => {
+      const { data } = await axios.post(
+        '/graphql',
+        {
+          query: `#graphql
+            query GetNarrationStatus($novelId: ID!, $chapterId: ID!) {
+              novel(id: $novelId) {
+                chapter(id: $chapterId) {
+                  narrationStatus
+                }
+              }
+            }
+          `,
+          variables: {
+            novelId: NOVEL_ID,
+            chapterId: CHAPTER_FIVE_ID,
+          },
+        },
+        { headers: { Authorization: authorizationHeader } },
+      );
+
+      expect(data.data.novel.chapter.narrationStatus).not.toBe(
+        'PROCESSING',
+      );
+    });
+    const expectedUpdatedAt = await getUpdatedAt(
+      CHAPTER_FIVE_ID,
+      authorizationHeader,
+    );
 
     const titleSave = await axios.post(
       '/graphql',

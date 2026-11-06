@@ -158,7 +158,9 @@ describe('License drafts (e2e)', () => {
     writer =
       await AuthorizationFixture.getWriterAuthorizationHeader();
     otherWriter =
-      await AuthorizationFixture.getSecondWriterAuthorizationHeader();
+      await AuthorizationFixture.getWriterAuthorizationHeader({
+        fresh: true,
+      });
   });
 
   it('should let a writer create, save, list and read a draft, and discard it', async () => {
@@ -404,7 +406,10 @@ describe('License drafts (e2e)', () => {
 
   it('should not let a writer who has not accepted the platform terms create one', async () => {
     const unaccepted =
-      await AuthorizationFixture.getWriterWithoutAcceptedTermsAuthorizationHeader();
+      await AuthorizationFixture.getWriterAuthorizationHeader({
+        fresh: true,
+        acceptTerms: false,
+      });
 
     const data = await graphql(
       CREATE_LICENSE_DRAFT,
