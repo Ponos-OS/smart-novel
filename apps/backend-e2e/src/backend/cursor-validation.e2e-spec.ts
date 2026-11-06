@@ -80,14 +80,10 @@ const CHAPTERS_PAGE = `#graphql
   }
 `;
 
-const NOVEL_IDS = `#graphql
-  query NovelIds {
-    novelsConnection(first: 2) {
-      edges {
-        node {
-          id
-        }
-      }
+const CREATE_NOVEL = `#graphql
+  mutation CreateNovel($input: CreateNovelInput!) {
+    createNovel(input: $input) {
+      id
     }
   }
 `;
@@ -179,11 +175,12 @@ describe('Cursor validation (e2e)', () => {
       expect(data.errors).toBeUndefined();
     });
 
-    it('should refuse an issued cursor whose last character was changed', async () => {
+    it('should refuse a well-formed cursor it did not issue', async () => {
       const cursor = await issuedCursor(NOVELS, ['novelsConnection']);
-      const tampered = `${cursor.slice(0, -1)}${cursor.endsWith('A') ? 'B' : 'A'}`;
+      const [payload, signature] = cursor.split('.');
+      const forged = `${payload}.${'A'.repeat(signature.length)}`;
 
-      const data = await graphql(NOVELS, { after: tampered });
+      const data = await graphql(NOVELS, { after: forged });
 
       expect(data.errors[0].message).toBe('Invalid cursor');
       expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
@@ -214,10 +211,18 @@ describe('Cursor validation (e2e)', () => {
       });
       const cursor =
         first.data.novel.chaptersConnection.edges[0].cursor;
-      const novels = await graphql(NOVEL_IDS, {});
-      const otherNovelId = novels.data.novelsConnection.edges
-        .map(({ node }: { node: { id: string } }) => node.id)
-        .find((id: string) => id !== novelId);
+      const otherNovel = await graphql(
+        CREATE_NOVEL,
+        {
+          input: {
+            name: 'The Lantern Keeper',
+            description:
+              'A lighthouse keeper finds a door in the fog.',
+          },
+        },
+        await AuthorizationFixture.getWriterAuthorizationHeader(),
+      );
+      const otherNovelId: string = otherNovel.data.createNovel.id;
 
       const data = await graphql(CHAPTERS_PAGE, {
         novelId: otherNovelId,
