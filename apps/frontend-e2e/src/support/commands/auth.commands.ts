@@ -176,9 +176,35 @@ function performInteractiveLogin(username: string, password: string) {
     timeout: 15000,
   }).should('be.visible');
 
+  acceptPlatformTermsIfAsked();
+
   cy.url().then((url) =>
     log(`=== LOGIN COMPLETE — final URL: ${url} ===`),
   );
+}
+
+/**
+ * @description The e2e users are created fresh, so a writer or an admin meets the platform terms on the first visit and the modal blocks the whole page. The terms are stored per user in the backend, so accepting them once inside the session setup is enough.
+ */
+function acceptPlatformTermsIfAsked() {
+  log('Step 6: checking the platform terms...');
+  cy.intercept('POST', '/graphql', (req) => {
+    if (req.body.operationName === 'MyPlatformTermsStatus') {
+      req.alias = 'termsStatus';
+    }
+  });
+  cy.visit('/');
+  cy.wait('@termsStatus').then(({ response }) => {
+    if (response?.body?.data?.myPlatformTermsStatus?.accepted) {
+      log('Platform terms already accepted.');
+      return;
+    }
+
+    cy.get('#platform-terms-agreement').click();
+    cy.contains('[role="dialog"] button', 'Accept').click();
+    cy.get('[role="dialog"]').should('not.exist');
+    log('Platform terms accepted.');
+  });
 }
 
 /**
