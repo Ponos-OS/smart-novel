@@ -59,6 +59,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+
+      - name: Install kind
+        uses: helm/kind-action@v1
+        with:
+          install_only: true
+
       - name: Seed .env from .env.example
         run: cp .env.example .env
 
@@ -90,6 +101,17 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+
+      - name: Install kind
+        uses: helm/kind-action@v1
+        with:
+          install_only: true
 
       - name: Seed .env from .env.example
         run: cp .env.example .env
