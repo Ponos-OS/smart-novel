@@ -1,6 +1,6 @@
 locals {
   deploy       = var.redis_url == null
-  has_password = var.password != null
+  has_password = nonsensitive(var.password != null)
 }
 
 resource "kubernetes_secret_v1" "redis" {
