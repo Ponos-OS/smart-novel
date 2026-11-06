@@ -62,7 +62,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.9.8
+          terraform_version: 1.16.1
           terraform_wrapper: false
 
       - name: Install kind
@@ -105,7 +105,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.9.8
+          terraform_version: 1.16.1
           terraform_wrapper: false
 
       - name: Install kind
