@@ -9,7 +9,7 @@ enable_devtools = true
 Beatrice talks to an OpenAI-compatible LLM and an OpenAI-compatible speech endpoint; Fithara (the license assistant) talks to the same kind of LLM endpoint with its own model, one that the `llmcapa` model catalog knows.
 
 - `npm run start:dev` sends the requests to the real provider you set in `.env`. Every call costs money.
-- `nx e2e backend-e2e` and `nx e2e frontend-e2e` deploy WireMock (`infra/terraform/modules/app/mocks/openai`) and point Beatrice and Fithara at it, whatever `.env` says, so the tests are free, fast and deterministic. To change an answer, edit the stub there.
+- `nx e2e backend-e2e` and `nx e2e frontend-e2e` deploy WireMock (`infra/terraform/local/1-app/mocks/openai`) and point Beatrice and Fithara at it, whatever `.env` says, so the tests are free, fast and deterministic. To change an answer, edit the stub there.
 
 ```bash
 BEATRICE_LLM_BASE_URL=https://api.openai.com/v1

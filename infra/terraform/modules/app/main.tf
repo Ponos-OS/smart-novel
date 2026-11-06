@@ -46,14 +46,11 @@ module "object_storage" {
 }
 
 locals {
-  beatrice_llm_base_url = var.mock_ai_providers ? "${module.wiremock_openai[0].base_url}/v1" : var.beatrice_llm_base_url
-  beatrice_tts_base_url = var.mock_ai_providers ? "${module.wiremock_openai[0].base_url}/v1" : var.beatrice_tts_base_url
-  fithara_llm_base_url  = var.mock_ai_providers ? "${module.wiremock_openai[0].base_url}/v1" : var.fithara_llm_base_url
-  deploy_beatrice       = local.beatrice_llm_base_url != null && local.beatrice_tts_base_url != null
-  otlp_endpoint         = var.otlp_endpoint
-  otlp_logs             = var.log_shipping == "otlp"
-  beatrice_url          = one(module.beatrice[*].graphql_url)
-  fithara_url           = module.fithara.url
+  deploy_beatrice = var.beatrice_llm_base_url != null && var.beatrice_tts_base_url != null
+  otlp_endpoint   = var.otlp_endpoint
+  otlp_logs       = var.log_shipping == "otlp"
+  beatrice_url    = one(module.beatrice[*].graphql_url)
+  fithara_url     = module.fithara.url
 
   backend_environment = merge(
     var.backend_environment,
@@ -67,17 +64,6 @@ locals {
     var.backend_secret_environment,
     { DATABASE_URL = module.postgres.database_url, REDIS_URL = module.redis.redis_url },
   )
-}
-
-module "wiremock_openai" {
-  source = "../wiremock"
-  count  = var.mock_ai_providers ? 1 : 0
-
-  namespace    = module.namespace.name
-  labels       = var.labels
-  name         = "wiremock-openai"
-  mappings_dir = "${path.module}/mocks/openai"
-  image        = var.images["wiremock"]
 }
 
 module "rabbitmq" {
@@ -98,9 +84,9 @@ module "beatrice" {
   labels             = var.labels
   image              = var.images["beatrice"]
   broker_url         = module.rabbitmq[0].broker_url
-  llm_base_url       = local.beatrice_llm_base_url
+  llm_base_url       = var.beatrice_llm_base_url
   llm_model          = var.beatrice_llm_model
-  tts_base_url       = local.beatrice_tts_base_url
+  tts_base_url       = var.beatrice_tts_base_url
   tts_model          = var.beatrice_tts_model
   llm_api_key        = coalesce(var.beatrice_llm_api_key, "local-dev-key")
   tts_api_key        = coalesce(var.beatrice_tts_api_key, "local-dev-key")
@@ -109,7 +95,7 @@ module "beatrice" {
   log_shipping       = var.log_shipping
 
   # Beatrice does not reconnect when the broker is unreachable at startup.
-  depends_on = [module.rabbitmq, module.wiremock_openai]
+  depends_on = [module.rabbitmq]
 }
 
 module "fithara" {
@@ -119,14 +105,12 @@ module "fithara" {
   labels             = var.labels
   image              = var.images["fithara"]
   llm_provider       = var.fithara_llm_provider
-  llm_base_url       = local.fithara_llm_base_url
+  llm_base_url       = var.fithara_llm_base_url
   llm_model          = var.fithara_llm_model
   llm_api_key        = var.fithara_llm_api_key
   llm_timeout_ms     = var.fithara_llm_timeout_ms
   otlp_http_endpoint = local.otlp_endpoint
   log_shipping       = var.log_shipping
-
-  depends_on = [module.wiremock_openai]
 }
 
 module "pre_deploy_job" {

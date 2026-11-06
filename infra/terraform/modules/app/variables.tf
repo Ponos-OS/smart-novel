@@ -11,7 +11,7 @@ variable "labels" {
 }
 
 variable "images" {
-  description = "Container images: postgres, redis, object_storage, aws_cli, rabbitmq, beatrice, fithara, wiremock, backend and frontend, plus redis_insight, pgadmin and open_webui when enable_devtools is true"
+  description = "Container images: postgres, redis, object_storage, aws_cli, rabbitmq, beatrice, fithara, backend and frontend, plus redis_insight, pgadmin and open_webui when enable_devtools is true"
   type        = map(string)
 }
 
@@ -100,14 +100,8 @@ variable "create_zitadel_database" {
   default     = true
 }
 
-variable "mock_ai_providers" {
-  description = "Deploy WireMock and point Beatrice and Fithara at it instead of at beatrice_llm_base_url, beatrice_tts_base_url and fithara_llm_base_url, for tests that must not call a paid provider"
-  type        = bool
-  default     = false
-}
-
 variable "beatrice_llm_base_url" {
-  description = "OpenAI-compatible base URL of Beatrice's LLM; ignored when mock_ai_providers is true"
+  description = "OpenAI-compatible base URL of Beatrice's LLM"
   type        = string
   default     = null
 }
@@ -131,7 +125,7 @@ variable "fithara_llm_provider" {
 }
 
 variable "fithara_llm_base_url" {
-  description = "OpenAI-compatible base URL of Fithara's LLM; independent of Beatrice's; ignored when mock_ai_providers is true"
+  description = "OpenAI-compatible base URL of Fithara's LLM; independent of Beatrice's"
   type        = string
   default     = null
 }
@@ -176,7 +170,7 @@ variable "beatrice_tts_voices" {
 }
 
 variable "beatrice_tts_base_url" {
-  description = "Base URL of an OpenAI-compatible text-to-speech server; ignored when mock_ai_providers is true"
+  description = "Base URL of an OpenAI-compatible text-to-speech server"
   type        = string
   default     = null
 }

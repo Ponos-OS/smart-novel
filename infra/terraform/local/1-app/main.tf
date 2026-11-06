@@ -106,6 +106,10 @@ locals {
 
   redis_node_port = 30379
 
+  # The namespace is created by module.app, so the Service name is fixed here instead of read back from the wiremock module.
+  wiremock_openai_name = "wiremock-openai"
+  mocked_openai_url    = "http://${local.wiremock_openai_name}:8080/v1"
+
   # The collector's Service name is fixed, and the app is created before the observability module because it provides the namespace.
   ingress_class_name = "traefik"
   otlp_endpoint      = var.enable_observability ? "http://otel-collector:4318" : null
@@ -197,16 +201,15 @@ module "app" {
     frontend = local.frontend_image
   })
   wait_for_zitadel_credentials = var.wait_for_zitadel_credentials
-  mock_ai_providers            = var.mock_ai_providers
-  beatrice_llm_base_url        = lookup(local.dotenv, "BEATRICE_LLM_BASE_URL", null)
+  beatrice_llm_base_url        = var.mock_ai_providers ? local.mocked_openai_url : lookup(local.dotenv, "BEATRICE_LLM_BASE_URL", null)
   beatrice_llm_model           = lookup(local.dotenv, "BEATRICE_LLM_MODEL", "gpt-4.1-mini")
   fithara_llm_provider         = lookup(local.dotenv, "FITHARA_LLM_PROVIDER", null)
   fithara_llm_model            = lookup(local.dotenv, "FITHARA_LLM_MODEL", null)
-  fithara_llm_base_url         = lookup(local.dotenv, "FITHARA_LLM_BASE_URL", null)
+  fithara_llm_base_url         = var.mock_ai_providers ? local.mocked_openai_url : lookup(local.dotenv, "FITHARA_LLM_BASE_URL", null)
   fithara_llm_api_key          = lookup(local.dotenv, "FITHARA_LLM_API_KEY", null)
   fithara_llm_timeout_ms       = tonumber(lookup(local.dotenv, "FITHARA_LLM_TIMEOUT_MS", null))
   beatrice_tts_model           = lookup(local.dotenv, "BEATRICE_TTS_MODEL", "gpt-4o-mini-tts")
-  beatrice_tts_base_url        = lookup(local.dotenv, "BEATRICE_TTS_BASE_URL", null)
+  beatrice_tts_base_url        = var.mock_ai_providers ? local.mocked_openai_url : lookup(local.dotenv, "BEATRICE_TTS_BASE_URL", null)
   beatrice_llm_api_key         = lookup(local.dotenv, "BEATRICE_LLM_API_KEY", null)
   beatrice_tts_api_key         = lookup(local.dotenv, "BEATRICE_TTS_API_KEY", null)
   beatrice_tts_voices          = lookup(local.dotenv, "BEATRICE_TTS_VOICES", null)
@@ -233,6 +236,17 @@ module "app" {
   redis_node_port = local.redis_node_port
 
   depends_on = [terraform_data.load_images]
+}
+
+module "wiremock_openai" {
+  source = "../../modules/wiremock"
+  count  = var.mock_ai_providers ? 1 : 0
+
+  namespace    = module.app.namespace
+  labels       = var.tags
+  name         = local.wiremock_openai_name
+  mappings_dir = "${path.module}/mocks/openai"
+  image        = local.third_party_images["wiremock"]
 }
 
 module "observability" {
