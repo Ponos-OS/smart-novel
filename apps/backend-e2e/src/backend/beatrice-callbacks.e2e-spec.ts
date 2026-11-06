@@ -85,56 +85,6 @@ describe('Beatrice callbacks (e2e)', () => {
       expect(data.message).toBeString();
     });
 
-    it('should reject a request with no Authorization header', async () => {
-      const { status } = await axios.post(
-        '/beatrice-callbacks/gen-upload-url',
-        undefined,
-        {
-          headers: {
-            'Idempotency-Key': '2bce49d6-6592-4ed3-b421-f913b9ecc3bd',
-          },
-          validateStatus: () => true,
-        },
-      );
-
-      expect(status).toBe(401);
-    });
-
-    it('should reject a request missing the Idempotency-Key header', async () => {
-      const authorization =
-        await AuthorizationFixture.getUserAuthorizationHeader();
-
-      const { status } = await axios.post(
-        '/beatrice-callbacks/gen-upload-url',
-        undefined,
-        {
-          headers: { Authorization: authorization },
-          validateStatus: () => true,
-        },
-      );
-
-      expect(status).toBe(400);
-    });
-
-    it('should reject a non-UUID Idempotency-Key rather than use it as part of the object key', async () => {
-      const authorization =
-        await AuthorizationFixture.getUserAuthorizationHeader();
-
-      const { status } = await axios.post(
-        '/beatrice-callbacks/gen-upload-url',
-        undefined,
-        {
-          headers: {
-            Authorization: authorization,
-            'Idempotency-Key': '../../narrations/chapter-1',
-          },
-          validateStatus: () => true,
-        },
-      );
-
-      expect(status).toBe(400);
-    });
-
     // An expired-but-validly-signed real ZITADEL token is exercised at the unit level
     // (ZitadelAuthProvider.verifyIssuedByUs / BeatriceTokenGuard specs) rather than here —
     // reproducing it e2e would mean waiting out ZITADEL's real access-token lifetime

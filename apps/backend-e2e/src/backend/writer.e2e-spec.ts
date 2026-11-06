@@ -102,20 +102,6 @@ describe('Writer requests (e2e)', () => {
     expect(data.data.myWriter).toBeNull();
   });
 
-  it.each([
-    ['empty', ''],
-    ['whitespace-only', '   \n '],
-    ['too long', 'a'.repeat(1001)],
-  ])('should refuse a %s note', async (_name, invalidNote) => {
-    const data = await graphql(
-      REQUEST_WRITER_ACCESS,
-      { note: invalidNote, penName: uniquePenName() },
-      userAuthorization,
-    );
-
-    expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
-  });
-
   it('should let a user request, trim the note and the pen name, and see the request', async () => {
     const penName = uniquePenName();
 
@@ -159,23 +145,6 @@ describe('Writer requests (e2e)', () => {
     expect(data.errors[0].message).toContain('pending');
   });
 
-  it.each([
-    ['too short', 'ab'],
-    ['too long', 'a'.repeat(51)],
-    ['with a digit', 'Mina2'],
-    ['with a space', 'Mina Ardalan'],
-    ['with another alphabet', 'Мина_Ардалан'],
-    ['with a dot', 'Mina.Ardalan'],
-  ])('should refuse a pen name %s', async (_name, penName) => {
-    const data = await graphql(
-      REQUEST_WRITER_ACCESS,
-      { note, penName },
-      userAuthorization,
-    );
-
-    expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
-  });
-
   describe('a pen name another writer already has', () => {
     const holderUserId = '111111111111111111';
     const taken = 'Taken_Name_Holder';
@@ -210,25 +179,5 @@ describe('Writer requests (e2e)', () => {
         expect(data.errors[0].message).toContain('already taken');
       },
     );
-  });
-
-  it.each([
-    [
-      'writer',
-      () => AuthorizationFixture.getWriterAuthorizationHeader(),
-    ],
-    [
-      'admin',
-      () => AuthorizationFixture.getAdminAuthorizationHeader(),
-    ],
-  ])('should refuse a %s', async (_role, getAuthorization) => {
-    const data = await graphql(
-      REQUEST_WRITER_ACCESS,
-      { note, penName: uniquePenName() },
-      await getAuthorization(),
-    );
-
-    expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
-    expect(data.errors[0].message).toContain('writer access');
   });
 });

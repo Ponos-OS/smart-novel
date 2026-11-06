@@ -196,6 +196,7 @@ describe(WriterService.name, () => {
       { penName: 'Mina2', message: 'English letters' },
       { penName: 'Mina Ardalan', message: 'English letters' },
       { penName: 'Мина_Ардалан', message: 'English letters' },
+      { penName: 'Mina.Ardalan', message: 'English letters' },
     ])(
       'should refuse the pen name "$penName" before touching the database',
       async ({ penName: invalid, message }) => {

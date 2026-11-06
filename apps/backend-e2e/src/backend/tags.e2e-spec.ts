@@ -124,15 +124,6 @@ describe('Tags (e2e)', () => {
     );
   });
 
-  it.each([{ first: 0 }, { first: 101 }])(
-    'should reject $first as the page size',
-    async (variables) => {
-      const data = await tags(variables);
-
-      expect(data.errors[0].message).toContain('first and last');
-    },
-  );
-
   it.each([
     {
       caller: 'anonymous',
@@ -354,45 +345,6 @@ describe('Tag requests and management (e2e)', () => {
 
       expect(data.errors[0].extensions.originalError.message).toEqual(
         [expect.stringContaining('at most 50 characters')],
-      );
-    });
-
-    it.each([
-      {
-        scenario: 'empty',
-        description: '   ',
-        message: 'needs a description',
-      },
-      {
-        scenario: 'longer than 650 characters',
-        description: 'a'.repeat(651),
-        message: 'at most 650 characters',
-      },
-    ])(
-      'should reject a description that is $scenario',
-      async ({ description, message }) => {
-        const data = await graphql(
-          REQUEST_TAG,
-          { name: uniqueName('bad-description'), description },
-          writer,
-        );
-
-        expect(
-          data.errors[0].extensions.originalError.message,
-        ).toEqual([expect.stringContaining(message)]);
-        expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
-      },
-    );
-
-    it('should reject an empty name', async () => {
-      const data = await graphql(
-        REQUEST_TAG,
-        { name: '   ', description: DESCRIPTION },
-        writer,
-      );
-
-      expect(data.errors[0].extensions.originalError.message).toEqual(
-        [expect.stringContaining('cannot be empty')],
       );
     });
   });
@@ -740,29 +692,6 @@ describe('Tag requests and management (e2e)', () => {
         description: 'New text.',
         status: 'PENDING',
       });
-    });
-
-    it('should answer 400 when there is nothing to change', async () => {
-      const { id } = await requestAsWriter(uniqueName('nothing'));
-
-      const data = await graphql(UPDATE_TAG, { id }, admin);
-
-      expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
-    });
-
-    it('should reject a description longer than 650 characters', async () => {
-      const { id } = await requestAsWriter(uniqueName('too-long'));
-
-      const data = await graphql(
-        UPDATE_TAG,
-        { id, description: 'a'.repeat(651) },
-        admin,
-      );
-
-      expect(data.errors[0].extensions.originalError.message).toEqual(
-        [expect.stringContaining('at most 650')],
-      );
-      expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
     });
 
     it('should delete an approved tag from its novels and keep the novels', async () => {

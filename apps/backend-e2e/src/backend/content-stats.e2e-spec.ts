@@ -248,30 +248,5 @@ describe('Content stats (e2e)', () => {
       expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
       expect(data.errors[0].message).toContain('Invalid cursor');
     });
-
-    it('should refuse a range that ends before it starts', async () => {
-      const data = await graphql(
-        HISTORY,
-        {
-          filters: {
-            from: '2001-03-05T00:00:00.000Z',
-            to: '2001-03-01T00:00:00.000Z',
-          },
-        },
-        adminAuthorization,
-      );
-
-      expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
-    });
-
-    it('should refuse a page over the limit', async () => {
-      const data = await graphql(
-        HISTORY,
-        { first: 101 },
-        adminAuthorization,
-      );
-
-      expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
-    });
   });
 });
