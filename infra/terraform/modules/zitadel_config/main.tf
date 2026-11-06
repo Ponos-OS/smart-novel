@@ -148,11 +148,19 @@ resource "zitadel_action_target" "user_added" {
   interrupt_on_error = false
 }
 
-resource "zitadel_action_execution_event" "user_added" {
+# ZITADEL validates an execution's targets against a projection that lags behind the write, so on a slow runner the target is still "not found" right after it was created.
+resource "time_sleep" "target_projection" {
   count = length(zitadel_action_target.user_added)
 
+  create_duration = "15s"
+  triggers        = { target_id = zitadel_action_target.user_added[0].id }
+}
+
+resource "zitadel_action_execution_event" "user_added" {
+  count = length(time_sleep.target_projection)
+
   event      = "user.human.added"
-  target_ids = [zitadel_action_target.user_added[0].id]
+  target_ids = [time_sleep.target_projection[0].triggers.target_id]
 }
 
 locals {

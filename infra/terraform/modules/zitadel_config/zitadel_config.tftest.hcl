@@ -1,3 +1,5 @@
+mock_provider "time" {}
+
 mock_provider "zitadel" {
   mock_data "zitadel_machine_users" {
     defaults = {
