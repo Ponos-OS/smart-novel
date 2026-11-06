@@ -162,6 +162,88 @@ describe('SearchPage', () => {
     );
   });
 
+  describe('results', () => {
+    const edges = [
+      {
+        node: {
+          id: '93fec4bf-2f66-4e4a-9572-7aa4871f1458',
+          name: 'The Lighthouse Keeper',
+          tags: ['fantasy'],
+          state: 'ONGOING',
+          coverUrl: null,
+          description: 'A keeper guards a light.',
+          lastChapterPublishedAt: null,
+          writer: { penName: 'Mira_Vale' },
+        },
+      },
+    ];
+
+    it('invites to search before the first search', () => {
+      renderPage();
+
+      expect(
+        screen.getByText(/Select tags and click "Search"/),
+      ).toBeVisible();
+    });
+
+    it('lists the novels found with their count', async () => {
+      search.useSearchNovelsQuery.mockReturnValue({
+        data: { novelsConnection: { edges } },
+        isLoading: false,
+        error: null,
+      });
+      const user = renderPage();
+
+      await user.click(
+        screen.getByRole('button', { name: 'Search' }),
+      );
+
+      expect(
+        screen.getByRole('heading', { name: 'Results (1)' }),
+      ).toBeVisible();
+      expect(
+        screen.getByRole('link', { name: /The Lighthouse Keeper/ }),
+      ).toHaveAttribute('href', `/novel/${edges[0].node.id}`);
+    });
+
+    it('says so when no novel matches', async () => {
+      search.useSearchNovelsQuery.mockReturnValue({
+        data: { novelsConnection: { edges: [] } },
+        isLoading: false,
+        error: null,
+      });
+      const user = renderPage();
+
+      await user.click(
+        screen.getByRole('button', { name: 'Search' }),
+      );
+
+      expect(
+        screen.getByRole('heading', { name: 'Results (0)' }),
+      ).toBeVisible();
+      expect(
+        screen.getByText('No novels found matching your criteria.'),
+      ).toBeVisible();
+    });
+
+    it('says so when the search fails', async () => {
+      search.useSearchNovelsQuery.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        error: new Error('boom'),
+      });
+      const user = renderPage();
+
+      await user.click(
+        screen.getByRole('button', { name: 'Search' }),
+      );
+
+      expect(
+        screen.getByText('Failed to search novels'),
+      ).toBeVisible();
+    });
+  });
+
   describe('searching the tags', () => {
     it('asks for all of them first, then for the ones matching what is typed', async () => {
       const user = renderPage();

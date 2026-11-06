@@ -141,6 +141,26 @@ describe('GenerateTtsButton', () => {
     );
   });
 
+  it('closes the regenerate confirmation with Cancel without calling the mutation', () => {
+    // Arrange
+    renderButton({
+      narrationUrl:
+        'https://storage.example.com/narrations/job-1.mp3',
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: '🔄 Regenerate Audio' }),
+    );
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    // Assert
+    expect(
+      screen.queryByText('Regenerate Audio Narration?'),
+    ).toBeNull();
+    expect(mutate).not.toHaveBeenCalled();
+  });
+
   it('never renders a link/navigation to a review path', () => {
     // Arrange
     const { container } = renderButton();

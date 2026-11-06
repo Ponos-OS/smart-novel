@@ -19,7 +19,10 @@ vi.mock('./ChapterList', () => ({
   ChapterList: () => null,
 }));
 
-function renderPage(canEditContent: boolean) {
+function renderPage(
+  canEditContent: boolean,
+  novelOverrides: Record<string, unknown> = {},
+) {
   vi.mocked(useNovelOutletContext).mockReturnValue({
     novel: {
       id: novelId,
@@ -35,6 +38,7 @@ function renderPage(canEditContent: boolean) {
         text: 'Attribution 4.0 International',
       },
       chaptersConnection: { edges: [], totalCount: 0 },
+      ...novelOverrides,
     } as never,
     canEditContent,
     canManageTts: false,
@@ -48,6 +52,10 @@ function renderPage(canEditContent: boolean) {
             <ChapterListPage />
           </QueryClientProvider>
         ),
+      },
+      {
+        path: '/novel/:novelId/chapters/:chapterId',
+        element: <div>Chapter page</div>,
       },
       {
         path: '/novels/:novelId/edit',
@@ -88,5 +96,51 @@ describe('ChapterListPage novel edit entry', () => {
     expect(
       screen.queryByRole('button', { name: 'Edit novel' }),
     ).toBeNull();
+  });
+});
+
+describe('ChapterListPage read buttons', () => {
+  const firstChapterId = '4dd92f16-4743-47b9-960c-6529678e9bc5';
+  const latestChapterId = '4769a024-6267-4abc-a412-5ab0241a8d0e';
+  const withChapters = {
+    firstChapter: { id: firstChapterId },
+    lastPublishedChapter: { id: latestChapterId },
+    chaptersConnection: {
+      edges: [
+        {
+          node: {
+            id: firstChapterId,
+            title: 'The Beginning',
+            createdAt: '2026-10-28T16:40:19.684Z',
+          },
+        },
+      ],
+      totalCount: 1,
+    },
+  };
+
+  it.each(['Read First Chapter', 'Read Latest Chapter'])(
+    'opens a chapter with "%s"',
+    async (name) => {
+      renderPage(false, withChapters);
+
+      fireEvent.click(screen.getByRole('button', { name }));
+
+      expect(await screen.findByText('Chapter page')).toBeTruthy();
+    },
+  );
+
+  it('shows the chapter count and disables both buttons while there is no chapter', () => {
+    renderPage(false);
+
+    expect(
+      screen.getByRole('heading', { name: 'Chapters (0)' }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: 'Read First Chapter' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Read Latest Chapter' }),
+    ).toBeDisabled();
   });
 });

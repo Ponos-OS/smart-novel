@@ -145,6 +145,41 @@ describe('ChapterContent', () => {
     expect(links.length).toBe(0);
   });
 
+  it('shows the audio player only when the chapter has a narration', () => {
+    // Arrange
+    const narrationUrl =
+      'http://storage.localhost/narrations/4dd92f16-4743-47b9-960c-6529678e9bc5.mp3';
+    const withNarration = renderChapterContent({
+      chapter: { ...baseChapter, narrationUrl },
+      hasPrevious: false,
+      hasNext: false,
+    });
+
+    // Act
+    const audio = withNarration.container.querySelector('audio');
+
+    // Assert
+    expect(screen.getByText('Audio Narration')).toBeTruthy();
+    expect(audio?.getAttribute('src')).toBe(narrationUrl);
+    expect(audio?.hasAttribute('controls')).toBe(true);
+  });
+
+  it('shows no audio player without a narration', () => {
+    // Arrange
+    const { container } = renderChapterContent({
+      chapter: baseChapter,
+      hasPrevious: false,
+      hasNext: false,
+    });
+
+    // Act
+    const audio = container.querySelector('audio');
+
+    // Assert
+    expect(audio).toBeNull();
+    expect(screen.queryByText('Audio Narration')).toBeNull();
+  });
+
   it('pauses and releases the audio source when unmounted', () => {
     // Arrange
     const pause = vi

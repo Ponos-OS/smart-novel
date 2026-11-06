@@ -72,6 +72,49 @@ describe('HomePage', () => {
     expect(await screen.findByText('New novel page')).toBeTruthy();
   });
 
+  it('lists the novels under the heading, each linking to its page', () => {
+    // Arrange
+    vi.mocked(useCanCreateNovel).mockReturnValue({
+      canCreate: false,
+      loading: false,
+    });
+    novelsQuery.mockReturnValue({
+      data: {
+        novelsConnection: {
+          edges: [{ cursor: endOfFirstPage, node: novel }],
+          pageInfo: { hasNextPage: false, hasPreviousPage: false },
+        },
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    // Act
+    renderPage();
+
+    // Assert
+    expect(
+      screen.getByRole('heading', { name: 'Discover Novels' }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: /The Journey Begins/ }),
+    ).toHaveAttribute('href', `/novel/${novel.id}`);
+  });
+
+  it('says so when there is no novel', () => {
+    // Arrange
+    vi.mocked(useCanCreateNovel).mockReturnValue({
+      canCreate: false,
+      loading: false,
+    });
+
+    // Act
+    renderPage();
+
+    // Assert
+    expect(screen.getByText('No novels found.')).toBeTruthy();
+  });
+
   it('hides the entry for those who cannot create a novel', () => {
     // Arrange
     vi.mocked(useCanCreateNovel).mockReturnValue({
