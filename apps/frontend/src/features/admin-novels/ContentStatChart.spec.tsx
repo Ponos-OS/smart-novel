@@ -110,8 +110,8 @@ describe(ContentStatChart.name, () => {
       'Area',
       expect.objectContaining({
         lineColor: '#4dacff',
-        topColor: 'rgba(135, 145, 246, 0.35)',
-        bottomColor: 'rgba(135, 145, 246, 0)',
+        topColor: 'rgba(77, 172, 255, 0.35)',
+        bottomColor: 'rgba(77, 172, 255, 0)',
       }),
     );
   });
