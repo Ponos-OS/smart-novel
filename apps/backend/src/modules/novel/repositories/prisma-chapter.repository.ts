@@ -225,7 +225,8 @@ export class PrismaChapterRepository implements IChapterRepository {
     id: string,
     url: string,
   ): Promise<void> {
-    await this.prisma.chapter.update({
+    // updateMany: the chapter may be deleted while its audio is generated, which is not an error.
+    await this.prisma.chapter.updateMany({
       where: { id },
       data: { narrationUrl: url },
     });

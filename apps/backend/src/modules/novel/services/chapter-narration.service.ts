@@ -90,8 +90,27 @@ export class ChapterNarrationService implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     await this.redisService.subscribe(
       TTS_STATUS_CHANNEL,
-      (message) => void this.handleStatusUpdate(message),
+      (message) => void this.handleStatusUpdateSafely(message),
     );
+  }
+
+  /**
+   * @description A rejection nobody awaits terminates the process, and this runs off a best-effort pub/sub channel: log the failure and carry on.
+   */
+  private async handleStatusUpdateSafely(
+    message: string,
+  ): Promise<void> {
+    const [error] = await retryAsync(
+      () => this.handleStatusUpdate(message),
+      { retry: 0 },
+    );
+
+    if (error) {
+      this.logger.error('Failed to handle a Beatrice status update', {
+        context: ChapterNarrationService.name,
+        error,
+      });
+    }
   }
 
   /**

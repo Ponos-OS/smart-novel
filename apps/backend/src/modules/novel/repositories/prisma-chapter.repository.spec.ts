@@ -530,18 +530,16 @@ describe(PrismaChapterRepository.name, () => {
   describe('updateChapterNarrationUrl', () => {
     it('should update chapter narration url', async () => {
       const { novel1Chapter1 } = getMockedData();
-      vi.mocked(prismaService.chapter.update).mockResolvedValue({
-        ...novel1Chapter1,
-        narrationUrl:
-          'http://localhost:9000/smart-novel/narrations/chapter-a3987a2f-eaa5-4a05-8714-34a110511cba.mp3',
-      } as any);
+      vi.mocked(prismaService.chapter.updateMany).mockResolvedValue({
+        count: 1,
+      });
 
       await uut.updateChapterNarrationUrl(
         novel1Chapter1.id,
         'http://localhost:9000/smart-novel/narrations/chapter-a3987a2f-eaa5-4a05-8714-34a110511cba.mp3',
       );
 
-      expect(prismaService.chapter.update).toHaveBeenCalledWith({
+      expect(prismaService.chapter.updateMany).toHaveBeenCalledWith({
         where: { id: novel1Chapter1.id },
         data: {
           narrationUrl:

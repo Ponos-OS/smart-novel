@@ -334,6 +334,30 @@ describe(ChapterNarrationService.name, () => {
   });
 
   describe('handleStatusUpdate (private, via onModuleInit subscription)', () => {
+    it('should log and carry on when handling a callback fails, so the process is not terminated', async () => {
+      // Arrange
+      const message = JSON.stringify({
+        jobId: mockJobId,
+        status: 'completed',
+        fileSizeBytes: 4,
+        attempt: 1,
+        clientContextId: mockChapterId,
+      });
+      const failure = new Error('connection terminated');
+      vi.mocked(
+        chapterRepository.updateChapterNarrationUrl,
+      ).mockRejectedValue(failure);
+
+      // Act
+      await (uut as any).handleStatusUpdateSafely(message);
+
+      // Assert
+      expect(logger.error).toHaveBeenCalledWith(
+        'Failed to handle a Beatrice status update',
+        expect.objectContaining({ error: failure }),
+      );
+    });
+
     it('should persist the audio URL and publish a READY event for a completed callback carrying clientContextId', async () => {
       // Arrange
       const message = JSON.stringify({
