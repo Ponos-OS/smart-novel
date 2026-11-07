@@ -2,7 +2,7 @@
 # Usage: build-images.sh [dev|e2e]
 # Builds the images start-dev.sh loads into the kind cluster. The independent builds run side by side.
 # IMAGE_TAG (default e2e) is the tag of the production images; CI passes the semver they will be released as.
-# DOCKER_BUILD_CACHE_SCOPE, when set, shares the layer cache through the GitHub Actions cache (needs a buildx builder with the docker-container driver); `--load` puts the result into the local daemon.
+# DOCKER_BUILD_CACHE_SCOPE, when set, shares the layer cache through the GitHub Actions cache; `--load` puts the result into the local daemon.
 set -eu
 
 mode="${1:-dev}"
@@ -18,13 +18,23 @@ env_value() {
 
 backend_port="$(env_value BACKEND_PORT)"
 
+# The default docker driver cannot export a cache, so with a cache scope the builds run on a docker-container builder of their own.
+cache_builder="smart-novel-cache"
+if [ -n "${DOCKER_BUILD_CACHE_SCOPE:-}" ]; then
+  docker buildx inspect "$cache_builder" > /dev/null 2>&1 \
+    || docker buildx create --name "$cache_builder" --driver docker-container > /dev/null
+fi
+
 build() {
   name="$1"
   shift
-  if [ -n "${DOCKER_BUILD_CACHE_SCOPE:-}" ]; then
-    set -- --load --cache-from "type=gha,scope=$DOCKER_BUILD_CACHE_SCOPE-$name" --cache-to "type=gha,mode=max,scope=$DOCKER_BUILD_CACHE_SCOPE-$name" "$@"
+  if [ -z "${DOCKER_BUILD_CACHE_SCOPE:-}" ]; then
+    timed "docker build $name" docker build "$@"
+    return
   fi
-  timed "docker build $name" docker build "$@"
+  timed "docker build $name" docker buildx build --builder "$cache_builder" --load \
+    --cache-from "type=gha,scope=$DOCKER_BUILD_CACHE_SCOPE-$name" \
+    --cache-to "type=gha,mode=max,scope=$DOCKER_BUILD_CACHE_SCOPE-$name" "$@"
 }
 
 # Runs the builds in the background, then waits for each one so a failure is not lost.
