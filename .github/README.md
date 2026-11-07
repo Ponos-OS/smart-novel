@@ -12,6 +12,21 @@ A modern monorepo project for managing and reading novels with AI-powered word e
 | [RabbitMQ](https://github.com/Ponos-OS/infra/blob/main/.github/docs/rabbitmq.md)                  |        1 |  0.5 | 512 MB |  2 GB | Private only.                                                               |
 | [Object storage](https://github.com/Ponos-OS/infra/blob/main/.github/docs/object-storage.md) (S3) |        - |    - |      - | 50 GB | Cloudflare R2, not a pod. Not in the disk totals. Covers and narration.     |
 
+## How to Start
+
+You can find the exported Docker image 🐳📦🚢 for this project here:
+
+- https://hub.docker.com/r/9109679196/smart-novel-frontend
+- https://hub.docker.com/r/9109679196/smart-novel-backend
+
+> [!TIP]
+>
+> You must use the same tag in both frontend and backend when running it locally.
+
+And as for the env variables you can look at the [`.env.example`](./.env.example).
+
+And if you wonder how the whole thing comes together please look at the [`infra`](./infra)
+
 ## Project Structure
 
 ```
