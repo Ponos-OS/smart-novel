@@ -3,8 +3,11 @@ description: The version semantic-release will give the next release, or the cur
 
 outputs:
   version:
-    description: The next release version
+    description: The next release version, or the current one when no release is due
     value: ${{ steps.next.outputs.version }}
+  released:
+    description: "true when a release is due, false when version is only the current one"
+    value: ${{ steps.next.outputs.released }}
 
 runs:
   using: composite
@@ -18,6 +21,12 @@ runs:
         # semantic-release checks push permission even in a dry run, which a pull request's read-only token does not have. The local checkout as repositoryUrl keeps it off the network; it has all the tags because the job fetched the full history.
         log="$(npx semantic-release --dry-run --no-ci --repository-url "file://$GITHUB_WORKSPACE" 2>&1)" || { echo "$log"; exit 1; }
         version="$(printf '%s\n' "$log" | sed -n 's/.*[Tt]he next release version is \([0-9][^ ]*\).*/\1/p' | tail -n 1)"
-        echo "${version:=$(node -p "require('./package.json').version")}"
+        released=true
+        if [ -z "$version" ]; then
+          released=false
+          version="$(node -p "require('./package.json').version")"
+        fi
+        echo "$version (release due: $released)"
         echo "version=$version" >> "$GITHUB_OUTPUT"
+        echo "released=$released" >> "$GITHUB_OUTPUT"
         echo "Next version: $version" >> "$GITHUB_STEP_SUMMARY"

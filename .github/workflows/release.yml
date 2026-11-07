@@ -10,10 +10,11 @@ concurrency: release
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   release:
-    name: Tag the next version and bump package.json
+    name: Tag the next version, bump package.json and publish the images
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
     runs-on: ubuntu-latest
     steps:
@@ -29,6 +30,22 @@ jobs:
       - name: Next version
         id: version
         uses: ./.github/actions/next-version
+
+      # The images that Build tested are the ones that get published, so they must carry the version that is about to be released. This stops before a tag exists if main moved on after Build started.
+      - name: Download the tested images
+        if: steps.version.outputs.released == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: smart-novel-images
+          path: images
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: The tested images carry the version about to be released
+        if: steps.version.outputs.released == 'true'
+        env:
+          EXPECTED_VERSION: ${{ steps.version.outputs.version }}
+        run: test "$(cat images/smart-novel-images.version)" = "$EXPECTED_VERSION"
+
       - name: Semantic release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -39,3 +56,25 @@ jobs:
         env:
           EXPECTED_VERSION: ${{ steps.version.outputs.version }}
         run: test "$(node -p "require('./package.json').version")" = "$EXPECTED_VERSION"
+
+      - name: Load the tested images
+        if: steps.version.outputs.released == 'true'
+        run: zstd -d -c images/smart-novel-images.tar.zst | docker load
+      - name: Login to Docker Hub
+        if: steps.version.outputs.released == 'true'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          username: 9109679196
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Publish the images to Docker Hub
+        if: steps.version.outputs.released == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          DOCKERHUB_NAMESPACE: 9109679196
+        run: |
+          for app in backend frontend; do
+            for tag in "$VERSION" latest; do
+              docker tag "smart-novel-$app:$VERSION" "$DOCKERHUB_NAMESPACE/smart-novel-$app:$tag"
+              docker push "$DOCKERHUB_NAMESPACE/smart-novel-$app:$tag"
+            done
+          done
