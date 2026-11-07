@@ -6,13 +6,13 @@
  * and the `.spec.tsx` unit tests instead.
  */
 describe('Novel Page routing', () => {
+  const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829';
+
   it('uses path segments for chapter read/edit URLs and supports refresh and back/forward navigation', () => {
     cy.intercept('POST', '**/graphql').as('graphql');
 
-    cy.visit('/');
+    cy.visit(`/novel/${NOVEL_ID}`);
     cy.wait('@graphql');
-
-    cy.get('a[href^="/novel/"]', { timeout: 10000 }).first().click();
     cy.url().should('match', /\/novel\/[^/]+$/);
 
     // Chapter list -> chapter read URL
