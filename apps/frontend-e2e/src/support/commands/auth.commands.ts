@@ -188,8 +188,8 @@ function performInteractiveLogin(username: string, password: string) {
  */
 function acceptPlatformTermsIfAsked() {
   log('Step 6: checking the platform terms...');
-  cy.intercept('POST', '/graphql', (req) => {
-    if (req.body.operationName === 'MyPlatformTermsStatus') {
+  cy.intercept('POST', '**/graphql', (req) => {
+    if (req.body.query?.includes('query MyPlatformTermsStatus')) {
       req.alias = 'termsStatus';
     }
   });
