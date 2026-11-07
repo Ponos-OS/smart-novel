@@ -3,109 +3,23 @@
 # 2. LLM gateway: in the CI pipeline we need to download the model on every run unless we cache it.
 # 3. I am still NOT sure how can I have a Trunk-based Development flow whilst having this, I mean developer has already pushed their changes, the best it is doing it preventing it from being deployed probably! But other devs will be blocked if they start branching off of main and developing a new feature.
 
-# Keep build pipeline separate from e2e for these reasons:
+# Called by build.yml once its images job has built the images and uploaded them as an artifact. It does not build anything: it downloads the images, loads them and runs the suites against them.
 #
-# - Speed of signal: build/lint/unit-tests/Sonar can finish in a few minutes. Your own note in e2e.yml.disabled says the full Postgres+Zitadel+RustFS+LLM gateway+backend+frontend stack is slow on GitHub-hosted runners. Bundling them would make every PR wait on the slow path even for a one-line lint fix.
-# - Different failure domains: a red build/lint/unit-test run means "your code is broken." A red e2e run more often means "the environment/stack flaked" (containers, network, timing) — worth triaging differently, and conflating them in one pipeline makes it harder to tell which kind of failure you're looking at from the GitHub checks list alone.
-# - Independent triggers later: you'll likely want e2e gated more selectively (e.g. skip on doc-only changes, or run only on apps/** changes as it's already scoped) versus build/lint/unit-tests which you probably want on almost everything, including the Sonar config itself.
+# It stays a file of its own, with its own jobs, so a red e2e job (an environment that flaked: containers, network, timing) is told apart from a red build, lint or unit-test job in the checks list. build.yml runs it next to those jobs, not after them.
 
 name: E2E
 
 on:
-  pull_request:
-    paths:
-      - "apps/**"
-      - "infra/**"
-      - "local-setup/**"
-      - "package.json"
-      - "package-lock.json"
-      - "nx.json"
-      - "tsconfig.base.json"
-      - ".env.example"
-      - ".github/workflows/e2e.yml"
-      - ".github/actions/**"
-  push:
-    branches: [main]
-    paths:
-      - "apps/**"
-      - "infra/**"
-      - "local-setup/**"
-      - "package.json"
-      - "package-lock.json"
-      - "nx.json"
-      - "tsconfig.base.json"
-      - ".env.example"
-      - ".github/workflows/e2e.yml"
-      - ".github/actions/**"
-
-# Cancel in-flight runs when a new commit is pushed to the same PR/branch. This saves runner minutes and matches a trunk-based workflow where only the latest commit needs to be green.
-concurrency:
-  group: e2e-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  workflow_call:
+    inputs:
+      version:
+        description: "The version the images in the smart-novel-images artifact are tagged with"
+        type: string
+        required: true
 
 jobs:
-  # The two e2e jobs run on different VMs, so the images are built once here, tagged with the version the release will give them, and handed over as an artifact. The layer cache lives in the GitHub Actions cache, because a runner starts empty every time.
-  images:
-    name: images
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24.13.0
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Next version
-        id: version
-        uses: ./.github/actions/next-version
-
-      - name: Expose the GitHub Actions cache to Buildx (build-images.sh creates the builder)
-        uses: crazy-max/ghaction-github-runtime@v3
-
-      - name: Seed .env from .env.example
-        run: cp .env.example .env
-
-      - name: Build images
-        env:
-          IMAGE_TAG: ${{ steps.version.outputs.version }}
-          DOCKER_BUILD_CACHE_SCOPE: e2e
-        run: sh infra/scripts/build-images.sh e2e
-
-      - name: Export images
-        env:
-          IMAGE_TAG: ${{ steps.version.outputs.version }}
-        run: docker save smart-novel-backend:dev "smart-novel-backend:$IMAGE_TAG" "smart-novel-frontend:$IMAGE_TAG" | zstd -T0 -3 -o smart-novel-images.tar.zst
-
-      - name: List the images
-        run: |
-          {
-            echo "### Images tested from ${GITHUB_SHA}"
-            echo
-            docker image ls --format '| {{.Repository}}:{{.Tag}} | {{.ID}} |' | grep "smart-novel-"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload images
-        uses: actions/upload-artifact@v4
-        with:
-          name: smart-novel-images
-          path: smart-novel-images.tar.zst
-          compression-level: 0
-          retention-days: 1
-
   backend-e2e:
     name: backend-e2e
-    needs: images
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -146,7 +60,7 @@ jobs:
       - name: Run backend e2e tests
         env:
           SKIP_IMAGE_BUILD: "1"
-          IMAGE_TAG: ${{ needs.images.outputs.version }}
+          IMAGE_TAG: ${{ inputs.version }}
         run: npx nx e2e backend-e2e
 
       - name: Upload backend logs
@@ -160,7 +74,6 @@ jobs:
 
   frontend-e2e:
     name: frontend-e2e
-    needs: images
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -201,7 +114,7 @@ jobs:
       - name: Run frontend e2e tests (Cypress)
         env:
           SKIP_IMAGE_BUILD: "1"
-          IMAGE_TAG: ${{ needs.images.outputs.version }}
+          IMAGE_TAG: ${{ inputs.version }}
         run: npx nx e2e frontend-e2e
 
       - name: Upload Cypress videos
