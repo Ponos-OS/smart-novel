@@ -9,6 +9,10 @@ repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 env_dir="$repo_root/infra/terraform/local/1-app"
 zitadel_env_dir="$repo_root/infra/terraform/local/2-zitadel-config"
 cluster_name="smart-novel"
+image_tag="${IMAGE_TAG:-e2e}"
+
+. "$repo_root/infra/scripts/timing.sh"
+TIMINGS_TITLE="start-dev.sh $mode"
 
 case "$mode" in
   dev | e2e) ;;
@@ -38,64 +42,40 @@ if ! kind get clusters 2> /dev/null | grep -qx "$cluster_name"; then
         "$zitadel_env_dir"/terraform.tfstate "$zitadel_env_dir"/terraform.tfstate.backup
 fi
 
-env_value() {
-  sed -n "s/^$1=\\([^# ]*\\).*/\\1/p" "$repo_root/.env" 2> /dev/null | head -n 1
-}
-
-backend_port="$(env_value BACKEND_PORT)"
-
-# The init Job runs the development image in both modes.
-docker build -f "$repo_root/apps/backend/Dockerfile" \
-       --target development \
-       --build-arg "PORT=${backend_port:-3000}" \
-       -t smart-novel-backend:dev "$repo_root"
-
-if [ "$mode" = dev ]; then
-  docker build -f "$repo_root/apps/frontend/Dockerfile" \
-         --target development \
-         -t smart-novel-frontend:dev "$repo_root"
-else
-  docker build -f "$repo_root/apps/backend/Dockerfile" \
-         --target production \
-         --build-arg "PORT=${backend_port:-3000}" \
-         --build-arg "DATABASE_URL=postgresql://dummy" \
-         --build-arg "BEATRICE_VERSION=$(env_value BEATRICE_VERSION)" \
-         --build-arg "FITHARA_VERSION=$(env_value FITHARA_VERSION)" \
-         -t smart-novel-backend:e2e "$repo_root"
-  # The production build compiles the frontend, which needs the generated typed hooks.
-  (cd "$repo_root" && npx nx codegen frontend)
-  # The client ID is generated at runtime; the frontend's start script replaces the placeholder.
-  docker build -f "$repo_root/apps/frontend/Dockerfile" \
-         --target production \
-         --build-arg "VITE_SERVICE_URL=$(env_value VITE_SERVICE_URL)" \
-         --build-arg "VITE_OIDC_CLIENT_ID=__OIDC_CLIENT_ID_PLACEHOLDER__" \
-         --build-arg "VITE_OIDC_AUTHORITY=$(env_value VITE_OIDC_AUTHORITY)" \
-         --build-arg "VITE_OIDC_REDIRECT_URI=$(env_value VITE_OIDC_REDIRECT_URI)" \
-         --build-arg "VITE_OIDC_SCOPE=$(sed -n "s/^VITE_OIDC_SCOPE='\\(.*\\)'.*/\\1/p" "$repo_root/.env" | head -n 1)" \
-         --build-arg "VITE_OTLP_ENDPOINT=$(env_value VITE_OTLP_ENDPOINT)" \
-         -t smart-novel-frontend:e2e "$repo_root"
+# CI builds the images once in a separate job and loads them here.
+if [ -z "${SKIP_IMAGE_BUILD:-}" ]; then
+  sh "$repo_root/infra/scripts/build-images.sh" "$mode"
 fi
 
-set -- -var "mode=$mode"
+if [ "$mode" = dev ]; then
+  built_images="smart-novel-backend:dev smart-novel-frontend:dev"
+else
+  built_images="smart-novel-backend:dev smart-novel-backend:$image_tag smart-novel-frontend:$image_tag"
+fi
+# The images keep their tags across rebuilds; the IDs tell Terraform when to load them into the cluster again.
+# shellcheck disable=SC2086
+built_images_fingerprint="$(docker image inspect --format '{{.Id}}' $built_images | tr '\n' ',')"
+
+set -- -var "mode=$mode" -var "built_images_fingerprint=$built_images_fingerprint" -var "image_tag=$image_tag"
 if [ "$mode" = e2e ]; then
-  # e2e never calls a paid provider: Beatrice and Fithara talk to WireMock.
-  set -- "$@" -var enable_devtools=false -var mock_ai_providers=true
+  # e2e never calls a paid provider (Beatrice and Fithara talk to WireMock) and nobody reads its traces.
+  set -- "$@" -var enable_devtools=false -var mock_ai_providers=true -var enable_observability=false
 fi
 
 TF_VAR_run_as_user="$(id -u)"
 export TF_VAR_run_as_user
 
-terraform -chdir="$env_dir" init
+timed "terraform init (1-app)" terraform -chdir="$env_dir" init
 
 # Stage 1: the cluster and ZITADEL. The backend, the frontend and the Jobs need ZITADEL's generated credentials at startup, so they wait for stage 2.
-terraform -chdir="$env_dir" apply -auto-approve -var wait_for_zitadel_credentials=true "$@"
+timed "terraform apply stage 1 (cluster, ZITADEL)" terraform -chdir="$env_dir" apply -auto-approve -var wait_for_zitadel_credentials=true "$@"
 
 # Stage 2: configure ZITADEL.
-terraform -chdir="$zitadel_env_dir" init
-terraform -chdir="$zitadel_env_dir" apply -auto-approve
+timed "terraform init (2-zitadel-config)" terraform -chdir="$zitadel_env_dir" init
+timed "terraform apply stage 2 (ZITADEL config)" terraform -chdir="$zitadel_env_dir" apply -auto-approve
 
 # Stage 3: deploy the workloads.
-terraform -chdir="$env_dir" apply -auto-approve -var wait_for_zitadel_credentials=false "$@"
+timed "terraform apply stage 3 (workloads)" terraform -chdir="$env_dir" apply -auto-approve -var wait_for_zitadel_credentials=false "$@"
 
 if [ "$mode" = dev ]; then
   cat <<'EOT'

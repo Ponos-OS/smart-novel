@@ -43,6 +43,18 @@ variable "third_party_images" {
   }
 }
 
+variable "built_images_fingerprint" {
+  description = "IDs of the images start-dev.sh built. A change loads them into the kind node again"
+  type        = string
+  default     = ""
+}
+
+variable "image_tag" {
+  description = "Tag of the production backend and frontend images that e2e mode runs"
+  type        = string
+  default     = "e2e"
+}
+
 variable "tags" {
   description = "Labels on every Kubernetes resource, to filter them by"
   type        = map(string)

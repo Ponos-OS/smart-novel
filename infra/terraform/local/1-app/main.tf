@@ -38,8 +38,8 @@ locals {
   data_volume = { name = "data", mount_path = "/data", host_path = "${local.node_apps}/backend/data" }
 
   tooling_image  = "smart-novel-backend:dev"
-  backend_image  = local.hot_reload ? local.tooling_image : "smart-novel-backend:e2e"
-  frontend_image = local.hot_reload ? "smart-novel-frontend:dev" : "smart-novel-frontend:e2e"
+  backend_image  = local.hot_reload ? local.tooling_image : "smart-novel-backend:${var.image_tag}"
+  frontend_image = local.hot_reload ? "smart-novel-frontend:dev" : "smart-novel-frontend:${var.image_tag}"
 
   pre_deploy_jobs = concat(
     [
@@ -99,10 +99,23 @@ locals {
     [local.tooling_image],
     local.hot_reload ? [local.frontend_image] : [local.backend_image, local.frontend_image],
   )
-  third_party_images = merge(var.third_party_images, var.enable_devtools ? var.devtools_images : {}, var.mock_ai_providers ? { wiremock = var.wiremock_image } : {}, {
-    beatrice = "9109679196/smart-novel-beatrice:${local.dotenv["BEATRICE_VERSION"]}"
-    fithara  = "9109679196/fithara:${local.dotenv["FITHARA_VERSION"]}"
-  })
+  all_third_party_images = merge(
+    var.third_party_images,
+    var.enable_devtools ? var.devtools_images : {},
+    var.mock_ai_providers ? { wiremock = var.wiremock_image } : {},
+    {
+      beatrice = "9109679196/smart-novel-beatrice:${local.dotenv["BEATRICE_VERSION"]}"
+      fithara  = "9109679196/fithara:${local.dotenv["FITHARA_VERSION"]}"
+    },
+  )
+
+  # The keys of var.third_party_images that only the observability modules use.
+  observability_image_keys = ["otel_collector", "tempo", "loki", "prometheus", "grafana", "alloy"]
+
+  third_party_images = {
+    for key, image in local.all_third_party_images : key => image
+    if var.enable_observability || !contains(local.observability_image_keys, key)
+  }
 
   redis_node_port = 30379
 
@@ -173,13 +186,21 @@ resource "kind_cluster" "this" {
   }
 }
 
-# Makes the images that start-dev.sh built, plus the third-party ones (pulled once on the host if missing), available inside the kind node. Third-party images are exported for the host platform only: with Docker's containerd image store a pulled image is a multi-platform index whose other blobs were never downloaded, which `kind load docker-image` cannot import.
-resource "terraform_data" "load_images" {
-  triggers_replace = [kind_cluster.this.id, timestamp()]
+# Makes the images that start-dev.sh built available inside the kind node. They keep the same tag across rebuilds, so Terraform cannot see a change by itself: start-dev.sh passes the images' IDs, and a rebuilt image is loaded again.
+resource "terraform_data" "load_built_images" {
+  triggers_replace = [kind_cluster.this.id, var.built_images_fingerprint]
+
+  provisioner "local-exec" {
+    command = "kind load docker-image ${join(" ", local.built_images)} --name ${var.cluster_name}"
+  }
+}
+
+# Makes the third-party images (pulled once on the host if missing) available inside the kind node. They are pinned by version, so the list is the only thing that can change. They are exported for the host platform only: with Docker's containerd image store a pulled image is a multi-platform index whose other blobs were never downloaded, which `kind load docker-image` cannot import.
+resource "terraform_data" "load_third_party_images" {
+  triggers_replace = [kind_cluster.this.id, join(",", values(local.third_party_images))]
 
   provisioner "local-exec" {
     command = <<-EOT
-      kind load docker-image ${join(" ", local.built_images)} --name ${var.cluster_name} || exit 1
       platform="$(docker version --format '{{.Server.Os}}/{{.Server.Arch}}')"
       archive_dir="$(mktemp -d)"
       trap 'rm -rf "$archive_dir"' EXIT
@@ -235,7 +256,7 @@ module "app" {
 
   redis_node_port = local.redis_node_port
 
-  depends_on = [terraform_data.load_images]
+  depends_on = [terraform_data.load_built_images, terraform_data.load_third_party_images]
 }
 
 module "wiremock_openai" {

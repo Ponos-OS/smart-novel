@@ -5,13 +5,16 @@ env_dir="$(cd "$(dirname "$0")/../terraform/local/1-app" && pwd)"
 zitadel_env_dir="$(cd "$(dirname "$0")/../terraform/local/2-zitadel-config" && pwd)"
 cluster_name="smart-novel"
 
+. "$(dirname "$0")/timing.sh"
+TIMINGS_TITLE="stop-dev.sh"
+
 # Destroying the cluster destroys what stage 2 configured in it, so only its state is left to forget.
 forget_zitadel_state() {
   rm -f "$zitadel_env_dir"/terraform.tfstate "$zitadel_env_dir"/terraform.tfstate.backup
 }
 
-terraform -chdir="$env_dir" init
-terraform -chdir="$env_dir" destroy -auto-approve -var wait_for_zitadel_credentials=true && forget_zitadel_state && exit 0
+timed "terraform init (1-app)" terraform -chdir="$env_dir" init
+timed "terraform destroy" terraform -chdir="$env_dir" destroy -auto-approve -var wait_for_zitadel_credentials=true && forget_zitadel_state && exit 0
 
 # The environment is throwaway. When Terraform can no longer reach the cluster, for example after its definition changed in a way that replaces it, delete the cluster directly and forget the state.
 echo "terraform destroy failed, deleting the kind cluster directly." >&2
