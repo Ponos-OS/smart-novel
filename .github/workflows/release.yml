@@ -26,8 +26,18 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Next version
+        id: version
+        uses: ./.github/actions/next-version
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Semantic release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: 0
         run: npx semantic-release
+
+      - name: The release is the version the dry run announced
+        env:
+          EXPECTED_VERSION: ${{ steps.version.outputs.version }}
+        run: test "$(node -p "require('./package.json').version")" = "$EXPECTED_VERSION"
