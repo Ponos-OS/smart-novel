@@ -29,6 +29,7 @@ describe('Manage the tags (e2e)', () => {
       timeout: 10000,
     }).click();
     cy.contains('[role="dialog"]', 'Request a tag').within(() => {
+      cy.get('textarea').type('Created by the Cypress tag journey');
       cy.contains('button', 'Request tag').click();
     });
     cy.contains('[role="dialog"]').should('not.exist');

@@ -39,18 +39,8 @@ describe('Chapter Audio Narration', () => {
         }
       });
 
-      // Processing spinner appears immediately (optimistic update)
-      cy.contains('Generating audio...', { timeout: 10000 }).should(
-        'be.visible',
-      );
-
-      // The subscription-driven stage label eventually replaces the generic spinner text (Step 2.2/3b/5) — CPU-only local synthesis can take a while to report its first "queued"/"generating"/"uploading" event.
-      cy.contains(/Queued\.\.\.|Generating\.\.\.|Uploading\.\.\./, {
-        timeout: 60000,
-      }).should('be.visible');
-
-      // Wait for the audio player to appear once generation completes. Matches Beatrice's own TTS__TIMEOUT_MS (`infra/terraform/modules/beatrice`) — CPU-only local TTS synthesis can take a while, especially under concurrent test-suite load.
-      cy.contains('Audio Narration', { timeout: 300000 }).should(
+      // Wait for the audio player to appear once generation completes. The e2e stack answers from WireMock, so progress states are too short-lived to assert here; they are unit-tested in GenerateTtsButton.spec.tsx.
+      cy.contains('Audio Narration', { timeout: 60000 }).should(
         'be.visible',
       );
 
