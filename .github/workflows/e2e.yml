@@ -69,8 +69,6 @@ jobs:
       - name: Next version
         id: version
         uses: ./.github/actions/next-version
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3

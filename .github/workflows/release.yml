@@ -29,8 +29,6 @@ jobs:
       - name: Next version
         id: version
         uses: ./.github/actions/next-version
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Semantic release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
