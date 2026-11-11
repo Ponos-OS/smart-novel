@@ -1,7 +1,6 @@
-import { isWriterOrHigher } from '@smart-novel/shared';
-
 import { LicenseDraftingAssistant } from '../../features/license-assistant/LicenseDraftingAssistant';
 import { useAuth } from '../../hooks/useAuth';
+import { isWriterOrHigher } from '../../lib/role';
 import { showSuccess } from '../../utils/notification';
 
 export function LicenseAssistantPage() {

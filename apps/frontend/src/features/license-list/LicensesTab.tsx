@@ -1,4 +1,3 @@
-import { Role } from '@smart-novel/shared';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -6,6 +5,7 @@ import {
   LicenseScope,
   useDefaultLicenseQuery,
 } from '../../generated/graphql';
+import { Role } from '../../generated/shared';
 import { useAuth } from '../../hooks/useAuth';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { type LicenseSummary } from '../novel-license/license-notice';

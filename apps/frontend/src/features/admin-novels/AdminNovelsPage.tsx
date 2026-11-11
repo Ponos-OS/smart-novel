@@ -1,4 +1,3 @@
-import { Role } from '@smart-novel/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useId, useMemo, useState } from 'react';
@@ -13,6 +12,7 @@ import {
   OrderDirection,
   useDeleteNovelMutation,
 } from '../../generated/graphql';
+import { Role } from '../../generated/shared';
 import { useAuth } from '../../hooks/useAuth';
 import { showApiError, showSuccess } from '../../utils/notification';
 import { ContentStatsCards } from './ContentStatsCards';

@@ -1,5 +1,4 @@
-import { isWriterOrHigher } from '@smart-novel/shared';
-
+import { isWriterOrHigher } from '../lib/role';
 import { useAuth } from './useAuth';
 
 export function useCanCreateNovel() {

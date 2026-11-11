@@ -1,9 +1,9 @@
-import { WRITER_NOTE_MAX_LENGTH } from '@smart-novel/shared';
 import { useState } from 'react';
 
 import { Dialog } from '../../components/Dialog';
 import { DialogFormFooter } from '../../components/DialogFormFooter';
 import { useRejectWriterMutation } from '../../generated/graphql';
+import { WRITER_NOTE_MAX_LENGTH } from '../../generated/shared';
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 import { showApiError, showSuccess } from '../../utils/notification';
 import { type AdminWriter } from './WriterRow';

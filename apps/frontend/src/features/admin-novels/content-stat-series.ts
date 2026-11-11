@@ -1,4 +1,4 @@
-import { toUtcDay } from '@smart-novel/shared';
+import { toUtcDay } from '../../lib/utc-day';
 
 export interface StatSnapshot {
   day: string;

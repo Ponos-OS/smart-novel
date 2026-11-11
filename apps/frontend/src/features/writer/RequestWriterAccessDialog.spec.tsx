@@ -1,11 +1,11 @@
+import { act, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
 import {
   PEN_NAME_TAKEN,
   WRITER_NOTE_MAX_LENGTH,
   WRITER_PEN_NAME_MAX_LENGTH,
-} from '@smart-novel/shared';
-import { act, render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-
+} from '../../generated/shared';
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 import { showApiError, showSuccess } from '../../utils/notification';
 import {

@@ -1,0 +1,66 @@
+{
+  "hasMinimumRole": [
+    {
+      "roles": ["writer"],
+      "minimum": "user",
+      "expected": true
+    },
+    {
+      "roles": ["user"],
+      "minimum": "writer",
+      "expected": false
+    },
+    {
+      "roles": ["admin"],
+      "minimum": "writer",
+      "expected": true
+    },
+    {
+      "roles": ["user", "writer"],
+      "minimum": "writer",
+      "expected": true
+    },
+    {
+      "roles": ["unknown-role"],
+      "minimum": "user",
+      "expected": false
+    },
+    {
+      "roles": [],
+      "minimum": "user",
+      "expected": false
+    }
+  ],
+  "isAdmin": [
+    {
+      "roles": ["admin"],
+      "expected": true
+    },
+    {
+      "roles": ["writer"],
+      "expected": false
+    },
+    {
+      "roles": [],
+      "expected": false
+    }
+  ],
+  "isWriterOrHigher": [
+    {
+      "roles": ["admin"],
+      "expected": true
+    },
+    {
+      "roles": ["writer"],
+      "expected": true
+    },
+    {
+      "roles": ["user"],
+      "expected": false
+    },
+    {
+      "roles": [],
+      "expected": false
+    }
+  ]
+}

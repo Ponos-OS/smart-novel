@@ -37,8 +37,7 @@ FROM base AS builder
 COPY tsconfig.base.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
 COPY apps/frontend ./apps/frontend
-COPY libs ./libs
-COPY apps/backend/schema.gql ./apps/backend/schema.gql
+COPY apps/backend-nest/schema.gql ./apps/backend-nest/schema.gql
 RUN npx vite build --config apps/frontend/vite.config.mts
 
 FROM nginx:alpine AS production

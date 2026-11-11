@@ -1,3 +1,5 @@
+import type { MessageKey } from './messages';
+
 import {
   CANONICAL_LICENSE_NOT_FOUND,
   CANONICAL_LICENSE_RETIRED,
@@ -5,10 +7,7 @@ import {
   LICENSE_ASSISTANT_RATE_LIMITED,
   LICENSE_ASSISTANT_UNAVAILABLE,
   PLATFORM_TERMS_NOT_ACCEPTED,
-} from '@smart-novel/shared';
-
-import type { MessageKey } from './messages';
-
+} from '../../generated/shared';
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 
 export type LicenseAssistantErrorKind =

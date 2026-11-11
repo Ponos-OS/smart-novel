@@ -1,7 +1,7 @@
-import { MARK_CHAPTERS_READ_MAX_BATCH_SIZE } from '@smart-novel/shared';
 import { useEffect, useRef } from 'react';
 
 import { useMarkChaptersReadMutation } from '../generated/graphql';
+import { MARK_CHAPTERS_READ_MAX_BATCH_SIZE } from '../generated/shared';
 import { ReadChaptersStorage } from '../services/read-chapters-storage.service';
 import { logger } from '../utils/logger';
 import { useAuth } from './useAuth';

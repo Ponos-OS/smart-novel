@@ -16,7 +16,7 @@ run "mounts_exactly_the_given_volumes" {
   variables {
     volumes = [
       { name = "credentials", mount_path = "/zitadel-pat", claim_name = "zitadel-credentials", read_only = true },
-      { name = "data", mount_path = "/data", host_path = "/workspace/apps/backend/data" },
+      { name = "data", mount_path = "/data", host_path = "/workspace/apps/backend-nest/data" },
     ]
   }
 

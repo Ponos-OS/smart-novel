@@ -1,7 +1,3 @@
-import {
-  COVER_CONTENT_TYPE_EXTENSIONS,
-  COVER_MAX_SIZE_BYTES,
-} from '@smart-novel/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { ChangeEvent, useEffect, useRef, useState } from 'react';
 
@@ -13,6 +9,10 @@ import {
   useSearchNovelsQuery,
   useSetNovelCoverMutation,
 } from '../../generated/graphql';
+import {
+  COVER_CONTENT_TYPE_EXTENSIONS,
+  COVER_MAX_SIZE_BYTES,
+} from '../../generated/shared';
 import { NovelCoverConfirmForm } from './NovelCoverConfirmForm';
 
 interface NovelCoverUploadProps {

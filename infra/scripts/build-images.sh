@@ -53,9 +53,12 @@ wait_for_all() {
   return "$failed"
 }
 
+# Both apps import the constants generated from spec/shared.json; the generator needs Go, which the images do not have, so it runs here and the images see the result through the mounted or copied sources.
+timed "task generate:shared" sh -c 'cd "$1" && task generate:shared' sh "$repo_root"
+
 # The init Job runs the development image in both modes.
 run_in_background build backend:dev \
-  -f "$repo_root/apps/backend/Dockerfile" \
+  -f "$repo_root/apps/backend-nest/Dockerfile" \
   --target development \
   --build-arg "PORT=${backend_port:-3000}" \
   -t smart-novel-backend:dev "$repo_root"
@@ -67,7 +70,7 @@ if [ "$mode" = dev ]; then
     -t smart-novel-frontend:dev "$repo_root"
 else
   run_in_background build backend:e2e \
-    -f "$repo_root/apps/backend/Dockerfile" \
+    -f "$repo_root/apps/backend-nest/Dockerfile" \
     --target production \
     --build-arg "PORT=${backend_port:-3000}" \
     --build-arg "DATABASE_URL=postgresql://dummy" \

@@ -188,7 +188,7 @@ variable "migrate_image" {
 variable "migrate_command" {
   description = "Command of the migration Job"
   type        = list(string)
-  default     = ["/bin/sh", "-c", "npx prisma migrate deploy --config=./apps/backend/prisma.config.ts"]
+  default     = ["/bin/sh", "-c", "npx prisma migrate deploy --config=./apps/backend-nest/prisma.config.ts"]
 }
 
 variable "backup_endpoint" {

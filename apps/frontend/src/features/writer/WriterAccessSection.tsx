@@ -1,8 +1,9 @@
-import { isWriterOrHigher, Role } from '@smart-novel/shared';
 import { useState } from 'react';
 
 import { useMyWriterQuery } from '../../generated/graphql';
+import { Role } from '../../generated/shared';
 import { useAuth } from '../../hooks/useAuth';
+import { isWriterOrHigher } from '../../lib/role';
 import { RequestWriterAccessDialog } from './RequestWriterAccessDialog';
 import { WriterAccessCard } from './WriterAccessCard';
 

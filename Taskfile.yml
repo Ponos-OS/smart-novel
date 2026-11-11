@@ -6,10 +6,14 @@ includes:
   backend:
     taskfile: apps/backend
     dir: apps/backend
+  backend-nest:
+    taskfile: apps/backend-nest
+    dir: apps/backend-nest
     optional: true
   backend-e2e:
     taskfile: apps/backend-e2e
     dir: apps/backend-e2e
+    optional: true
   frontend:
     taskfile: apps/frontend
     dir: apps/frontend
@@ -17,58 +21,74 @@ includes:
   frontend-e2e:
     taskfile: apps/frontend-e2e
     dir: apps/frontend-e2e
-  shared:
-    taskfile: libs/shared
-    dir: libs/shared
     optional: true
 
 tasks:
   generate:
     desc: Regenerate everything that is git-ignored
-    deps: [backend:generate, frontend:generate]
+    deps: [generate:shared, backend-nest:generate, frontend:generate]
+
+  generate:shared:
+    desc: Constants both apps share, from spec/shared.json (needs Go, so it runs on the host)
+    sources:
+      - spec/shared.json
+      - tools/go.mod
+      - tools/genshared/*.go
+    generates:
+      - apps/frontend/src/generated/shared.ts
+      - apps/backend-nest/src/legacy-shared/shared.gen.ts
+      - apps/backend/internal/shared/shared_gen.go
+    cmds:
+      - >-
+        go run ./tools/genshared -spec spec/shared.json
+        -ts apps/frontend/src/generated/shared.ts,apps/backend-nest/src/legacy-shared/shared.gen.ts
+        -go apps/backend/internal/shared/shared_gen.go
 
   lint:
     desc: Lint and fix every project, then look for copy-pasted code
     cmds:
       - task: backend:lint
+      - task: backend-nest:lint
       - task: backend-e2e:lint
       - task: frontend:lint
       - task: frontend-e2e:lint
-      - task: shared:lint
       - npx jscpd
 
   lint:check:
     desc: Lint every project without fixing
     cmds:
       - task: backend:lint:check
+      - task: backend-nest:lint:check
       - task: backend-e2e:lint:check
       - task: frontend:lint:check
       - task: frontend-e2e:lint:check
-      - task: shared:lint:check
       - npx jscpd
 
   test:
     desc: Unit tests of every project
     cmds:
       - task: backend:test
+      - task: backend-nest:test
       - task: frontend:test
-      - task: shared:test
 
   format:
     desc: Format the repository
     cmds:
       - npx prettier . -w -u
-      - task: backend:prisma:format
+      - task: backend:format
+      - task: backend-nest:prisma:format
 
   clean:
     desc: Remove every generated or local-only file
     cmds:
       - >-
         rm -rf apps/frontend-e2e/cypress apps/frontend/src/generated
-        apps/frontend/storybook-static apps/backend/schema.gql
-        apps/backend/src/shared/beatrice/graphql-env.d.ts
-        apps/backend/src/shared/beatrice/schema.graphql
-        apps/backend/src/shared/fithara/openapi.json
-        apps/backend/src/shared/fithara/schema.d.ts
+        apps/frontend/storybook-static apps/backend-nest/schema.gql
+        apps/backend/internal/shared/shared_gen.go
+        apps/backend-nest/src/legacy-shared/shared.gen.ts
+        apps/backend-nest/src/shared/beatrice/graphql-env.d.ts
+        apps/backend-nest/src/shared/beatrice/schema.graphql
+        apps/backend-nest/src/shared/fithara/openapi.json
+        apps/backend-nest/src/shared/fithara/schema.d.ts
         dist coverage Diffs.txt local-setup/client local-setup/logs
-        local-setup/pats local-setup/user-ids
+        local-setup/pats local-setup/user-ids .task

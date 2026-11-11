@@ -1,6 +1,6 @@
 ## 🚀 Quick Start
 
-Prerequisites are Docker, Terraform, [Task](https://taskfile.dev/installation) and the [`kind` CLI](https://kind.sigs.k8s.io/docs/user/quick-start). Learn more about kind cluster here [`infra/README.md`](../infra/README.md). If you need DevTools such as RedisInsight or pgAdmin, put this in `infra/terraform/local/1-app/terraform.tfvars` (git-ignored) and run `npm run start:dev` again:
+Prerequisites are Docker, Terraform, Go, [Task](https://taskfile.dev/installation) and the [`kind` CLI](https://kind.sigs.k8s.io/docs/user/quick-start). Learn more about kind cluster here [`infra/README.md`](../infra/README.md). If you need DevTools such as RedisInsight or pgAdmin, put this in `infra/terraform/local/1-app/terraform.tfvars` (git-ignored) and run `npm run start:dev` again:
 
 ```hcl
 enable_devtools = true
@@ -45,14 +45,14 @@ npm run start:dev
 
 ### Development
 
-The local stack and the e2e tests create the tables with `prisma db push` (`backend-init`), which ignores `apps/backend/prisma/migrations`; production applies the migrations with `migrate deploy`. So every schema change needs its migration, or production drifts from what dev and the tests run on. Partial indexes are declared in `schema.prisma` (`where: raw(...)`, preview feature `partialIndexes`), so both paths create them. A feature gets exactly one migration, written at its very last step, never one per step: while the feature is being built, change `schema.prisma` and let `prisma db push` (what `npm run start:dev` and the e2e tests already run) apply it. Do not create a migration file during the feature. At the end, generate a single migration for the whole schema difference, name it after the feature, and read the SQL before keeping it. The development database is built by `db push` and has no migration history, so `npx prisma migrate dev` would ask to reset it; `npx prisma migrate diff --from-migrations apps/backend/prisma/migrations --to-schema apps/backend/prisma/schema.prisma --script` prints the same SQL without touching it. A `REQUIREMENTS.md` ends with a step for this migration. The one exception: SQL that Prisma cannot express in `schema.prisma` and cannot generate (a CHECK constraint, for example) goes in its own hand-written migration after the generated one, and the generated one is never edited.
+The local stack and the e2e tests create the tables with `prisma db push` (`backend-init`), which ignores `apps/backend-nest/prisma/migrations`; production applies the migrations with `migrate deploy`. So every schema change needs its migration, or production drifts from what dev and the tests run on. Partial indexes are declared in `schema.prisma` (`where: raw(...)`, preview feature `partialIndexes`), so both paths create them. A feature gets exactly one migration, written at its very last step, never one per step: while the feature is being built, change `schema.prisma` and let `prisma db push` (what `npm run start:dev` and the e2e tests already run) apply it. Do not create a migration file during the feature. At the end, generate a single migration for the whole schema difference, name it after the feature, and read the SQL before keeping it. The development database is built by `db push` and has no migration history, so `npx prisma migrate dev` would ask to reset it; `npx prisma migrate diff --from-migrations apps/backend-nest/prisma/migrations --to-schema apps/backend-nest/prisma/schema.prisma --script` prints the same SQL without touching it. A `REQUIREMENTS.md` ends with a step for this migration. The one exception: SQL that Prisma cannot express in `schema.prisma` and cannot generate (a CHECK constraint, for example) goes in its own hand-written migration after the generated one, and the generated one is never edited.
 
 #### Production
 
 How migrations should be applied in a professional, production‑safe workflow? Since the Prisma CLI is a dev dependency and not available in the production container. Thus we need to apply migrations in our CI/CD Pipeline:
 
 ```bash
-npx prisma migrate deploy --config=./apps/backend/prisma.config.ts
+npx prisma migrate deploy --config=./apps/backend-nest/prisma.config.ts
 ```
 
 ## Design & Code Philosophy
@@ -82,8 +82,8 @@ All contributors (including AI-assisted tools) should follow the project's codin
 - Do **NOT** add a barrel `index.ts` in the "frontend" app, for a Vite-powered SPA you should **NOT** because:
   - Tree-shaking happens still for the production builds, but it **hurts dev server startup and HMR performance** because Vite eagerly transforms every module the barrel re-exports, even if you only need one.
   - When you do `import { getInitials } from '../../utils'`, Vite (and Rollup under the hood) has to parse the entire barrel to figure out what's exported.
-- Code both apps need (a limit, a rule) lives once in `libs/shared`, imported as `@smart-novel/shared`; keep it plain TypeScript with no Node, browser or framework imports. A new lib or a new path needs the same treatment as `shared`: `paths` in `tsconfig.base.json`, a `COPY libs` in the app Dockerfiles, and the `libs` volume in `infra/terraform/local/1-app`. The backend's `ts-node` scripts need `-r tsconfig-paths/register` to resolve it.
-- When you add a new resolver in the "backend" app, you **MUST** add it to the `apps/backend/gen-graphql-schema.ts`.
+- Code both apps need (a limit, an error code, a message, a rule) lives once in `spec/shared.json`. `task generate:shared` turns it into `apps/frontend/src/generated/shared.ts` and `apps/backend/internal/shared/shared_gen.go` (both git-ignored). Small helper functions are written by hand in each language and tested against the same `spec/cases/*.json` files. Keep regex patterns to the subset JavaScript and Go (RE2) share; the generator rejects the rest.
+- When you add a new resolver in the "backend" app, you **MUST** add it to the `apps/backend-nest/gen-graphql-schema.ts`.
 - Use Nx targets instead of raw commands whenever it is possible.
 - A side-effect call from within a mutation that already committed its primary write (e.g. triggering Beatrice's `generateAudio` after `updateContent` persists) must not let the side effect's failure fail the whole mutation — wrap it (`retryAsync` with `{ retry: 0 }`, or try/catch) and log-and-continue.
 - Do **NOT** model viewer‑specific state via root queries or parent aggregations when it conceptually belongs to a child entity. In GraphQL, viewer-specific data must respect graph locality and viewer context: state like “read”, “liked”, or “bookmarked” belongs on the entity it applies to (e.g. Chapter.isRead as a viewer-specific field), not as a root query or a Novel‑level shortcut, unless explicitly documented as a temporary or performance‑driven exception.
@@ -149,7 +149,7 @@ nx e2e backend-e2e
     const html = '<html> ... trimmed ... </html>'; // ✅ DO (GOOD)
     const html = 'dummy'; // ❌ DO NOT (BAD)
     ```
-- See `apps/backend/src/**/*.spec.ts` for examples for backend and `apps/frontend/src/**/*.spec.ts` for examples for frontend.
+- See `apps/backend-nest/src/**/*.spec.ts` for examples for backend and `apps/frontend/src/**/*.spec.ts` for examples for frontend.
 - See `apps/backend-e2e/src/**/*.e2e-spec.ts` for examples for backend e2e tests and `apps/frontend-e2e/src/e2e/**/*.cy.ts` for examples for frontend e2e tests.
 - If you need to upgrading 3rd party libs: `.github/docs/update-npm.md`.
 - Storybook and Cypress e2e are not interchangeable — pick the tier by what's actually at risk, not by which is cheaper to write:

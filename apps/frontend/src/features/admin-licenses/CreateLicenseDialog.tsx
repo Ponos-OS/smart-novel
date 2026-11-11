@@ -1,4 +1,3 @@
-import { LICENSE_NAME_MAX_LENGTH } from '@smart-novel/shared';
 import { useState } from 'react';
 
 import { Dialog } from '../../components/Dialog';
@@ -10,6 +9,7 @@ import {
   useCanonicalLicensesQuery,
   useCreateLicenseMutation,
 } from '../../generated/graphql';
+import { LICENSE_NAME_MAX_LENGTH } from '../../generated/shared';
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 import { showApiError, showSuccess } from '../../utils/notification';
 import { LICENSE_DISCLAIMER } from '../novel-license/license-notice';

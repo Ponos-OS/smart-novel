@@ -1,18 +1,18 @@
-import {
-  getPenNameProblem,
-  PEN_NAME_PROBLEM_MESSAGES,
-  WRITER_NOTE_MAX_LENGTH,
-  WRITER_PEN_NAME_MAX_LENGTH,
-} from '@smart-novel/shared';
 import { useEffect, useState } from 'react';
 
 import { Dialog } from '../../components/Dialog';
 import { DialogFormFooter } from '../../components/DialogFormFooter';
 import { useRequestWriterAccessMutation } from '../../generated/graphql';
 import {
+  PEN_NAME_PROBLEM_MESSAGES,
+  WRITER_NOTE_MAX_LENGTH,
+  WRITER_PEN_NAME_MAX_LENGTH,
+} from '../../generated/shared';
+import {
   GraphqlRequestError,
   isPenNameTakenError,
 } from '../../lib/graphql-fetcher';
+import { getPenNameProblem } from '../../lib/pen-name';
 import { showApiError, showSuccess } from '../../utils/notification';
 
 interface RequestWriterAccessDialogProps {

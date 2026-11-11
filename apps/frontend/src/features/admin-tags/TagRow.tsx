@@ -1,4 +1,3 @@
-import { TAG_DESCRIPTION_MAX_LENGTH } from '@smart-novel/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { Pencil, Trash2 } from 'lucide-react';
 import { type KeyboardEvent, useState } from 'react';
@@ -11,6 +10,7 @@ import {
   useApproveTagMutation,
   useUpdateTagMutation,
 } from '../../generated/graphql';
+import { TAG_DESCRIPTION_MAX_LENGTH } from '../../generated/shared';
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 import { showApiError } from '../../utils/notification';
 import { ADMIN_TAGS_KEY } from './use-admin-tags';

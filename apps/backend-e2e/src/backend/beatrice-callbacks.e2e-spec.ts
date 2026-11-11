@@ -5,7 +5,7 @@ import { WebSocket } from 'ws';
 
 import { AuthorizationFixture } from '../support';
 
-/** @description Must match `TTS_STATUS_CHANNEL` in apps/backend/src/modules/tts-callbacks/constants.ts */
+/** @description Must match `TTS_STATUS_CHANNEL` in apps/backend-nest/src/modules/tts-callbacks/constants.ts */
 const TTS_STATUS_CHANNEL = 'tts-audio:status';
 
 async function getContentUpdatedAt(

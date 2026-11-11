@@ -1,1 +1,0 @@
-export const TAG_DESCRIPTION_MAX_LENGTH = 650;

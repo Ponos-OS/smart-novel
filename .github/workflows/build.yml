@@ -4,7 +4,10 @@ on:
   pull_request:
     paths:
       - "apps/**"
-      - "libs/**"
+      - "spec/**"
+      - "tools/**"
+      - "go.work"
+      - "Taskfile.yml"
       - "infra/**"
       - "local-setup/**"
       - "package.json"
@@ -19,7 +22,10 @@ on:
     branches: [main]
     paths:
       - "apps/**"
-      - "libs/**"
+      - "spec/**"
+      - "tools/**"
+      - "go.work"
+      - "Taskfile.yml"
       - "infra/**"
       - "local-setup/**"
       - "package.json"
@@ -53,6 +59,11 @@ jobs:
         uses: go-task/setup-task@v2
         with:
           version: 3.54.0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -126,6 +137,11 @@ jobs:
         with:
           version: 3.54.0
 
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -152,6 +168,11 @@ jobs:
         uses: go-task/setup-task@v2
         with:
           version: 3.54.0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -184,6 +205,11 @@ jobs:
         uses: go-task/setup-task@v2
         with:
           version: 3.54.0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

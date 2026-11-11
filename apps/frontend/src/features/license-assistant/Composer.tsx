@@ -1,7 +1,7 @@
-import { LICENSE_ASSISTANT_MESSAGE_MAX_LENGTH } from '@smart-novel/shared';
 import { type KeyboardEvent, type Ref, useId } from 'react';
 
 import { Button } from '../../components/Button';
+import { LICENSE_ASSISTANT_MESSAGE_MAX_LENGTH } from '../../generated/shared';
 import { useMessages } from './i18n';
 
 interface ComposerProps {

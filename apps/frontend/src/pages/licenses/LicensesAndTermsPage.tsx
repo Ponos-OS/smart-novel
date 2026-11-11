@@ -1,10 +1,10 @@
-import { isWriterOrHigher } from '@smart-novel/shared';
 import { Tabs } from 'radix-ui';
 import { Link } from 'react-router-dom';
 
 import { LicensesTab } from '../../features/license-list/LicensesTab';
 import { PlatformTermsTab } from '../../features/platform-terms/PlatformTermsTab';
 import { useAuth } from '../../hooks/useAuth';
+import { isWriterOrHigher } from '../../lib/role';
 
 const TABS = [
   { id: 'licenses', label: 'Licenses', Panel: LicensesTab },

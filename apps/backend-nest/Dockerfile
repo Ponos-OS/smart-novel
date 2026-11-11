@@ -23,7 +23,7 @@ ENV APP_ENV=development
 ENV CHOKIDAR_USEPOLLING=1
 ENV WATCHPACK_POLLING=true
 COPY --from=deps /app/node_modules ./node_modules
-CMD ["/bin/sh", "-c", "task backend:prisma:generate backend:serve"]
+CMD ["/bin/sh", "-c", "task backend-nest:prisma:generate backend-nest:serve"]
 
 # ---- production ---------------------------------------------------------
 # Interim: the NestJS backend runs from source with swc until the Go backend replaces it, so this image keeps the full node_modules.
@@ -35,11 +35,11 @@ ENV BEATRICE_VERSION=${BEATRICE_VERSION}
 ARG FITHARA_VERSION
 ENV FITHARA_VERSION=${FITHARA_VERSION}
 ENV APP_ENV=production
+ENV NODE_ENV=production
 ENV SWC_NODE_PROJECT=tsconfig.app.json
 COPY --from=deps /app/node_modules ./node_modules
-COPY apps/backend ./apps/backend
-COPY libs ./libs
-RUN task -t apps/backend/Taskfile.yml -d apps/backend generate
-COPY apps/backend/data /data
-WORKDIR /app/apps/backend
+COPY apps/backend-nest ./apps/backend-nest
+RUN task -t apps/backend-nest/Taskfile.yml -d apps/backend-nest generate
+COPY apps/backend-nest/data /data
+WORKDIR /app/apps/backend-nest
 CMD ["node", "-r", "@swc-node/register", "src/main.ts"]

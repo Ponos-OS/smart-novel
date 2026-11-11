@@ -1,7 +1,3 @@
-import {
-  isAdmin as hasAdminRole,
-  isWriterOrHigher,
-} from '@smart-novel/shared';
 import { LogIn } from 'lucide-react';
 import { DropdownMenu } from 'radix-ui';
 import { useState } from 'react';
@@ -9,6 +5,10 @@ import { Link } from 'react-router-dom';
 
 import { Tooltip } from '../../components/Tooltip';
 import { useAuth } from '../../hooks/useAuth';
+import {
+  isAdmin as hasAdminRole,
+  isWriterOrHigher,
+} from '../../lib/role';
 import { getInitials } from '../../utils/get-initials';
 
 const ZITADEL_CONSOLE_URL = `${import.meta.env.VITE_OIDC_AUTHORITY}/ui/console/`;

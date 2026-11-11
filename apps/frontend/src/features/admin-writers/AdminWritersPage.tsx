@@ -1,10 +1,10 @@
-import { Role } from '@smart-novel/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { StatusToggleGroup } from '../../components/StatusToggleGroup';
 import { WriterStatus } from '../../generated/graphql';
+import { Role } from '../../generated/shared';
 import { useAuth } from '../../hooks/useAuth';
 import { RejectWriterDialog } from './RejectWriterDialog';
 import {

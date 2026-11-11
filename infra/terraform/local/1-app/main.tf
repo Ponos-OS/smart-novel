@@ -1,7 +1,6 @@
 locals {
   repo_root = abspath("${path.module}/../../../..")
   node_apps = "/workspace/apps"
-  node_libs = "/workspace/libs"
 
   dotenv_path = "${local.repo_root}/.env"
   dotenv = fileexists(local.dotenv_path) ? {
@@ -34,8 +33,7 @@ locals {
   hot_reload = var.mode == "dev"
 
   apps_volume = { name = "apps", mount_path = "/app/apps", host_path = local.node_apps }
-  libs_volume = { name = "libs", mount_path = "/app/libs", host_path = local.node_libs }
-  data_volume = { name = "data", mount_path = "/data", host_path = "${local.node_apps}/backend/data" }
+  data_volume = { name = "data", mount_path = "/data", host_path = "${local.node_apps}/backend-nest/data" }
 
   tooling_image  = "smart-novel-backend:dev"
   backend_image  = local.hot_reload ? local.tooling_image : "smart-novel-backend:${var.image_tag}"
@@ -46,10 +44,10 @@ locals {
       {
         name                    = "backend-init"
         image                   = local.tooling_image
-        command                 = ["/bin/sh", "-lc", "task backend:prisma:db:push backend:prisma:generate backend:prisma:seed"]
+        command                 = ["/bin/sh", "-lc", "task backend-nest:prisma:db:push backend-nest:prisma:generate backend-nest:prisma:seed"]
         use_backend_environment = true
         environment             = local.init_job_environment
-        volumes                 = [local.apps_volume, local.libs_volume, local.data_volume]
+        volumes                 = [local.apps_volume, local.data_volume]
       },
     ],
     local.hot_reload ? [
@@ -59,7 +57,7 @@ locals {
         # Prisma generates into the image's node_modules, so this runs as root; the files written into the mounted sources are handed back to the host user afterwards.
         command     = ["/bin/sh", "-c", "task frontend:generate; status=$?; chown -R ${var.run_as_user} /app/apps; exit $status"]
         environment = { DATABASE_URL = "postgresql://dummy", BEATRICE_VERSION = local.dotenv["BEATRICE_VERSION"], FITHARA_VERSION = local.dotenv["FITHARA_VERSION"] }
-        volumes     = [local.apps_volume, local.libs_volume]
+        volumes     = [local.apps_volume]
       },
     ] : [],
   )
@@ -85,13 +83,12 @@ locals {
     local.hot_reload ? local.backend_environment : merge(local.backend_environment),
     local.zitadel_backend_environment,
   )
-  backend_volumes = local.hot_reload ? [local.apps_volume, local.libs_volume, local.data_volume] : []
+  backend_volumes = local.hot_reload ? [local.apps_volume, local.data_volume] : []
 
   frontend_script = local.hot_reload ? "start-frontend-dev.sh" : "start-frontend-e2e.sh"
   frontend_port   = local.hot_reload ? tonumber(local.dotenv["FRONTEND_PORT"]) : 80
   frontend_volumes = local.hot_reload ? [
     { name = "sources", mount_path = "/app/apps/frontend", host_path = "${local.node_apps}/frontend" },
-    local.libs_volume,
   ] : []
   frontend_environment_by_mode = merge(local.hot_reload ? local.frontend_environment : {}, local.zitadel_frontend_environment)
 
@@ -177,11 +174,6 @@ resource "kind_cluster" "this" {
         host_path      = "${local.repo_root}/apps"
         container_path = local.node_apps
       }
-
-      extra_mounts {
-        host_path      = "${local.repo_root}/libs"
-        container_path = local.node_libs
-      }
     }
   }
 }
@@ -249,7 +241,7 @@ module "app" {
   enable_devtools = var.enable_devtools
 
   pre_deploy_jobs            = local.pre_deploy_jobs
-  object_storage_seed_volume = { host_path = "${local.node_apps}/backend/data" }
+  object_storage_seed_volume = { host_path = "${local.node_apps}/backend-nest/data" }
   otlp_endpoint              = local.otlp_endpoint
   log_shipping               = local.log_shipping
   ingress_class_name         = local.ingress_class_name

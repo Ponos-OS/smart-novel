@@ -2,7 +2,7 @@ import {
   INVALID_CURSOR_MESSAGE,
   PEN_NAME_TAKEN,
   PLATFORM_TERMS_NOT_ACCEPTED,
-} from '@smart-novel/shared';
+} from '../generated/shared';
 
 /**
  * @description Thrown by {@link graphqlFetcher} for a GraphQL-level error response

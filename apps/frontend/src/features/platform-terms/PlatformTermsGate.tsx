@@ -1,4 +1,3 @@
-import { isWriterOrHigher } from '@smart-novel/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'react-router-dom';
 
@@ -8,6 +7,7 @@ import {
   usePlatformTermsQuery,
 } from '../../generated/graphql';
 import { useAuth } from '../../hooks/useAuth';
+import { isWriterOrHigher } from '../../lib/role';
 import { PlatformTermsModal } from './PlatformTermsModal';
 
 const LICENSES_PATH = '/licenses';

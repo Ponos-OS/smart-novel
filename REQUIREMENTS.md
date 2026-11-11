@@ -14,7 +14,7 @@
 - Task runner: [Taskfile](https://taskfile.dev) replaces Nx. `task` is a system tool, never an npm dependency: installed with apt on developer machines, with `go-task/setup-task` in CI and with the official install script (pinned release) in Docker images. Scripts and docs call `task`, never `npx task`. Nx, `project.json`, `nx.json` and every `@nx/*` dependency go away.
 - `libs/shared` goes away. Rules both apps need live in one JSON spec; the constants for each language are generated from it. The small helper functions are copied by hand into each language.
 - Anything a task can regenerate is git-ignored and never committed: generated shared constants, ent code, gqlgen code, the GraphQL schema, frontend GraphQL types. Docker builds, CI and `task` dependencies must run generation first.
-- `APP_ENV` (`development`, `production`, `test`) replaces `NODE_ENV` as the backend's own setting, including the Go backend. `NODE_ENV` stays only where Node tools read it (the frontend Dockerfile, Vite, Vitest).
+- `APP_ENV` (`development`, `production`, `test`) replaces `NODE_ENV` as the backend's own setting, including the Go backend. `NODE_ENV` stays only where Node libraries read it (the frontend Dockerfile, Vite, Vitest, and the interim NestJS production image, where Apollo turns off introspection and stack traces when it is `production`).
 - The frontend stays TypeScript/React/Vite; only its tooling changes.
 - `apps/backend-e2e` and `apps/frontend-e2e` stay TypeScript. The backend e2e suite talks to the API over HTTP only, so it is the parity oracle for the port: the Go backend is done when that suite passes against it.
 
@@ -85,12 +85,14 @@ Verify: `task --list` shows the tasks; `task frontend:lint`, `frontend:test`, `f
 
 ## Step 2: Shared spec and generator, delete `libs/shared`
 
-- `spec/shared.json` at the repo root: every constant, error code, message, the role list and hierarchy, and the pen-name pattern as a regex source string. Messages that interpolate constants (`A pen name needs at least {WRITER_PEN_NAME_MIN_LENGTH} characters`) use `{NAME}` placeholders that the generator resolves.
+- `spec/shared.json` at the repo root: every constant, the `errors` list (wire error codes; `message` only where a client still matches on the text, today `INVALID_CURSOR`), the role list and hierarchy, and the pen-name pattern as a regex source string. Messages that interpolate constants (`A pen name needs at least {WRITER_PEN_NAME_MIN_LENGTH} characters`) use `{NAME}` placeholders that the generator resolves.
 - Patterns stay in the subset JS and Go (RE2) share: no lookaheads, no backreferences. The generator fails on anything else it recognizes.
-- `spec/cases/*.json`: input and expected output pairs for the helper functions (`hasMinimumRole`, `isAdmin`, `isWriterOrHigher`, `getPenNameProblem`).
+- `spec/cases/*.json`: input and expected output pairs for the helper functions (`hasMinimumRole`, `isAdmin`, `isWriterOrHigher`).
 - The generator is a Go program at `tools/genshared`, run by `task generate:shared`. It writes `apps/frontend/src/generated/shared.ts` and `apps/backend/internal/shared/shared_gen.go` (both git-ignored). The generator is its own Go module under `tools/`, tied in by a root `go.work`, so it runs before the backend module exists.
 - Helper functions are written by hand in both languages next to the generated files (`apps/frontend/src/shared/*.ts`, `apps/backend/internal/shared/*.go`) and both test suites load `spec/cases/*.json`. Go counts runes, not bytes, for length checks.
 - `toUtcDay` is only ported if the Go backend turns out to need it (check in step 3).
+- The Go module needs `apps/backend`, so the NestJS app moves to `apps/backend-nest` in this step (it was step 3's first bullet). Namespaces, paths, Dockerfiles and terraform follow; image names, Kubernetes names and URLs keep `backend`.
+- Interim bridge: `apps/backend-nest/src/legacy-shared` re-creates the old `@smart-novel/shared` import path from a second generated file plus copies of the helpers, so the NestJS app can still produce the GraphQL schema the frontend codegen reads until the Go backend does. Step 11 deletes it.
 - Frontend imports move from `@smart-novel/shared` to the generated file and the local helpers. Delete `libs/`, the `@smart-novel/shared` path in `tsconfig.base.json`, the `COPY libs` lines in the Dockerfiles, the `libs` volume in `infra/terraform/local/1-app`, and the "libs/shared" paragraph in `CONTRIBUTING.md`. The NestJS backend is allowed to break on its imports of the shared package.
 
 Verify: `task generate:shared` is idempotent; `task frontend:test` and `go test ./...` for the helpers pass against the same case files; a deliberate edit to a case file fails both suites; frontend typechecks with no reference to `@smart-novel/shared`.
@@ -98,7 +100,7 @@ Verify: `task generate:shared` is idempotent; `task frontend:test` and `go test 
 ## Step 3: Inventory and Go backend skeleton
 
 - Write `docs/port-inventory.md` (kept until step 11): one row per NestJS module, GraphQL operation, REST/webhook endpoint, background job, queue consumer/producer and env key, with the Go package it maps to and the step that ports it. Confirm or fix the grouping of steps 6 to 9 here.
-- `git mv apps/backend apps/backend-nest` (reference only, no longer built), then create the Go module at `apps/backend` with the layout in "Project layout".
+- The NestJS app is already at `apps/backend-nest` (step 2). Fill the Go module at `apps/backend` with the layout in "Project layout".
 - `ent` + `entgql` + `gqlgen` wired with an empty schema; `task backend:generate` produces ent, gqlgen and `api/ent.graphql` (all git-ignored). `apps/frontend/codegen.ts` reads `../backend/api/*.graphql` and still writes the git-ignored `src/generated/graphql.ts` with the same plugins and fetcher as today.
 - Server: HTTP router, `/graphql` and a playground in dev, health/readiness endpoints, structured logging, config from the same env keys in `.env.example`, graceful shutdown, OpenTelemetry matching what `instrumentation.ts` exports today.
 - `Dockerfile` (multi-stage, runs `task backend:generate`), hot reload in dev (`air`), `task backend:{generate,lint,test,build,serve}`, `golangci-lint` config, wiring in `infra/terraform` so `npm run start:dev` runs the Go container instead of NestJS (Postgres still empty).
@@ -117,8 +119,10 @@ Verify: `task backend:generate` is idempotent; schema creation runs against the 
 
 ## Step 5: Authentication and authorization
 
-- ZITADEL JWT validation (JWKS, issuer, audience) as middleware, the viewer and roles in the request context, and the role helpers from step 2.
+- Spike first (short, written up in the log): (a) can the `zitadel-go` gRPC client reach ZITADEL through the kind ingress (HTTP/2 end to end), and (b) token verification: `zitadel-go` `authorization/oauth` introspection (needs an API application with credentials in `zitadel_config`, one call per request unless cached, catches revoked tokens) against local JWT verification with `zitadel/oidc` plus cached userinfo (what the NestJS provider does). Pick one and record why.
+- ZITADEL token validation (issuer, audience) with `github.com/zitadel/zitadel-go/v3` as middleware, falling back to hand-written code only where the library has nothing, the viewer and roles in the request context, and the role helpers from step 2.
 - Replace the CASL rules (`.github/docs/casl-cross-entity-conditions.md` documents them) with Go authorization functions plus ent privacy policies where a rule belongs to an entity. Keep viewer-specific state on the entity it concerns (`Chapter.isRead`), per `CONTRIBUTING.md`.
+- `HasMinimumRole` and the other helpers from step 2 stay hand-written: the library checks that a role is present, not the `admin > writer > user` hierarchy.
 - A GraphQL directive or resolver wrapper for "requires role X" so resolvers do not each re-implement it.
 
 Verify: unit tests for each role and ownership combination; the existing `backend-e2e` auth and permission specs, run against the Go backend, pass for the operations ported so far.
@@ -131,18 +135,20 @@ Verify: unit tests for logic that is not generated; the matching `backend-e2e` s
 
 ## Step 7: Writer and license modules
 
-Writers, writer requests, platform terms acceptance, licenses, license assistant (Fithara client from its OpenAPI spec, rate limiting, per-writer draft limits). Replace `fetch-fithara-openapi.ts` with a generated Go client task.
+Writers, writer requests, platform terms acceptance, licenses, license assistant (Fithara client from its OpenAPI spec, rate limiting, per-writer draft limits). The pen-name rule (pattern, min and max length counted in runes) is written by hand in the Go writer module, not shared. `requestWriterAccess` answers `PEN_NAME_EMPTY`, `PEN_NAME_TOO_SHORT`, `PEN_NAME_TOO_LONG` and `PEN_NAME_INVALID_CHARACTERS` as `extensions.code`, the last three with `min`/`max` in `extensions` for the translated text; add the codes to `errors` in `spec/shared.json`. Update the matching `backend-e2e` specs, which assert on the old messages. Replace `fetch-fithara-openapi.ts` with a generated Go client task. Replace `zitadel-management.client.ts` (project grants) with the `zitadel-go` `client` package and a PAT.
 
 Verify: same as step 6, plus the Fithara client runs against the WireMock stubs.
 
 ## Step 8: Integrations and background work
 
-Redis, object storage (covers), RabbitMQ, the Beatrice client and schema fetch (`fetch-beatrice-schema.ts`), TTS callbacks, ZITADEL events, the background runner. Side effects after a committed write must not fail the mutation (rule in `CONTRIBUTING.md`).
+Redis, object storage (covers), RabbitMQ, the Beatrice client and schema fetch (`fetch-beatrice-schema.ts`), TTS callbacks, ZITADEL events (the `ZITADEL-Signature` HMAC check stays hand-written, standard library only), the background runner. Side effects after a committed write must not fail the mutation (rule in `CONTRIBUTING.md`).
 
 Verify: the matching `backend-e2e` specs pass; each consumer or runner has a log line proving it started, checked in the pod logs, not only a passing probe.
 
 ## Step 9: Frontend against the Go schema
 
+- Pen name: delete `src/lib/pen-name.ts` and its spec, `getPenNameProblem` and the `maxLength` on the input. `RequestWriterAccessDialog` submits and shows the translation of the returned code, with `min`/`max` from `extensions`. From `spec/shared.json` remove `WRITER_PEN_NAME_MIN_LENGTH`, `WRITER_PEN_NAME_MAX_LENGTH`, `WRITER_PEN_NAME_PATTERN`, `penNameProblems` and `spec/cases/pen-name.json`; from the generator the `patterns` and `penNameProblems` support (including the RE2 portability check) unless another pattern has appeared by then. The same goes for the Nest bridge's `legacy-shared/pen-name.ts`, which goes with step 11.
+- i18n for errors (first, so the rest of the step builds on it): add `i18next`/`react-i18next` with one English locale file. The backend sends only `extensions.code` (plus params when a text needs them); the frontend translates it. Remove every message from `spec/shared.json` (`INVALID_CURSOR.message`) with the `{NAME}` placeholder resolution in the generator, and the `*_MESSAGE` / `PEN_NAME_PROBLEM_MESSAGES` constants; `graphql-fetcher` matches the `INVALID_CURSOR` code, not the text; The Go backend keeps an English message for logs and non-browser clients, not shared. A frontend test fails when a code in `spec/shared.json` in `errors` has no translation.
 - `task frontend:codegen` reads `apps/backend/api/*.graphql` (hand-written plus generated `ent.graphql`) and regenerates `src/generated/graphql.ts`; fix every operation, fragment and component the schema difference breaks. Follow the compiler through every layer.
 - Storybook mocks and Cypress specs updated for any renamed field or changed error code.
 
