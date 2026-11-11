@@ -29,61 +29,24 @@ locals {
     },
   )
 
-  # Hot reload (dev): the development images run against the sources mounted from the node. e2e runs the production images instead; only the init Job still needs the sources, to push the schema and seed.
+  # Hot reload (dev): the development images run against the sources mounted from the node. e2e runs the production images instead.
   hot_reload = var.mode == "dev"
 
   apps_volume = { name = "apps", mount_path = "/app/apps", host_path = local.node_apps }
-  data_volume = { name = "data", mount_path = "/data", host_path = "${local.node_apps}/backend-nest/data" }
 
-  tooling_image  = "smart-novel-backend:dev"
-  backend_image  = local.hot_reload ? local.tooling_image : "smart-novel-backend:${var.image_tag}"
-  frontend_image = local.hot_reload ? "smart-novel-frontend:dev" : "smart-novel-frontend:${var.image_tag}"
-
-  pre_deploy_jobs = concat(
-    [
-      {
-        name                    = "backend-init"
-        image                   = local.tooling_image
-        command                 = ["/bin/sh", "-lc", "task backend-nest:prisma:db:push backend-nest:prisma:generate backend-nest:prisma:seed"]
-        use_backend_environment = true
-        environment             = local.init_job_environment
-        volumes                 = [local.apps_volume, local.data_volume]
-      },
-    ],
-    local.hot_reload ? [
-      {
-        name  = "frontend-codegen"
-        image = local.tooling_image
-        # Prisma generates into the image's node_modules, so this runs as root; the files written into the mounted sources are handed back to the host user afterwards.
-        command     = ["/bin/sh", "-c", "task frontend:generate; status=$?; chown -R ${var.run_as_user} /app/apps; exit $status"]
-        environment = { DATABASE_URL = "postgresql://dummy", BEATRICE_VERSION = local.dotenv["BEATRICE_VERSION"], FITHARA_VERSION = local.dotenv["FITHARA_VERSION"] }
-        volumes     = [local.apps_volume]
-      },
-    ] : [],
-  )
+  backend_image  = "smart-novel-backend:${local.hot_reload ? "dev" : var.image_tag}"
+  frontend_image = "smart-novel-frontend:${local.hot_reload ? "dev" : var.image_tag}"
 
   # Stage 2 configures ZITADEL and outputs what the workloads need; the workloads are held back until it has run.
   zitadel                            = one(data.terraform_remote_state.zitadel[*].outputs)
   zitadel_backend_environment        = local.zitadel == null ? {} : { ZITADEL_CLIENT_ID = local.zitadel.client_id, ZITADEL_PROJECT_ID = local.zitadel.project_id }
   zitadel_backend_secret_environment = local.zitadel == null ? {} : { ZITADEL_PAT = local.zitadel.pat, ZITADEL_MANAGEMENT_PAT = local.zitadel.backend_pat, ZITADEL_WEBHOOK_SIGNING_KEY = local.zitadel.webhook_signing_key }
   zitadel_frontend_environment       = local.zitadel == null ? {} : { VITE_OIDC_CLIENT_ID = local.zitadel.client_id }
-  init_job_environment = local.zitadel == null ? {} : {
-    ZITADEL_WRITER_USER_ID = local.zitadel.user_ids["writer"]
-    SEEDED_WRITERS = jsonencode([
-      for writer in local.zitadel.seeded_writers : {
-        userId  = writer.user_id
-        name    = writer.name
-        email   = writer.email
-        penName = writer.pen_name
-      }
-    ])
-  }
-
   backend_environment_by_mode = merge(
     local.hot_reload ? local.backend_environment : merge(local.backend_environment),
     local.zitadel_backend_environment,
   )
-  backend_volumes = local.hot_reload ? [local.apps_volume, local.data_volume] : []
+  backend_volumes = local.hot_reload ? [local.apps_volume] : []
 
   frontend_script = local.hot_reload ? "start-frontend-dev.sh" : "start-frontend-e2e.sh"
   frontend_port   = local.hot_reload ? tonumber(local.dotenv["FRONTEND_PORT"]) : 80
@@ -92,10 +55,7 @@ locals {
   ] : []
   frontend_environment_by_mode = merge(local.hot_reload ? local.frontend_environment : {}, local.zitadel_frontend_environment)
 
-  built_images = concat(
-    [local.tooling_image],
-    local.hot_reload ? [local.frontend_image] : [local.backend_image, local.frontend_image],
-  )
+  built_images = [local.backend_image, local.frontend_image]
   all_third_party_images = merge(
     var.third_party_images,
     var.enable_devtools ? var.devtools_images : {},
@@ -240,7 +200,6 @@ module "app" {
 
   enable_devtools = var.enable_devtools
 
-  pre_deploy_jobs            = local.pre_deploy_jobs
   object_storage_seed_volume = { host_path = "${local.node_apps}/backend-nest/data" }
   otlp_endpoint              = local.otlp_endpoint
   log_shipping               = local.log_shipping

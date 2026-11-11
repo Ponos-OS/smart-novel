@@ -31,7 +31,7 @@ ENV NODE_ENV=development
 ENV CHOKIDAR_USEPOLLING=1
 ENV WATCHPACK_POLLING=true
 RUN npm ci
-CMD ["npx", "task", "frontend:serve"]
+CMD ["task", "frontend:serve"]
 
 FROM base AS builder
 COPY tsconfig.base.json ./

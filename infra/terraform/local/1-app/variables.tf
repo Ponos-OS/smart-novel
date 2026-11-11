@@ -73,12 +73,6 @@ variable "wiremock_image" {
   default     = "wiremock/wiremock:3.13.1"
 }
 
-variable "run_as_user" {
-  description = "User ID that owns the files the codegen Job generates into apps/; use the output of `id -u`"
-  type        = number
-  default     = 1000
-}
-
 variable "enable_devtools" {
   description = "Run RedisInsight, pgAdmin and Open WebUI in the cluster, behind the ingress on redis-insight.localhost, pgadmin.localhost and open-webui.localhost. Their images are large, so they are only pulled when this is true"
   type        = bool

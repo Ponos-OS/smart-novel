@@ -6,6 +6,7 @@ includes:
   backend:
     taskfile: apps/backend
     dir: apps/backend
+    optional: true
   backend-nest:
     taskfile: apps/backend-nest
     dir: apps/backend-nest
@@ -26,7 +27,7 @@ includes:
 tasks:
   generate:
     desc: Regenerate everything that is git-ignored
-    deps: [generate:shared, backend-nest:generate, frontend:generate]
+    deps: [backend:generate, backend-nest:generate, frontend:generate]
 
   generate:shared:
     desc: Constants both apps share, from spec/shared.json (needs Go, so it runs on the host)
@@ -84,7 +85,6 @@ tasks:
       - >-
         rm -rf apps/frontend-e2e/cypress apps/frontend/src/generated
         apps/frontend/storybook-static apps/backend-nest/schema.gql
-        apps/backend/internal/shared/shared_gen.go
         apps/backend-nest/src/legacy-shared/shared.gen.ts
         apps/backend-nest/src/shared/beatrice/graphql-env.d.ts
         apps/backend-nest/src/shared/beatrice/schema.graphql
@@ -92,3 +92,4 @@ tasks:
         apps/backend-nest/src/shared/fithara/schema.d.ts
         dist coverage Diffs.txt local-setup/client local-setup/logs
         local-setup/pats local-setup/user-ids .task
+      - git clean -fdXq apps/backend

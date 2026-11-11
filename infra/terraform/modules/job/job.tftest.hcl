@@ -11,7 +11,7 @@ run "secrets_stay_out_of_the_pod_spec" {
   command = plan
 
   variables {
-    environment        = { LOG_LEVEL = "http" }
+    environment        = { LOG_LEVEL = "info" }
     secret_environment = { DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/smart_novel" }
   }
 

@@ -23,7 +23,8 @@ type rolesExpectation struct {
 	Expected bool     `json:"expected"`
 }
 
-func TestRoleHelpers(t *testing.T) {
+func loadRoleCases(t *testing.T) roleCases {
+	t.Helper()
 	raw, err := os.ReadFile("../../../../spec/cases/role.json")
 	if err != nil {
 		t.Fatal(err)
@@ -33,27 +34,29 @@ func TestRoleHelpers(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Run("HasMinimumRole", func(t *testing.T) {
-		for _, c := range cases.HasMinimumRole {
-			if got := shared.HasMinimumRole(c.Roles, shared.Role(c.Minimum)); got != c.Expected {
-				t.Errorf("HasMinimumRole(%v, %s) = %v, want %v", c.Roles, c.Minimum, got, c.Expected)
-			}
-		}
-	})
+	return cases
+}
 
-	t.Run("IsAdmin", func(t *testing.T) {
-		for _, c := range cases.IsAdmin {
-			if got := shared.IsAdmin(c.Roles); got != c.Expected {
-				t.Errorf("IsAdmin(%v) = %v, want %v", c.Roles, got, c.Expected)
-			}
+func TestHasMinimumRole(t *testing.T) {
+	for _, c := range loadRoleCases(t).HasMinimumRole {
+		if got := shared.HasMinimumRole(c.Roles, shared.Role(c.Minimum)); got != c.Expected {
+			t.Errorf("HasMinimumRole(%v, %s) = %v, want %v", c.Roles, c.Minimum, got, c.Expected)
 		}
-	})
+	}
+}
 
-	t.Run("IsWriterOrHigher", func(t *testing.T) {
-		for _, c := range cases.IsWriterOrHigher {
-			if got := shared.IsWriterOrHigher(c.Roles); got != c.Expected {
-				t.Errorf("IsWriterOrHigher(%v) = %v, want %v", c.Roles, got, c.Expected)
-			}
+func TestIsAdmin(t *testing.T) {
+	for _, c := range loadRoleCases(t).IsAdmin {
+		if got := shared.IsAdmin(c.Roles); got != c.Expected {
+			t.Errorf("IsAdmin(%v) = %v, want %v", c.Roles, got, c.Expected)
 		}
-	})
+	}
+}
+
+func TestIsWriterOrHigher(t *testing.T) {
+	for _, c := range loadRoleCases(t).IsWriterOrHigher {
+		if got := shared.IsWriterOrHigher(c.Roles); got != c.Expected {
+			t.Errorf("IsWriterOrHigher(%v) = %v, want %v", c.Roles, got, c.Expected)
+		}
+	}
 }

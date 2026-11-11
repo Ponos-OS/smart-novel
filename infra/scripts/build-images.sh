@@ -53,32 +53,26 @@ wait_for_all() {
   return "$failed"
 }
 
-# Both apps import the constants generated from spec/shared.json; the generator needs Go, which the images do not have, so it runs here and the images see the result through the mounted or copied sources.
-timed "task generate:shared" sh -c 'cd "$1" && task generate:shared' sh "$repo_root"
-
-# The init Job runs the development image in both modes.
-run_in_background build backend:dev \
-  -f "$repo_root/apps/backend-nest/Dockerfile" \
-  --target development \
-  --build-arg "PORT=${backend_port:-3000}" \
-  -t smart-novel-backend:dev "$repo_root"
+# The Go sources need the constants from spec/shared.json and the ent and gqlgen output, and the frontend needs its typed hooks. Those generators run on the host (Go and Node are prerequisites) and the images see the result, mounted in dev or copied in e2e. Until the Go schema serves the frontend (REQUIREMENTS.md step 9) the hooks still come from the NestJS schema.
+timed "task backend:generate" sh -c 'cd "$1" && task backend:generate' sh "$repo_root"
+timed "task frontend:generate" sh -c 'cd "$1" && task frontend:generate' sh "$repo_root"
 
 if [ "$mode" = dev ]; then
+  run_in_background build backend:dev \
+    -f "$repo_root/apps/backend/Dockerfile" \
+    --target development \
+    --build-arg "PORT=${backend_port:-3000}" \
+    -t smart-novel-backend:dev "$repo_root"
   run_in_background build frontend:dev \
     -f "$repo_root/apps/frontend/Dockerfile" \
     --target development \
     -t smart-novel-frontend:dev "$repo_root"
 else
   run_in_background build backend:e2e \
-    -f "$repo_root/apps/backend-nest/Dockerfile" \
+    -f "$repo_root/apps/backend/Dockerfile" \
     --target production \
     --build-arg "PORT=${backend_port:-3000}" \
-    --build-arg "DATABASE_URL=postgresql://dummy" \
-    --build-arg "BEATRICE_VERSION=$(env_value BEATRICE_VERSION)" \
-    --build-arg "FITHARA_VERSION=$(env_value FITHARA_VERSION)" \
     -t "smart-novel-backend:$image_tag" "$repo_root"
-  # The production build compiles the frontend, which needs the generated typed hooks.
-  timed "task frontend:generate" sh -c 'cd "$1" && task frontend:generate' sh "$repo_root"
   # The client ID is generated at runtime; the frontend's start script replaces the placeholder.
   run_in_background build frontend:e2e \
     -f "$repo_root/apps/frontend/Dockerfile" \

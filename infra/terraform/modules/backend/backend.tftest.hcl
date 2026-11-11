@@ -4,7 +4,7 @@ variables {
   namespace   = "smart-novel"
   image       = "smart-novel-backend:1.4.0"
   port        = 3000
-  environment = { LOG_LEVEL = "http" }
+  environment = { LOG_LEVEL = "info" }
   secret_environment = {
     DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/smart_novel"
   }

@@ -1,0 +1,8 @@
+/bin/
+/api/ent.graphql
+/ent/*
+!/ent/entc/
+!/ent/schema/
+/internal/graph/generated.go
+/internal/graph/model/*
+!/internal/graph/model/doc.go

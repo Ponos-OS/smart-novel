@@ -379,7 +379,7 @@ run "stdout_log_shipping_stops_every_service_pushing_logs" {
   }
 
   assert {
-    condition     = local.backend_environment["OTEL_LOGS_EXPORTER"] == "none"
+    condition     = local.backend_environment["OTEL_LOGS_EXPORTER"] == "stdout"
     error_message = "the backend must not push logs when stdout is collected"
   }
 

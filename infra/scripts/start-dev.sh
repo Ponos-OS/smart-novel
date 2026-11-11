@@ -50,7 +50,7 @@ fi
 if [ "$mode" = dev ]; then
   built_images="smart-novel-backend:dev smart-novel-frontend:dev"
 else
-  built_images="smart-novel-backend:dev smart-novel-backend:$image_tag smart-novel-frontend:$image_tag"
+  built_images="smart-novel-backend:$image_tag smart-novel-frontend:$image_tag"
 fi
 # The images keep their tags across rebuilds; the IDs tell Terraform when to load them into the cluster again.
 # shellcheck disable=SC2086
@@ -61,9 +61,6 @@ if [ "$mode" = e2e ]; then
   # e2e never calls a paid provider (Beatrice and Fithara talk to WireMock) and nobody reads its traces.
   set -- "$@" -var enable_devtools=false -var mock_ai_providers=true -var enable_observability=false
 fi
-
-TF_VAR_run_as_user="$(id -u)"
-export TF_VAR_run_as_user
 
 timed "terraform init (1-app)" terraform -chdir="$env_dir" init
 

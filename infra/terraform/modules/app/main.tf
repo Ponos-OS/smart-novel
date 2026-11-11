@@ -58,7 +58,7 @@ locals {
     local.beatrice_url == null ? {} : { BEATRICE_URL = local.beatrice_url },
     { FITHARA_URL = local.fithara_url },
     local.otlp_endpoint == null ? { OTEL_ENABLED = "false" } : { OTEL_ENABLED = "true", OTEL_EXPORTER_OTLP_ENDPOINT = local.otlp_endpoint },
-    { OTEL_LOGS_EXPORTER = local.otlp_logs ? "otlp" : "none" },
+    { OTEL_LOGS_EXPORTER = local.otlp_logs ? "otlp" : "stdout" },
   )
   backend_secret_environment = merge(
     var.backend_secret_environment,
