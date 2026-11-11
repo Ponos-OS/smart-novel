@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/config"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/database"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/logging"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/telemetry"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/server"
@@ -23,6 +25,8 @@ func main() {
 		os.Exit(1)
 	}
 }
+
+const logKeyError = "error"
 
 func run() error {
 	cfg, err := config.Load(os.LookupEnv)
@@ -40,12 +44,28 @@ func run() error {
 	defer func() {
 		flushCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), telemetryFlushTimeout)
 		defer cancel()
-		if err := sdk.Shutdown(flushCtx); err != nil {
-			fmt.Fprintln(os.Stderr, "telemetry shutdown:", err)
+		if shutdownErr := sdk.Shutdown(flushCtx); shutdownErr != nil {
+			fmt.Fprintln(os.Stderr, "telemetry shutdown:", shutdownErr)
 		}
 	}()
 
 	logger := logging.New(cfg, os.Stdout, sdk.LogHandler())
+
+	db, err := database.Open(ctx, cfg.Database.URL)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := db.Close(); closeErr != nil {
+			logger.ErrorContext(ctx, "closing the database", slog.Any(logKeyError, closeErr))
+		}
+	}()
+	if cfg.Database.SyncSchema {
+		if schemaErr := db.SyncSchema(ctx); schemaErr != nil {
+			return schemaErr
+		}
+	}
+
 	handler := server.New(server.Options{
 		Config: cfg,
 		Logger: logger,

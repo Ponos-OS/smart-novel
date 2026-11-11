@@ -41,19 +41,25 @@ npm run start:dev
 - An external service instead of an in-cluster one: set the matching `*_url` input of `module "app"`.
 - Personal overrides: `infra/terraform/local/1-app/terraform.tfvars`.
 
-## Prisma Migration Guide
+## Database Migration Guide (ent and Atlas)
 
-### Development
+The schema lives in `apps/backend/ent/schema`. Two paths build the same tables:
 
-The local stack and the e2e tests create the tables with `prisma db push` (`backend-init`), which ignores `apps/backend-nest/prisma/migrations`; production applies the migrations with `migrate deploy`. So every schema change needs its migration, or production drifts from what dev and the tests run on. Partial indexes are declared in `schema.prisma` (`where: raw(...)`, preview feature `partialIndexes`), so both paths create them. A feature gets exactly one migration, written at its very last step, never one per step: while the feature is being built, change `schema.prisma` and let `prisma db push` (what `npm run start:dev` and the e2e tests already run) apply it. Do not create a migration file during the feature. At the end, generate a single migration for the whole schema difference, name it after the feature, and read the SQL before keeping it. The development database is built by `db push` and has no migration history, so `npx prisma migrate dev` would ask to reset it; `npx prisma migrate diff --from-migrations apps/backend-nest/prisma/migrations --to-schema apps/backend-nest/prisma/schema.prisma --script` prints the same SQL without touching it. A `REQUIREMENTS.md` ends with a step for this migration. The one exception: SQL that Prisma cannot express in `schema.prisma` and cannot generate (a CHECK constraint, for example) goes in its own hand-written migration after the generated one, and the generated one is never edited.
+- The local stack and the e2e tests set `DEV_SYNC_DATABASE_SCHEMA=true`, and the backend brings the tables up to date at startup (`client.Schema.Create`, the equivalent of `prisma db push`). It keeps no history.
+- Production applies the versioned SQL files in `apps/backend/ent/migrate/migrations` with [Atlas](https://atlasgo.io), in the `migrate` target of `apps/backend/Dockerfile` (the `backend-migrate` Job). `DEV_SYNC_DATABASE_SCHEMA` is never set there.
 
-#### Production
-
-How migrations should be applied in a professional, production‑safe workflow? Since the Prisma CLI is a dev dependency and not available in the production container. Thus we need to apply migrations in our CI/CD Pipeline:
+So every schema change needs its migration, or production drifts from what dev and the tests run on. A feature gets exactly one migration, written at its very last step, never one per step: while the feature is being built, change `ent/schema` and let the startup path apply it. Do not create a migration file during the feature. At the end:
 
 ```bash
-npx prisma migrate deploy --config=./apps/backend-nest/prisma.config.ts
+task backend:migrate:diff -- <feature_name>
+task backend:test:integration
 ```
+
+`migrate:diff` starts a throwaway PostgreSQL in Docker, replays the existing migrations on it and writes the difference to the ent schema as `<timestamp>_<feature_name>.sql` plus the new `atlas.sum`. Read the SQL before keeping it. The integration test `TestVersionedMigrationsMatchTheSchema` applies all the files to an empty database and fails if ent would still change something, so a forgotten migration is caught.
+
+Never edit a migration that was merged. SQL ent cannot express (an extension, for example) goes in its own hand-written file, with `atlas.sum` rewritten by `cmd/migrategen` or `atlas migrate hash`. `20260101000000_extensions.sql` is the one so far.
+
+Integration tests (`*_integration_test.go`, build tag `integration`) need Docker and run with `task backend:test:integration`; CI runs them in the unit-test job.
 
 ## Design & Code Philosophy
 

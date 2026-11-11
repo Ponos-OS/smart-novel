@@ -181,14 +181,14 @@ variable "zitadel_pat" {
 }
 
 variable "migrate_image" {
-  description = "Image that has the Prisma CLI, the schema and its migrations, for the migration Job; the production backend image has no CLI"
+  description = "Image built from the `migrate` target of apps/backend/Dockerfile: Atlas and the versioned migrations of ent/migrate/migrations, for the migration Job. The production backend image has neither"
   type        = string
 }
 
 variable "migrate_command" {
   description = "Command of the migration Job"
   type        = list(string)
-  default     = ["/bin/sh", "-c", "npx prisma migrate deploy --config=./apps/backend-nest/prisma.config.ts"]
+  default     = ["/atlas", "migrate", "apply", "--config", "file:///atlas.hcl", "--env", "deploy"]
 }
 
 variable "backup_endpoint" {

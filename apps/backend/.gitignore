@@ -3,6 +3,9 @@
 /ent/*
 !/ent/entc/
 !/ent/schema/
+!/ent/migrate/
+/ent/migrate/*
+!/ent/migrate/migrations/
 /internal/graph/generated.go
 /internal/graph/model/*
 !/internal/graph/model/doc.go

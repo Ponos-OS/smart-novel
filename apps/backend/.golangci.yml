@@ -1,6 +1,9 @@
 # https://golangci-lint.run/docs/linters/configuration/
 version: "2"
 
+run:
+  build-tags: [integration]
+
 linters:
   default: standard # errcheck, govet, ineffassign, staticcheck, unused
   enable:
@@ -134,6 +137,11 @@ linters:
             - entgo.io
             - github.com/rs/cors
             - go.opentelemetry.io
+            - github.com/google/uuid
+            - github.com/jackc/pgx
+            - github.com/lib/pq
+            - ariga.io/atlas
+            - github.com/testcontainers/testcontainers-go
         test:
           list-mode: original
           files: ["$test"]
@@ -143,6 +151,9 @@ linters:
             - go.opentelemetry.io
             - github.com/99designs/gqlgen
             - github.com/vektah/gqlparser
+            - github.com/google/uuid
+            - github.com/jackc/pgx
+            - github.com/testcontainers/testcontainers-go
     dupl:
       threshold: 150
     errchkjson:
@@ -288,9 +299,12 @@ linters:
       - path: \.resolvers\.go
         linters: [revive]
       - path: _test\.go
-        linters: [mnd, err113, funlen, dupl, goconst] # not default
+        linters: [mnd, err113, funlen, dupl, goconst, gosec] # not default
 
 formatters:
+  exclusions:
+    paths:
+      - \.resolvers\.go$
   enable:
     - gofumpt
     - goimports

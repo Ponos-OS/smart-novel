@@ -30,6 +30,14 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     task -t apps/backend/Taskfile.yml -d apps/backend codegen build
 
+# ---- migrate ------------------------------------------------------------
+# The Job that applies ent/migrate/migrations to DATABASE_URL before a release; the production image carries neither Atlas nor the migrations.
+FROM arigaio/atlas:1.3.0-community AS migrate
+COPY apps/backend/ent/migrate/migrations /migrations
+COPY apps/backend/atlas.hcl /atlas.hcl
+ENTRYPOINT ["/atlas"]
+CMD ["migrate", "apply", "--config", "file:///atlas.hcl", "--env", "deploy"]
+
 # ---- production ---------------------------------------------------------
 FROM alpine:3.23 AS production
 RUN apk add --no-cache curl \

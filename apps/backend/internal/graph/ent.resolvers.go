@@ -9,15 +9,16 @@ import (
 	"context"
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
+	"github.com/google/uuid"
 )
 
 // Node is the resolver for the node field.
-func (r *queryResolver) Node(ctx context.Context, id int) (ent.Noder, error) {
+func (r *queryResolver) Node(ctx context.Context, id uuid.UUID) (ent.Noder, error) {
 	return nil, nil
 }
 
 // Nodes is the resolver for the nodes field.
-func (r *queryResolver) Nodes(ctx context.Context, ids []int) ([]ent.Noder, error) {
+func (r *queryResolver) Nodes(ctx context.Context, ids []uuid.UUID) ([]ent.Noder, error) {
 	return make([]ent.Noder, len(ids)), nil
 }
 

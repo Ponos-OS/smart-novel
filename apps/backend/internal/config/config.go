@@ -7,8 +7,9 @@ import (
 )
 
 type Config struct {
-	App  App
-	OTel OTel
+	App      App
+	Database Database
+	OTel     OTel
 }
 
 type App struct {
@@ -18,6 +19,11 @@ type App struct {
 	CORSAllowedOrigins []string
 	LogFormat          string
 	LogLevel           slog.Level
+}
+
+type Database struct {
+	URL        string
+	SyncSchema bool
 }
 
 type OTel struct {
@@ -62,6 +68,10 @@ func Load(lookup Lookup) (Config, error) {
 			LogFormat:          r.oneOf("LOG_FORMAT", []string{LogFormatText, LogFormatJSON}, LogFormatText),
 			LogLevel:           r.logLevel("LOG_LEVEL", slog.LevelInfo),
 		},
+		Database: Database{
+			URL:        r.required("DATABASE_URL"),
+			SyncSchema: r.boolean("DEV_SYNC_DATABASE_SCHEMA", false),
+		},
 		OTel: OTel{
 			Enabled:          r.boolean("OTEL_ENABLED", false),
 			Endpoint:         r.text("OTEL_EXPORTER_OTLP_ENDPOINT", ""),
@@ -73,6 +83,9 @@ func Load(lookup Lookup) (Config, error) {
 			ExportTimeout:    r.milliseconds("OTEL_BATCH_EXPORT_TIMEOUT_MS", defaultExportTimeout),
 			LogsExporter:     r.oneOf("OTEL_LOGS_EXPORTER", []string{LogsExporterOTLP, LogsExporterStdout}, LogsExporterStdout),
 		},
+	}
+	if cfg.Database.SyncSchema && cfg.App.Env == EnvProduction {
+		r.fail("DEV_SYNC_DATABASE_SCHEMA", "must not be true when APP_ENV is production: production applies the versioned migrations")
 	}
 	if cfg.OTel.Enabled && cfg.OTel.Endpoint == "" {
 		r.fail("OTEL_EXPORTER_OTLP_ENDPOINT", "is required when OTEL_ENABLED is true")

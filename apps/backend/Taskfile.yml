@@ -36,6 +36,18 @@ tasks:
     cmds:
       - go test -count=1 ./... {{.CLI_ARGS}}
 
+  test:integration:
+    desc: Tests that need Docker (a real PostgreSQL through testcontainers)
+    deps: [generate]
+    cmds:
+      - go test -tags integration -count=1 -timeout 10m ./... {{.CLI_ARGS}}
+
+  migrate:diff:
+    desc: "Write the next versioned migration for the ent schema: task backend:migrate:diff -- <name>"
+    deps: [generate]
+    cmds:
+      - go run ./cmd/migrategen {{.CLI_ARGS}}
+
   lint:
     deps: [generate]
     cmds:

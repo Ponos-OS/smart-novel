@@ -43,6 +43,15 @@ func (r *reader) text(key, fallback string) string {
 	return fallback
 }
 
+func (r *reader) required(key string) string {
+	value, ok := r.value(key)
+	if !ok {
+		r.fail(key, "is required")
+	}
+
+	return value
+}
+
 func (r *reader) oneOf(key string, allowed []string, fallback string) string {
 	value, ok := r.value(key)
 	if !ok {
