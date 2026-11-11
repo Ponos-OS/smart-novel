@@ -25,7 +25,7 @@ run "files_are_mounted_by_path_from_a_config_map" {
 
   variables {
     command = ["/bin/sh", "/scripts/start.sh"]
-    files   = { "/scripts/start.sh" = "exec npx nx serve frontend --host=0.0.0.0" }
+    files   = { "/scripts/start.sh" = "exec task frontend:serve" }
   }
 
   assert {

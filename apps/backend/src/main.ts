@@ -1,4 +1,4 @@
-import './instrumentation.js'; // 👈 MUST be the very first import. Starts the OpenTelemetry.
+import './instrumentation'; // 👈 MUST be the very first import. Starts the OpenTelemetry.
 
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';

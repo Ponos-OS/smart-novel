@@ -56,7 +56,7 @@ export class EnvironmentVariables implements AppConfig {
   CORS_ALLOWED_ORIGINS: string[];
 
   @IsIn(['development', 'production', 'test'])
-  NODE_ENV: AppConfig['NODE_ENV'];
+  APP_ENV: AppConfig['APP_ENV'];
 
   @IsIn(['PLAIN_TEXT', 'JSON'])
   LOG_MODE: LogMode;

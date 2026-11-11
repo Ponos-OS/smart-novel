@@ -4,7 +4,7 @@ variables {
   namespace = "smart-novel"
   name      = "backend-init"
   image     = "smart-novel-backend:dev"
-  command   = ["/bin/sh", "-c", "npx nx run backend:prisma:db:push"]
+  command   = ["/bin/sh", "-c", "task backend:prisma:db:push"]
 }
 
 run "secrets_stay_out_of_the_pod_spec" {

@@ -4,9 +4,9 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Debug backend with Nx",
+      "name": "Debug backend",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["nx", "serve", "backend"],
+      "runtimeArgs": ["task", "backend:serve"],
       "env": {
         "NODE_OPTIONS": "--inspect=9229"
       },

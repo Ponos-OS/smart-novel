@@ -26,6 +26,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Task
+        uses: go-task/setup-task@v2
+        with:
+          version: 3.54.0
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -61,7 +66,7 @@ jobs:
         env:
           SKIP_IMAGE_BUILD: "1"
           IMAGE_TAG: ${{ inputs.version }}
-        run: npx nx e2e backend-e2e
+        run: task backend-e2e:run
 
       - name: Upload backend logs
         if: always()
@@ -79,6 +84,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install Task
+        uses: go-task/setup-task@v2
+        with:
+          version: 3.54.0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -115,7 +125,7 @@ jobs:
         env:
           SKIP_IMAGE_BUILD: "1"
           IMAGE_TAG: ${{ inputs.version }}
-        run: npx nx e2e frontend-e2e
+        run: task frontend-e2e:run
 
       - name: Upload Cypress videos
         if: always()

@@ -75,7 +75,7 @@ else
     --build-arg "FITHARA_VERSION=$(env_value FITHARA_VERSION)" \
     -t "smart-novel-backend:$image_tag" "$repo_root"
   # The production build compiles the frontend, which needs the generated typed hooks.
-  timed "nx codegen frontend" sh -c 'cd "$1" && npx nx codegen frontend' sh "$repo_root"
+  timed "task frontend:generate" sh -c 'cd "$1" && task frontend:generate' sh "$repo_root"
   # The client ID is generated at runtime; the frontend's start script replaces the placeholder.
   run_in_background build frontend:e2e \
     -f "$repo_root/apps/frontend/Dockerfile" \

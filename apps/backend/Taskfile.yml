@@ -1,0 +1,85 @@
+version: "3"
+
+# Interim: the NestJS backend runs straight from source with swc until the Go backend replaces it.
+env:
+  SWC_NODE_PROJECT: tsconfig.app.json
+
+tasks:
+  generate:
+    deps: [prisma:generate, beatrice:codegen, fithara:codegen]
+
+  beatrice:fetch-schema:
+    desc: Download Beatrice's schema.graphql (pinned by BEATRICE_VERSION) if not already present
+    cmds:
+      - npx ts-node --files --project tsconfig.app.json fetch-beatrice-schema.ts
+
+  beatrice:codegen:
+    desc: Regenerate Beatrice's gql.tada introspection output from schema.graphql
+    deps: [beatrice:fetch-schema]
+    sources:
+      - src/shared/beatrice/schema.graphql
+    generates:
+      - src/shared/beatrice/graphql-env.d.ts
+    cmds:
+      - npx gql.tada generate-output --tsconfig tsconfig.json
+
+  fithara:fetch-openapi:
+    desc: Download Fithara's openapi.json (pinned by FITHARA_VERSION) if not already present
+    cmds:
+      - npx ts-node --files --project tsconfig.app.json fetch-fithara-openapi.ts
+
+  fithara:codegen:
+    desc: Regenerate Fithara's TypeScript types from openapi.json
+    deps: [fithara:fetch-openapi]
+    sources:
+      - src/shared/fithara/openapi.json
+    generates:
+      - src/shared/fithara/schema.d.ts
+    cmds:
+      - npx --yes openapi-typescript@7.13.0 src/shared/fithara/openapi.json -o src/shared/fithara/schema.d.ts
+
+  prisma:format:
+    cmds:
+      - npx prisma format --schema=prisma/schema.prisma
+
+  prisma:generate:
+    cmds:
+      - npx prisma generate
+
+  prisma:db:push:
+    cmds:
+      - npx prisma db push --accept-data-loss
+
+  prisma:seed:
+    cmds:
+      - npx prisma db seed
+
+  gen-graphql-schema:
+    desc: Generate the GraphQL SDL schema file on the host
+    deps: [generate]
+    cmds:
+      - npx ts-node --files -r tsconfig-paths/register --project tsconfig.app.json gen-graphql-schema.ts
+
+  serve:
+    desc: Run with reload on change
+    deps: [generate]
+    cmds:
+      - node --watch --watch-path=src --watch-path=../../libs -r @swc-node/register src/main.ts
+
+  start:
+    desc: Run without reload (production image)
+    cmds:
+      - node -r @swc-node/register src/main.ts
+
+  test:
+    deps: [generate]
+    cmds:
+      - npx vitest run --config vitest.config.ts {{.CLI_ARGS}}
+
+  lint:
+    cmds:
+      - npx eslint . --fix
+
+  lint:check:
+    cmds:
+      - npx eslint .

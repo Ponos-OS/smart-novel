@@ -1,11 +1,13 @@
-import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 /// <reference types="vitest" />
+import tsconfigPaths from 'vite-tsconfig-paths';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/apps/backend-e2e',
-  plugins: [nxViteTsPaths()],
+  plugins: [
+    tsconfigPaths({ projects: ['../../tsconfig.base.json'] }),
+  ],
   test: {
     // Make globals like describe, it, expect available without imports
     globals: true,

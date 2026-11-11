@@ -50,7 +50,7 @@ if (!OTEL_ENABLED) {
     [ATTR_SERVICE_NAME]: process.env.SERVICE_NAME,
     [ATTR_SERVICE_VERSION]:
       process.env.npm_package_version ?? 'unknown',
-    'deployment.environment': process.env.NODE_ENV,
+    'deployment.environment': process.env.APP_ENV,
   });
   /**
    * @description Batch processor with the volume-control settings.

@@ -1,0 +1,57 @@
+version: "3"
+
+tasks:
+  generate:
+    desc: Typed React Query hooks from the GraphQL schema
+    deps: [":backend:gen-graphql-schema"]
+    sources:
+      - codegen.ts
+      - src/**/*.graphql
+      - ../backend/schema.gql
+    generates:
+      - src/generated/graphql.ts
+    cmds:
+      - npx graphql-codegen --config codegen.ts
+
+  codegen:
+    desc: Alias of generate
+    cmds:
+      - task: generate
+
+  serve:
+    desc: Vite dev server
+    cmds:
+      - npx vite --host=0.0.0.0 {{.CLI_ARGS}}
+
+  build:
+    desc: Production build into dist/apps/frontend
+    deps: [generate]
+    cmds:
+      - npx vite build
+
+  typecheck:
+    deps: [generate]
+    cmds:
+      - npx tsc --noEmit -p tsconfig.app.json
+
+  test:
+    deps: [generate]
+    cmds:
+      - npx vitest run --config vitest.config.ts {{.CLI_ARGS}}
+
+  lint:
+    cmds:
+      - npx eslint . --fix
+
+  lint:check:
+    cmds:
+      - npx eslint .
+
+  storybook:
+    cmds:
+      - npx storybook dev -p 6006 {{.CLI_ARGS}}
+
+  storybook:build:
+    deps: [generate]
+    cmds:
+      - npx storybook build

@@ -1,0 +1,22 @@
+version: "3"
+
+tasks:
+  run:
+    desc: Start the e2e stack, run Cypress, tear the stack down
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - node apps/frontend-e2e/src/support/run-frontend-e2e.mjs apps/frontend-e2e
+
+  open:
+    desc: Cypress UI against a running `npm run start:dev`
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - npx cypress open --project apps/frontend-e2e
+
+  lint:
+    cmds:
+      - npx eslint . --fix
+
+  lint:check:
+    cmds:
+      - npx eslint .

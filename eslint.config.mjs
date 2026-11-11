@@ -1,11 +1,13 @@
 // @ts-check
 
-import nx from '@nx/eslint-plugin';
+import js from '@eslint/js';
 import vitest from '@vitest/eslint-plugin';
 import importPlugin from 'eslint-plugin-import';
 import perfectionist from 'eslint-plugin-perfectionist';
 import prettierRecommended from 'eslint-plugin-prettier/recommended';
 import unusedImports from 'eslint-plugin-unused-imports';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
 /**
  * @description What each frontend feature offers to the others; anything else in a feature is internal. There is no `index.ts` per feature (it hurts Vite's dev server), so the public surface is named here.
@@ -23,12 +25,22 @@ const featurePublicFiles = {
 };
 
 export default [
-  ...nx.configs['flat/base'],
-  ...nx.configs['flat/typescript'],
-  ...nx.configs['flat/javascript'],
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  {
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.node },
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'warn',
+      '@typescript-eslint/no-explicit-any': 'warn',
+    },
+  },
   {
     ignores: [
       '**/dist',
+      '**/*.json',
       '**/out-tsc',
       '**/vite.config.*.timestamp*',
       '**/storybook-static',
@@ -43,19 +55,6 @@ export default [
       'unused-imports': unusedImports,
     },
     rules: {
-      '@nx/enforce-module-boundaries': [
-        'error',
-        {
-          enforceBuildableLibDependency: true,
-          allow: ['^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$'],
-          depConstraints: [
-            {
-              sourceTag: '*',
-              onlyDependOnLibsWithTags: ['*'],
-            },
-          ],
-        },
-      ],
       'import/no-duplicates': ['error', { 'prefer-inline': true }],
       'perfectionist/sort-imports': [
         'error',

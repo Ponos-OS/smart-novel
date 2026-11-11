@@ -1,0 +1,14 @@
+version: "3"
+
+tasks:
+  test:
+    cmds:
+      - npx vitest run --config vitest.config.ts {{.CLI_ARGS}}
+
+  lint:
+    cmds:
+      - npx eslint . --fix
+
+  lint:check:
+    cmds:
+      - npx eslint .

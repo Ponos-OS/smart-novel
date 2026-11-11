@@ -38,8 +38,6 @@ testem.log
 .DS_Store
 Thumbs.db
 
-.nx/cache
-.nx/workspace-data
 
 vite.config.*.timestamp*
 Diffs.txt
@@ -69,3 +67,4 @@ infra/terraform/local/1-app/*-config
 *.auto.tfvars
 terraform.tfvars
 infra/terraform/modules/*/.terraform.lock.hcl
+.task

@@ -1,6 +1,6 @@
 /// <reference types="vitest" />
-import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import react from '@vitejs/plugin-react';
+import tsconfigPaths from 'vite-tsconfig-paths';
 import { defineConfig } from 'vitest/config';
 
 const VITE_EXPLAIN_SELECTION_DEBOUNCE_MS =
@@ -11,7 +11,7 @@ const VITE_EXPLAIN_CONTEXT_CHAR_SIZE =
 export default defineConfig({
   root: import.meta.dirname,
   cacheDir: '../../node_modules/.vite/apps/frontend',
-  plugins: [react(), nxViteTsPaths()],
+  plugins: [react(), tsconfigPaths({ root: '../..' })],
   test: {
     // Make globals like describe, it, expect available without imports
     globals: true,

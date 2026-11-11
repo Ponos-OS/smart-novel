@@ -24,8 +24,8 @@ export class ObjectStorageModuleConfig implements ObjectStorageModuleOptionsFact
       publicEndpoint: this.appConfig.OBJECT_STORAGE_PUBLIC_URL,
       accessKeyId: this.appConfig.OBJECT_STORAGE_ACCESS_KEY,
       secretAccessKey: this.appConfig.OBJECT_STORAGE_SECRET_KEY,
-      enableLogger: this.appConfig.NODE_ENV === 'development',
-      forcePathStyle: this.appConfig.NODE_ENV === 'development',
+      enableLogger: this.appConfig.APP_ENV === 'development',
+      forcePathStyle: this.appConfig.APP_ENV === 'development',
     };
   }
 }

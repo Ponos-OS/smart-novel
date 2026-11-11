@@ -46,7 +46,7 @@ locals {
       {
         name                    = "backend-init"
         image                   = local.tooling_image
-        command                 = ["/bin/sh", "-lc", "npx nx run backend:prisma:db:push && npx nx prisma:generate backend && npx nx run backend:prisma:seed"]
+        command                 = ["/bin/sh", "-lc", "task backend:prisma:db:push backend:prisma:generate backend:prisma:seed"]
         use_backend_environment = true
         environment             = local.init_job_environment
         volumes                 = [local.apps_volume, local.libs_volume, local.data_volume]
@@ -57,8 +57,8 @@ locals {
         name  = "frontend-codegen"
         image = local.tooling_image
         # Prisma generates into the image's node_modules, so this runs as root; the files written into the mounted sources are handed back to the host user afterwards.
-        command     = ["/bin/sh", "-c", "npx nx codegen frontend; status=$?; chown -R ${var.run_as_user} /app/apps; exit $status"]
-        environment = { DATABASE_URL = "postgresql://dummy", BEATRICE_VERSION = local.dotenv["BEATRICE_VERSION"], FITHARA_VERSION = local.dotenv["FITHARA_VERSION"], NX_DAEMON = "false" }
+        command     = ["/bin/sh", "-c", "task frontend:generate; status=$?; chown -R ${var.run_as_user} /app/apps; exit $status"]
+        environment = { DATABASE_URL = "postgresql://dummy", BEATRICE_VERSION = local.dotenv["BEATRICE_VERSION"], FITHARA_VERSION = local.dotenv["FITHARA_VERSION"] }
         volumes     = [local.apps_volume, local.libs_volume]
       },
     ] : [],

@@ -240,14 +240,14 @@ run "pre_deploy_jobs_are_created_from_their_specs" {
       {
         name                    = "backend-init"
         image                   = "smart-novel-backend:dev"
-        command                 = ["/bin/sh", "-c", "npx nx run backend:prisma:db:push"]
+        command                 = ["/bin/sh", "-c", "task backend:prisma:db:push"]
         use_backend_environment = true
         volumes                 = [{ name = "data", mount_path = "/data", host_path = "/workspace/apps/backend/data" }]
       },
       {
         name    = "frontend-codegen"
         image   = "smart-novel-backend:dev"
-        command = ["/bin/sh", "-c", "npx nx codegen frontend"]
+        command = ["/bin/sh", "-c", "task frontend:generate"]
       },
     ]
   }
@@ -298,7 +298,7 @@ run "without_workloads_only_the_infrastructure_remains" {
       {
         name    = "backend-init"
         image   = "smart-novel-backend:dev"
-        command = ["/bin/sh", "-c", "npx nx run backend:prisma:db:push"]
+        command = ["/bin/sh", "-c", "task backend:prisma:db:push"]
       },
     ]
   }

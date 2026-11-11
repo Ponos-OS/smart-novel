@@ -1,0 +1,21 @@
+pre-commit:
+  jobs:
+    - name: eslint
+      glob: "*.{ts,tsx,js,jsx,mjs}"
+      run: npx eslint --fix {staged_files}
+      stage_fixed: true
+    - name: prettier
+      glob: "*.{ts,tsx,js,jsx,mjs,json,md,yml,yaml}"
+      run: npx prettier --write {staged_files}
+      stage_fixed: true
+    - name: prisma format
+      glob: "apps/backend/prisma/schema.prisma"
+      run: task backend:prisma:format
+      stage_fixed: true
+
+pre-push:
+  jobs:
+    - name: lint
+      run: task lint:check
+    - name: test
+      run: task test
