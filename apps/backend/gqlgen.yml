@@ -20,7 +20,7 @@ autobind:
 models:
   ID:
     model:
-      - github.com/99designs/gqlgen/graphql.UUID
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/scalar.UUID
   Node:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/ent.Noder

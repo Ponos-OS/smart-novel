@@ -37,6 +37,15 @@ run "the_public_application_uses_the_code_flow_without_a_secret" {
   }
 }
 
+run "the_backend_introspects_tokens_as_an_api_application_with_a_secret" {
+  command = plan
+
+  assert {
+    condition     = zitadel_application_api.backend.auth_method_type == "API_AUTH_METHOD_TYPE_BASIC"
+    error_message = "the backend authenticates to the introspection endpoint with a client id and secret"
+  }
+}
+
 run "roles_are_asserted_in_tokens" {
   command = plan
 

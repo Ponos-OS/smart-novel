@@ -10,12 +10,16 @@ import (
 
 func environment(overrides map[string]string) config.Lookup {
 	values := map[string]string{
-		"PORT":                 "3000",
-		"APP_ENV":              "development",
-		"CORS_ALLOWED_ORIGINS": "http://localhost:8080, https://novels.example.com,",
-		"LOG_FORMAT":           "text",
-		"LOG_LEVEL":            "info",
-		"DATABASE_URL":         "postgresql://postgres:postgres@postgres:5432/smart_novel",
+		"PORT":                                "3000",
+		"APP_ENV":                             "development",
+		"CORS_ALLOWED_ORIGINS":                "http://localhost:8080, https://novels.example.com,",
+		"LOG_FORMAT":                          "text",
+		"LOG_LEVEL":                           "info",
+		"DATABASE_URL":                        "postgresql://postgres:postgres@postgres:5432/smart_novel",
+		"ZITADEL_ISSUER_URL":                  "http://auth.localhost:8080",
+		"ZITADEL_INTERNAL_URL":                "http://traefik:80",
+		"ZITADEL_INTROSPECTION_CLIENT_ID":     "399193312042418199",
+		"ZITADEL_INTROSPECTION_CLIENT_SECRET": "4Jt0l3Ww9yq1a7mXf2Nn",
 	}
 	for key, value := range overrides {
 		values[key] = value
@@ -54,6 +58,14 @@ func TestLoadAppliesDatabaseDefaults(t *testing.T) {
 
 	if cfg.Database.URL == "" || cfg.Database.SyncSchema {
 		t.Errorf("unexpected database defaults: %+v", cfg.Database)
+	}
+}
+
+func TestLoadReadsZitadelSettings(t *testing.T) {
+	cfg := loadDefaults(t)
+
+	if cfg.Zitadel.IssuerURL != "http://auth.localhost:8080" || cfg.Zitadel.InternalURL != "http://traefik:80" || cfg.Zitadel.IntrospectionClientID == "" {
+		t.Errorf("unexpected ZITADEL settings: %+v", cfg.Zitadel)
 	}
 }
 
@@ -115,6 +127,9 @@ func TestLoadRejectsBadSettings(t *testing.T) {
 		{"missing database url", map[string]string{"DATABASE_URL": ""}, "DATABASE_URL is required"},
 		{"create schema is not a boolean", map[string]string{"DEV_SYNC_DATABASE_SCHEMA": "1"}, "DEV_SYNC_DATABASE_SCHEMA must be true or false"},
 		{"create schema in production", map[string]string{"DEV_SYNC_DATABASE_SCHEMA": "true", "APP_ENV": "production"}, "DEV_SYNC_DATABASE_SCHEMA must not be true when APP_ENV is production"},
+		{"missing issuer url", map[string]string{"ZITADEL_ISSUER_URL": ""}, "ZITADEL_ISSUER_URL is required"},
+		{"missing introspection client id", map[string]string{"ZITADEL_INTROSPECTION_CLIENT_ID": ""}, "ZITADEL_INTROSPECTION_CLIENT_ID is required"},
+		{"missing introspection client secret", map[string]string{"ZITADEL_INTROSPECTION_CLIENT_SECRET": ""}, "ZITADEL_INTROSPECTION_CLIENT_SECRET is required"},
 		{"no origins", map[string]string{"CORS_ALLOWED_ORIGINS": " , "}, "CORS_ALLOWED_ORIGINS is required"},
 		{"sampler ratio above one", map[string]string{"OTEL_TRACES_SAMPLER_ARG": "1.5"}, "OTEL_TRACES_SAMPLER_ARG must be a number"},
 		{"batch size not a number", map[string]string{"OTEL_BATCH_SPANS_PER_EXPORT": "many"}, "OTEL_BATCH_SPANS_PER_EXPORT must be a positive integer"},

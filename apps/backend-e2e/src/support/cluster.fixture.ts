@@ -8,8 +8,7 @@ type Workload =
   | 'deploy/backend'
   | 'deploy/zitadel'
   | 'deploy/beatrice'
-  | 'deploy/wiremock-openai'
-  | 'job/backend-init';
+  | 'deploy/wiremock-openai';
 
 const namespace = 'smart-novel';
 const kubeconfig = 'infra/terraform/local/1-app/smart-novel-config';

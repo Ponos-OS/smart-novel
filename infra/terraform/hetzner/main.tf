@@ -17,17 +17,20 @@ module "zitadel_config" {
 
 locals {
   backend_environment = merge(var.backend_environment, {
-    ZITADEL_CLIENT_ID  = module.zitadel_config.client_id
-    ZITADEL_PROJECT_ID = module.zitadel_config.project_id
+    ZITADEL_CLIENT_ID               = module.zitadel_config.client_id
+    ZITADEL_PROJECT_ID              = module.zitadel_config.project_id
+    ZITADEL_INTROSPECTION_CLIENT_ID = module.zitadel_config.backend_introspection.client_id
   })
   backend_secret_environment = merge(var.backend_secret_environment, {
-    ZITADEL_PAT                 = var.zitadel_pat
-    ZITADEL_MANAGEMENT_PAT      = module.zitadel_config.backend_pat
-    ZITADEL_WEBHOOK_SIGNING_KEY = module.zitadel_config.webhook_signing_key
+    ZITADEL_INTROSPECTION_CLIENT_SECRET = module.zitadel_config.backend_introspection.client_secret
+    ZITADEL_PAT                         = var.zitadel_pat
+    ZITADEL_MANAGEMENT_PAT              = module.zitadel_config.backend_pat
+    ZITADEL_WEBHOOK_SIGNING_KEY         = module.zitadel_config.webhook_signing_key
   })
   frontend_environment = merge(var.frontend_environment, {
-    VITE_OIDC_CLIENT_ID = module.zitadel_config.client_id
-    VITE_OIDC_ORG_ID    = module.zitadel_config.org_id
+    VITE_OIDC_CLIENT_ID  = module.zitadel_config.client_id
+    VITE_OIDC_PROJECT_ID = module.zitadel_config.project_id
+    VITE_OIDC_ORG_ID     = module.zitadel_config.org_id
   })
 }
 

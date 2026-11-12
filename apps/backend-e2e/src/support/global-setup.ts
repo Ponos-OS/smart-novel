@@ -26,11 +26,6 @@ export default async function setup() {
     });
     ClusterFixture.persistLogs(
       workspaceRoot,
-      'job/backend-init',
-      'local-setup/logs/init-postgres.log',
-    );
-    ClusterFixture.persistLogs(
-      workspaceRoot,
       'deploy/zitadel',
       'local-setup/logs/zitadel.log',
     );

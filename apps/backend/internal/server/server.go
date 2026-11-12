@@ -17,6 +17,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/config"
 )
 
@@ -30,6 +31,7 @@ type Options struct {
 	Config         config.Config
 	Logger         *slog.Logger
 	Schema         graphql.ExecutableSchema
+	Verifier       auth.Verifier
 	TracerProvider trace.TracerProvider
 }
 
@@ -45,8 +47,18 @@ func New(options Options) http.Handler {
 		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
 	})
-	traced := otelhttp.NewHandler(
-		traceIDHeader(recoverPanics(options.Logger, accessLog(options.Logger, allowed.Handler(mux)))),
+	traced := otelhttp.NewHandler( // Opens the request span & reads an incoming traceparent
+		traceIDHeader( // Copies the active trace ID into the x-trace-id response header.
+			recoverPanics( // Catches a panic and logs it.
+				options.Logger,
+				accessLog(
+					options.Logger,
+					allowed.Handler(
+						auth.Middleware(options.Verifier, options.Logger)(mux),
+					),
+				),
+			),
+		),
 		"http",
 		otelhttp.WithTracerProvider(tracerProvider(options.TracerProvider)),
 		otelhttp.WithSpanNameFormatter(formatSpanName),
@@ -60,6 +72,8 @@ func graphqlHandler(options Options) http.Handler {
 	srv.AddTransport(transport.POST{})
 	srv.SetErrorPresenter(errorPresenter(options.Logger))
 	srv.Use(operationSpan{})
+	srv.AroundFields(auth.Guard())
+	srv.Use(depthLimit{limit: maxQueryDepth})
 	if options.Config.App.Env != config.EnvProduction {
 		srv.Use(extension.Introspection{})
 	}

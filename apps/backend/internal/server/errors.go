@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"maps"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/vektah/gqlparser/v2/gqlerror"
@@ -37,6 +38,11 @@ type ClientError interface {
 	Code() string
 }
 
+// extended is a ClientError with more to tell the client than a code, for example which input fields were wrong.
+type extended interface {
+	Extensions() map[string]any
+}
+
 // errorPresenter logs every error and shows a client only what it may see; other resolver errors become a generic one.
 func errorPresenter(logger *slog.Logger) graphql.ErrorPresenterFunc {
 	return func(ctx context.Context, err error) *gqlerror.Error {
@@ -66,6 +72,10 @@ func errorPresenter(logger *slog.Logger) graphql.ErrorPresenterFunc {
 			)
 			presented.Message = client.Error()
 			presented.Extensions = map[string]any{extensionCode: client.Code()}
+			var more extended
+			if errors.As(presented.Err, &more) {
+				maps.Copy(presented.Extensions, more.Extensions())
+			}
 
 			return presented
 		}

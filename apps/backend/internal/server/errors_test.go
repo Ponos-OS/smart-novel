@@ -15,6 +15,25 @@ type penNameTakenError struct{}
 func (penNameTakenError) Error() string { return "That pen name is taken" }
 func (penNameTakenError) Code() string  { return "PEN_NAME_TAKEN" }
 
+type invalidInputError struct{}
+
+func (invalidInputError) Error() string { return "Invalid input" }
+func (invalidInputError) Code() string  { return "BAD_REQUEST" }
+func (invalidInputError) Extensions() map[string]any {
+	return map[string]any{"violations": []string{"note"}}
+}
+
+func TestErrorPresenterAddsTheExtensionsOfAClientError(t *testing.T) {
+	present := errorPresenter(slog.New(slog.DiscardHandler))
+	ctx := graphql.WithPathContext(context.Background(), graphql.NewPathWithField("requestWriterAccess"))
+
+	result := present(ctx, invalidInputError{})
+
+	if result.Extensions["code"] != "BAD_REQUEST" || result.Extensions["violations"] == nil {
+		t.Errorf("extensions = %v", result.Extensions)
+	}
+}
+
 func TestErrorPresenter(t *testing.T) {
 	logger := slog.New(slog.DiscardHandler)
 	path := ast.Path{ast.PathName("requestWriterAccess")}

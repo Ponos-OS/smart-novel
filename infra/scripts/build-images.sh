@@ -73,12 +73,13 @@ else
     --target production \
     --build-arg "PORT=${backend_port:-3000}" \
     -t "smart-novel-backend:$image_tag" "$repo_root"
-  # The client ID is generated at runtime; the frontend's start script replaces the placeholder.
+  # The client ID and the project ID are generated at runtime; the frontend's start script replaces the placeholders.
   run_in_background build frontend:e2e \
     -f "$repo_root/apps/frontend/Dockerfile" \
     --target production \
     --build-arg "VITE_SERVICE_URL=$(env_value VITE_SERVICE_URL)" \
     --build-arg "VITE_OIDC_CLIENT_ID=__OIDC_CLIENT_ID_PLACEHOLDER__" \
+    --build-arg "VITE_OIDC_PROJECT_ID=__OIDC_PROJECT_ID_PLACEHOLDER__" \
     --build-arg "VITE_OIDC_AUTHORITY=$(env_value VITE_OIDC_AUTHORITY)" \
     --build-arg "VITE_OIDC_REDIRECT_URI=$(env_value VITE_OIDC_REDIRECT_URI)" \
     --build-arg "VITE_OIDC_SCOPE=$(sed -n "s/^VITE_OIDC_SCOPE='\\(.*\\)'.*/\\1/p" "$repo_root/.env" | head -n 1)" \

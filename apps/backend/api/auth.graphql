@@ -1,0 +1,41 @@
+"""
+Root fields need an authenticated user unless they are @public. The directives are markers; internal/auth.Guard enforces them.
+"""
+directive @public on FIELD_DEFINITION
+
+"""The caller needs this role or a higher one."""
+directive @hasRole(role: Role!) on FIELD_DEFINITION
+
+enum Role {
+  user
+  writer
+  admin
+}
+
+type WhoAmI {
+  """Subject identifier (unique user ID from the IdP)"""
+  sub: String!
+
+  """User's full display name (e.g. "Admin User")"""
+  name: String!
+
+  """User's preferred username / login name"""
+  preferredUsername: String!
+
+  """User's email address"""
+  email: String!
+
+  """Whether the email has been verified by the IdP"""
+  emailVerified: Boolean!
+
+  """Organization / tenant ID the user belongs to"""
+  orgId: String
+
+  """Roles assigned to the user (project-scoped or global)"""
+  roles: [String!]!
+}
+
+extend type Query {
+  """Return the authenticated user's profile from the token"""
+  whoAmI: WhoAmI!
+}

@@ -11,6 +11,14 @@ else
   echo "VITE_OIDC_CLIENT_ID is not set, OIDC login will not work"
 fi
 
+if [ -n "${VITE_OIDC_PROJECT_ID:-}" ]; then
+  echo "Injecting OIDC project ID: $VITE_OIDC_PROJECT_ID"
+  find "$html_root" -name '*.js' -exec \
+    sed -i "s/__OIDC_PROJECT_ID_PLACEHOLDER__/$VITE_OIDC_PROJECT_ID/g" {} +
+else
+  echo "VITE_OIDC_PROJECT_ID is not set, the backend will refuse the tokens"
+fi
+
 # The image is built with the scope urn:zitadel:iam:org:id:__OIDC_ORG_ID_PLACEHOLDER__ in VITE_OIDC_SCOPE.
 # With an organization the scope names it; without one the scope is removed and the sign-in uses the instance default.
 if [ -n "${VITE_OIDC_ORG_ID:-}" ]; then

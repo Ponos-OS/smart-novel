@@ -141,6 +141,7 @@ linters:
             - github.com/jackc/pgx
             - github.com/lib/pq
             - ariga.io/atlas
+            - github.com/zitadel
             - github.com/testcontainers/testcontainers-go
         test:
           list-mode: original

@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/config"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/database"
@@ -66,10 +67,24 @@ func run() error {
 		}
 	}
 
+	verifier, err := auth.NewZitadelVerifier(ctx, auth.ZitadelConfig{
+		IssuerURL:    cfg.Zitadel.IssuerURL,
+		InternalURL:  cfg.Zitadel.InternalURL,
+		ClientID:     cfg.Zitadel.IntrospectionClientID,
+		ClientSecret: cfg.Zitadel.IntrospectionClientSecret,
+	})
+	if err != nil {
+		return err
+	}
+
 	handler := server.New(server.Options{
 		Config: cfg,
 		Logger: logger,
-		Schema: graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}),
+		Schema: graph.NewExecutableSchema(graph.Config{
+			Resolvers:  &graph.Resolver{},
+			Directives: graph.Directives(),
+		}),
+		Verifier: verifier,
 	})
 
 	return server.Serve(ctx, logger, cfg.App.Port, handler)

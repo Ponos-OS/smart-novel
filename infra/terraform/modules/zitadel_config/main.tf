@@ -50,6 +50,14 @@ resource "zitadel_application_oidc" "public" {
   dev_mode                    = var.dev_mode
 }
 
+# The backend introspects every access token with this application's credentials, which also tells it whether the token was revoked.
+resource "zitadel_application_api" "backend" {
+  org_id           = local.org_id
+  project_id       = zitadel_project.this.id
+  name             = "${var.application_name} backend"
+  auth_method_type = "API_AUTH_METHOD_TYPE_BASIC"
+}
+
 locals {
   usernames = toset(nonsensitive(keys(var.users)))
   granted_usernames = toset(nonsensitive([

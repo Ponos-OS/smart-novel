@@ -70,6 +70,18 @@
       "description": "Message of the 400 answered for a pagination cursor the backend did not issue, or one that belongs to another query."
     },
     {
+      "code": "UNAUTHENTICATED",
+      "description": "GraphQL extensions.code when the request has no token or an invalid one."
+    },
+    {
+      "code": "FORBIDDEN",
+      "description": "GraphQL extensions.code when the caller is authenticated but lacks the role or ownership."
+    },
+    {
+      "code": "BAD_REQUEST",
+      "description": "GraphQL extensions.code of an argument that is malformed, for example an ID that is not a UUID."
+    },
+    {
       "code": "PLATFORM_TERMS_NOT_ACCEPTED",
       "description": "GraphQL extensions.code of a platform terms error."
     },

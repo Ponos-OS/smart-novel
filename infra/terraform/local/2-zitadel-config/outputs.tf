@@ -25,6 +25,12 @@ output "pat" {
   value       = trimspace(data.external.bot_pat.result.token)
 }
 
+output "backend_introspection" {
+  description = "Client ID and secret of the backend's API application, for token introspection"
+  sensitive   = true
+  value       = module.zitadel_config.backend_introspection
+}
+
 output "backend_pat" {
   description = "PAT of the backend's machine user, which may only manage user grants"
   sensitive   = true

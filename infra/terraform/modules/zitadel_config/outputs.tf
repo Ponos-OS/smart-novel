@@ -29,6 +29,15 @@ output "integration_test" {
   }
 }
 
+output "backend_introspection" {
+  description = "Client ID and secret the backend authenticates with when it introspects access tokens"
+  sensitive   = true
+  value = {
+    client_id     = zitadel_application_api.backend.client_id
+    client_secret = zitadel_application_api.backend.client_secret
+  }
+}
+
 output "backend_pat" {
   description = "PAT of the backend's machine user; null when backend_access is not configured"
   sensitive   = true

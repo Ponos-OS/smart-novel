@@ -9,6 +9,7 @@ import (
 type Config struct {
 	App      App
 	Database Database
+	Zitadel  Zitadel
 	OTel     OTel
 }
 
@@ -24,6 +25,13 @@ type App struct {
 type Database struct {
 	URL        string
 	SyncSchema bool
+}
+
+type Zitadel struct {
+	IssuerURL                 string
+	InternalURL               string
+	IntrospectionClientID     string
+	IntrospectionClientSecret string
 }
 
 type OTel struct {
@@ -71,6 +79,12 @@ func Load(lookup Lookup) (Config, error) {
 		Database: Database{
 			URL:        r.required("DATABASE_URL"),
 			SyncSchema: r.boolean("DEV_SYNC_DATABASE_SCHEMA", false),
+		},
+		Zitadel: Zitadel{
+			IssuerURL:                 r.required("ZITADEL_ISSUER_URL"),
+			InternalURL:               r.text("ZITADEL_INTERNAL_URL", ""),
+			IntrospectionClientID:     r.required("ZITADEL_INTROSPECTION_CLIENT_ID"),
+			IntrospectionClientSecret: r.required("ZITADEL_INTROSPECTION_CLIENT_SECRET"),
 		},
 		OTel: OTel{
 			Enabled:          r.boolean("OTEL_ENABLED", false),

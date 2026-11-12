@@ -29,7 +29,8 @@ const oidcConfig: AuthProviderProps = {
     import.meta.env.VITE_OIDC_REDIRECT_URI ??
     `${window.location.origin}/auth/callback`,
   post_logout_redirect_uri: window.location.origin,
-  scope: import.meta.env.VITE_OIDC_SCOPE,
+  // The backend only accepts tokens whose audience is this project, so the scope asking for that audience is added to the configured ones.
+  scope: `${import.meta.env.VITE_OIDC_SCOPE} urn:zitadel:iam:org:project:id:${import.meta.env.VITE_OIDC_PROJECT_ID}:aud`,
   response_type: 'code',
   userStore: new WebStorageStateStore({ store: window.localStorage }),
   /**
