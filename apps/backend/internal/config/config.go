@@ -32,6 +32,8 @@ type Zitadel struct {
 	InternalURL               string
 	IntrospectionClientID     string
 	IntrospectionClientSecret string
+	ProjectID                 string
+	ManagementPAT             string
 }
 
 type OTel struct {
@@ -85,6 +87,8 @@ func Load(lookup Lookup) (Config, error) {
 			InternalURL:               r.text("ZITADEL_INTERNAL_URL", ""),
 			IntrospectionClientID:     r.required("ZITADEL_INTROSPECTION_CLIENT_ID"),
 			IntrospectionClientSecret: r.required("ZITADEL_INTROSPECTION_CLIENT_SECRET"),
+			ProjectID:                 r.required("ZITADEL_PROJECT_ID"),
+			ManagementPAT:             r.required("ZITADEL_MANAGEMENT_PAT"),
 		},
 		OTel: OTel{
 			Enabled:          r.boolean("OTEL_ENABLED", false),

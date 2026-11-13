@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 )
 
@@ -41,27 +40,12 @@ type roles struct {
 	Levels      []roleLevel `json:"levels"`
 }
 
-type pattern struct {
-	Name        string `json:"name"`
-	Source      string `json:"source"`
-	Description string `json:"description"`
-}
-
-type problem struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
-}
-
 type spec struct {
-	Integers        []integer   `json:"integers"`
-	Errors          []apiError  `json:"errors"`
-	StringMaps      []stringMap `json:"stringMaps"`
-	Roles           roles       `json:"roles"`
-	Patterns        []pattern   `json:"patterns"`
-	PenNameProblems []problem   `json:"penNameProblems"`
+	Integers   []integer   `json:"integers"`
+	Errors     []apiError  `json:"errors"`
+	StringMaps []stringMap `json:"stringMaps"`
+	Roles      roles       `json:"roles"`
 }
-
-var placeholder = regexp.MustCompile(`\{([A-Z0-9_]+)\}`)
 
 func loadSpec(path string) (*spec, error) {
 	raw, err := os.ReadFile(path)
@@ -75,37 +59,8 @@ func loadSpec(path string) (*spec, error) {
 	if err := decoder.Decode(&s); err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
-	if err := s.resolveMessages(); err != nil {
-		return nil, err
-	}
 
 	return &s, s.validate()
-}
-
-func (s *spec) resolveMessages() error {
-	values := map[string]int{}
-	for _, i := range s.Integers {
-		values[i.Name] = i.Value
-	}
-
-	for index, p := range s.PenNameProblems {
-		var missing []string
-		resolved := placeholder.ReplaceAllStringFunc(p.Message, func(match string) string {
-			name := placeholder.FindStringSubmatch(match)[1]
-			value, ok := values[name]
-			if !ok {
-				missing = append(missing, name)
-			}
-
-			return fmt.Sprint(value)
-		})
-		if len(missing) > 0 {
-			return fmt.Errorf("penNameProblems[%s]: unknown placeholder %v", p.Code, missing)
-		}
-		s.PenNameProblems[index].Message = resolved
-	}
-
-	return nil
 }
 
 func (s *spec) validate() error {
@@ -140,15 +95,5 @@ func (s *spec) validate() error {
 			return err
 		}
 	}
-	for _, p := range s.Patterns {
-		if err := claim(p.Name, "pattern"); err != nil {
-			return err
-		}
-		// Go's regexp is RE2: it rejects lookaheads, lookbehinds and backreferences, which is what keeps a pattern portable to JavaScript.
-		if _, err := regexp.Compile(p.Source); err != nil {
-			return fmt.Errorf("pattern %s is not portable: %w", p.Name, err)
-		}
-	}
-
 	return nil
 }

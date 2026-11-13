@@ -1,28 +1,33 @@
-"""Actions a user can perform on a novel"""
+"""
+Actions a user can perform on a novel
+"""
 enum NovelAction {
   EDIT_CONTENT
   MANAGE_TTS
 }
 
-"""PENDING waits for an admin; a REJECTED user may apply again"""
-enum WriterStatus @goModel(model: "github.com/Ponos-OS/smart-novel/apps/backend/ent/writer.Status") {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
-"""One application to become a writer, and what an admin decided about it"""
+"""
+One application to become a writer, and what an admin decided about it
+"""
 type WriterApplication {
-  """What the user wrote when they applied"""
+  """
+  What the user wrote when they applied
+  """
   note: String!
 
-  """When they applied"""
+  """
+  When they applied
+  """
   appliedAt: Time!
 
-  """Why an admin rejected it, when they said"""
+  """
+  Why an admin rejected it, when they said
+  """
   rejectionReason: String
 
-  """When an admin decided; null while it waits"""
+  """
+  When an admin decided; null while it waits
+  """
   reviewedAt: Time
 }
 
@@ -30,38 +35,58 @@ type WriterApplication {
 The writer of a novel. Everybody sees the pen name; the real name, the email and the applications only admins see (null for everybody else), and only an approved writer is shown to anybody but an admin.
 """
 type NovelWriter {
-  """The ID of the writer in the identity provider"""
+  """
+  The ID of the writer in the identity provider
+  """
   userID: String!
 
-  """The name readers see"""
+  """
+  The name readers see
+  """
   penName: String!
 
-  """Admins only"""
+  """
+  Admins only
+  """
   name: String
 
-  """Admins only"""
+  """
+  Admins only
+  """
   email: String
 
-  """Admins only"""
+  """
+  Admins only
+  """
   status: WriterStatus
 
-  """Admins only"""
+  """
+  Admins only
+  """
   createdAt: Time
 
-  """Admins only; oldest first"""
+  """
+  Admins only; oldest first
+  """
   applications: [WriterApplication!]
 }
 
 input ChapterCountRangeInput {
-  """At least this many chapters"""
+  """
+  At least this many chapters
+  """
   min: Int
 
-  """At most this many chapters"""
+  """
+  At most this many chapters
+  """
   max: Int
 }
 
 extend type Query {
-  """Find a novel by its ID"""
+  """
+  Find a novel by its ID
+  """
   novel(id: ID!): Novel! @public
 
   """
@@ -75,28 +100,42 @@ extend type Query {
     orderBy: NovelOrder
     where: NovelWhereInput
 
-    """The exact number of chapters, not the estimate `estimatedChapterCount` shows"""
+    """
+    The exact number of chapters, not the estimate `estimatedChapterCount` shows
+    """
     chapterCount: ChapterCountRangeInput
 
-    """The novels of these writers, by the `userID` of the writer. At most 100; an empty list means no filter."""
+    """
+    The novels of these writers, by the `userID` of the writer. At most 100; an empty list means no filter.
+    """
     ownerIDs: [String!] @maxSize(max: 100)
   ): NovelConnection! @public
 }
 
 extend type Novel {
-  """Actions the current user is allowed to perform on this novel"""
+  """
+  Actions the current user is allowed to perform on this novel
+  """
   allowedActions: [NovelAction!]! @goField(forceResolver: true)
 
-  """A chapter of this novel; null when the novel has no chapter with this ID"""
+  """
+  A chapter of this novel; null when the novel has no chapter with this ID
+  """
   chapter(id: ID!): Chapter
 
-  """When the last chapter was published (its last update)"""
+  """
+  When the last chapter was published (its last update)
+  """
   lastChapterPublishedAt: Time
 
-  """The most recently published chapter"""
+  """
+  The most recently published chapter
+  """
   lastPublishedChapter: Chapter
 
-  """The first chapter of the novel"""
+  """
+  The first chapter of the novel
+  """
   firstChapter: Chapter
 
   """
@@ -111,43 +150,66 @@ extend type Novel {
 }
 
 type DeleteNovelResponse {
-  """ID of the deleted novel"""
+  """
+  ID of the deleted novel
+  """
   id: ID!
 }
 
 input CreateNovelInput {
-  """Novel name"""
+  """
+  Novel name
+  """
   name: String! @isString
 
-  """A short description"""
+  """
+  A short description
+  """
   description: String! @isString(multiline: true, allowEmpty: true)
 
-  """Defaults to ONGOING"""
+  """
+  Defaults to ONGOING
+  """
   state: NovelState
 
-  """Names of approved tags, compared case-insensitively. Unknown or pending ones are rejected."""
+  """
+  Names of approved tags, compared case-insensitively. Unknown or pending ones are rejected.
+  """
   tags: [String!] @isString
 }
 
 input UpdateNovelInput {
-  """Novel name"""
+  """
+  Novel name
+  """
   name: String @isString
 
-  """A short description"""
+  """
+  A short description
+  """
   description: String @isString(multiline: true, allowEmpty: true)
   state: NovelState
 
-  """Replaces the current tags; omit to keep them. Names must be approved tags."""
+  """
+  Replaces the current tags; omit to keep them. Names must be approved tags.
+  """
   tags: [String!] @isString
 }
 
 extend type Mutation {
-  """Create a novel owned by the caller. Tags must already be approved."""
+  """
+  Create a novel owned by the caller. Tags must already be approved.
+  """
   createNovel(input: CreateNovelInput!): Novel! @hasRole(role: writer)
 
-  """Update a novel. Only the passed fields change; passed tags replace the current ones."""
-  updateNovel(id: ID!, input: UpdateNovelInput!): Novel! @hasRole(role: writer)
+  """
+  Update a novel. Only the passed fields change; passed tags replace the current ones.
+  """
+  updateNovel(id: ID!, input: UpdateNovelInput!): Novel!
+    @hasRole(role: writer)
 
-  """Permanently delete a novel with its chapters, contents and read history."""
+  """
+  Permanently delete a novel with its chapters, contents and read history.
+  """
   deleteNovel(id: ID!): DeleteNovelResponse! @hasRole(role: writer)
 }

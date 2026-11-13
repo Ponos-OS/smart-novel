@@ -1,0 +1,120 @@
+// Package zitadel is the backend's client of the ZITADEL management API, used to give a user the project role an admin approved.
+package zitadel
+
+import (
+	"context"
+	"fmt"
+	"net/url"
+	"slices"
+	"strconv"
+
+	"github.com/zitadel/zitadel-go/v3/pkg/client"
+	"github.com/zitadel/zitadel-go/v3/pkg/client/zitadel/authorization/v2"
+	"github.com/zitadel/zitadel-go/v3/pkg/client/zitadel/filter/v2"
+	zitadelapi "github.com/zitadel/zitadel-go/v3/pkg/zitadel"
+	"google.golang.org/grpc"
+
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/config"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
+)
+
+const defaultHTTPPort = "80"
+
+// Management changes what a user may do in the project.
+type Management struct {
+	api       *client.Client
+	projectID string
+}
+
+// NewManagement connects lazily with the personal access token of the backend's service user, so ZITADEL does not have to be up yet.
+// The calls go to the internal URL when there is one and carry the issuer's host as the authority, which is how ZITADEL finds its instance.
+func NewManagement(ctx context.Context, cfg config.Zitadel) (*Management, error) {
+	issuer, err := url.Parse(cfg.IssuerURL)
+	if err != nil {
+		return nil, fmt.Errorf("reading ZITADEL_ISSUER_URL: %w", err)
+	}
+	target := issuer
+	if cfg.InternalURL != "" {
+		if target, err = url.Parse(cfg.InternalURL); err != nil {
+			return nil, fmt.Errorf("reading ZITADEL_INTERNAL_URL: %w", err)
+		}
+	}
+	api, err := instance(target)
+	if err != nil {
+		return nil, err
+	}
+	zitadelClient, err := client.New(ctx, api,
+		client.WithAuth(client.PAT(cfg.ManagementPAT)),
+		client.WithGRPCDialOptions(grpc.WithAuthority(issuer.Host)),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("creating the ZITADEL client: %w", err)
+	}
+
+	return &Management{api: zitadelClient, projectID: cfg.ProjectID}, nil
+}
+
+func instance(target *url.URL) (*zitadelapi.Zitadel, error) {
+	port := target.Port()
+	if target.Scheme == "http" {
+		if port == "" {
+			port = defaultHTTPPort
+		}
+
+		return zitadelapi.New(target.Hostname(), zitadelapi.WithInsecure(port)), nil
+	}
+	if port == "" {
+		return zitadelapi.New(target.Hostname()), nil
+	}
+	number, err := strconv.ParseUint(port, 10, 16)
+	if err != nil {
+		return nil, fmt.Errorf("reading the port %q of the ZITADEL URL: %w", port, err)
+	}
+
+	return zitadelapi.New(target.Hostname(), zitadelapi.WithPort(uint16(number))), nil
+}
+
+// SetUserProjectRole makes role the only role the user holds on the project. Calling it again with the same arguments changes nothing.
+func (m *Management) SetUserProjectRole(ctx context.Context, userID string, role shared.Role) error {
+	authorizations := m.api.AuthorizationServiceV2()
+	found, err := authorizations.ListAuthorizations(ctx, &authorization.ListAuthorizationsRequest{
+		Filters: []*authorization.AuthorizationsSearchFilter{
+			{Filter: &authorization.AuthorizationsSearchFilter_InUserIds{InUserIds: &filter.InIDsFilter{Ids: []string{userID}}}},
+			{Filter: &authorization.AuthorizationsSearchFilter_ProjectId{ProjectId: &filter.IDFilter{Id: m.projectID}}},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("looking for the authorizations of a user: %w", err)
+	}
+	roleKeys := []string{string(role)}
+	if len(found.GetAuthorizations()) == 0 {
+		_, err = authorizations.CreateAuthorization(ctx, &authorization.CreateAuthorizationRequest{UserId: userID, ProjectId: m.projectID, RoleKeys: roleKeys})
+
+		return wrap("granting the project role", err)
+	}
+	current := found.GetAuthorizations()[0]
+	// ZITADEL answers an update that changes nothing with an error.
+	if slices.Equal(roleKeysOf(current), roleKeys) {
+		return nil
+	}
+	_, err = authorizations.UpdateAuthorization(ctx, &authorization.UpdateAuthorizationRequest{Id: current.GetId(), RoleKeys: roleKeys})
+
+	return wrap("changing the project role", err)
+}
+
+func roleKeysOf(current *authorization.Authorization) []string {
+	keys := make([]string, len(current.GetRoles()))
+	for index, role := range current.GetRoles() {
+		keys[index] = role.GetKey()
+	}
+
+	return keys
+}
+
+func wrap(doing string, err error) error {
+	if err == nil {
+		return nil
+	}
+
+	return fmt.Errorf("%s: %w", doing, err)
+}

@@ -3,7 +3,9 @@ Root fields need an authenticated user unless they are @public. The directives a
 """
 directive @public on FIELD_DEFINITION
 
-"""The caller needs this role or a higher one."""
+"""
+The caller needs this role or a higher one.
+"""
 directive @hasRole(role: Role!) on FIELD_DEFINITION
 
 enum Role {
@@ -13,29 +15,45 @@ enum Role {
 }
 
 type WhoAmI {
-  """Subject identifier (unique user ID from the IdP)"""
+  """
+  Subject identifier (unique user ID from the IdP)
+  """
   sub: String!
 
-  """User's full display name (e.g. "Admin User")"""
+  """
+  User's full display name (e.g. "Admin User")
+  """
   name: String!
 
-  """User's preferred username / login name"""
+  """
+  User's preferred username / login name
+  """
   preferredUsername: String!
 
-  """User's email address"""
+  """
+  User's email address
+  """
   email: String!
 
-  """Whether the email has been verified by the IdP"""
+  """
+  Whether the email has been verified by the IdP
+  """
   emailVerified: Boolean!
 
-  """Organization / tenant ID the user belongs to"""
+  """
+  Organization / tenant ID the user belongs to
+  """
   orgID: String
 
-  """Roles assigned to the user (project-scoped or global)"""
+  """
+  Roles assigned to the user (project-scoped or global)
+  """
   roles: [String!]!
 }
 
 extend type Query {
-  """Return the authenticated user's profile from the token"""
+  """
+  Return the authenticated user's profile from the token
+  """
   whoAmI: WhoAmI!
 }

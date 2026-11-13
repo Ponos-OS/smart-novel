@@ -3,16 +3,11 @@ import { useEffect, useState } from 'react';
 import { Dialog } from '../../components/Dialog';
 import { DialogFormFooter } from '../../components/DialogFormFooter';
 import { useRequestWriterAccessMutation } from '../../generated/graphql';
-import {
-  PEN_NAME_PROBLEM_MESSAGES,
-  WRITER_NOTE_MAX_LENGTH,
-  WRITER_PEN_NAME_MAX_LENGTH,
-} from '../../generated/shared';
+import { WRITER_NOTE_MAX_LENGTH } from '../../generated/shared';
 import {
   GraphqlRequestError,
   isPenNameTakenError,
 } from '../../lib/graphql-fetcher';
-import { getPenNameProblem } from '../../lib/pen-name';
 import { showApiError, showSuccess } from '../../utils/notification';
 
 interface RequestWriterAccessDialogProps {
@@ -49,14 +44,9 @@ export function RequestWriterAccessDialog({
     useState(false);
   const requestWriterAccess = useRequestWriterAccessMutation();
   const trimmedPenName = penName.trim();
-  const penNameProblem =
-    trimmedPenName.length > 0
-      ? getPenNameProblem(trimmedPenName)
-      : null;
   const canSubmit =
     note.trim().length > 0 &&
     trimmedPenName.length > 0 &&
-    penNameProblem === null &&
     !requestWriterAccess.isPending;
 
   useEffect(() => {
@@ -137,15 +127,12 @@ export function RequestWriterAccessDialog({
               onChange={(event) =>
                 handlePenNameChange(event.target.value)
               }
-              maxLength={WRITER_PEN_NAME_MAX_LENGTH}
               autoComplete="off"
               disabled={requestWriterAccess.isPending}
-              aria-invalid={
-                isPenNameHighlighted || penNameProblem !== null
-              }
+              aria-invalid={isPenNameHighlighted}
               aria-describedby="request-writer-access-pen-name-hint"
               className={`w-full rounded-lg border bg-gray-900 px-3 py-2 text-white transition-colors disabled:opacity-50 ${
-                isPenNameHighlighted || penNameProblem !== null
+                isPenNameHighlighted
                   ? 'border-red-500'
                   : 'border-gray-600'
               }`}
@@ -153,13 +140,11 @@ export function RequestWriterAccessDialog({
           </label>
           <p
             id="request-writer-access-pen-name-hint"
-            className={`mt-1 text-xs ${
-              penNameProblem ? 'text-red-300' : 'text-gray-400'
-            }`}
+            className="mt-1 text-xs text-gray-400"
           >
-            {penNameProblem
-              ? PEN_NAME_PROBLEM_MESSAGES[penNameProblem]
-              : 'The name readers see on your novels: English letters, hyphens and underscores, no numbers or spaces. It must be unique.'}
+            The name readers see on your novels: 3 to 50 English
+            letters, hyphens and underscores, no numbers or spaces. It
+            must be unique.
           </p>
         </div>
         <div>

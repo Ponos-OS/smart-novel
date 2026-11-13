@@ -17,7 +17,7 @@ func goDoc(name, description string) string {
 
 func renderGo(s *spec, pkg string) (string, error) {
 	var b strings.Builder
-	fmt.Fprintf(&b, "// %s\n\npackage %s\n\nimport \"regexp\"\n", header, pkg)
+	fmt.Fprintf(&b, "// %s\n\npackage %s\n", header, pkg)
 
 	for _, i := range s.Integers {
 		name := pascalCase(i.Name)
@@ -46,21 +46,6 @@ func renderGo(s *spec, pkg string) (string, error) {
 	b.WriteString(")\n\n// RoleHierarchy maps a role to its level; a higher number means more privileges.\nvar RoleHierarchy = map[Role]int{\n")
 	for _, r := range s.Roles.Levels {
 		fmt.Fprintf(&b, "\tRole%s: %d,\n", pascalCase(r.Name), r.Level)
-	}
-	b.WriteString("}\n")
-
-	for _, p := range s.Patterns {
-		name := pascalCase(p.Name)
-		fmt.Fprintf(&b, "\n%svar %s = regexp.MustCompile(%s)\n", goDoc(name, p.Description), name, strconv.Quote(p.Source))
-	}
-
-	b.WriteString("\n// PenNameProblem names what is wrong with a pen name.\ntype PenNameProblem string\n\nconst (\n")
-	for _, p := range s.PenNameProblems {
-		fmt.Fprintf(&b, "\tPenNameProblem%s PenNameProblem = %s\n", pascalCase(p.Code), strconv.Quote(p.Code))
-	}
-	b.WriteString(")\n\n// PenNameProblemMessages are the texts shown for each problem.\nvar PenNameProblemMessages = map[PenNameProblem]string{\n")
-	for _, p := range s.PenNameProblems {
-		fmt.Fprintf(&b, "\tPenNameProblem%s: %s,\n", pascalCase(p.Code), strconv.Quote(p.Message))
 	}
 	b.WriteString("}\n")
 

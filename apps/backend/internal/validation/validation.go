@@ -3,6 +3,7 @@
 package validation
 
 import (
+	"regexp"
 	"strings"
 	"unicode/utf8"
 
@@ -15,6 +16,7 @@ const NULMessage = "Text cannot contain a NUL character"
 // Rules reported in a Violation.
 const (
 	RuleBlank    = "blank"
+	RuleInvalid  = "invalid_format"
 	RuleTooShort = "too_short"
 	RuleTooLong  = "too_long"
 	RuleTooSmall = "too_small"
@@ -64,6 +66,13 @@ func (c *Checker) MinLength(field, value string, minimum int) {
 func (c *Checker) MaxLength(field, value string, maximum int) {
 	if utf8.RuneCountInString(value) > maximum {
 		c.add(field, RuleTooLong, map[string]any{"max": maximum})
+	}
+}
+
+// Matches accepts a value the whole pattern matches.
+func (c *Checker) Matches(field, value string, pattern *regexp.Regexp) {
+	if !pattern.MatchString(value) {
+		c.add(field, RuleInvalid, nil)
 	}
 }
 

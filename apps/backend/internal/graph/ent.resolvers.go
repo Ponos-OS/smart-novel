@@ -82,9 +82,13 @@ func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 // Tag returns TagResolver implementation.
 func (r *Resolver) Tag() TagResolver { return &tagResolver{r} }
 
+// Writer returns WriterResolver implementation.
+func (r *Resolver) Writer() WriterResolver { return &writerResolver{r} }
+
 type (
 	chapterResolver struct{ *Resolver }
 	novelResolver   struct{ *Resolver }
 	queryResolver   struct{ *Resolver }
 	tagResolver     struct{ *Resolver }
+	writerResolver  struct{ *Resolver }
 )

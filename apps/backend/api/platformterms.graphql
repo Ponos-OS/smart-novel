@@ -1,0 +1,65 @@
+"""
+Every mutation needs the caller, when they are a writer or an admin, to have accepted the current platform terms; this marks a mutation that does not. Enforced by internal/platformterms.Guard, like the other markers.
+"""
+directive @skipTermsOfServiceCheck on FIELD_DEFINITION
+
+"""
+The current platform terms.
+"""
+type PlatformTerms {
+  """
+  Bumped whenever the text changes
+  """
+  version: Int!
+
+  """
+  The terms, as markdown
+  """
+  markdown: String!
+}
+
+"""
+Whether the caller accepted the current platform terms.
+"""
+type PlatformTermsStatus {
+  requiredVersion: Int!
+
+  """
+  The newest version the caller accepted, if any
+  """
+  acceptedVersion: Int
+
+  """
+  True when the required version was accepted
+  """
+  accepted: Boolean!
+
+  """
+  When the caller accepted the required version
+  """
+  acceptedAt: Time
+}
+
+extend type Query {
+  """
+  The current platform terms
+  """
+  platformTerms: PlatformTerms! @public
+
+  """
+  Whether the caller accepted the current terms
+  """
+  myPlatformTermsStatus: PlatformTermsStatus!
+}
+
+extend type Mutation {
+  """
+  Accept the platform terms. Fails with PLATFORM_TERMS_VERSION_MISMATCH when `version` is not the current one, and is idempotent otherwise.
+  """
+  acceptPlatformTerms(
+    """
+    The version the caller read
+    """
+    version: Int!
+  ): PlatformTermsStatus! @skipTermsOfServiceCheck
+}

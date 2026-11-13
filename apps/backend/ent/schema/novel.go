@@ -55,11 +55,13 @@ func (Novel) Fields() []ent.Field {
 
 func (Novel) Edges() []ent.Edge {
 	return []ent.Edge{
+		// Hand-written as NovelWriter (api/novel.graphql): the generated Writer would hand out every writer's email.
 		edge.From("writer", Writer.Type).
 			Ref("novels").
 			Field("writer_id").
 			Unique().
-			Required(),
+			Required().
+			Annotations(entgql.Skip(entgql.SkipAll)),
 		edge.From("license", License.Type).
 			Ref("novels").
 			Field("license_id").

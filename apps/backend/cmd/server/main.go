@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -19,9 +20,12 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/database"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/logging"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/telemetry"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/zitadel"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platformterms"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/server"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/stats"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/tag"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/writer"
 )
 
 const telemetryFlushTimeout = 10 * time.Second
@@ -73,6 +77,15 @@ func run() error {
 		}
 	}
 
+	handler, err := newHandler(ctx, cfg, db, logger)
+	if err != nil {
+		return err
+	}
+
+	return server.Serve(ctx, logger, cfg.App.Port, handler)
+}
+
+func newHandler(ctx context.Context, cfg config.Config, db *database.Database, logger *slog.Logger) (http.Handler, error) {
 	verifier, err := auth.NewZitadelVerifier(ctx, auth.ZitadelConfig{
 		IssuerURL:    cfg.Zitadel.IssuerURL,
 		InternalURL:  cfg.Zitadel.InternalURL,
@@ -80,11 +93,15 @@ func run() error {
 		ClientSecret: cfg.Zitadel.IntrospectionClientSecret,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	resolver := newResolver(db, logger)
-	handler := server.New(server.Options{
+	resolver, err := newResolver(ctx, cfg, db, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	return server.New(server.Options{
 		Config: cfg,
 		Logger: logger,
 		Schema: graph.NewExecutableSchema(graph.Config{
@@ -92,13 +109,21 @@ func run() error {
 			Directives: graph.Directives(),
 		}),
 		Verifier:   verifier,
+		Terms:      resolver.TermsService,
 		Extensions: []graphql.HandlerExtension{graph.NewLoaderExtension(db.Client, resolver.ChapterService)},
-	})
-
-	return server.Serve(ctx, logger, cfg.App.Port, handler)
+	}), nil
 }
 
-func newResolver(db *database.Database, logger *slog.Logger) *graph.Resolver {
+func newResolver(ctx context.Context, cfg config.Config, db *database.Database, logger *slog.Logger) (*graph.Resolver, error) {
+	management, err := zitadel.NewManagement(ctx, cfg.Zitadel)
+	if err != nil {
+		return nil, err
+	}
+	terms, err := platformterms.Current()
+	if err != nil {
+		return nil, err
+	}
+
 	return &graph.Resolver{
 		Client:         db.Client,
 		Logger:         logger,
@@ -106,5 +131,7 @@ func newResolver(db *database.Database, logger *slog.Logger) *graph.Resolver {
 		NovelService:   novel.NewService(db.Client, db),
 		ChapterService: chapter.NewService(db.Client),
 		StatsService:   stats.NewService(db, logger),
-	}
+		WriterService:  writer.NewService(db.Client, management),
+		TermsService:   platformterms.NewService(db.Client, terms),
+	}, nil
 }

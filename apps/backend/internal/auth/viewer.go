@@ -46,6 +46,11 @@ func (v Viewer) IsAdmin() bool {
 	return shared.IsAdmin(v.Roles)
 }
 
+// HasMinimumRole tells whether the viewer holds minimum or a higher role.
+func (v Viewer) HasMinimumRole(minimum shared.Role) bool {
+	return shared.HasMinimumRole(v.Roles, minimum)
+}
+
 // IsAdmin tells whether the request is by an authenticated admin; an anonymous request is not.
 func IsAdmin(ctx context.Context) bool {
 	viewer, ok := ViewerFrom(ctx)

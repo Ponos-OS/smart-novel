@@ -19,6 +19,7 @@ import (
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/config"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platformterms"
 )
 
 const (
@@ -34,6 +35,7 @@ type Options struct {
 	Verifier       auth.Verifier
 	Extensions     []graphql.HandlerExtension
 	TracerProvider trace.TracerProvider
+	Terms          platformterms.Acceptances
 }
 
 func New(options Options) http.Handler {
@@ -74,6 +76,7 @@ func graphqlHandler(options Options) http.Handler {
 	srv.SetErrorPresenter(errorPresenter(options.Logger))
 	srv.Use(operationSpan{})
 	srv.AroundFields(auth.Guard())
+	srv.AroundFields(platformterms.Guard(options.Terms))
 	srv.AroundFields(rejectNUL)
 	for _, custom := range options.Extensions {
 		srv.Use(custom)

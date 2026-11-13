@@ -20,6 +20,8 @@ func environment(overrides map[string]string) config.Lookup {
 		"ZITADEL_INTERNAL_URL":                "http://traefik:80",
 		"ZITADEL_INTROSPECTION_CLIENT_ID":     "399193312042418199",
 		"ZITADEL_INTROSPECTION_CLIENT_SECRET": "4Jt0l3Ww9yq1a7mXf2Nn",
+		"ZITADEL_PROJECT_ID":                  "399193312042352663",
+		"ZITADEL_MANAGEMENT_PAT":              "pat-4Jt0l3Ww9yq1a7mXf2NnQb8Zc",
 	}
 	for key, value := range overrides {
 		values[key] = value
@@ -130,6 +132,8 @@ func TestLoadRejectsBadSettings(t *testing.T) {
 		{"missing issuer url", map[string]string{"ZITADEL_ISSUER_URL": ""}, "ZITADEL_ISSUER_URL is required"},
 		{"missing introspection client id", map[string]string{"ZITADEL_INTROSPECTION_CLIENT_ID": ""}, "ZITADEL_INTROSPECTION_CLIENT_ID is required"},
 		{"missing introspection client secret", map[string]string{"ZITADEL_INTROSPECTION_CLIENT_SECRET": ""}, "ZITADEL_INTROSPECTION_CLIENT_SECRET is required"},
+		{"missing project id", map[string]string{"ZITADEL_PROJECT_ID": ""}, "ZITADEL_PROJECT_ID is required"},
+		{"missing management pat", map[string]string{"ZITADEL_MANAGEMENT_PAT": ""}, "ZITADEL_MANAGEMENT_PAT is required"},
 		{"no origins", map[string]string{"CORS_ALLOWED_ORIGINS": " , "}, "CORS_ALLOWED_ORIGINS is required"},
 		{"sampler ratio above one", map[string]string{"OTEL_TRACES_SAMPLER_ARG": "1.5"}, "OTEL_TRACES_SAMPLER_ARG must be a number"},
 		{"batch size not a number", map[string]string{"OTEL_BATCH_SPANS_PER_EXPORT": "many"}, "OTEL_BATCH_SPANS_PER_EXPORT must be a positive integer"},

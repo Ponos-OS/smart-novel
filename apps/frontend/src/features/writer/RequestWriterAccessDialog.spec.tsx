@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event';
 import {
   PEN_NAME_TAKEN,
   WRITER_NOTE_MAX_LENGTH,
-  WRITER_PEN_NAME_MAX_LENGTH,
 } from '../../generated/shared';
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 import { showApiError, showSuccess } from '../../utils/notification';
@@ -69,48 +68,6 @@ describe('RequestWriterAccessDialog', () => {
     await user.type(screen.getByLabelText(penNameLabel), '   ');
 
     expect(send).toBeDisabled();
-  });
-
-  it.each([
-    { penName: 'ab', hint: 'at least 3 characters' },
-    {
-      penName: 'Mina2',
-      hint: 'English letters, hyphens and underscores',
-    },
-    {
-      penName: 'Mina Ardalan',
-      hint: 'English letters, hyphens and underscores',
-    },
-    {
-      penName: 'Мина',
-      hint: 'English letters, hyphens and underscores',
-    },
-  ])(
-    'explains what is wrong with the pen name "$penName" and does not send it',
-    async ({ penName: invalid, hint }) => {
-      const { user } = renderDialog();
-      await user.type(screen.getByLabelText(noteLabel), 'Hello');
-
-      await user.type(screen.getByLabelText(penNameLabel), invalid);
-
-      expect(screen.getByLabelText(penNameLabel)).toHaveAttribute(
-        'aria-invalid',
-        'true',
-      );
-      expect(screen.getByText(new RegExp(hint))).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', { name: 'Send request' }),
-      ).toBeDisabled();
-    },
-  );
-
-  it('stops typing the pen name at the limit', () => {
-    renderDialog();
-
-    expect(screen.getByLabelText(penNameLabel)).toHaveAttribute(
-      'maxLength',
-      String(WRITER_PEN_NAME_MAX_LENGTH),
-    );
   });
 
   describe('when the pen name is taken', () => {
@@ -236,26 +193,31 @@ describe('RequestWriterAccessDialog', () => {
     expect(onRequested).toHaveBeenCalledOnce();
   });
 
-  it('shows the refusal of the server inside the dialog and keeps it open', async () => {
-    const { user, onRequested } = renderDialog();
-    const message = 'You already have a pending writer request';
-    requestWriterAccess.mutate.mockImplementation(
-      (_variables, options) =>
-        options.onError(
-          new GraphqlRequestError(message, { code: 'BAD_REQUEST' }),
-        ),
-    );
-    await user.type(screen.getByLabelText(noteLabel), 'Hello');
-    await user.type(screen.getByLabelText(penNameLabel), penName);
+  it.each([
+    'You already have a pending writer request',
+    'A pen name needs at least 3 characters',
+  ])(
+    'shows the refusal "%s" inside the dialog and keeps it open',
+    async (message) => {
+      const { user, onRequested } = renderDialog();
+      requestWriterAccess.mutate.mockImplementation(
+        (_variables, options) =>
+          options.onError(
+            new GraphqlRequestError(message, { code: 'BAD_REQUEST' }),
+          ),
+      );
+      await user.type(screen.getByLabelText(noteLabel), 'Hello');
+      await user.type(screen.getByLabelText(penNameLabel), penName);
 
-    await user.click(
-      screen.getByRole('button', { name: 'Send request' }),
-    );
+      await user.click(
+        screen.getByRole('button', { name: 'Send request' }),
+      );
 
-    expect(screen.getByRole('alert')).toHaveTextContent(message);
-    expect(showApiError).not.toHaveBeenCalled();
-    expect(onRequested).not.toHaveBeenCalled();
-  });
+      expect(screen.getByRole('alert')).toHaveTextContent(message);
+      expect(showApiError).not.toHaveBeenCalled();
+      expect(onRequested).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([
     {

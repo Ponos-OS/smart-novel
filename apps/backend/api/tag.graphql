@@ -11,31 +11,45 @@ extend type Tag {
 }
 
 input RequestTagInput {
-  """Trimmed, and unique regardless of case. At most 50 characters."""
+  """
+  Trimmed, and unique regardless of case. At most 50 characters.
+  """
   name: String! @isString @maxLength(max: 50)
 
-  """What the tag is for, trimmed. At most 650 characters."""
+  """
+  What the tag is for, trimmed. At most 650 characters.
+  """
   description: String! @isString(multiline: true) @maxLength(max: 650)
 }
 
 input CreateTagInput {
-  """Trimmed, and unique regardless of case. At most 50 characters."""
+  """
+  Trimmed, and unique regardless of case. At most 50 characters.
+  """
   name: String! @isString @maxLength(max: 50)
 
-  """What the tag is for, trimmed. At most 650 characters."""
+  """
+  What the tag is for, trimmed. At most 650 characters.
+  """
   description: String! @isString(multiline: true) @maxLength(max: 650)
 }
 
 input UpdateTagInput {
-  """Trimmed, and unique regardless of case. At most 50 characters."""
+  """
+  Trimmed, and unique regardless of case. At most 50 characters.
+  """
   name: String @isString @maxLength(max: 50)
 
-  """What the tag is for, trimmed. At most 650 characters."""
+  """
+  What the tag is for, trimmed. At most 650 characters.
+  """
   description: String @isString(multiline: true) @maxLength(max: 650)
 }
 
 type DeleteTagResponse {
-  """ID of the deleted tag"""
+  """
+  ID of the deleted tag
+  """
   id: ID!
 }
 
@@ -50,13 +64,16 @@ extend type Mutation {
   """
   createTag(input: CreateTagInput!): Tag! @hasRole(role: admin)
 
-  """Admin only. Approve a pending tag; approving an approved one changes nothing."""
+  """
+  Admin only. Approve a pending tag; approving an approved one changes nothing.
+  """
   approveTag(id: ID!): Tag! @hasRole(role: admin)
 
   """
   Admin only. Change the name, the description or both of a tag of any status; the novels that have it follow a rename. At least one is required. A name that already exists is a BAD_REQUEST.
   """
-  updateTag(id: ID!, input: UpdateTagInput!): Tag! @hasRole(role: admin)
+  updateTag(id: ID!, input: UpdateTagInput!): Tag!
+    @hasRole(role: admin)
 
   """
   Admin only. Delete a tag of any status, which also rejects a pending request. It is removed from every novel that has it; the novels stay.

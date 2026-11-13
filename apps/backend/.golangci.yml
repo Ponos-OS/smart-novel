@@ -142,7 +142,9 @@ linters:
             - github.com/lib/pq
             - ariga.io/atlas
             - github.com/zitadel
+            - google.golang.org/grpc
             - gopkg.in/yaml.v3
+            - github.com/adrg/frontmatter
             - github.com/vikstrous/dataloadgen
             - github.com/testcontainers/testcontainers-go
         test:

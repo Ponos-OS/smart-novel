@@ -58,19 +58,5 @@ func renderTypeScript(s *spec) string {
 	}
 	b.WriteString("};\n")
 
-	for _, p := range s.Patterns {
-		fmt.Fprintf(&b, "\n%sexport const %s = new RegExp(%s);\n", tsDoc(p.Description), p.Name, quote(p.Source))
-	}
-
-	b.WriteString("\nexport type PenNameProblem =")
-	for _, p := range s.PenNameProblems {
-		fmt.Fprintf(&b, "\n  | %s", quote(p.Code))
-	}
-	b.WriteString(";\n\nexport const PEN_NAME_PROBLEM_MESSAGES: Record<PenNameProblem, string> = {\n")
-	for _, p := range s.PenNameProblems {
-		fmt.Fprintf(&b, "  %s: %s,\n", p.Code, quote(p.Message))
-	}
-	b.WriteString("};\n")
-
 	return b.String()
 }

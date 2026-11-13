@@ -49,7 +49,7 @@ The grouping in `REQUIREMENTS.md` holds, with these corrections found while read
 | `defaultLicense`, `licensesConnection`, `licenseDraftsConnection`, `licenseDraft` | license           | 7        |
 | `canonicalLicenses`, `canonicalLicense`                                           | license-assistant | 7        |
 | `platformTerms`, `myPlatformTermsStatus`                                          | platform-terms    | 7        |
-| `myWriter`, `writersConnection`                                                   | writer            | 7        |
+| `myWriter`, `writers`                                                             | writer            | 7        |
 
 `Mutation`:
 

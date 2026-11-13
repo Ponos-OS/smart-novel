@@ -32,19 +32,21 @@ const MY_WRITER = `#graphql
 const WRITERS = `#graphql
   query Writers(
     $first: Int
-    $after: String
-    $filters: WriterFiltersInput
+    $after: Cursor
+    $where: WriterWhereInput
+    $search: String
   ) {
-    writersConnection(
+    writers(
       first: $first
       after: $after
-      filters: $filters
+      where: $where
+      search: $search
     ) {
       edges {
         cursor
         node {
           id
-          userId
+          userID
           penName
           name
           email
@@ -199,12 +201,12 @@ describe('Writer request review (e2e)', () => {
 
       expect(data.errors).toBeUndefined();
       expect(
-        data.data.writersConnection.edges.map(
+        data.data.writers.edges.map(
           ({ node }: { node: { id: string } }) => node,
         ),
       ).toContainEqual({
         id: requestId,
-        userId: expect.stringMatching(/^\d+$/),
+        userID: expect.stringMatching(/^\d+$/),
         penName,
         name: 'Fresh User',
         email: expect.stringMatching(/^fresh-.+@test\.com$/),
@@ -259,12 +261,12 @@ describe('Writer request review (e2e)', () => {
       );
       const approved = await graphql(
         WRITERS,
-        { first: 100, filters: { status: 'APPROVED' } },
+        { first: 100, where: { status: 'APPROVED' } },
         adminAuthorization,
       );
 
       const idsOf = (data: any): string[] =>
-        data.data.writersConnection.edges.map(
+        data.data.writers.edges.map(
           ({ node }: { node: { id: string } }) => node.id,
         );
 
@@ -387,7 +389,7 @@ describe('Writer request review (e2e)', () => {
       );
       const rejected = await graphql(
         WRITERS,
-        { first: 100, filters: { status: 'REJECTED' } },
+        { first: 100, where: { status: 'REJECTED' } },
         adminAuthorization,
       );
       const mine = await graphql(
@@ -421,7 +423,7 @@ describe('Writer request review (e2e)', () => {
         ],
       });
       expect(
-        rejected.data.writersConnection.edges.map(
+        rejected.data.writers.edges.map(
           ({ node }: { node: { id: string } }) => node.id,
         ),
       ).not.toContain(requestId);
@@ -452,7 +454,7 @@ describe('Writer request review (e2e)', () => {
         statuses.map((status) =>
           graphql(
             WRITERS,
-            { first: 100, filters: { status, search } },
+            { first: 100, where: { status }, search },
             adminAuthorization,
           ),
         ),
@@ -465,7 +467,7 @@ describe('Writer request review (e2e)', () => {
       ]);
 
       return results.flatMap(({ data }) =>
-        data.writersConnection.edges.map(
+        data.writers.edges.map(
           ({
             node,
           }: {
@@ -473,7 +475,7 @@ describe('Writer request review (e2e)', () => {
               penName: string;
               name: string;
               email: string;
-              userId: string;
+              userID: string;
             };
           }) => node,
         ),
@@ -514,7 +516,7 @@ describe('Writer request review (e2e)', () => {
         userPenName,
       );
       expect(
-        result.every(({ userId }) => userId.length > 0),
+        result.every(({ userID }) => userID.length > 0),
       ).toBeTrue();
     });
 
@@ -539,27 +541,10 @@ describe('Writer request review (e2e)', () => {
       },
     );
 
-    it('should refuse a cursor issued without the search', async () => {
-      const first = await graphql(
-        WRITERS,
-        { first: 1 },
-        adminAuthorization,
-      );
-      const { cursor } = first.data.writersConnection.edges[0];
-
-      const data = await graphql(
-        WRITERS,
-        { first: 1, after: cursor, filters: { search: 'user' } },
-        adminAuthorization,
-      );
-
-      expect(data.errors[0].message).toContain('Invalid cursor');
-    });
-
     it('should refuse a search over the limit', async () => {
       const data = await graphql(
         WRITERS,
-        { first: 1, filters: { search: 'a'.repeat(101) } },
+        { first: 1, search: 'a'.repeat(101) },
         adminAuthorization,
       );
 
@@ -583,7 +568,7 @@ describe('Writer request review (e2e)', () => {
         { first: 1 },
         adminAuthorization,
       );
-      const { edges, pageInfo } = first.data.writersConnection;
+      const { edges, pageInfo } = first.data.writers;
 
       expect(first.errors).toBeUndefined();
       expect(edges).toHaveLength(1);

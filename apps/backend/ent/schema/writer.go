@@ -43,20 +43,24 @@ func (Writer) Fields() []ent.Field {
 		field.Enum("status").
 			Values("PENDING", "APPROVED", "REJECTED").
 			Default("PENDING").
+			Comment("PENDING waits for an admin; a REJECTED user may apply again.").
 			Annotations(entgql.Type("WriterStatus")),
 		field.JSON("applications", []WriterApplication{}).
 			Default([]WriterApplication{}).
 			Annotations(entsql.Default("[]"), entgql.Skip(entgql.SkipAll)),
 		field.Time("created_at").
+			Comment("When the current request was filed; a rejected user who asks again will be appended in the applications list and this field will still point to the first time user initiated the request.").
 			SchemaType(timestamptz).
 			Default(time.Now).
-			Immutable().
 			Annotations(entsql.DefaultExpr("CURRENT_TIMESTAMP"), entgql.OrderField("CREATED_AT")),
 	}
 }
 
 func (Writer) Edges() []ent.Edge {
-	return []ent.Edge{edge.To("novels", Novel.Type).Annotations(entsql.OnDelete(entsql.Restrict))}
+	return []ent.Edge{
+		edge.To("novels", Novel.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict), entgql.Skip(entgql.SkipAll)),
+	}
 }
 
 func (Writer) Indexes() []ent.Index {
@@ -74,7 +78,7 @@ func (Writer) Indexes() []ent.Index {
 
 func (Writer) Annotations() []schema.Annotation {
 	return []schema.Annotation{
-		entgql.Skip(entgql.SkipAll),
+		entgql.RelayConnection(),
 		entsql.Checks(map[string]string{
 			"writers_applications_is_array_of_objects": `jsonb_typeof("applications") = 'array' AND NOT jsonb_path_exists("applications", '$[*] ? (@.type() != "object")')`,
 		}),

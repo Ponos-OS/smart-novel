@@ -27,3 +27,8 @@ func NotFound(message string) error {
 func Conflict(message string) error {
 	return &Error{code: shared.Conflict, message: message}
 }
+
+// WithCode is for an error that has a code of its own for the client to act on.
+func WithCode(code, message string) error {
+	return &Error{code: code, message: message}
+}

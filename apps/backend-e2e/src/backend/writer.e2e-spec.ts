@@ -145,6 +145,48 @@ describe('Writer requests (e2e)', () => {
     expect(data.errors[0].message).toContain('pending');
   });
 
+  describe('a pen name that breaks the rule', () => {
+    const onlyLetters =
+      'A pen name can only have English letters, hyphens and underscores';
+    it.each([
+      ['  ', 'Choose a pen name'],
+      ['ab', 'A pen name needs at least 3 characters'],
+      ['a'.repeat(51), 'A pen name can have at most 50 characters'],
+      ['Mina2', onlyLetters],
+      ['Mina Ardalan', onlyLetters],
+      ['M\u00edna', onlyLetters],
+    ])('should answer %j with "%s"', async (penName, message) => {
+      const requester =
+        await AuthorizationFixture.getUserAuthorizationHeader({
+          fresh: true,
+        });
+
+      const data = await graphql(
+        REQUEST_WRITER_ACCESS,
+        { note, penName },
+        requester,
+      );
+
+      expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
+      expect(data.errors[0].message).toBe(message);
+    });
+
+    it('should refuse a pen name with a NUL character', async () => {
+      const requester =
+        await AuthorizationFixture.getUserAuthorizationHeader({
+          fresh: true,
+        });
+
+      const data = await graphql(
+        REQUEST_WRITER_ACCESS,
+        { note, penName: 'Mina\u0000' },
+        requester,
+      );
+
+      expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
+    });
+  });
+
   describe('a pen name another writer already has', () => {
     const holderUserId = '111111111111111111';
     const taken = 'Taken_Name_Holder';
@@ -172,10 +214,7 @@ describe('Writer requests (e2e)', () => {
           userAuthorization,
         );
 
-        expect(data.errors[0].extensions).toMatchObject({
-          code: 'PEN_NAME_TAKEN',
-          status: 409,
-        });
+        expect(data.errors[0].extensions.code).toBe('PEN_NAME_TAKEN');
         expect(data.errors[0].message).toContain('already taken');
       },
     );

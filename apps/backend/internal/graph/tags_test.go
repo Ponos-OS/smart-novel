@@ -19,6 +19,8 @@ func TestTagVisibility(t *testing.T) {
 	}{
 		{"no filter, reader", nil, false, onlyApproved, "only approved"},
 		{"pending asked by a reader", &ent.TagWhereInput{Status: &pending}, false, approvedAlongside, "approved AND the filter"},
+		{"an empty filter, reader", &ent.TagWhereInput{}, false, onlyApproved, "only approved"},
+		{"an empty filter, admin", &ent.TagWhereInput{}, true, onlyApproved, "only approved"},
 		{"no filter, admin", nil, true, onlyApproved, "only approved"},
 		{"admin asks for pending", &ent.TagWhereInput{Status: &pending}, true, func(w *ent.TagWhereInput) bool { return w.Status != nil && *w.Status == pending }, "the filter unchanged"},
 		{"admin searches by name", &ent.TagWhereInput{NameContainsFold: &name}, true, approvedAlongside, "approved AND the filter"},
@@ -29,6 +31,9 @@ func TestTagVisibility(t *testing.T) {
 
 			if !c.want(got) {
 				t.Errorf("tagVisibility = %+v, want %s", got, c.desc)
+			}
+			if _, err := got.P(); err != nil {
+				t.Errorf("ent cannot build the filter: %v", err)
 			}
 		})
 	}

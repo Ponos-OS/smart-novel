@@ -5,7 +5,7 @@ pre-commit:
       run: npx eslint --fix {staged_files}
       stage_fixed: true
     - name: prettier
-      glob: "*.{ts,tsx,js,jsx,mjs,json,md,yml,yaml}"
+      glob: "*.{ts,tsx,js,jsx,mjs,json,md,yml,yaml,graphql}"
       run: npx prettier --write {staged_files}
       stage_fixed: true
     - name: prisma format

@@ -3,6 +3,7 @@ package graph_test
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -18,7 +19,7 @@ func returning(value any) graphql.Resolver {
 func isString(t *testing.T, value any, multiline, allowEmpty bool) (any, error) {
 	t.Helper()
 
-	return graph.Directives().IsString(t.Context(), nil, returning(value), multiline, allowEmpty)
+	return graph.Directives().IsString(t.Context(), nil, returning(value), multiline, allowEmpty, nil)
 }
 
 func TestIsStringCleans(t *testing.T) {
@@ -132,7 +133,7 @@ func TestMaxLengthDirective(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			_, err := graph.Directives().MaxLength(t.Context(), nil, returning(c.value), 5)
+			_, err := graph.Directives().MaxLength(t.Context(), nil, returning(c.value), 5, nil)
 
 			if (err != nil) != c.invalid {
 				t.Errorf("err = %v, want invalid = %v", err, c.invalid)
@@ -160,5 +161,110 @@ func TestMaxSizeDirective(t *testing.T) {
 				t.Errorf("err = %v, want invalid = %v", err, c.invalid)
 			}
 		})
+	}
+}
+
+func TestMinLengthDirective(t *testing.T) {
+	cases := []struct {
+		name    string
+		value   any
+		invalid bool
+	}{
+		{"as short as allowed, counted in characters", "ééé", false},
+		{"one character too few", "éé", true},
+		{"optional text that is absent", (*string)(nil), false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := graph.Directives().MinLength(t.Context(), nil, returning(c.value), 3, nil)
+
+			if (err != nil) != c.invalid {
+				t.Errorf("err = %v, want invalid = %v", err, c.invalid)
+			}
+		})
+	}
+}
+
+func TestPatternDirective(t *testing.T) {
+	cases := []struct {
+		name    string
+		value   any
+		invalid bool
+	}{
+		{"letters, hyphens and underscores", "Mina_T-Ardalan", false},
+		{"a digit", "Mina2", true},
+		{"a space", "Mina T", true},
+		{"another alphabet", "مینا", true},
+		{"optional text that is absent", (*string)(nil), false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := graph.Directives().Pattern(t.Context(), nil, returning(c.value), "^[A-Za-z_-]+$", nil)
+
+			if (err != nil) != c.invalid {
+				t.Errorf("err = %v, want invalid = %v", err, c.invalid)
+			}
+		})
+	}
+}
+
+func TestPatternDirectiveRefusesAnExpressionItCannotCompile(t *testing.T) {
+	_, err := graph.Directives().Pattern(t.Context(), nil, returning("Mina"), "^(Mina", nil)
+
+	if err == nil {
+		t.Error("err = nil, want the invalid expression reported")
+	}
+}
+
+func TestValidationDirectivesAnswerWithTheMessageTheSchemaGives(t *testing.T) {
+	message := "A pen name needs at least 3 characters"
+	directives := graph.Directives()
+	cases := []struct {
+		name string
+		run  func() error
+	}{
+		{"isString", func() error {
+			_, err := directives.IsString(t.Context(), nil, returning(" "), false, false, &message)
+			return err
+		}},
+		{"minLength", func() error {
+			_, err := directives.MinLength(t.Context(), nil, returning("ab"), 3, &message)
+			return err
+		}},
+		{"maxLength", func() error {
+			_, err := directives.MaxLength(t.Context(), nil, returning("abcd"), 3, &message)
+			return err
+		}},
+		{"pattern", func() error {
+			_, err := directives.Pattern(t.Context(), nil, returning("a1"), "^[a-z]+$", &message)
+			return err
+		}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := c.run()
+
+			var coded interface{ Code() string }
+			if err == nil || err.Error() != message || !errors.As(err, &coded) || coded.Code() != shared.BadRequest {
+				t.Errorf("err = %v, want a BAD_REQUEST saying %q", err, message)
+			}
+		})
+	}
+}
+
+func TestOnlyTheseMutationsSkipTheTermsOfServiceCheck(t *testing.T) {
+	schema := graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}, Directives: graph.Directives()}).Schema()
+	var skipping []string
+
+	for _, field := range schema.Mutation.Fields {
+		if field.Directives.ForName("skipTermsOfServiceCheck") != nil {
+			skipping = append(skipping, field.Name)
+		}
+	}
+
+	slices.Sort(skipping)
+	want := []string{"acceptPlatformTerms", "deleteReadHistory", "markChaptersRead", "requestWriterAccess"}
+	if !slices.Equal(skipping, want) {
+		t.Errorf("mutations that skip the terms check = %v, want %v: every other mutation needs the terms accepted", skipping, want)
 	}
 }

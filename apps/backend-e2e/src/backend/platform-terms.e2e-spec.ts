@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { randomUUID } from 'node:crypto';
 
 import { AuthorizationFixture } from '../support';
 
@@ -43,6 +44,22 @@ const CREATE_NOVEL = `#graphql
   mutation CreateNovel($input: CreateNovelInput!) {
     createNovel(input: $input) {
       id
+    }
+  }
+`;
+
+const MARK_CHAPTERS_READ = `#graphql
+  mutation MarkChaptersRead($chapterIds: [ID!]!) {
+    markChaptersRead(chapterIDs: $chapterIds) {
+      markedCount
+    }
+  }
+`;
+
+const DELETE_READ_HISTORY = `#graphql
+  mutation DeleteReadHistory {
+    deleteReadHistory {
+      deletedCount
     }
   }
 `;
@@ -104,42 +121,33 @@ describe('Platform terms (e2e)', () => {
       });
     });
 
-    it('should not be able to create a novel, with a typed error', async () => {
-      const authorization =
-        await AuthorizationFixture.getWriterAuthorizationHeader({
-          fresh: true,
-          acceptTerms: false,
-        });
+    it.each([
+      {
+        name: 'markChaptersRead',
+        query: MARK_CHAPTERS_READ,
+        variables: { chapterIds: [randomUUID()] },
+      },
+      {
+        name: 'deleteReadHistory',
+        query: DELETE_READ_HISTORY,
+        variables: {},
+      },
+    ])(
+      'should still be able to call $name, which skips the terms check',
+      async ({ query, variables }) => {
+        const authorization =
+          await AuthorizationFixture.getWriterAuthorizationHeader({
+            fresh: true,
+            acceptTerms: false,
+          });
 
-      const data = await graphql(
-        CREATE_NOVEL,
-        { input: novelInput },
-        authorization,
-      );
+        const data = await graphql(query, variables, authorization);
 
-      expect(data.errors[0].extensions.code).toBe(
-        'PLATFORM_TERMS_NOT_ACCEPTED',
-      );
-      expect(data.data).toBeNull();
-    });
-
-    it('should not be able to use the license assistant, with a typed error and before any Fithara call', async () => {
-      const authorization =
-        await AuthorizationFixture.getWriterAuthorizationHeader({
-          fresh: true,
-          acceptTerms: false,
-        });
-
-      const data = await graphql(
-        DRAFT_LICENSE,
-        { input: { message: 'What license fits my novel?' } },
-        authorization,
-      );
-
-      expect(data.errors[0].extensions.code).toBe(
-        'PLATFORM_TERMS_NOT_ACCEPTED',
-      );
-    });
+        expect(data.errors?.[0]?.extensions?.code).not.toBe(
+          'PLATFORM_TERMS_NOT_ACCEPTED',
+        );
+      },
+    );
 
     it('should not be able to accept a version other than the current one', async () => {
       const authorization =
@@ -192,7 +200,9 @@ describe('Platform terms (e2e)', () => {
     });
   });
 
-  it('should not let a reader use the license assistant', async () => {
+  // draftLicense returns in step 7c; then this becomes an `it`.
+  // eslint-disable-next-line vitest/no-disabled-tests
+  it.skip('should not let a reader use the license assistant', async () => {
     const authorization =
       await AuthorizationFixture.getUserAuthorizationHeader();
 

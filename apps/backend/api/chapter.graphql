@@ -1,13 +1,19 @@
 type ChapterViewerState {
-  """Whether the current user has read this chapter"""
+  """
+  Whether the current user has read this chapter
+  """
   isRead: Boolean!
 
-  """When the chapter was first marked as read"""
+  """
+  When the chapter was first marked as read
+  """
   readAt: Time
 }
 
 extend type Chapter {
-  """The content of the chapter in markdown format"""
+  """
+  The content of the chapter in markdown format
+  """
   content: String! @goField(forceResolver: true)
 
   """
@@ -15,44 +21,64 @@ extend type Chapter {
   """
   contentUpdatedAt: Time! @goField(forceResolver: true)
 
-  """The next chapter"""
+  """
+  The next chapter
+  """
   next: Chapter @goField(forceResolver: true)
 
-  """The previous chapter"""
+  """
+  The previous chapter
+  """
   previous: Chapter @goField(forceResolver: true)
 
-  """Viewer-specific state for this chapter"""
+  """
+  Viewer-specific state for this chapter
+  """
   viewerState: ChapterViewerState! @goField(forceResolver: true)
 }
 
 type DeleteChapterResponse {
-  """ID of the deleted chapter"""
+  """
+  ID of the deleted chapter
+  """
   id: ID!
 
-  """ID of the novel the chapter belonged to"""
+  """
+  ID of the novel the chapter belonged to
+  """
   novelID: ID!
 }
 
 type MarkChaptersReadResponse {
-  """Number of NEW chapters marked as read (excludes already-read chapters)"""
+  """
+  Number of NEW chapters marked as read (excludes already-read chapters)
+  """
   markedCount: Int!
 }
 
 type DeleteReadHistoryResponse {
-  """Number of chapter read records deleted"""
+  """
+  Number of chapter read records deleted
+  """
   deletedCount: Int!
 }
 
 input CreateChapterInput {
-  """Chapter title"""
+  """
+  Chapter title
+  """
   title: String! @isString
 
-  """Chapter content in markdown format"""
+  """
+  Chapter content in markdown format
+  """
   content: String! @isString(multiline: true)
 }
 
 input UpdateChapterInput {
-  """Chapter title"""
+  """
+  Chapter title
+  """
   title: String @isString
 }
 
@@ -60,7 +86,8 @@ extend type Mutation {
   """
   Create a new chapter for a novel. The chapter number is auto-assigned as the next number after the novel's current last chapter.
   """
-  createChapter(novelID: ID!, input: CreateChapterInput!): Chapter! @hasRole(role: writer)
+  createChapter(novelID: ID!, input: CreateChapterInput!): Chapter!
+    @hasRole(role: writer)
 
   """
   Update a chapter's content. There is no draft support here; use a VCS if you want to draft before saving. This is a no-op, if the content is byte-identical to what's already stored.
@@ -75,7 +102,9 @@ extend type Mutation {
     expectedContentUpdatedAt: Time!
   ): Chapter! @hasRole(role: writer)
 
-  """Update a chapter's metadata, e.g. its title."""
+  """
+  Update a chapter's metadata, e.g. its title.
+  """
   updateChapter(
     id: ID!
     input: UpdateChapterInput!
@@ -89,11 +118,19 @@ extend type Mutation {
   """
   Permanently delete a chapter, its content and its read history. The later chapters of the novel are renumbered down by one.
   """
-  deleteChapter(id: ID!): DeleteChapterResponse! @hasRole(role: writer)
+  deleteChapter(id: ID!): DeleteChapterResponse!
+    @hasRole(role: writer)
 
-  """Mark one or more chapters as read for the authenticated user. Maximum 100 chapter IDs per request."""
-  markChaptersRead(chapterIDs: [ID!]! @maxSize(max: 100)): MarkChaptersReadResponse!
+  """
+  Mark one or more chapters as read for the authenticated user. Maximum 100 chapter IDs per request.
+  """
+  markChaptersRead(
+    chapterIDs: [ID!]! @maxSize(max: 100)
+  ): MarkChaptersReadResponse! @skipTermsOfServiceCheck
 
-  """Delete all read history for the authenticated user (GDPR compliance)."""
+  """
+  Delete all read history for the authenticated user (GDPR compliance).
+  """
   deleteReadHistory: DeleteReadHistoryResponse!
+    @skipTermsOfServiceCheck
 }

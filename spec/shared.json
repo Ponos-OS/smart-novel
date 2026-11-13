@@ -62,14 +62,6 @@
     {
       "name": "WRITER_SEARCH_MAX_LENGTH",
       "value": 100
-    },
-    {
-      "name": "WRITER_PEN_NAME_MIN_LENGTH",
-      "value": 3
-    },
-    {
-      "name": "WRITER_PEN_NAME_MAX_LENGTH",
-      "value": 50
     }
   ],
   "errors": [
@@ -167,30 +159,5 @@
         "level": 1
       }
     ]
-  },
-  "patterns": [
-    {
-      "name": "WRITER_PEN_NAME_PATTERN",
-      "source": "^[A-Za-z_-]+$",
-      "description": "English letters, hyphens and underscores; no digits, spaces or other alphabets. Must stay in the subset JavaScript and Go (RE2) share."
-    }
-  ],
-  "penNameProblems": [
-    {
-      "code": "EMPTY",
-      "message": "Choose a pen name"
-    },
-    {
-      "code": "TOO_SHORT",
-      "message": "A pen name needs at least {WRITER_PEN_NAME_MIN_LENGTH} characters"
-    },
-    {
-      "code": "TOO_LONG",
-      "message": "A pen name can have at most {WRITER_PEN_NAME_MAX_LENGTH} characters"
-    },
-    {
-      "code": "INVALID_CHARACTERS",
-      "message": "A pen name can only have English letters, hyphens and underscores"
-    }
-  ]
+  }
 }

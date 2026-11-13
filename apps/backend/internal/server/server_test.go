@@ -40,6 +40,13 @@ func (tokenVerifier) Verify(_ context.Context, token string) (auth.Viewer, error
 	}, nil
 }
 
+// acceptedTerms stands in for the database: every user has accepted the current terms.
+type acceptedTerms struct{}
+
+func (acceptedTerms) HasAcceptedCurrent(context.Context, string) (bool, error) {
+	return true, nil
+}
+
 func newHandler(env string) http.Handler {
 	return server.New(server.Options{
 		Config: config.Config{App: config.App{
@@ -49,6 +56,7 @@ func newHandler(env string) http.Handler {
 		Logger:         slog.New(slog.DiscardHandler),
 		Schema:         graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}, Directives: graph.Directives()}),
 		Verifier:       tokenVerifier{},
+		Terms:          acceptedTerms{},
 		TracerProvider: sdktrace.NewTracerProvider(),
 	})
 }
@@ -178,6 +186,7 @@ func TestOperationSpanIsNamedAfterTheOperation(t *testing.T) {
 		Logger:         slog.New(slog.DiscardHandler),
 		Schema:         graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}, Directives: graph.Directives()}),
 		Verifier:       tokenVerifier{},
+		Terms:          acceptedTerms{},
 		TracerProvider: provider,
 	})
 

@@ -48,9 +48,15 @@ models:
   NovelWriter:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/internal/novel.WriterView
+  PlatformTerms:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/platformterms.Terms
+  PlatformTermsStatus:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/platformterms.Status
   WriterApplication:
     model:
-      - github.com/Ponos-OS/smart-novel/apps/backend/internal/novel.WriterApplication
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/writer.Application
   CreateChapterInput:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/internal/chapter.CreateInput
