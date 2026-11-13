@@ -9,11 +9,16 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
 )
 
+// NULMessage is the bad request for a NUL character: PostgreSQL cannot store or compare it.
+const NULMessage = "Text cannot contain a NUL character"
+
 // Rules reported in a Violation.
 const (
 	RuleBlank    = "blank"
 	RuleTooShort = "too_short"
 	RuleTooLong  = "too_long"
+	RuleTooSmall = "too_small"
+	RuleTooLarge = "too_large"
 )
 
 // Violation says which input field broke which rule, with the numbers a client needs to word the message.
@@ -59,6 +64,20 @@ func (c *Checker) MinLength(field, value string, minimum int) {
 func (c *Checker) MaxLength(field, value string, maximum int) {
 	if utf8.RuneCountInString(value) > maximum {
 		c.add(field, RuleTooLong, map[string]any{"max": maximum})
+	}
+}
+
+// AtLeast accepts a number that is not below minimum.
+func (c *Checker) AtLeast(field string, value, minimum int) {
+	if value < minimum {
+		c.add(field, RuleTooSmall, map[string]any{"min": minimum})
+	}
+}
+
+// AtMost accepts a number that is not above maximum.
+func (c *Checker) AtMost(field string, value, maximum int) {
+	if value > maximum {
+		c.add(field, RuleTooLarge, map[string]any{"max": maximum})
 	}
 }
 

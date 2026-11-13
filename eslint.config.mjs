@@ -1,6 +1,7 @@
 // @ts-check
 
 import js from '@eslint/js';
+import graphqlPlugin from '@graphql-eslint/eslint-plugin';
 import vitest from '@vitest/eslint-plugin';
 import importPlugin from 'eslint-plugin-import';
 import perfectionist from 'eslint-plugin-perfectionist';
@@ -23,6 +24,14 @@ const featurePublicFiles = {
   ],
   'platform-terms': ['PlatformTermsGate', 'PlatformTermsTab'],
 };
+
+/**
+ * @description GraphQL names follow Go names, which entgql derives from the ent fields: `novelID`, never `novelId`.
+ */
+const initialismPatterns = [
+  /[a-z]Ids?([A-Z]|$)/,
+  /[a-z]Urls?([A-Z]|$)/,
+];
 
 export default [
   js.configs.recommended,
@@ -230,4 +239,22 @@ export default [
     },
   },
   prettierRecommended,
+  {
+    files: ['apps/backend/api/*.graphql'],
+    ignores: ['apps/backend/api/ent.graphql'],
+    languageOptions: { parser: graphqlPlugin.parser },
+    plugins: { '@graphql-eslint': graphqlPlugin },
+    rules: {
+      'prettier/prettier': 'off',
+      '@graphql-eslint/naming-convention': [
+        'error',
+        {
+          FieldDefinition: { forbiddenPatterns: initialismPatterns },
+          InputValueDefinition: {
+            forbiddenPatterns: initialismPatterns,
+          },
+        },
+      ],
+    },
+  },
 ];

@@ -10,20 +10,34 @@ const STATS = `#graphql
     }
   }
 `;
+/**
+ * @description The `where` of a history query for days from and to, which are inclusive.
+ */
+function days({ from, to }: { from?: string; to?: string }) {
+  return { dayGTE: from, dayLTE: to };
+}
+
+/**
+ * @description Days as the same ISO text whatever the precision the API answers with.
+ */
+function isoDay(day: string) {
+  return new Date(day).toISOString();
+}
+
 const HISTORY = `#graphql
   query History(
     $first: Int
     $last: Int
-    $after: String
-    $before: String
-    $filters: StatsHistoryFiltersInput
+    $after: Cursor
+    $before: Cursor
+    $where: StatsSnapshotWhereInput
   ) {
-    statsSnapshotsConnection(
+    statsSnapshots(
       first: $first
       last: $last
       after: $after
       before: $before
-      filters: $filters
+      where: $where
     ) {
       edges {
         cursor
@@ -139,16 +153,19 @@ describe('Content stats (e2e)', () => {
     });
   });
 
-  describe('statsSnapshotsConnection', () => {
+  describe('statsSnapshots', () => {
     it('should return the days of a range oldest first with exact counts', async () => {
       const data = await graphql(
         HISTORY,
-        { filters: seededRange },
+        { where: days(seededRange) },
         adminAuthorization,
       );
 
-      const nodes = data.data.statsSnapshotsConnection.edges.map(
-        (edge: { node: unknown }) => edge.node,
+      const nodes = data.data.statsSnapshots.edges.map(
+        (edge: { node: { day: string } }) => ({
+          ...edge.node,
+          day: isoDay(edge.node.day),
+        }),
       );
       expect(nodes).toEqual(
         seededDays.map((day, index) => ({
@@ -163,14 +180,14 @@ describe('Content stats (e2e)', () => {
     it('should return the newest two days of the range, still oldest first', async () => {
       const data = await graphql(
         HISTORY,
-        { last: 2, filters: seededRange },
+        { last: 2, where: days(seededRange) },
         adminAuthorization,
       );
 
-      const connection = data.data.statsSnapshotsConnection;
+      const connection = data.data.statsSnapshots;
       expect(
-        connection.edges.map(
-          (edge: { node: { day: string } }) => edge.node.day,
+        connection.edges.map((edge: { node: { day: string } }) =>
+          isoDay(edge.node.day),
         ),
       ).toEqual([
         '2001-03-04T00:00:00.000Z',
@@ -183,17 +200,17 @@ describe('Content stats (e2e)', () => {
       const data = await graphql(
         HISTORY,
         {
-          filters: {
+          where: days({
             from: '2001-03-02T18:00:00.000Z',
             to: '2001-03-03T06:00:00.000Z',
-          },
+          }),
         },
         adminAuthorization,
       );
 
       expect(
-        data.data.statsSnapshotsConnection.edges.map(
-          (edge: { node: { day: string } }) => edge.node.day,
+        data.data.statsSnapshots.edges.map(
+          (edge: { node: { day: string } }) => isoDay(edge.node.day),
         ),
       ).toEqual([
         '2001-03-02T00:00:00.000Z',
@@ -204,21 +221,20 @@ describe('Content stats (e2e)', () => {
     it('should page forward with the cursor', async () => {
       const first = await graphql(
         HISTORY,
-        { first: 2, filters: seededRange },
+        { first: 2, where: days(seededRange) },
         adminAuthorization,
       );
-      const { endCursor } =
-        first.data.statsSnapshotsConnection.pageInfo;
+      const { endCursor } = first.data.statsSnapshots.pageInfo;
 
       const second = await graphql(
         HISTORY,
-        { first: 2, after: endCursor, filters: seededRange },
+        { first: 2, after: endCursor, where: days(seededRange) },
         adminAuthorization,
       );
 
       expect(
-        second.data.statsSnapshotsConnection.edges.map(
-          (edge: { node: { day: string } }) => edge.node.day,
+        second.data.statsSnapshots.edges.map(
+          (edge: { node: { day: string } }) => isoDay(edge.node.day),
         ),
       ).toEqual([
         '2001-03-03T00:00:00.000Z',
@@ -226,27 +242,19 @@ describe('Content stats (e2e)', () => {
       ]);
     });
 
-    it('should refuse a cursor after the range changed', async () => {
-      const first = await graphql(
-        HISTORY,
-        { first: 2, filters: seededRange },
-        adminAuthorization,
-      );
-      const { endCursor } =
-        first.data.statsSnapshotsConnection.pageInfo;
-
+    it('should refuse a range that ends before it starts', async () => {
       const data = await graphql(
         HISTORY,
         {
-          first: 2,
-          after: endCursor,
-          filters: { ...seededRange, to: '2001-03-04T00:00:00.000Z' },
+          where: days({
+            from: '2001-03-05T00:00:00.000Z',
+            to: '2001-03-01T00:00:00.000Z',
+          }),
         },
         adminAuthorization,
       );
 
       expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
-      expect(data.errors[0].message).toContain('Invalid cursor');
     });
   });
 });

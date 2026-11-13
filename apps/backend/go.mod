@@ -15,6 +15,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.45.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.45.0
 	github.com/vektah/gqlparser/v2 v2.5.64
+	github.com/vikstrous/dataloadgen v0.0.10
 	github.com/zitadel/oidc/v3 v3.49.2
 	github.com/zitadel/zitadel-go/v3 v3.30.0
 	go.opentelemetry.io/contrib/bridges/otelslog v0.21.0
@@ -25,6 +26,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.47.0
 	go.opentelemetry.io/otel/sdk/log v1.47.0
 	go.opentelemetry.io/otel/trace v1.47.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -119,7 +121,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20261110000943-09e21b237f2c // indirect
 	google.golang.org/grpc v1.84.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 tool github.com/99designs/gqlgen

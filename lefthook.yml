@@ -1,7 +1,7 @@
 pre-commit:
   jobs:
     - name: eslint
-      glob: "*.{ts,tsx,js,jsx,mjs}"
+      glob: "*.{ts,tsx,js,jsx,mjs,graphql}"
       run: npx eslint --fix {staged_files}
       stage_fixed: true
     - name: prettier

@@ -73,6 +73,7 @@
     "@graphql-codegen/typescript": "^5.0.9",
     "@graphql-codegen/typescript-operations": "^5.0.9",
     "@graphql-codegen/typescript-react-query": "^7.0.0",
+    "@graphql-eslint/eslint-plugin": "^4.4.2",
     "@noble/hashes": "^1.4.0",
     "@semantic-release/exec": "^7.1.0",
     "@semantic-release/git": "^11.0.1",

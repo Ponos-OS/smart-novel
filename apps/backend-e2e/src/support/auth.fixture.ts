@@ -2,6 +2,7 @@ import axios from 'axios';
 import { decodeJwt, importPKCS8, SignJWT } from 'jose';
 import { createPrivateKey } from 'node:crypto';
 
+import { ClusterFixture } from './cluster.fixture';
 import { config } from './config.helper';
 import { uniquePenName } from './pen-name';
 import { ZitadelFixture } from './zitadel.fixture';
@@ -78,6 +79,10 @@ export class AuthorizationFixture {
       );
     }
 
+    if (!(await AuthorizationFixture.hasWriterRequests())) {
+      return AuthorizationFixture.createApprovedWriter(acceptTerms);
+    }
+
     const requester =
       await AuthorizationFixture.createAccount('user');
     const adminAuthorization =
@@ -115,6 +120,38 @@ export class AuthorizationFixture {
       AuthorizationFixture.userIdOf(authorization),
       authorization,
     );
+  }
+
+  /**
+   * @description A writer the way an admin's approval would leave them (the role in ZITADEL and an approved row), for the time the Go backend has no writer requests. Remove this with step 7 of REQUIREMENTS.md.
+   */
+  private static async createApprovedWriter(acceptTerms: boolean) {
+    const userId = await ZitadelFixture.createHumanUser();
+    await ZitadelFixture.setProjectRole(userId, 'writer');
+    const authorization =
+      await AuthorizationFixture.getAuthorizationHeaderOf(userId);
+    const { whoAmI } = await AuthorizationFixture.graphql<{
+      whoAmI: { name: string; email: string };
+    }>('{ whoAmI { name email } }', {}, authorization);
+    ClusterFixture.queryDatabase(
+      `INSERT INTO writers (id, user_id, name, email, pen_name, status, applications)
+       VALUES (gen_random_uuid(), '${userId}', '${whoAmI.name}', '${whoAmI.email}', '${uniquePenName()}', 'APPROVED', '[]');`,
+    );
+
+    return acceptTerms
+      ? AuthorizationFixture.withAcceptedTerms(userId, authorization)
+      : authorization;
+  }
+
+  /**
+   * @description Whether the backend has writer requests yet; the Go backend has none until step 7 of REQUIREMENTS.md.
+   */
+  private static async hasWriterRequests() {
+    const { data } = await axios.post('/graphql', {
+      query: '{ __type(name: "Writer") { name } }',
+    });
+
+    return data.data?.__type !== null;
   }
 
   /**
@@ -196,11 +233,17 @@ export class AuthorizationFixture {
 
   private static async acceptPlatformTerms(authorization: string) {
     const headers = { Authorization: authorization };
-    const { data: terms } = await axios.post(
+    const { data: terms, status } = await axios.post(
       '/graphql',
       { query: '{ platformTerms { version } }' },
-      { headers },
+      { headers, validateStatus: () => true },
     );
+
+    // The Go backend has no platform terms until step 7 of REQUIREMENTS.md; remove this with that step.
+    if (status === 422) {
+      return;
+    }
+
     const { data: accepted } = await axios.post(
       '/graphql',
       {

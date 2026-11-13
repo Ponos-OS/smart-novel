@@ -1,3 +1,5 @@
 extend type Query {
   health: String! @public
 }
+
+type Mutation

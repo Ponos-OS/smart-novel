@@ -43,8 +43,17 @@
       "description": "Most chapter IDs a single markChaptersRead request accepts."
     },
     {
+      "name": "NOVEL_OWNER_IDS_MAX_SIZE",
+      "value": 100,
+      "description": "Most writers a novel list can be narrowed to."
+    },
+    {
       "name": "TAG_DESCRIPTION_MAX_LENGTH",
       "value": 650
+    },
+    {
+      "name": "TAG_NAME_MAX_LENGTH",
+      "value": 50
     },
     {
       "name": "WRITER_NOTE_MAX_LENGTH",
@@ -76,6 +85,14 @@
     {
       "code": "FORBIDDEN",
       "description": "GraphQL extensions.code when the caller is authenticated but lacks the role or ownership."
+    },
+    {
+      "code": "NOT_FOUND",
+      "description": "GraphQL extensions.code when the novel, chapter or tag asked for does not exist."
+    },
+    {
+      "code": "CONFLICT",
+      "description": "GraphQL extensions.code when the record changed since the client read it, so its edit would overwrite someone else's."
     },
     {
       "code": "BAD_REQUEST",

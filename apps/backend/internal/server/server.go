@@ -32,6 +32,7 @@ type Options struct {
 	Logger         *slog.Logger
 	Schema         graphql.ExecutableSchema
 	Verifier       auth.Verifier
+	Extensions     []graphql.HandlerExtension
 	TracerProvider trace.TracerProvider
 }
 
@@ -73,6 +74,10 @@ func graphqlHandler(options Options) http.Handler {
 	srv.SetErrorPresenter(errorPresenter(options.Logger))
 	srv.Use(operationSpan{})
 	srv.AroundFields(auth.Guard())
+	srv.AroundFields(rejectNUL)
+	for _, custom := range options.Extensions {
+		srv.Use(custom)
+	}
 	srv.Use(depthLimit{limit: maxQueryDepth})
 	if options.Config.App.Env != config.EnvProduction {
 		srv.Use(extension.Introspection{})

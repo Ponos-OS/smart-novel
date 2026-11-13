@@ -35,6 +35,7 @@ locals {
   apps_volume = { name = "apps", mount_path = "/app/apps", host_path = local.node_apps }
 
   backend_image  = "smart-novel-backend:${local.hot_reload ? "dev" : var.image_tag}"
+  devdata_image  = local.hot_reload ? local.backend_image : "smart-novel-backend-devdata:${var.image_tag}"
   frontend_image = "smart-novel-frontend:${local.hot_reload ? "dev" : var.image_tag}"
 
   # Stage 2 configures ZITADEL and outputs what the workloads need; the workloads are held back until it has run.
@@ -48,6 +49,29 @@ locals {
   )
   backend_volumes = local.hot_reload ? [local.apps_volume] : []
 
+  # Demo data for development and e2e, never production: the example novel, the default license and the seeded accounts. The development image runs devdata from the mounted sources, the e2e one carries a binary and the data.
+  devdata_job_environment = local.zitadel == null ? {} : {
+    ZITADEL_WRITER_USER_ID = local.zitadel.user_ids["writer"]
+    SEEDED_WRITERS = jsonencode([
+      for writer in local.zitadel.seeded_writers : {
+        userId  = writer.user_id
+        name    = writer.name
+        email   = writer.email
+        penName = writer.pen_name
+      }
+    ])
+  }
+  pre_deploy_jobs = [
+    {
+      name                    = "backend-init"
+      image                   = local.devdata_image
+      command                 = local.hot_reload ? ["task", "devdata"] : ["devdata"]
+      use_backend_environment = true
+      environment             = merge(local.devdata_job_environment, local.hot_reload ? { DATA_PATH = "/app/apps/backend/data" } : {})
+      volumes                 = local.backend_volumes
+    },
+  ]
+
   frontend_script = local.hot_reload ? "start-frontend-dev.sh" : "start-frontend-e2e.sh"
   frontend_port   = local.hot_reload ? tonumber(local.dotenv["FRONTEND_PORT"]) : 80
   frontend_volumes = local.hot_reload ? [
@@ -55,7 +79,7 @@ locals {
   ] : []
   frontend_environment_by_mode = merge(local.hot_reload ? local.frontend_environment : {}, local.zitadel_frontend_environment)
 
-  built_images = [local.backend_image, local.frontend_image]
+  built_images = concat([local.backend_image, local.frontend_image], local.hot_reload ? [] : [local.devdata_image])
   all_third_party_images = merge(
     var.third_party_images,
     var.enable_devtools ? var.devtools_images : {},
@@ -191,6 +215,7 @@ module "app" {
   backend_environment        = local.backend_environment_by_mode
   backend_secret_environment = merge(local.backend_secret_environment, local.zitadel_backend_secret_environment)
   backend_volumes            = local.backend_volumes
+  pre_deploy_jobs            = local.pre_deploy_jobs
 
   frontend_port        = local.frontend_port
   frontend_environment = local.frontend_environment_by_mode
@@ -200,7 +225,7 @@ module "app" {
 
   enable_devtools = var.enable_devtools
 
-  object_storage_seed_volume = { host_path = "${local.node_apps}/backend-nest/data" }
+  object_storage_seed_volume = { host_path = "${local.node_apps}/backend/data" }
   otlp_endpoint              = local.otlp_endpoint
   log_shipping               = local.log_shipping
   ingress_class_name         = local.ingress_class_name

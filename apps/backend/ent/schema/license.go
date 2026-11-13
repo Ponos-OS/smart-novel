@@ -37,6 +37,7 @@ func (License) Fields() []ent.Field {
 		field.String("text_hash").
 			Optional().
 			Nillable().
+			Annotations(entgql.Skip(entgql.SkipAll)).
 			Comment("Null while the row is a draft: a draft changes on every save and is not deduplicated. Unique per owner."),
 		field.Enum("source_type").
 			Values("CANONICAL", "FORKED", "CUSTOM").
@@ -48,6 +49,7 @@ func (License) Fields() []ent.Field {
 			Default(false),
 		field.Bool("is_draft").
 			Default(false).
+			Annotations(entgql.Skip(entgql.SkipAll)).
 			Comment("A license being worked on: mutable, private to its owner, never used by a novel."),
 		field.String("owner_id").
 			Default(systemOwner).
@@ -56,7 +58,7 @@ func (License) Fields() []ent.Field {
 }
 
 func (License) Edges() []ent.Edge {
-	return []ent.Edge{edge.To("novels", Novel.Type).Annotations(entsql.OnDelete(entsql.Restrict))}
+	return []ent.Edge{edge.To("novels", Novel.Type).Annotations(entsql.OnDelete(entsql.Restrict), entgql.Skip(entgql.SkipAll))}
 }
 
 func (License) Indexes() []ent.Index {

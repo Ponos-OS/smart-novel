@@ -31,7 +31,7 @@ describe('Chapter deletion (e2e)', () => {
           $novelId: ID!
           $input: CreateChapterInput!
         ) {
-          createChapter(novelId: $novelId, input: $input) {
+          createChapter(novelID: $novelId, input: $input) {
             id
             chapterNumber
           }
@@ -89,7 +89,7 @@ describe('Chapter deletion (e2e)', () => {
         mutation DeleteChapter($id: ID!) {
           deleteChapter(id: $id) {
             id
-            novelId
+            novelID
           }
         }
       `,
@@ -128,7 +128,7 @@ describe('Chapter deletion (e2e)', () => {
       expect(data.errors).toBeUndefined();
       expect(data.data.deleteChapter).toStrictEqual({
         id: chapter.id,
-        novelId: NOVEL_ID,
+        novelID: NOVEL_ID,
       });
       expect(await getChapter(chapter.id, writerHeader)).toBeNull();
     },
@@ -139,6 +139,7 @@ describe('Chapter deletion (e2e)', () => {
       role: 'user',
       getAuthorizationHeader:
         AuthorizationFixture.getUserAuthorizationHeader,
+      message: 'You need at least the "writer" role',
     },
     {
       role: 'writer who does not own the novel',
@@ -146,10 +147,11 @@ describe('Chapter deletion (e2e)', () => {
         AuthorizationFixture.getWriterAuthorizationHeader({
           fresh: true,
         }),
+      message: 'You do not have permission to delete this chapter',
     },
   ])(
     'should NOT allow $role to delete a chapter',
-    async ({ getAuthorizationHeader }) => {
+    async ({ getAuthorizationHeader, message }) => {
       const writerHeader =
         await AuthorizationFixture.getWriterAuthorizationHeader();
       const chapter = await createChapter(
@@ -163,9 +165,7 @@ describe('Chapter deletion (e2e)', () => {
         authorizationHeader,
       );
 
-      expect(data.errors[0].message).toContain(
-        'You do not have permission to delete this chapter',
-      );
+      expect(data.errors[0].message).toContain(message);
       expect(
         await getChapter(chapter.id, writerHeader),
       ).not.toBeNull();
@@ -266,7 +266,7 @@ describe('Chapter deletion (e2e)', () => {
       `
         #graphql
         mutation MarkChaptersRead($chapterIds: [ID!]!) {
-          markChaptersRead(chapterIds: $chapterIds) {
+          markChaptersRead(chapterIDs: $chapterIds) {
             markedCount
           }
         }

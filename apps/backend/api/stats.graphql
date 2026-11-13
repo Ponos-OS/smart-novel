@@ -1,0 +1,18 @@
+type ContentStats {
+  """
+  The planner's estimate of the number of novels right now, not an exact count (it is as fresh as the last `ANALYZE`). 0 when the estimate cannot be read.
+  """
+  estimatedNovelCount: Int!
+
+  """
+  The planner's estimate of the number of chapters right now, not an exact count. 0 when the estimate cannot be read.
+  """
+  estimatedChapterCount: Int!
+}
+
+extend type Query {
+  """
+  Admin only. Today's totals of the whole catalog, as planner estimates (cheap, safe on every page view). They do not follow any list filter.
+  """
+  contentStats: ContentStats! @hasRole(role: admin)
+}

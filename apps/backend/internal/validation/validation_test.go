@@ -61,3 +61,25 @@ func TestErrorIsABadRequestWithItsViolations(t *testing.T) {
 		t.Errorf("extensions = %v", err.Extensions())
 	}
 }
+
+func TestCheckerComparesNumbers(t *testing.T) {
+	var checker validation.Checker
+
+	checker.AtLeast("first", 0, 1)
+	checker.AtMost("last", 101, 100)
+	checker.AtLeast("ok", 1, 1)
+	checker.AtMost("ok", 100, 100)
+	err := checker.Err()
+
+	var invalid *validation.Error
+	if !errors.As(err, &invalid) {
+		t.Fatalf("err = %v, want a validation error", err)
+	}
+	want := []validation.Violation{
+		{Field: "first", Rule: validation.RuleTooSmall, Params: map[string]any{"min": 1}},
+		{Field: "last", Rule: validation.RuleTooLarge, Params: map[string]any{"max": 100}},
+	}
+	if !reflect.DeepEqual(invalid.Violations, want) {
+		t.Errorf("violations = %+v, want %+v", invalid.Violations, want)
+	}
+}

@@ -21,8 +21,8 @@ The grouping in `REQUIREMENTS.md` holds, with these corrections found while read
 | auth (JWT guard, ZITADEL provider, roles/policies guards, CASL)  | `internal/auth`                                                       | 5 (done)                   |
 | zitadel management client (project grants)                       | `internal/platform/zitadel`                                           | 7                          |
 | prisma                                                           | `ent`, `ent/migrate`                                                  | 4                          |
-| cursor (signed cursors, audience)                                | `internal/pagination`                                                 | 6                          |
-| tag                                                              | `internal/tag`                                                        | 6                          |
+| cursor (signed cursors, audience)                                | `internal/pagination`                                                 | 6 (done)                   |
+| tag                                                              | `internal/tag`                                                        | 6 (done)                   |
 | novel (novel, chapter, chapter content, read state, dataloaders) | `internal/novel`                                                      | 6 (cover: 8, narration: 8) |
 | stats (content stats, snapshot cron)                             | `internal/stats`                                                      | 6 (cron: 8)                |
 | license, license-assistant, fithara                              | `internal/license`, `internal/platform/fithara`                       | 7                          |
@@ -43,9 +43,9 @@ The grouping in `REQUIREMENTS.md` holds, with these corrections found while read
 | --------------------------------------------------------------------------------- | ----------------- | -------- |
 | `health`                                                                          | app               | 3 (done) |
 | `whoAmI`                                                                          | auth              | 5 (done) |
-| `tagsConnection`                                                                  | tag               | 6        |
-| `novel`, `novelsConnection`                                                       | novel             | 6        |
-| `contentStats`, `statsSnapshotsConnection`                                        | stats             | 6        |
+| `tagsConnection` (now `tags`)                                                     | tag               | 6 (done) |
+| `novel`, `novelsConnection` (now `novels`)                                        | novel             | 6 (done) |
+| `contentStats`, `statsSnapshotsConnection` (now `statsSnapshots`)                 | stats             | 6 (done) |
 | `defaultLicense`, `licensesConnection`, `licenseDraftsConnection`, `licenseDraft` | license           | 7        |
 | `canonicalLicenses`, `canonicalLicense`                                           | license-assistant | 7        |
 | `platformTerms`, `myPlatformTermsStatus`                                          | platform-terms    | 7        |
@@ -53,20 +53,20 @@ The grouping in `REQUIREMENTS.md` holds, with these corrections found while read
 
 `Mutation`:
 
-| Operation                                                                               | Module            | Step |
-| --------------------------------------------------------------------------------------- | ----------------- | ---- |
-| `requestTag`, `createTag`, `approveTag`, `updateTag`, `deleteTag`                       | tag               | 6    |
-| `createNovel`, `updateNovel`, `deleteNovel`                                             | novel             | 6    |
-| `createChapter`, `updateChapter`, `updateContent`, `deleteChapter`                      | novel             | 6    |
-| `markChaptersRead`, `deleteReadHistory`                                                 | novel             | 6    |
-| `createNovelCoverUploadUrl`, `setNovelCover`                                            | novel             | 8    |
-| `generateChapterAudio`                                                                  | novel             | 8    |
-| `explain`                                                                               | llm               | 8    |
-| `createLicense`, `setDefaultLicense`                                                    | license           | 7    |
-| `createLicenseDraft`, `saveLicenseDraft`, `finalizeLicenseDraft`, `discardLicenseDraft` | license           | 7    |
-| `draftLicense`                                                                          | license-assistant | 7    |
-| `acceptPlatformTerms`                                                                   | platform-terms    | 7    |
-| `requestWriterAccess`, `approveWriter`, `rejectWriter`                                  | writer            | 7    |
+| Operation                                                                               | Module            | Step     |
+| --------------------------------------------------------------------------------------- | ----------------- | -------- |
+| `requestTag`, `createTag`, `approveTag`, `updateTag`, `deleteTag`                       | tag               | 6 (done) |
+| `createNovel`, `updateNovel`, `deleteNovel`                                             | novel             | 6 (done) |
+| `createChapter`, `updateChapter`, `updateContent`, `deleteChapter`                      | novel             | 6 (done) |
+| `markChaptersRead`, `deleteReadHistory`                                                 | novel             | 6 (done) |
+| `createNovelCoverUploadUrl`, `setNovelCover`                                            | novel             | 8        |
+| `generateChapterAudio`                                                                  | novel             | 8        |
+| `explain`                                                                               | llm               | 8        |
+| `createLicense`, `setDefaultLicense`                                                    | license           | 7        |
+| `createLicenseDraft`, `saveLicenseDraft`, `finalizeLicenseDraft`, `discardLicenseDraft` | license           | 7        |
+| `draftLicense`                                                                          | license-assistant | 7        |
+| `acceptPlatformTerms`                                                                   | platform-terms    | 7        |
+| `requestWriterAccess`, `approveWriter`, `rejectWriter`                                  | writer            | 7        |
 
 `Subscription`: `chapterNarrationUpdated` (graphql-ws over an in-memory `PubSub`, so one backend replica) | novel | 8. gqlgen needs its websocket transport, which step 3 leaves out.
 
@@ -74,12 +74,12 @@ Fields NestJS resolves separately from the entity (the ones that are not plain c
 
 | Field                                                                                                                                                                  | Step                  |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| `Novel.allowedActions`, `Novel.chapter`, `Novel.chaptersConnection`, `Novel.firstChapter`, `Novel.lastPublishedChapter`, `Novel.estimatedChapterCount`, `Novel.writer` | 6                     |
+| `Novel.allowedActions`, `Novel.chapter`, `Novel.chaptersConnection`, `Novel.firstChapter`, `Novel.lastPublishedChapter`, `Novel.estimatedChapterCount`, `Novel.writer` | 6 (done)              |
 | `Novel.coverUrl` (needs the object storage public URL)                                                                                                                 | 8                     |
 | `Novel.license`                                                                                                                                                        | 7                     |
 | `Chapter.next`, `Chapter.previous`, `Chapter.content`, `Chapter.narrationUrl`, `Chapter.viewerState`                                                                   | 6 (`narrationUrl`: 8) |
-| `ChapterConnection.totalCount`                                                                                                                                         | 6                     |
-| `Tag.approximateNovelCount`, `Tag.requesterUserId`                                                                                                                     | 6                     |
+| `ChapterConnection.totalCount`                                                                                                                                         | 6 (done)              |
+| `Tag.approximateNovelCount`, `Tag.requesterUserId`                                                                                                                     | 6 (done)              |
 | `License.officialUrl`, `License.scope`                                                                                                                                 | 7                     |
 
 Treat this list as a hypothesis: step 6 and 7 read the NestJS resolvers again and the frontend `.graphql` documents, which are the real contract.
@@ -109,7 +109,7 @@ Keys in `apps/backend-nest/src/app/configs/app.config.ts`, from `.env.example` a
 | `PORT`, `APP_ENV`, `CORS_ALLOWED_ORIGINS`, `LOG_FORMAT`, `LOG_LEVEL`, `SERVICE_NAME`, `OTEL_*` (`ENABLED`, `EXPORTER_OTLP_ENDPOINT`, `TRACES_SAMPLER`, `TRACES_SAMPLER_ARG`, `BATCH_*`, `LOGS_EXPORTER`)                                                                               | `internal/config`                 | 3 (done)                                                                                                                                                                                                                                                       |
 | `DATABASE_URL`                                                                                                                                                                                                                                                                         | `internal/config`, ent client     | 4                                                                                                                                                                                                                                                              |
 | `ZITADEL_ISSUER_URL`, `ZITADEL_INTERNAL_URL`, `ZITADEL_DOMAIN`, `ZITADEL_PROJECT_ID`, `ZITADEL_CLIENT_ID`(`_FILE`), `ZITADEL_CLIENT_SECRET`, `ZITADEL_PAT`(`_FILE`), `ZITADEL_CALLBACK_URL`, `ZITADEL_POST_LOGIN_URL`, `ZITADEL_POST_LOGOUT_URL`, `SESSION_SECRET`, `SESSION_DURATION` | `internal/auth`                   | 5 (done for `ZITADEL_ISSUER_URL`, `ZITADEL_INTERNAL_URL` and the new `ZITADEL_INTROSPECTION_CLIENT_ID` and `_SECRET`; the PATs are for step 7; check which of the session and callback keys the Go backend still needs: they exist for the NestJS cookie flow) |
-| `CURSOR_SIGNING_SECRET`                                                                                                                                                                                                                                                                | `internal/pagination`             | 6                                                                                                                                                                                                                                                              |
+| `CURSOR_SIGNING_SECRET` (dropped: ent cursors are not signed)                                                                                                                                                                                                                          | `internal/pagination`             | 6 (done)                                                                                                                                                                                                                                                       |
 | `ZITADEL_MANAGEMENT_PAT`                                                                                                                                                                                                                                                               | `internal/platform/zitadel`       | 7                                                                                                                                                                                                                                                              |
 | `FITHARA_URL`, `FITHARA_TIMEOUT` (and the build-time `FITHARA_VERSION`)                                                                                                                                                                                                                | `internal/platform/fithara`       | 7                                                                                                                                                                                                                                                              |
 | `REDIS_URL`, `REDIS_PASSWORD`                                                                                                                                                                                                                                                          | `internal/platform/redis`         | 8                                                                                                                                                                                                                                                              |
@@ -139,13 +139,13 @@ Keys in `apps/backend-nest/src/app/configs/app.config.ts`, from `.env.example` a
 
 ## Infrastructure tied to the backend image
 
-| Today                                                                                                                                              | Change                                                                                                                                                                                                     | Step     |
-| -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| `backend-init` Job in `local/1-app` (`prisma db push`, `generate`, `seed` with the example novel in `apps/backend-nest/data` and `SEEDED_WRITERS`) | Removed in step 3: the Go backend has no schema yet. Migrations arrive in step 4; the seed (example novel, seeded writers, the `/data` volume) comes back as a Go command once the entities it needs exist | 4 to 7   |
-| `frontend-codegen` Job (ran in the NestJS dev image)                                                                                               | Removed in step 3: `build-images.sh` runs `task frontend:generate` on the host in both modes                                                                                                               | 3 (done) |
-| Hetzner `backend-migrate` Job (`var.migrate_image`, `prisma migrate deploy`)                                                                       | Atlas migrations in the `migrate` target of `apps/backend/Dockerfile`                                                                                                                                      | 4 (done) |
-| `smart-novel-backend` image                                                                                                                        | Go (`apps/backend/Dockerfile`, targets `development` and `production`); the NestJS Dockerfile stays for reference                                                                                          | 3 (done) |
-| Health probe `POST /graphql { health }`                                                                                                            | Unchanged: the Go image has `curl` and answers the same query                                                                                                                                              | 3 (done) |
+| Today                                                                                                                                                              | Change                                                                                                                                                                                                     | Step     |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `backend-init` Job in `local/1-app` (`prisma db push`, `generate`, `seed` (now `devdata`) with the example novel in `apps/backend-nest/data` and `SEEDED_WRITERS`) | Removed in step 3: the Go backend has no schema yet. Migrations arrive in step 4; the seed (example novel, seeded writers, the `/data` volume) comes back as a Go command once the entities it needs exist | 4 to 7   |
+| `frontend-codegen` Job (ran in the NestJS dev image)                                                                                                               | Removed in step 3: `build-images.sh` runs `task frontend:generate` on the host in both modes                                                                                                               | 3 (done) |
+| Hetzner `backend-migrate` Job (`var.migrate_image`, `prisma migrate deploy`)                                                                                       | Atlas migrations in the `migrate` target of `apps/backend/Dockerfile`                                                                                                                                      | 4 (done) |
+| `smart-novel-backend` image                                                                                                                                        | Go (`apps/backend/Dockerfile`, targets `development` and `production`); the NestJS Dockerfile stays for reference                                                                                          | 3 (done) |
+| Health probe `POST /graphql { health }`                                                                                                                            | Unchanged: the Go image has `curl` and answers the same query                                                                                                                                              | 3 (done) |
 
 ## Parity oracle
 
@@ -155,7 +155,7 @@ Keys in `apps/backend-nest/src/app/configs/app.config.ts`, from `.env.example` a
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
 | `app`                                                                                                                                                                                                                                  | 3                                                |
 | `auth`                                                                                                                                                                                                                                 | 5                                                |
-| `tags`, `cursor-validation`, `novels`, `novel-list`, `novel-first-chapter-created-at`, `novel/*` except cover, `chapter`, `chapter-delete`, `chapter-user-state`, `content-stats`, `stats-snapshot` (the cron part: 8), `novel-writer` | 6                                                |
+| `tags`, `cursor-validation`, `novels`, `novel-list`, `novel-first-chapter-created-at`, `novel/*` except cover, `chapter`, `chapter-delete`, `chapter-user-state`, `content-stats`, `stats-snapshot` (the cron part: 8), `novel-writer` | 6 (done)                                         |
 | `license`, `license-drafts`, `licenses-connection`, `platform-terms`, `writer`, `writer-review`                                                                                                                                        | 7                                                |
 | `novel/novel-cover`, `chapter-narration/*`, `beatrice-callbacks`, `llm`                                                                                                                                                                | 8                                                |
 | `ingress-routing`                                                                                                                                                                                                                      | 10 (it tests ZITADEL's ingress, not the backend) |

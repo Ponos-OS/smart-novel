@@ -29,7 +29,7 @@ type WhoAmI {
   emailVerified: Boolean!
 
   """Organization / tenant ID the user belongs to"""
-  orgId: String
+  orgID: String
 
   """Roles assigned to the user (project-scoped or global)"""
   roles: [String!]!

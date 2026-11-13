@@ -1,0 +1,153 @@
+"""Actions a user can perform on a novel"""
+enum NovelAction {
+  EDIT_CONTENT
+  MANAGE_TTS
+}
+
+"""PENDING waits for an admin; a REJECTED user may apply again"""
+enum WriterStatus @goModel(model: "github.com/Ponos-OS/smart-novel/apps/backend/ent/writer.Status") {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+"""One application to become a writer, and what an admin decided about it"""
+type WriterApplication {
+  """What the user wrote when they applied"""
+  note: String!
+
+  """When they applied"""
+  appliedAt: Time!
+
+  """Why an admin rejected it, when they said"""
+  rejectionReason: String
+
+  """When an admin decided; null while it waits"""
+  reviewedAt: Time
+}
+
+"""
+The writer of a novel. Everybody sees the pen name; the real name, the email and the applications only admins see (null for everybody else), and only an approved writer is shown to anybody but an admin.
+"""
+type NovelWriter {
+  """The ID of the writer in the identity provider"""
+  userID: String!
+
+  """The name readers see"""
+  penName: String!
+
+  """Admins only"""
+  name: String
+
+  """Admins only"""
+  email: String
+
+  """Admins only"""
+  status: WriterStatus
+
+  """Admins only"""
+  createdAt: Time
+
+  """Admins only; oldest first"""
+  applications: [WriterApplication!]
+}
+
+input ChapterCountRangeInput {
+  """At least this many chapters"""
+  min: Int
+
+  """At most this many chapters"""
+  max: Int
+}
+
+extend type Query {
+  """Find a novel by its ID"""
+  novel(id: ID!): Novel! @public
+
+  """
+  Paginated list of novels, by name unless `orderBy` says otherwise. Without `first` or `last` a page of 20 is returned, at most 100 are allowed. Novels without a chapter come last by FIRST_CHAPTER_CREATED_AT, in both directions.
+  """
+  novels(
+    after: Cursor
+    first: Int
+    before: Cursor
+    last: Int
+    orderBy: NovelOrder
+    where: NovelWhereInput
+
+    """The exact number of chapters, not the estimate `estimatedChapterCount` shows"""
+    chapterCount: ChapterCountRangeInput
+
+    """The novels of these writers, by the `userID` of the writer. At most 100; an empty list means no filter."""
+    ownerIDs: [String!] @maxSize(max: 100)
+  ): NovelConnection! @public
+}
+
+extend type Novel {
+  """Actions the current user is allowed to perform on this novel"""
+  allowedActions: [NovelAction!]! @goField(forceResolver: true)
+
+  """A chapter of this novel; null when the novel has no chapter with this ID"""
+  chapter(id: ID!): Chapter
+
+  """When the last chapter was published (its last update)"""
+  lastChapterPublishedAt: Time
+
+  """The most recently published chapter"""
+  lastPublishedChapter: Chapter
+
+  """The first chapter of the novel"""
+  firstChapter: Chapter
+
+  """
+  An estimate of how many chapters the novel has, taken from the database planner rather than counted. It can be off, most for small numbers, and is never exact.
+  """
+  estimatedChapterCount: Int!
+
+  """
+  Who wrote the novel. Everybody sees the pen name of an approved writer; the real name, email and applications are for admins only, who also see a writer that is not approved.
+  """
+  writer: NovelWriter
+}
+
+type DeleteNovelResponse {
+  """ID of the deleted novel"""
+  id: ID!
+}
+
+input CreateNovelInput {
+  """Novel name"""
+  name: String! @isString
+
+  """A short description"""
+  description: String! @isString(multiline: true, allowEmpty: true)
+
+  """Defaults to ONGOING"""
+  state: NovelState
+
+  """Names of approved tags, compared case-insensitively. Unknown or pending ones are rejected."""
+  tags: [String!] @isString
+}
+
+input UpdateNovelInput {
+  """Novel name"""
+  name: String @isString
+
+  """A short description"""
+  description: String @isString(multiline: true, allowEmpty: true)
+  state: NovelState
+
+  """Replaces the current tags; omit to keep them. Names must be approved tags."""
+  tags: [String!] @isString
+}
+
+extend type Mutation {
+  """Create a novel owned by the caller. Tags must already be approved."""
+  createNovel(input: CreateNovelInput!): Novel! @hasRole(role: writer)
+
+  """Update a novel. Only the passed fields change; passed tags replace the current ones."""
+  updateNovel(id: ID!, input: UpdateNovelInput!): Novel! @hasRole(role: writer)
+
+  """Permanently delete a novel with its chapters, contents and read history."""
+  deleteNovel(id: ID!): DeleteNovelResponse! @hasRole(role: writer)
+}

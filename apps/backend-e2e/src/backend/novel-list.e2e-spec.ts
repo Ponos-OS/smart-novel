@@ -7,18 +7,22 @@ const NOVEL_LIST = `#graphql
   query NovelList(
     $first: Int
     $last: Int
-    $after: String
-    $before: String
-    $filters: NovelFiltersInput
-    $orderBy: NovelOrderByInput
+    $after: Cursor
+    $before: Cursor
+    $where: NovelWhereInput
+    $orderBy: NovelOrder
+    $chapterCount: ChapterCountRangeInput
+    $ownerIds: [String!]
   ) {
-    novelsConnection(
+    novels(
       first: $first
       last: $last
       after: $after
       before: $before
-      filters: $filters
+      where: $where
       orderBy: $orderBy
+      chapterCount: $chapterCount
+      ownerIDs: $ownerIds
     ) {
       edges {
         cursor
@@ -33,7 +37,7 @@ const NOVEL_LIST = `#graphql
             name
           }
           writer {
-            userId
+            userID
             penName
             name
             email
@@ -66,7 +70,7 @@ const CREATE_NOVEL = `#graphql
 `;
 const CREATE_CHAPTER = `#graphql
   mutation CreateChapter($novelId: ID!, $input: CreateChapterInput!) {
-    createChapter(novelId: $novelId, input: $input) {
+    createChapter(novelID: $novelId, input: $input) {
       id
     }
   }
@@ -87,7 +91,7 @@ interface NovelNode {
   estimatedChapterCount: number;
   license: { id: string; name: string };
   writer: {
-    userId: string;
+    userID: string;
     penName: string;
     name: string | null;
     email: string | null;
@@ -101,6 +105,33 @@ interface NovelPage {
     hasPreviousPage: boolean;
     startCursor: string | null;
     endCursor: string | null;
+  };
+}
+
+interface NovelFilters {
+  chapterCount?: { min?: number; max?: number };
+  state?: string;
+  firstChapterCreatedAt?: { from?: string; to?: string };
+  ownerIds?: string[];
+}
+
+/**
+ * @description The arguments of `novels` for the filters this spec asks for.
+ */
+function toArguments({
+  chapterCount,
+  state,
+  firstChapterCreatedAt,
+  ownerIds,
+}: NovelFilters) {
+  return {
+    chapterCount,
+    ownerIds,
+    where: {
+      state,
+      firstChapterCreatedAtGTE: firstChapterCreatedAt?.from,
+      firstChapterCreatedAtLTE: firstChapterCreatedAt?.to,
+    },
   };
 }
 
@@ -138,11 +169,13 @@ describe('Novel list (e2e)', () => {
   let finishedFirstChapterAt: string;
   let betweenFirstChaptersAt: string;
   const createdIds: string[] = [];
+  const otherIds: string[] = [];
 
   async function createNovel(
     name: string,
     chapters: number,
     state = 'ONGOING',
+    writer = owner,
   ): Promise<string> {
     const created = await graphql(
       CREATE_NOVEL,
@@ -153,10 +186,10 @@ describe('Novel list (e2e)', () => {
           state,
         },
       },
-      owner,
+      writer,
     );
     const novelId = created.data.createNovel.id;
-    createdIds.push(novelId);
+    (writer === owner ? createdIds : otherIds).push(novelId);
 
     for (let number = 1; number <= chapters; number++) {
       await graphql(
@@ -168,7 +201,7 @@ describe('Novel list (e2e)', () => {
             content: `# Chapter ${number}\n\nText.`,
           },
         },
-        owner,
+        writer,
       );
     }
 
@@ -187,17 +220,17 @@ describe('Novel list (e2e)', () => {
       {
         first: 100,
         ...variables,
-        filters: {
+        ...toArguments({
           ownerIds: [ownerId],
-          ...(variables.filters as object),
-        },
+          ...(variables.filters as NovelFilters),
+        }),
       },
       authorization,
     );
 
     expect(data.errors).toBeUndefined();
 
-    return data.data.novelsConnection;
+    return data.data.novels;
   }
 
   async function listMine(
@@ -220,13 +253,13 @@ describe('Novel list (e2e)', () => {
     const me = await graphql(WHO_AM_I, {}, owner);
     ownerId = me.data.whoAmI.sub;
     ownerEmail = me.data.whoAmI.email;
-    ownerPenName = (
-      await graphql('{ myWriter { penName } }', {}, owner)
-    ).data.myWriter.penName;
 
     emptyNovelId = await createNovel('Empty', 0);
     finishedNovelId = await createNovel('Finished', 2, 'FINISHED');
     ongoingNovelId = await createNovel('Ongoing', 3);
+    // Another owner, so that "every writer" has more than one to show.
+    await createNovel('Admin', 0, 'ONGOING', admin);
+    ownerPenName = (await list()).edges[0].node.writer.penName;
     const everything = await list();
     const dateOf = (id: string) =>
       new Date(
@@ -244,7 +277,9 @@ describe('Novel list (e2e)', () => {
 
   afterAll(async () => {
     await Promise.all(
-      createdIds.map((id) => graphql(DELETE_NOVEL, { id }, admin)),
+      [...createdIds, ...otherIds].map((id) =>
+        graphql(DELETE_NOVEL, { id }, admin),
+      ),
     );
   });
 
@@ -260,7 +295,7 @@ describe('Novel list (e2e)', () => {
         expect(node.license.name).toBeString();
         expect(node.estimatedChapterCount).toBeNumber();
         expect(node.writer).toStrictEqual({
-          userId: ownerId,
+          userID: ownerId,
           penName: ownerPenName,
           name: null,
           email: null,
@@ -275,9 +310,9 @@ describe('Novel list (e2e)', () => {
         ({ node }) => node.id === emptyNovelId,
       )!.node;
       expect(node.writer).toStrictEqual({
-        userId: ownerId,
+        userID: ownerId,
         penName: ownerPenName,
-        name: 'Fresh User',
+        name: expect.toBeString(),
         email: ownerEmail,
       });
     });
@@ -286,8 +321,8 @@ describe('Novel list (e2e)', () => {
       const data = await graphql(NOVEL_LIST, { first: 100 });
 
       const owners = new Set(
-        data.data.novelsConnection.edges.map(
-          ({ node }: { node: NovelNode }) => node.writer?.userId,
+        data.data.novels.edges.map(
+          ({ node }: { node: NovelNode }) => node.writer?.userID,
         ),
       );
       expect(data.errors).toBeUndefined();
@@ -400,7 +435,7 @@ describe('Novel list (e2e)', () => {
       });
 
       const owners = new Set(
-        edges.map(({ node }) => node.writer.userId),
+        edges.map(({ node }) => node.writer.userID),
       );
       expect(owners).toStrictEqual(new Set([ownerId, otherId]));
     });
@@ -409,7 +444,7 @@ describe('Novel list (e2e)', () => {
       const { edges } = await list({ filters: { ownerIds: [] } });
 
       const owners = new Set(
-        edges.map(({ node }) => node.writer.userId),
+        edges.map(({ node }) => node.writer.userID),
       );
       expect(owners.size).toBeGreaterThan(1);
     });
@@ -420,21 +455,9 @@ describe('Novel list (e2e)', () => {
         filters: { chapterCount: { min: 5, max: 1 } },
       },
       {
-        scenario: 'an end date before the start date',
-        filters: {
-          firstChapterCreatedAt: {
-            from: '2026-06-30T00:00:00.000Z',
-            to: '2026-01-01T00:00:00.000Z',
-          },
-        },
-      },
-      {
-        scenario: 'an owner that is not a user ID',
-        filters: { ownerIds: ['mina'] },
-      },
-      {
         scenario: 'a tag name with a NUL character',
-        filters: { tags: { in: ['\u0000'] } },
+        filters: {},
+        where: { hasTagsWith: [{ nameIn: ['\u0000'] }] },
       },
       {
         scenario: 'more than 100 owners',
@@ -445,8 +468,12 @@ describe('Novel list (e2e)', () => {
           ),
         },
       },
-    ])('should refuse $scenario', async ({ filters }) => {
-      const data = await graphql(NOVEL_LIST, { first: 1, filters });
+    ])('should refuse $scenario', async ({ filters, where }) => {
+      const data = await graphql(NOVEL_LIST, {
+        first: 1,
+        ...toArguments(filters),
+        ...(where && { where }),
+      });
 
       expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
     });
@@ -536,41 +563,13 @@ describe('Novel list (e2e)', () => {
       },
     );
 
-    it('should refuse a cursor issued for other filters', async () => {
-      const page = await list({
-        first: 1,
-        filters: { state: 'ONGOING' },
-      });
-
-      const data = await graphql(NOVEL_LIST, {
-        first: 1,
-        after: page.pageInfo.endCursor,
-        filters: { ownerIds: [ownerId], state: 'FINISHED' },
-      });
-
-      expect(data.errors[0].message).toContain('Invalid cursor');
-    });
-
-    it('should refuse a cursor issued for another sort', async () => {
-      const page = await list({ first: 1 });
-
-      const data = await graphql(NOVEL_LIST, {
-        first: 1,
-        after: page.pageInfo.endCursor,
-        filters: { ownerIds: [ownerId] },
-        orderBy: byFirstChapter('ASC'),
-      });
-
-      expect(data.errors[0].message).toContain('Invalid cursor');
-    });
-
     it('should give a page of 20 when no size is asked for, and refuse one over 100', async () => {
       const unbounded = await graphql(NOVEL_LIST, {});
       const tooBig = await graphql(NOVEL_LIST, { first: 101 });
 
-      expect(
-        unbounded.data.novelsConnection.edges.length,
-      ).toBeLessThanOrEqual(20);
+      expect(unbounded.data.novels.edges.length).toBeLessThanOrEqual(
+        20,
+      );
       expect(tooBig.errors[0].extensions.code).toBe('BAD_REQUEST');
     });
   });

@@ -157,9 +157,9 @@ describe('Chapter (e2e)', () => {
         {
           query: `#graphql
             mutation CreateChapter($novelId: ID!, $input: CreateChapterInput!) {
-              createChapter(novelId: $novelId, input: $input) {
+              createChapter(novelID: $novelId, input: $input) {
                 id
-                novelId
+                novelID
                 title
                 chapterNumber
               }
@@ -180,7 +180,7 @@ describe('Chapter (e2e)', () => {
       expect(data.errors).toBeUndefined();
       expect(data.data.createChapter).toStrictEqual(
         expect.objectContaining({
-          novelId: NOVEL_ID,
+          novelID: NOVEL_ID,
           title: `Chapter created by ${role}`,
           chapterNumber: expect.any(Number),
         }),
@@ -193,9 +193,8 @@ describe('Chapter (e2e)', () => {
       role: 'user',
       getAuthorizationHeader:
         AuthorizationFixture.getUserAuthorizationHeader,
-      // Rejected by the coarse @CheckPolicy('chapter', 'create') role gate.
-      expectedMessage:
-        'You do not have permission to create this chapter',
+      // Rejected by the role gate of the schema.
+      expectedMessage: 'You need at least the "writer" role',
     },
     {
       role: 'writer who does not own the novel',
@@ -217,7 +216,7 @@ describe('Chapter (e2e)', () => {
         {
           query: `#graphql
             mutation CreateChapter($novelId: ID!, $input: CreateChapterInput!) {
-              createChapter(novelId: $novelId, input: $input) {
+              createChapter(novelID: $novelId, input: $input) {
                 id
               }
             }
@@ -263,7 +262,7 @@ describe('Chapter (e2e)', () => {
         '/graphql',
         {
           query: `#graphql
-            mutation UpdateContent($id: ID!, $content: String!, $expectedContentUpdatedAt: String!) {
+            mutation UpdateContent($id: ID!, $content: String!, $expectedContentUpdatedAt: Time!) {
               updateContent(id: $id, content: $content, expectedContentUpdatedAt: $expectedContentUpdatedAt) {
                 id
                 content
@@ -297,6 +296,7 @@ describe('Chapter (e2e)', () => {
       role: 'user',
       getAuthorizationHeader:
         AuthorizationFixture.getUserAuthorizationHeader,
+      message: 'You need at least the "writer" role',
     },
     {
       role: 'writer who does not own the novel',
@@ -304,10 +304,11 @@ describe('Chapter (e2e)', () => {
         AuthorizationFixture.getWriterAuthorizationHeader({
           fresh: true,
         }),
+      message: 'You do not have permission to update this chapter',
     },
   ])(
     'should NOT allow unauthorized errors when $role tries to update content',
-    async ({ getAuthorizationHeader }) => {
+    async ({ getAuthorizationHeader, message }) => {
       const authorizationHeader = await getAuthorizationHeader();
       const expectedContentUpdatedAt = await getContentUpdatedAt(
         CHAPTER_FIVE_ID,
@@ -318,7 +319,7 @@ describe('Chapter (e2e)', () => {
         '/graphql',
         {
           query: `#graphql
-          mutation UpdateContent($id: ID!, $content: String!, $expectedContentUpdatedAt: String!) {
+          mutation UpdateContent($id: ID!, $content: String!, $expectedContentUpdatedAt: Time!) {
             updateContent(id: $id, content: $content, expectedContentUpdatedAt: $expectedContentUpdatedAt) {
               id
               content
@@ -337,9 +338,7 @@ describe('Chapter (e2e)', () => {
 
       expect(status).toBe(200);
       expect(data.errors).toBeArray();
-      expect(data.errors[0].message).toContain(
-        'You do not have permission to update this chapter',
-      );
+      expect(data.errors[0].message).toContain(message);
     },
   );
 
@@ -367,7 +366,7 @@ describe('Chapter (e2e)', () => {
         '/graphql',
         {
           query: `#graphql
-            mutation UpdateChapter($id: ID!, $input: UpdateChapterInput!, $expectedUpdatedAt: String!) {
+            mutation UpdateChapter($id: ID!, $input: UpdateChapterInput!, $expectedUpdatedAt: Time!) {
               updateChapter(id: $id, input: $input, expectedUpdatedAt: $expectedUpdatedAt) {
                 id
                 title
@@ -401,6 +400,7 @@ describe('Chapter (e2e)', () => {
       role: 'user',
       getAuthorizationHeader:
         AuthorizationFixture.getUserAuthorizationHeader,
+      message: 'You need at least the "writer" role',
     },
     {
       role: 'writer who does not own the novel',
@@ -408,10 +408,11 @@ describe('Chapter (e2e)', () => {
         AuthorizationFixture.getWriterAuthorizationHeader({
           fresh: true,
         }),
+      message: 'You do not have permission to update this chapter',
     },
   ])(
     'should NOT allow unauthorized errors when $role tries to update chapter metadata',
-    async ({ getAuthorizationHeader }) => {
+    async ({ getAuthorizationHeader, message }) => {
       const authorizationHeader = await getAuthorizationHeader();
       const expectedUpdatedAt = await getUpdatedAt(
         CHAPTER_FIVE_ID,
@@ -422,7 +423,7 @@ describe('Chapter (e2e)', () => {
         '/graphql',
         {
           query: `#graphql
-            mutation UpdateChapter($id: ID!, $input: UpdateChapterInput!, $expectedUpdatedAt: String!) {
+            mutation UpdateChapter($id: ID!, $input: UpdateChapterInput!, $expectedUpdatedAt: Time!) {
               updateChapter(id: $id, input: $input, expectedUpdatedAt: $expectedUpdatedAt) {
                 id
                 title
@@ -441,9 +442,7 @@ describe('Chapter (e2e)', () => {
 
       expect(status).toBe(200);
       expect(data.errors).toBeArray();
-      expect(data.errors[0].message).toContain(
-        'You do not have permission to update this chapter',
-      );
+      expect(data.errors[0].message).toContain(message);
     },
   );
 
@@ -478,7 +477,7 @@ describe('Chapter (e2e)', () => {
       '/graphql',
       {
         query: `#graphql
-          mutation UpdateChapter($id: ID!, $input: UpdateChapterInput!, $expectedUpdatedAt: String!) {
+          mutation UpdateChapter($id: ID!, $input: UpdateChapterInput!, $expectedUpdatedAt: Time!) {
             updateChapter(id: $id, input: $input, expectedUpdatedAt: $expectedUpdatedAt) {
               id
               title
@@ -529,7 +528,7 @@ describe('Chapter (e2e)', () => {
       authorizationHeader,
     );
     const mutation = `#graphql
-      mutation UpdateContent($id: ID!, $content: String!, $expectedContentUpdatedAt: String!) {
+      mutation UpdateContent($id: ID!, $content: String!, $expectedContentUpdatedAt: Time!) {
         updateContent(id: $id, content: $content, expectedContentUpdatedAt: $expectedContentUpdatedAt) {
           content
         }
@@ -599,7 +598,7 @@ describe('Chapter (e2e)', () => {
       authorizationHeader,
     );
     const mutation = `#graphql
-      mutation UpdateChapter($id: ID!, $input: UpdateChapterInput!, $expectedUpdatedAt: String!) {
+      mutation UpdateChapter($id: ID!, $input: UpdateChapterInput!, $expectedUpdatedAt: Time!) {
         updateChapter(id: $id, input: $input, expectedUpdatedAt: $expectedUpdatedAt) {
           title
         }
@@ -674,7 +673,7 @@ describe('Chapter (e2e)', () => {
       '/graphql',
       {
         query: `#graphql
-          mutation UpdateContent($id: ID!, $content: String!, $expectedContentUpdatedAt: String!) {
+          mutation UpdateContent($id: ID!, $content: String!, $expectedContentUpdatedAt: Time!) {
             updateContent(id: $id, content: $content, expectedContentUpdatedAt: $expectedContentUpdatedAt) {
               content
             }
@@ -726,7 +725,7 @@ describe('Chapter (e2e)', () => {
       '/graphql',
       {
         query: `#graphql
-          mutation UpdateChapter($id: ID!, $input: UpdateChapterInput!, $expectedUpdatedAt: String!) {
+          mutation UpdateChapter($id: ID!, $input: UpdateChapterInput!, $expectedUpdatedAt: Time!) {
             updateChapter(id: $id, input: $input, expectedUpdatedAt: $expectedUpdatedAt) {
               title
             }

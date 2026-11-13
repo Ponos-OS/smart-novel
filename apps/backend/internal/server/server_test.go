@@ -209,7 +209,7 @@ func postWithToken(t *testing.T, handler http.Handler, query, authorization stri
 }
 
 func TestWhoAmI(t *testing.T) {
-	const query = `{"query":"{ whoAmI { sub name preferredUsername email emailVerified orgId roles } }"}`
+	const query = `{"query":"{ whoAmI { sub name preferredUsername email emailVerified orgID roles } }"}`
 	cases := []struct {
 		name          string
 		authorization string
@@ -217,7 +217,7 @@ func TestWhoAmI(t *testing.T) {
 	}{
 		{"without a token", "", `"message":"Missing Bearer token in Authorization header"`},
 		{"with a token ZITADEL does not accept", "Bearer eyJhbGciOiJSUzI1NiJ9.e30.expired", `"message":"Invalid or expired token"`},
-		{"with a writer token", "Bearer " + writerToken, `"whoAmI":{"sub":"399193312025837589","name":"Writer User","preferredUsername":"writer","email":"writer@test.com","emailVerified":true,"orgId":null,"roles":["writer"]}`},
+		{"with a writer token", "Bearer " + writerToken, `"whoAmI":{"sub":"399193312025837589","name":"Writer User","preferredUsername":"writer","email":"writer@test.com","emailVerified":true,"orgID":null,"roles":["writer"]}`},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -260,5 +260,61 @@ func TestAMalformedIDIsABadRequest(t *testing.T) {
 	body := recorder.Body.String()
 	if !strings.Contains(body, `"message":"Invalid ID"`) || !strings.Contains(body, `"code":"BAD_REQUEST"`) {
 		t.Errorf("body = %s", body)
+	}
+}
+
+// The input rules live in schema directives, so every operation with input is tested through the real schema. Only bad input is sent:
+// the resolvers behind a good one need a database.
+func TestInputDirectives(t *testing.T) {
+	const novelID = `93fec4bf-2f66-4e4a-9572-7aa4871f1458`
+	tooManyIDs := `\"` + strings.Repeat(`316784561234\",\"`, 100) + `316784561234\"`
+	cases := []struct {
+		name  string
+		query string
+		want  string
+	}{
+		{"chapter with a blank title", `mutation { createChapter(novelID: \"` + novelID + `\", input: {title: \"   \", content: \"# Text\"}) { id } }`, `"field":"title","rule":"blank"`},
+		{"chapter whose title is invisible", `mutation { createChapter(novelID: \"` + novelID + `\", input: {title: \"\\u200b\\u2060\", content: \"# Text\"}) { id } }`, `"field":"title","rule":"blank"`},
+		{"chapter with empty content", `mutation { createChapter(novelID: \"` + novelID + `\", input: {title: \"Dry\", content: \"\\n \\n\"}) { id } }`, `"field":"content","rule":"blank"`},
+		{"chapter title with a NUL", `mutation { createChapter(novelID: \"` + novelID + `\", input: {title: \"Dry\\u0000\", content: \"# Text\"}) { id } }`, `NUL character`},
+		{"chapter update with a blank title", `mutation { updateChapter(id: \"` + novelID + `\", input: {title: \" \"}, expectedUpdatedAt: \"2026-01-01T00:00:00Z\") { id } }`, `"field":"title","rule":"blank"`},
+		{"chapter content that is blank", `mutation { updateContent(id: \"` + novelID + `\", content: \" \", expectedContentUpdatedAt: \"2026-01-01T00:00:00Z\") { id } }`, `"field":"content","rule":"blank"`},
+		{"novel with a blank name", `mutation { createNovel(input: {name: \" \", description: \"Salt.\"}) { id } }`, `"field":"name","rule":"blank"`},
+		{"novel with a blank tag", `mutation { createNovel(input: {name: \"Dry Sea\", description: \"Salt.\", tags: [\"epic\", \" \"]}) { id } }`, `"field":"tags","rule":"blank"`},
+		{"novel update with a blank name", `mutation { updateNovel(id: \"` + novelID + `\", input: {name: \" \"}) { id } }`, `"field":"name","rule":"blank"`},
+		{"too many owners", `{ novels(ownerIDs: [` + tooManyIDs + `]) { totalCount } }`, `"field":"ownerIDs","rule":"too_large","params":{"max":100}`},
+		{"too many chapters to mark", `mutation { markChaptersRead(chapterIDs: [` + strings.Repeat(`\"`+novelID+`\",`, 100) + `\"` + novelID + `\"]) { markedCount } }`, `"field":"chapterIDs","rule":"too_large","params":{"max":100}`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			handler := newHandler(config.EnvTest)
+
+			recorder := postWithToken(t, handler, `{"query":"`+c.query+`"}`, "Bearer "+writerToken)
+
+			if !strings.Contains(recorder.Body.String(), c.want) || !strings.Contains(recorder.Body.String(), `"code":"BAD_REQUEST"`) {
+				t.Errorf("body = %s, want BAD_REQUEST with %s", recorder.Body.String(), c.want)
+			}
+		})
+	}
+}
+
+func TestANULAnywhereInAnArgumentIsABadRequest(t *testing.T) {
+	cases := []struct {
+		name  string
+		query string
+	}{
+		{"in a nested filter variable", `{"query":"query($where: NovelWhereInput) { novels(where: $where) { totalCount } }","variables":{"where":{"hasTagsWith":[{"nameIn":["\u0000"]}]}}}`},
+		{"in a literal", `{"query":"{ novels(where: {nameContains: \"a\\u0000\"}) { totalCount } }"}`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			handler := newHandler(config.EnvTest)
+
+			recorder := postWithToken(t, handler, c.query, "Bearer "+writerToken)
+
+			if !strings.Contains(recorder.Body.String(), `"code":"BAD_REQUEST"`) || !strings.Contains(recorder.Body.String(), "NUL character") {
+				t.Errorf("body = %s, want a bad request about the NUL character", recorder.Body.String())
+			}
+		})
 	}
 }

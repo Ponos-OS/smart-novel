@@ -8,9 +8,26 @@ package graph
 import (
 	"context"
 
+	"entgo.io/contrib/entgql"
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/pagination"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/stats"
 	"github.com/google/uuid"
 )
+
+// Chapters is the resolver for the chapters field.
+func (r *novelResolver) Chapters(ctx context.Context, obj *ent.Novel, after *entgql.Cursor[uuid.UUID], first *int, before *entgql.Cursor[uuid.UUID], last *int, orderBy *ent.ChapterOrder, where *ent.ChapterWhereInput) (*ent.ChapterConnection, error) {
+	first, last, err := pagination.Bound(first, last, chaptersSize)
+	if err != nil {
+		return nil, err
+	}
+	if orderBy == nil {
+		orderBy = &ent.ChapterOrder{Direction: entgql.OrderDirectionAsc, Field: ent.ChapterOrderFieldChapterNumber}
+	}
+
+	return obj.QueryChapters().Paginate(ctx, after, first, before, last, ent.WithChapterOrder(orderBy), ent.WithChapterFilter(where.Filter))
+}
 
 // Node is the resolver for the node field.
 func (r *queryResolver) Node(ctx context.Context, id uuid.UUID) (ent.Noder, error) {
@@ -22,7 +39,52 @@ func (r *queryResolver) Nodes(ctx context.Context, ids []uuid.UUID) ([]ent.Noder
 	return make([]ent.Noder, len(ids)), nil
 }
 
+// StatsSnapshots is the resolver for the statsSnapshots field.
+func (r *queryResolver) StatsSnapshots(ctx context.Context, after *entgql.Cursor[uuid.UUID], first *int, before *entgql.Cursor[uuid.UUID], last *int, orderBy *ent.StatsSnapshotOrder, where *ent.StatsSnapshotWhereInput) (*ent.StatsSnapshotConnection, error) {
+	first, last, err := pagination.Bound(first, last, statsSize)
+	if err != nil {
+		return nil, err
+	}
+	where, err = stats.WithinDays(where)
+	if err != nil {
+		return nil, err
+	}
+	if orderBy == nil {
+		orderBy = &ent.StatsSnapshotOrder{Direction: entgql.OrderDirectionAsc, Field: ent.StatsSnapshotOrderFieldDay}
+	}
+
+	return r.Client.StatsSnapshot.Query().Paginate(ctx, after, first, before, last, ent.WithStatsSnapshotOrder(orderBy), ent.WithStatsSnapshotFilter(where.Filter))
+}
+
+// Tags is the resolver for the tags field.
+func (r *queryResolver) Tags(ctx context.Context, after *entgql.Cursor[uuid.UUID], first *int, before *entgql.Cursor[uuid.UUID], last *int, orderBy *ent.TagOrder, where *ent.TagWhereInput) (*ent.TagConnection, error) {
+	first, last, err := pagination.Bound(first, last, tagsPage)
+	if err != nil {
+		return nil, err
+	}
+	where = tagVisibility(where, auth.IsAdmin(ctx))
+	if orderBy == nil {
+		orderBy = &ent.TagOrder{Direction: entgql.OrderDirectionAsc, Field: ent.TagOrderFieldName}
+	}
+
+	return r.Client.Tag.Query().Paginate(ctx, after, first, before, last, ent.WithTagOrder(orderBy), ent.WithTagFilter(where.Filter))
+}
+
+// Chapter returns ChapterResolver implementation.
+func (r *Resolver) Chapter() ChapterResolver { return &chapterResolver{r} }
+
+// Novel returns NovelResolver implementation.
+func (r *Resolver) Novel() NovelResolver { return &novelResolver{r} }
+
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
-type queryResolver struct{ *Resolver }
+// Tag returns TagResolver implementation.
+func (r *Resolver) Tag() TagResolver { return &tagResolver{r} }
+
+type (
+	chapterResolver struct{ *Resolver }
+	novelResolver   struct{ *Resolver }
+	queryResolver   struct{ *Resolver }
+	tagResolver     struct{ *Resolver }
+)

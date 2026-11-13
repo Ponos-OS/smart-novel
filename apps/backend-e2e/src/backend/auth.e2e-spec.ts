@@ -33,7 +33,7 @@ describe('Auth (e2e)', () => {
               email
               emailVerified
               preferredUsername
-              orgId
+              orgID
               roles
             }
           }
@@ -47,7 +47,7 @@ describe('Auth (e2e)', () => {
       );
 
       expect(status).toBe(200);
-      expect(data.data.whoAmI.orgId).toBeNull();
+      expect(data.data.whoAmI.orgID).toBeNull();
       expect(data.data.whoAmI).toStrictEqual(
         expect.objectContaining({
           sub: expect.any(String),

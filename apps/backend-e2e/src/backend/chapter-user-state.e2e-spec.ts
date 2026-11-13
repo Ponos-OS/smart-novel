@@ -79,7 +79,7 @@ describe('ChapterUserState (e2e)', () => {
         {
           query: `#graphql
             mutation MarkChaptersRead($chapterIds: [ID!]!) {
-              markChaptersRead(chapterIds: $chapterIds) {
+              markChaptersRead(chapterIDs: $chapterIds) {
                 markedCount
               }
             }
@@ -135,7 +135,7 @@ describe('ChapterUserState (e2e)', () => {
         {
           query: `#graphql
             mutation MarkChaptersRead($chapterIds: [ID!]!) {
-              markChaptersRead(chapterIds: $chapterIds) {
+              markChaptersRead(chapterIDs: $chapterIds) {
                 markedCount
               }
             }
@@ -162,7 +162,7 @@ describe('ChapterUserState (e2e)', () => {
         {
           query: `#graphql
             mutation MarkChaptersRead($chapterIds: [ID!]!) {
-              markChaptersRead(chapterIds: $chapterIds) {
+              markChaptersRead(chapterIDs: $chapterIds) {
                 markedCount
               }
             }
@@ -183,7 +183,7 @@ describe('ChapterUserState (e2e)', () => {
         {
           query: `#graphql
             mutation MarkChaptersRead($chapterIds: [ID!]!) {
-              markChaptersRead(chapterIds: $chapterIds) {
+              markChaptersRead(chapterIDs: $chapterIds) {
                 markedCount
               }
             }
@@ -201,6 +201,56 @@ describe('ChapterUserState (e2e)', () => {
       );
     });
 
+    it('should count each chapter once when the same user marks the same chapters at the same time', async () => {
+      // Arrange
+      const authorizationHeader =
+        await AuthorizationFixture.getUserAuthorizationHeader({
+          fresh: true,
+        });
+      const chapterIds = [
+        CHAPTER_ONE_ID,
+        CHAPTER_TWO_ID,
+        CHAPTER_THREE_ID,
+        CHAPTER_FOUR_ID,
+      ];
+      const markChaptersRead = () =>
+        axios.post(
+          '/graphql',
+          {
+            query: `#graphql
+              mutation MarkChaptersRead($chapterIds: [ID!]!) {
+                markChaptersRead(chapterIDs: $chapterIds) {
+                  markedCount
+                }
+              }
+            `,
+            variables: { chapterIds },
+          },
+          { headers: { Authorization: authorizationHeader } },
+        );
+
+      // Act
+      const simultaneous = await Promise.all(
+        Array.from({ length: 4 }, markChaptersRead),
+      );
+      const afterwards = await markChaptersRead();
+
+      // Assert
+      for (const res of simultaneous) {
+        expect(res.data.errors).toBeUndefined();
+      }
+      expect(
+        simultaneous.reduce(
+          (total, res) =>
+            total + res.data.data.markChaptersRead.markedCount,
+          0,
+        ),
+      ).toBe(chapterIds.length);
+      expect(afterwards.data.data.markChaptersRead.markedCount).toBe(
+        0,
+      );
+    });
+
     it('should filter out invalid chapter IDs', async () => {
       const authorizationHeader =
         await AuthorizationFixture.getUserAuthorizationHeader();
@@ -211,7 +261,7 @@ describe('ChapterUserState (e2e)', () => {
         {
           query: `#graphql
             mutation MarkChaptersRead($chapterIds: [ID!]!) {
-              markChaptersRead(chapterIds: $chapterIds) {
+              markChaptersRead(chapterIDs: $chapterIds) {
                 markedCount
               }
             }
@@ -238,7 +288,7 @@ describe('ChapterUserState (e2e)', () => {
         {
           query: `#graphql
             mutation MarkChaptersRead($chapterIds: [ID!]!) {
-              markChaptersRead(chapterIds: $chapterIds) {
+              markChaptersRead(chapterIDs: $chapterIds) {
                 markedCount
               }
             }
@@ -283,7 +333,7 @@ describe('ChapterUserState (e2e)', () => {
       const res = await axios.post('/graphql', {
         query: `#graphql
           mutation MarkChaptersRead($chapterIds: [ID!]!) {
-            markChaptersRead(chapterIds: $chapterIds) {
+            markChaptersRead(chapterIDs: $chapterIds) {
               markedCount
             }
           }
@@ -310,7 +360,7 @@ describe('ChapterUserState (e2e)', () => {
         {
           query: `#graphql
             mutation MarkChaptersRead($chapterIds: [ID!]!) {
-              markChaptersRead(chapterIds: $chapterIds) {
+              markChaptersRead(chapterIDs: $chapterIds) {
                 markedCount
               }
             }
@@ -395,7 +445,7 @@ describe('ChapterUserState (e2e)', () => {
         {
           query: `#graphql
             mutation MarkChaptersRead($chapterIds: [ID!]!) {
-              markChaptersRead(chapterIds: $chapterIds) {
+              markChaptersRead(chapterIDs: $chapterIds) {
                 markedCount
               }
             }

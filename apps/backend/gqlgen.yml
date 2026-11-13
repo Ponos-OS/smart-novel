@@ -21,6 +21,42 @@ models:
   ID:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/scalar.UUID
+  Cursor:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/scalar.Cursor
   Node:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/ent.Noder
+  RequestTagInput:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/tag.Input
+  CreateTagInput:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/tag.Input
+  UpdateTagInput:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/tag.Update
+  CreateNovelInput:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/novel.CreateInput
+  UpdateNovelInput:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/novel.UpdateInput
+  ChapterCountRangeInput:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/novel.ChapterCountRange
+  NovelWriter:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/novel.WriterView
+  WriterApplication:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/novel.WriterApplication
+  CreateChapterInput:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/chapter.CreateInput
+  UpdateChapterInput:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/chapter.UpdateInput
+  ContentStats:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/stats.Totals

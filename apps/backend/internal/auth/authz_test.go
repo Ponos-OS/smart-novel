@@ -1,9 +1,11 @@
 package auth_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
 )
 
 const (
@@ -56,5 +58,23 @@ func TestCan(t *testing.T) {
 				t.Errorf("Can = %v, want %v", got, c.want)
 			}
 		})
+	}
+}
+
+func TestDenyUnlessCan(t *testing.T) {
+	writer := viewerWith(strangerID, "writer")
+
+	allowed := auth.DenyUnlessCan(writer, auth.Create, auth.Novel{})
+	denied := auth.DenyUnlessCan(writer, auth.Update, auth.Novel{OwnerUserID: ownerID})
+
+	if allowed != nil {
+		t.Errorf("allowed = %v, want nil", allowed)
+	}
+	var forbidden *auth.Error
+	if !errors.As(denied, &forbidden) || forbidden.Code() != shared.Forbidden {
+		t.Fatalf("denied = %v, want a forbidden error", denied)
+	}
+	if want := "You do not have permission to update this novel"; forbidden.Error() != want {
+		t.Errorf("message = %q, want %q", forbidden.Error(), want)
 	}
 }

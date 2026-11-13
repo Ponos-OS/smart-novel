@@ -25,7 +25,9 @@ func (Tag) Fields() []ent.Field {
 		field.String("name").
 			SchemaType(map[string]string{dialect.Postgres: "citext"}).
 			Unique().
-			Comment("Unique and compared without regard to case."),
+			MaxLen(shared.TagNameMaxLength).
+			Comment("Unique and compared without regard to case.").
+			Annotations(entgql.OrderField("NAME")),
 		field.String("description").
 			Default("").
 			MaxLen(shared.TagDescriptionMaxLength),
@@ -33,7 +35,10 @@ func (Tag) Fields() []ent.Field {
 			Values("APPROVED", "PENDING").
 			Default("APPROVED").
 			Annotations(entgql.Type("TagStatus")),
-		field.String("requester_user_id").Optional().Nillable(),
+		field.String("requester_user_id").
+			Optional().
+			Nillable().
+			Annotations(entgql.Skip(entgql.SkipAll)),
 	}
 }
 
@@ -41,7 +46,8 @@ func (Tag) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("novels", Novel.Type).
 			Ref("tags").
-			Through("novel_tags", NovelTag.Type),
+			Through("novel_tags", NovelTag.Type).
+			Annotations(entgql.Skip(entgql.SkipAll)),
 	}
 }
 
@@ -50,5 +56,8 @@ func (Tag) Indexes() []ent.Index {
 }
 
 func (Tag) Annotations() []schema.Annotation {
-	return []schema.Annotation{entgql.RelayConnection()}
+	return []schema.Annotation{
+		entgql.RelayConnection(),
+		entgql.QueryField().Directives(entgql.NewDirective("public")),
+	}
 }

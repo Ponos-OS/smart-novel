@@ -13,7 +13,9 @@ const CREATE_NOVEL = `#graphql
       }
       description
       state
-      tags
+      tags {
+        name
+      }
       allowedActions
     }
   }
@@ -29,7 +31,9 @@ const UPDATE_NOVEL = `#graphql
       }
       description
       state
-      tags
+      tags {
+        name
+      }
     }
   }
 `;
@@ -146,7 +150,7 @@ describe('Novel management (e2e)', () => {
           writer: { penName },
           description: 'A lighthouse keeper finds a door in the fog.',
           state: 'ONGOING',
-          tags: [tag],
+          tags: [{ name: tag }],
           allowedActions: ['MANAGE_TTS', 'EDIT_CONTENT'],
         });
       },
@@ -189,7 +193,7 @@ describe('Novel management (e2e)', () => {
       );
 
       expect(data.errors[0].message).toContain(
-        'You do not have permission to create this novel',
+        'You need at least the "writer" role',
       );
     });
 
@@ -249,7 +253,7 @@ describe('Novel management (e2e)', () => {
           writer: { penName: 'Writer_User' },
           description: novelInput.description,
           state: 'FINISHED',
-          tags: [tag],
+          tags: [{ name: tag }],
         });
       },
     );
@@ -272,7 +276,9 @@ describe('Novel management (e2e)', () => {
         writer,
       );
 
-      expect(replaced.data.updateNovel.tags).toStrictEqual([after]);
+      expect(replaced.data.updateNovel.tags).toStrictEqual([
+        { name: after },
+      ]);
       expect(cleared.data.updateNovel.tags).toStrictEqual([]);
     });
 
@@ -281,6 +287,7 @@ describe('Novel management (e2e)', () => {
         role: 'user',
         getAuthorizationHeader:
           AuthorizationFixture.getUserAuthorizationHeader,
+        message: 'You need at least the "writer" role',
       },
       {
         role: 'writer who does not own the novel',
@@ -288,10 +295,11 @@ describe('Novel management (e2e)', () => {
           AuthorizationFixture.getWriterAuthorizationHeader({
             fresh: true,
           }),
+        message: 'You do not have permission to update this novel',
       },
     ])(
       'should NOT allow $role to update a novel',
-      async ({ getAuthorizationHeader }) => {
+      async ({ getAuthorizationHeader, message }) => {
         const novel = await createNovelAsWriter();
         const authorization = await getAuthorizationHeader();
 
@@ -301,9 +309,7 @@ describe('Novel management (e2e)', () => {
           authorization,
         );
 
-        expect(data.errors[0].message).toContain(
-          'You do not have permission to update this novel',
-        );
+        expect(data.errors[0].message).toContain(message);
       },
     );
 

@@ -12,7 +12,7 @@ const CREATE_NOVEL = `#graphql
 `;
 const CREATE_CHAPTER = `#graphql
   mutation CreateChapter($novelId: ID!, $input: CreateChapterInput!) {
-    createChapter(novelId: $novelId, input: $input) {
+    createChapter(novelID: $novelId, input: $input) {
       id
       createdAt
     }

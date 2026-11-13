@@ -142,6 +142,8 @@ linters:
             - github.com/lib/pq
             - ariga.io/atlas
             - github.com/zitadel
+            - gopkg.in/yaml.v3
+            - github.com/vikstrous/dataloadgen
             - github.com/testcontainers/testcontainers-go
         test:
           list-mode: original
@@ -150,6 +152,7 @@ linters:
             - $gostd
             - github.com/Ponos-OS/smart-novel/apps/backend
             - go.opentelemetry.io
+            - entgo.io
             - github.com/99designs/gqlgen
             - github.com/vektah/gqlparser
             - github.com/google/uuid

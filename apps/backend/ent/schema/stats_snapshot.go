@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/vektah/gqlparser/v2/ast"
 )
 
 // StatsSnapshot holds the exact counts taken on one UTC day, read by the growth charts. The first run of a day wins.
@@ -33,7 +34,7 @@ func (StatsSnapshot) Fields() []ent.Field {
 			SchemaType(timestamptz).
 			Default(time.Now).
 			Immutable().
-			Annotations(entsql.DefaultExpr("CURRENT_TIMESTAMP")),
+			Annotations(entsql.DefaultExpr("CURRENT_TIMESTAMP"), entgql.Skip(entgql.SkipAll)),
 	}
 }
 
@@ -45,6 +46,14 @@ func (StatsSnapshot) Indexes() []ent.Index {
 	}
 }
 
+var adminOnly = entgql.NewDirective("hasRole", &ast.Argument{
+	Name:  "role",
+	Value: &ast.Value{Raw: "admin", Kind: ast.EnumValue},
+})
+
 func (StatsSnapshot) Annotations() []schema.Annotation {
-	return []schema.Annotation{entgql.RelayConnection()}
+	return []schema.Annotation{
+		entgql.RelayConnection(),
+		entgql.QueryField().Directives(adminOnly),
+	}
 }

@@ -41,6 +41,18 @@ func WithViewer(ctx context.Context, viewer Viewer) context.Context {
 	return withViewer(ctx, viewer)
 }
 
+// IsAdmin tells whether the viewer holds the admin role. It is the one place the rest of the code asks, so the role rules can move without it.
+func (v Viewer) IsAdmin() bool {
+	return shared.IsAdmin(v.Roles)
+}
+
+// IsAdmin tells whether the request is by an authenticated admin; an anonymous request is not.
+func IsAdmin(ctx context.Context) bool {
+	viewer, ok := ViewerFrom(ctx)
+
+	return ok && viewer.IsAdmin()
+}
+
 // ViewerFrom returns the authenticated viewer, if the request has one.
 func ViewerFrom(ctx context.Context) (Viewer, bool) {
 	current, ok := ctx.Value(sessionKey{}).(*session)

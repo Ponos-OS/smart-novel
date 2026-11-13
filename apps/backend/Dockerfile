@@ -49,3 +49,13 @@ COPY --from=build /app/apps/backend/bin/server /usr/local/bin/server
 USER app
 EXPOSE $PORT
 CMD ["server"]
+
+# ---- devdata ---------------------------------------------------------------
+# The Job that fills the database of the e2e stack; the development stack runs `task devdata` from the mounted sources instead. Not for production.
+FROM alpine:3.23 AS devdata
+RUN adduser -D -u 10001 app
+ENV DATA_PATH=/data
+COPY --from=build /app/apps/backend/bin/devdata /usr/local/bin/devdata
+COPY apps/backend/data /data
+USER app
+CMD ["devdata"]

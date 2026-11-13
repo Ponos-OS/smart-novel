@@ -7,9 +7,22 @@ import {
   config,
 } from '../support';
 
+/**
+ * @description A name matches when it, or one of its words, starts with the text, the way the tag pickers search: `life` finds `slice of life` and `sci` finds `hard sci-fi`.
+ */
+function search(text: string) {
+  return {
+    or: [
+      { nameHasPrefix: text },
+      { nameContains: ` ${text}` },
+      { nameContains: `-${text}` },
+    ],
+  };
+}
+
 const TAGS = `#graphql
-  query Tags($first: Int, $after: String, $filters: TagFiltersInput) {
-    tagsConnection(first: $first, after: $after, filters: $filters) {
+  query Tags($first: Int, $after: Cursor, $where: TagWhereInput) {
+    tags(first: $first, after: $after, where: $where) {
       edges {
         cursor
         node {
@@ -47,7 +60,7 @@ async function tags(
 describe('Tags (e2e)', () => {
   it('should page through the approved tags in name order with cursors', async () => {
     const firstPage = await tags({ first: 1 });
-    const { endCursor } = firstPage.data.tagsConnection.pageInfo;
+    const { endCursor } = firstPage.data.tags.pageInfo;
 
     const secondPage = await tags({
       first: 1,
@@ -55,16 +68,16 @@ describe('Tags (e2e)', () => {
     });
 
     const names = [
-      ...firstPage.data.tagsConnection.edges,
-      ...secondPage.data.tagsConnection.edges,
+      ...firstPage.data.tags.edges,
+      ...secondPage.data.tags.edges,
     ].map(({ node }) => node.name);
     expect(firstPage.errors).toBeUndefined();
-    expect(firstPage.data.tagsConnection.edges).toHaveLength(1);
-    expect(firstPage.data.tagsConnection.pageInfo).toMatchObject({
+    expect(firstPage.data.tags.edges).toHaveLength(1);
+    expect(firstPage.data.tags.pageInfo).toMatchObject({
       hasNextPage: true,
       hasPreviousPage: false,
     });
-    expect(secondPage.data.tagsConnection.pageInfo).toMatchObject({
+    expect(secondPage.data.tags.pageInfo).toMatchObject({
       hasPreviousPage: true,
     });
     expect(names).toEqual([...names].sort());
@@ -74,10 +87,10 @@ describe('Tags (e2e)', () => {
   it('should find the tags whose name starts with the text, case-insensitively', async () => {
     const data = await tags({
       first: 10,
-      filters: { search: 'FANT' },
+      where: search('FANT'),
     });
 
-    const nodes = data.data.tagsConnection.edges.map(
+    const nodes = data.data.tags.edges.map(
       ({ node }: { node: { name: string } }) => node,
     );
     expect(nodes.length).toBeGreaterThan(0);
@@ -87,22 +100,22 @@ describe('Tags (e2e)', () => {
   it('should not find a tag by a part from the middle of its name', async () => {
     const data = await tags({
       first: 10,
-      filters: { search: 'ntas' },
+      where: search('ntas'),
     });
 
-    expect(data.data.tagsConnection.edges).toBeEmpty();
+    expect(data.data.tags.edges).toBeEmpty();
   });
 
   it.each(['%', '_', '\\'])(
     'should treat %s in the search as plain text, not a wildcard',
-    async (search) => {
+    async (text) => {
       const data = await tags({
         first: 10,
-        filters: { search },
+        where: search(text),
       });
 
       expect(data.errors).toBeUndefined();
-      expect(data.data.tagsConnection.edges).toBeEmpty();
+      expect(data.data.tags.edges).toBeEmpty();
     },
   );
 
@@ -119,9 +132,7 @@ describe('Tags (e2e)', () => {
   it('should return a page of 20 at most when no size is given', async () => {
     const data = await tags({});
 
-    expect(data.data.tagsConnection.edges.length).toBeLessThanOrEqual(
-      20,
-    );
+    expect(data.data.tags.edges.length).toBeLessThanOrEqual(20);
   });
 
   it.each([
@@ -145,12 +156,12 @@ describe('Tags (e2e)', () => {
       const authorization = await getAuthorizationHeader();
 
       const data = await tags(
-        { first: 5, filters: { statuses: ['PENDING'] } },
+        { first: 5, where: { statusIn: ['PENDING'] } },
         authorization,
       );
 
       expect(data.errors).toBeUndefined();
-      expect(data.data.tagsConnection.edges).toBeArray();
+      expect(data.data.tags.edges).toBeArray();
     },
   );
 });
@@ -176,8 +187,8 @@ const UPDATE_TAG = `#graphql
   }
 `;
 const TAG_DESCRIPTION = `#graphql
-  query TagDescription($search: String) {
-    tagsConnection(filters: { search: $search }) {
+  query TagDescription($where: TagWhereInput) {
+    tags(where: $where) {
       edges { node { id description } }
     }
   }
@@ -189,12 +200,12 @@ const DELETE_TAG = `#graphql
 `;
 const CREATE_NOVEL = `#graphql
   mutation CreateNovel($input: CreateNovelInput!) {
-    createNovel(input: $input) { id tags }
+    createNovel(input: $input) { id tags { name } }
   }
 `;
 const NOVEL_TAGS = `#graphql
   query NovelTags($id: ID!) {
-    novel(id: $id) { id tags }
+    novel(id: $id) { id tags { name } }
   }
 `;
 
@@ -246,12 +257,12 @@ describe('Tag requests and management (e2e)', () => {
     const data = await tags(
       {
         first: 100,
-        filters: { statuses: ['PENDING'], search: 'e2e-' },
+        where: { statusIn: ['PENDING'], ...search('e2e-') },
       },
       authorization,
     );
 
-    return data.data.tagsConnection.edges.map(
+    return data.data.tags.edges.map(
       ({ node }: { node: { name: string } }) => node.name,
     );
   }
@@ -336,6 +347,16 @@ describe('Tag requests and management (e2e)', () => {
       );
     });
 
+    it('should reject a name with a NUL character as a bad request', async () => {
+      const data = await graphql(
+        REQUEST_TAG,
+        { name: 'epic\u0000', description: DESCRIPTION },
+        writer,
+      );
+
+      expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
+    });
+
     it('should reject a name longer than 50 characters', async () => {
       const data = await graphql(
         REQUEST_TAG,
@@ -343,9 +364,10 @@ describe('Tag requests and management (e2e)', () => {
         writer,
       );
 
-      expect(data.errors[0].extensions.originalError.message).toEqual(
-        [expect.stringContaining('at most 50 characters')],
-      );
+      expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
+      expect(data.errors[0].extensions.violations).toEqual([
+        { field: 'name', rule: 'too_long', params: { max: 50 } },
+      ]);
     });
   });
 
@@ -359,19 +381,19 @@ describe('Tag requests and management (e2e)', () => {
 
       const byWord = await tags({
         first: 10,
-        filters: { search: token.toUpperCase() },
+        where: search(token.toUpperCase()),
       });
       const byMiddle = await tags({
         first: 10,
-        filters: { search: token.slice(1) },
+        where: search(token.slice(1)),
       });
 
       expect(
-        byWord.data.tagsConnection.edges
+        byWord.data.tags.edges
           .map(({ node }: { node: { name: string } }) => node.name)
           .sort(),
       ).toEqual([`e2e-alpha ${token}`, `e2e-beta-${token}`]);
-      expect(byMiddle.data.tagsConnection.edges).toBeEmpty();
+      expect(byMiddle.data.tags.edges).toBeEmpty();
     });
   });
 
@@ -393,35 +415,35 @@ describe('Tag requests and management (e2e)', () => {
       const name = uniqueName('both');
       await requestAsWriter(name);
       const query = `#graphql
-        query Both($filters: TagFiltersInput) {
-          tagsConnection(first: 100, filters: $filters) {
-            edges { node { name status requesterUserId } }
+        query Both($where: TagWhereInput) {
+          tags(first: 100, where: $where) {
+            edges { node { name status requesterUserID } }
           }
         }
       `;
-      const filters = {
-        statuses: ['APPROVED', 'PENDING'],
-        search: 'e2e-both',
+      const where = {
+        statusIn: ['APPROVED', 'PENDING'],
+        ...search('e2e-both'),
       };
 
-      const asAdmin = await graphql(query, { filters }, admin);
-      const asWriter = await graphql(query, { filters }, writer);
+      const asAdmin = await graphql(query, { where }, admin);
+      const asWriter = await graphql(query, { where }, writer);
       const everything = await graphql(
         query,
-        { filters: { statuses: ['APPROVED', 'PENDING'] } },
+        { where: { statusIn: ['APPROVED', 'PENDING'] } },
         admin,
       );
 
-      expect(asAdmin.data.tagsConnection.edges).toContainEqual({
+      expect(asAdmin.data.tags.edges).toContainEqual({
         node: {
           name,
           status: 'PENDING',
-          requesterUserId: config.userIds.writer,
+          requesterUserID: config.userIds.writer,
         },
       });
-      expect(asWriter.data.tagsConnection.edges).toBeEmpty();
+      expect(asWriter.data.tags.edges).toBeEmpty();
       expect(
-        everything.data.tagsConnection.edges.map(
+        everything.data.tags.edges.map(
           ({ node }: { node: { status: string } }) => node.status,
         ),
       ).toIncludeAllMembers(['APPROVED', 'PENDING']);
@@ -433,27 +455,27 @@ describe('Tag requests and management (e2e)', () => {
       );
       await graphql(APPROVE_TAG, { id }, admin);
       const query = `#graphql
-        query Requester($filters: TagFiltersInput) {
-          tagsConnection(first: 10, filters: $filters) {
-            edges { node { requesterUserId } }
+        query Requester($where: TagWhereInput) {
+          tags(first: 10, where: $where) {
+            edges { node { requesterUserID } }
           }
         }
       `;
 
       const asWriter = await graphql(
         query,
-        { filters: { search: name } },
+        { where: search(name) },
         writer,
       );
       const asAnonymous = await graphql(query, {
-        filters: { search: name },
+        where: search(name),
       });
 
-      expect(asWriter.data.tagsConnection.edges).toEqual([
-        { node: { requesterUserId: null } },
+      expect(asWriter.data.tags.edges).toEqual([
+        { node: { requesterUserID: null } },
       ]);
-      expect(asAnonymous.data.tagsConnection.edges).toEqual([
-        { node: { requesterUserId: null } },
+      expect(asAnonymous.data.tags.edges).toEqual([
+        { node: { requesterUserID: null } },
       ]);
     });
 
@@ -473,7 +495,7 @@ describe('Tag requests and management (e2e)', () => {
         `These tags are not available: ${name}`,
       );
       expect(after.errors).toBeUndefined();
-      expect(after.data.createNovel.tags).toEqual([name]);
+      expect(after.data.createNovel.tags).toEqual([{ name }]);
     });
   });
 
@@ -634,7 +656,7 @@ describe('Tag requests and management (e2e)', () => {
         description: DESCRIPTION,
         status: 'APPROVED',
       });
-      expect(read.data.novel.tags).toEqual([renamed]);
+      expect(read.data.novel.tags).toEqual([{ name: renamed }]);
     });
 
     it('should answer 400 naming the tag when renaming to an existing one', async () => {
@@ -661,7 +683,9 @@ describe('Tag requests and management (e2e)', () => {
         admin,
       );
       await graphql(APPROVE_TAG, { id }, admin);
-      const read = await graphql(TAG_DESCRIPTION, { search: name });
+      const read = await graphql(TAG_DESCRIPTION, {
+        where: search(name),
+      });
 
       expect(updated.data.updateTag).toStrictEqual({
         id,
@@ -669,7 +693,7 @@ describe('Tag requests and management (e2e)', () => {
         description: 'Lighthouses, fog and doors.',
         status: 'PENDING',
       });
-      expect(read.data.tagsConnection.edges).toEqual([
+      expect(read.data.tags.edges).toEqual([
         {
           node: { id, description: 'Lighthouses, fog and doors.' },
         },
@@ -718,7 +742,7 @@ describe('Tag requests and management (e2e)', () => {
       });
 
       expect(data.data.deleteTag).toStrictEqual({ id });
-      expect(read.data.novel.tags).toEqual(['fantasy']);
+      expect(read.data.novel.tags).toEqual([{ name: 'fantasy' }]);
     });
 
     it('should reject a pending request by deleting it', async () => {
@@ -736,7 +760,7 @@ describe('Tag requests and management (e2e)', () => {
 describe('Tag approximateNovelCount (e2e)', () => {
   const WITH_COUNT = `#graphql
     query WithCount {
-      tagsConnection(first: 100) {
+      tags(first: 100) {
         edges { node { name approximateNovelCount } }
       }
     }
@@ -750,9 +774,7 @@ describe('Tag approximateNovelCount (e2e)', () => {
     });
 
     const nodes: { name: string; approximateNovelCount: number }[] =
-      data.data.tagsConnection.edges.map(
-        ({ node }: { node: object }) => node,
-      );
+      data.data.tags.edges.map(({ node }: { node: object }) => node);
     const fantasy = nodes.find(({ name }) => name === 'fantasy');
     expect(data.errors).toBeUndefined();
     expect(nodes).toSatisfyAll(

@@ -73,6 +73,10 @@ else
     --target production \
     --build-arg "PORT=${backend_port:-3000}" \
     -t "smart-novel-backend:$image_tag" "$repo_root"
+  run_in_background build backend-devdata:e2e \
+    -f "$repo_root/apps/backend/Dockerfile" \
+    --target devdata \
+    -t "smart-novel-backend-devdata:$image_tag" "$repo_root"
   # The client ID and the project ID are generated at runtime; the frontend's start script replaces the placeholders.
   run_in_background build frontend:e2e \
     -f "$repo_root/apps/frontend/Dockerfile" \

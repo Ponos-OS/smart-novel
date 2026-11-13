@@ -58,7 +58,8 @@ func (Chapter) Edges() []ent.Edge {
 		edge.From("novel", Novel.Type).
 			Ref("chapters").Field("novel_id").
 			Unique().
-			Required(),
+			Required().
+			Annotations(entgql.Skip(entgql.SkipAll)),
 		edge.From("content", ChapterContent.Type).
 			Ref("chapter").
 			Field("content_id").

@@ -90,7 +90,7 @@ describe('Novel deletion (e2e)', () => {
             $novelId: ID!
             $input: CreateChapterInput!
           ) {
-            createChapter(novelId: $novelId, input: $input) {
+            createChapter(novelID: $novelId, input: $input) {
               id
             }
           }
@@ -155,6 +155,7 @@ describe('Novel deletion (e2e)', () => {
       role: 'user',
       getAuthorizationHeader:
         AuthorizationFixture.getUserAuthorizationHeader,
+      message: 'You need at least the "writer" role',
     },
     {
       role: 'writer who does not own the novel',
@@ -162,18 +163,17 @@ describe('Novel deletion (e2e)', () => {
         AuthorizationFixture.getWriterAuthorizationHeader({
           fresh: true,
         }),
+      message: 'You do not have permission to delete this novel',
     },
   ])(
     'should NOT allow $role to delete a novel',
-    async ({ getAuthorizationHeader }) => {
+    async ({ getAuthorizationHeader, message }) => {
       const { novelId } = await createNovelWithChapters(1);
       const authorization = await getAuthorizationHeader();
 
       const data = await deleteNovel(novelId, authorization);
 
-      expect(data.errors[0].message).toContain(
-        'You do not have permission to delete this novel',
-      );
+      expect(data.errors[0].message).toContain(message);
       expect(count('novels', `id = '${novelId}'`)).toBe(1);
     },
   );
@@ -197,7 +197,7 @@ describe('Novel deletion (e2e)', () => {
         `
           #graphql
           mutation MarkChaptersRead($chapterIds: [ID!]!) {
-            markChaptersRead(chapterIds: $chapterIds) {
+            markChaptersRead(chapterIDs: $chapterIds) {
               markedCount
             }
           }

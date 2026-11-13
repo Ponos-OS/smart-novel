@@ -1,0 +1,14 @@
+"""
+Cleans and checks a string, an optional string or every string of a list. NUL characters are refused. The text is cleaned (control characters go and the ends are trimmed) and then checked: unless `allowEmpty`, it must have something in it. By default it is one line, as a name or a title is: every run of white space becomes a single space. With `multiline` the line breaks, tabs and spaces inside stay, as in a description or a chapter. Runs before the directives that follow it.
+"""
+directive @isString(multiline: Boolean! = false, allowEmpty: Boolean! = false) on INPUT_FIELD_DEFINITION | ARGUMENT_DEFINITION
+
+"""
+The text must not be longer than this many characters.
+"""
+directive @maxLength(max: Int!) on INPUT_FIELD_DEFINITION | ARGUMENT_DEFINITION
+
+"""
+The list must not have more than this many items.
+"""
+directive @maxSize(max: Int!) on INPUT_FIELD_DEFINITION | ARGUMENT_DEFINITION

@@ -74,7 +74,7 @@ func (Writer) Indexes() []ent.Index {
 
 func (Writer) Annotations() []schema.Annotation {
 	return []schema.Annotation{
-		entgql.RelayConnection(),
+		entgql.Skip(entgql.SkipAll),
 		entsql.Checks(map[string]string{
 			"writers_applications_is_array_of_objects": `jsonb_typeof("applications") = 'array' AND NOT jsonb_path_exists("applications", '$[*] ? (@.type() != "object")')`,
 		}),

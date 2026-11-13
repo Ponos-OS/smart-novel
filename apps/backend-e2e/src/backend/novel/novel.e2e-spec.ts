@@ -15,8 +15,10 @@ describe('Novel (e2e)', () => {
             writer {
               penName
             }
-            tags
-            chaptersConnection(first: 10, orderBy: { field: CHAPTER_NUMBER, direction: ASC }) {
+            tags {
+              name
+            }
+            chapters(first: 10, orderBy: { field: CHAPTER_NUMBER, direction: ASC }) {
               edges {
                 cursor
                 node {
@@ -58,7 +60,10 @@ describe('Novel (e2e)', () => {
           'A young hero leaves home to uncover an ancient mystery and shape the fate of the realm.',
         state: 'ONGOING',
         writer: { penName: 'Writer_User' },
-        tags: expect.arrayContaining(['fantasy', 'adventure']),
+        tags: expect.arrayContaining([
+          { name: 'fantasy' },
+          { name: 'adventure' },
+        ]),
         // other specs add chapters to this seeded novel, so only its shape is stable
         lastPublishedChapter: { id: expect.toBeString() },
         firstChapter: { id: '4dd92f16-4743-47b9-960c-6529678e9bc5' },
@@ -66,15 +71,11 @@ describe('Novel (e2e)', () => {
     );
     expect(novel.lastChapterPublishedAt).toBeDateString();
 
-    // Verify chaptersConnection
-    expect(
-      novel.chaptersConnection.totalCount,
-    ).toBeGreaterThanOrEqual(4);
-    expect(
-      novel.chaptersConnection.edges.length,
-    ).toBeGreaterThanOrEqual(4);
+    // Verify chapters
+    expect(novel.chapters.totalCount).toBeGreaterThanOrEqual(4);
+    expect(novel.chapters.edges.length).toBeGreaterThanOrEqual(4);
 
-    const chapterIds = novel.chaptersConnection.edges.map(
+    const chapterIds = novel.chapters.edges.map(
       (edge: { node: { id: string } }) => edge.node.id,
     );
     expect(chapterIds).toContain(
@@ -91,7 +92,7 @@ describe('Novel (e2e)', () => {
     );
 
     // Each edge should have cursor and node with expected fields
-    for (const edge of novel.chaptersConnection.edges) {
+    for (const edge of novel.chapters.edges) {
       expect(edge.cursor).toBeString();
       expect(edge.node.id).toBeString();
       expect(edge.node.title).toBeString();
@@ -105,7 +106,7 @@ describe('Novel (e2e)', () => {
       query: `#graphql
         query GetNovel($id: ID!) {
           novel(id: $id) {
-            coverUrl
+            coverURL
           }
         }
       `,
@@ -114,7 +115,7 @@ describe('Novel (e2e)', () => {
       },
     });
 
-    const res = await axios.get(data.data.novel.coverUrl);
+    const res = await axios.get(data.data.novel.coverURL);
 
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toBe('image/png');

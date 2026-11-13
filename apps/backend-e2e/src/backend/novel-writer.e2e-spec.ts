@@ -5,7 +5,7 @@ import { AuthorizationFixture, ClusterFixture } from '../support';
 
 const WRITER_FIELDS = `#graphql
   fragment WriterFields on NovelWriter {
-    userId
+    userID
     penName
     name
     email
@@ -30,7 +30,7 @@ const NOVEL = `#graphql
 const NOVELS = `#graphql
   ${WRITER_FIELDS}
   query NovelsWriter {
-    novelsConnection(first: 100) {
+    novels(first: 100) {
       edges {
         node {
           id
@@ -71,7 +71,7 @@ const WHO_AM_I = `#graphql
 const SEEDED_NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829';
 const ONLY_THE_PEN_NAME = {
   penName: expect.any(String),
-  userId: expect.stringMatching(/^\d+$/),
+  userID: expect.stringMatching(/^\d+$/),
   name: null,
   email: null,
   status: null,
@@ -113,9 +113,9 @@ describe('Novel writer (e2e)', () => {
       });
     secondWriterId = (await graphql(WHO_AM_I, {}, secondWriter))
       .whoAmI.sub;
-    secondWriterPenName = (
-      await graphql('{ myWriter { penName } }', {}, secondWriter)
-    ).myWriter.penName;
+    secondWriterPenName = ClusterFixture.queryDatabase(
+      `SELECT pen_name FROM writers WHERE user_id = '${secondWriterId}';`,
+    );
     novelId = (
       await graphql(
         CREATE_NOVEL,
@@ -175,7 +175,7 @@ describe('Novel writer (e2e)', () => {
   it('should show the same on the list of novels', async () => {
     const data = await graphql(NOVELS, {});
 
-    const writers = data.novelsConnection.edges.map(
+    const writers = data.novels.edges.map(
       ({ node }: { node: { writer: unknown } }) => node.writer,
     );
     expect(writers).not.toBeEmpty();
@@ -188,7 +188,7 @@ describe('Novel writer (e2e)', () => {
     const data = await graphql(NOVEL, { id: SEEDED_NOVEL_ID }, admin);
 
     expect(data.novel.writer).toStrictEqual({
-      userId: expect.stringMatching(/^\d+$/),
+      userID: expect.stringMatching(/^\d+$/),
       penName: 'Writer_User',
       name: 'Writer User',
       email: 'writer@test.com',
@@ -202,7 +202,7 @@ describe('Novel writer (e2e)', () => {
     const data = await graphql(NOVEL, { id: novelId }, admin);
 
     expect(data.novel.writer).toMatchObject({
-      userId: secondWriterId,
+      userID: secondWriterId,
       penName: secondWriterPenName,
       name: 'Fresh User',
     });
@@ -216,7 +216,7 @@ describe('Novel writer (e2e)', () => {
 
     expect(anonymous.novel.writer).toBeNull();
     expect(asAdmin.novel.writer).toMatchObject({
-      userId: secondWriterId,
+      userID: secondWriterId,
       status: 'REJECTED',
     });
   });
