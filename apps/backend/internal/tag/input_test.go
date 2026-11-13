@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/tag"
 )
 
@@ -27,7 +26,7 @@ func TestUpdateRequireChange(t *testing.T) {
 			err := c.update.RequireChange()
 
 			var bad *apperr.Error
-			if c.invalid && (!errors.As(err, &bad) || bad.Code() != shared.BadRequest) {
+			if c.invalid && (!errors.As(err, &bad) || bad.Code() != apperr.CodeBadRequest) {
 				t.Errorf("err = %v, want a bad request", err)
 			}
 			if !c.invalid && err != nil {

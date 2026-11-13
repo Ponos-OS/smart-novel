@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 )
 
 // Viewer is the authenticated user a request acts for.
@@ -41,16 +41,6 @@ func WithViewer(ctx context.Context, viewer Viewer) context.Context {
 	return withViewer(ctx, viewer)
 }
 
-// IsAdmin tells whether the viewer holds the admin role. It is the one place the rest of the code asks, so the role rules can move without it.
-func (v Viewer) IsAdmin() bool {
-	return shared.IsAdmin(v.Roles)
-}
-
-// HasMinimumRole tells whether the viewer holds minimum or a higher role.
-func (v Viewer) HasMinimumRole(minimum shared.Role) bool {
-	return shared.HasMinimumRole(v.Roles, minimum)
-}
-
 // IsAdmin tells whether the request is by an authenticated admin; an anonymous request is not.
 func IsAdmin(ctx context.Context) bool {
 	viewer, ok := ViewerFrom(ctx)
@@ -81,14 +71,14 @@ func Require(ctx context.Context) (Viewer, error) {
 }
 
 // RequireRole returns the viewer when their highest role is at least minimum.
-func RequireRole(ctx context.Context, minimum shared.Role) (Viewer, error) {
+func RequireRole(ctx context.Context, minimum Role) (Viewer, error) {
 	viewer, err := Require(ctx)
 	if err != nil {
 		return Viewer{}, err
 	}
-	if !shared.HasMinimumRole(viewer.Roles, minimum) {
+	if !viewer.HasMinimumRole(minimum) {
 		return Viewer{}, &Error{
-			code:    shared.Forbidden,
+			code:    apperr.CodeForbidden,
 			message: fmt.Sprintf("You need at least the %q role to perform this action", minimum),
 		}
 	}
@@ -107,10 +97,10 @@ func (e *Error) Error() string { return e.message }
 func (e *Error) Code() string { return e.code }
 
 var (
-	errMissingToken = &Error{code: shared.Unauthenticated, message: "Missing Bearer token in Authorization header"}
-	errInvalidToken = &Error{code: shared.Unauthenticated, message: "Invalid or expired token"}
+	errMissingToken = &Error{code: apperr.CodeUnauthenticated, message: "Missing Bearer token in Authorization header"}
+	errInvalidToken = &Error{code: apperr.CodeUnauthenticated, message: "Invalid or expired token"}
 	// ErrForbidden is what the authorization functions' callers return when a check fails.
-	ErrForbidden = &Error{code: shared.Forbidden, message: "You do not have permission to do this"}
+	ErrForbidden = &Error{code: apperr.CodeForbidden, message: "You do not have permission to do this"}
 )
 
 // IsAuthError reports whether err is one of this package's errors.

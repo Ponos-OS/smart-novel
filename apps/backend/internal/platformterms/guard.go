@@ -6,7 +6,6 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
 )
 
 const (
@@ -29,7 +28,7 @@ func Guard(service Acceptances) graphql.FieldMiddleware {
 			return next(ctx)
 		}
 		viewer, ok := auth.ViewerFrom(ctx)
-		if !ok || !viewer.HasMinimumRole(shared.RoleWriter) {
+		if !ok || !viewer.HasMinimumRole(auth.RoleWriter) {
 			return next(ctx)
 		}
 		accepted, err := service.HasAcceptedCurrent(ctx, viewer.Subject)

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 )
 
 // NULMessage is the bad request for a NUL character: PostgreSQL cannot store or compare it.
@@ -37,7 +37,7 @@ type Error struct {
 
 func (*Error) Error() string { return "Invalid input" }
 
-func (*Error) Code() string { return shared.BadRequest }
+func (*Error) Code() string { return apperr.CodeBadRequest }
 
 func (e *Error) Extensions() map[string]any {
 	return map[string]any{"violations": e.Violations}

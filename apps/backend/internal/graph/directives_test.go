@@ -8,8 +8,8 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph"
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
 )
 
 func returning(value any) graphql.Resolver {
@@ -89,7 +89,7 @@ func TestIsStringRefusesNUL(t *testing.T) {
 			_, err := isString(t, value, false, true)
 
 			var coded interface{ Code() string }
-			if !errors.As(err, &coded) || coded.Code() != shared.BadRequest {
+			if !errors.As(err, &coded) || coded.Code() != apperr.CodeBadRequest {
 				t.Errorf("err = %v, want a bad request", err)
 			}
 		})
@@ -245,7 +245,7 @@ func TestValidationDirectivesAnswerWithTheMessageTheSchemaGives(t *testing.T) {
 			err := c.run()
 
 			var coded interface{ Code() string }
-			if err == nil || err.Error() != message || !errors.As(err, &coded) || coded.Code() != shared.BadRequest {
+			if err == nil || err.Error() != message || !errors.As(err, &coded) || coded.Code() != apperr.CodeBadRequest {
 				t.Errorf("err = %v, want a BAD_REQUEST saying %q", err, message)
 			}
 		})

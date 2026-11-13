@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Dialog } from '../../components/Dialog';
 import { DialogFormFooter } from '../../components/DialogFormFooter';
 import { useRejectWriterMutation } from '../../generated/graphql';
-import { WRITER_NOTE_MAX_LENGTH } from '../../generated/shared';
+import { REJECT_WRITER_REASON_MAX_LENGTH } from '../../generated/limits';
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 import { showApiError, showSuccess } from '../../utils/notification';
 import { type AdminWriter } from './WriterRow';
@@ -73,7 +73,7 @@ export function RejectWriterDialog({
             <textarea
               value={reason}
               onChange={(event) => setReason(event.target.value)}
-              maxLength={WRITER_NOTE_MAX_LENGTH}
+              maxLength={REJECT_WRITER_REASON_MAX_LENGTH}
               rows={4}
               disabled={reject.isPending}
               aria-invalid={refusal !== null}
@@ -84,7 +84,7 @@ export function RejectWriterDialog({
             />
           </label>
           <span className="mt-1 block text-right text-xs text-gray-400">
-            {reason.length} / {WRITER_NOTE_MAX_LENGTH}
+            {reason.length} / {REJECT_WRITER_REASON_MAX_LENGTH}
           </span>
         </div>
         <DialogFormFooter

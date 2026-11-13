@@ -1,4 +1,4 @@
-import { Role, ROLE_HIERARCHY } from './shared.gen';
+import { Role, ROLE_HIERARCHY } from './shared';
 
 export function hasMinimumRole(
   userRoles: string[],

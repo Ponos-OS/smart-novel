@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
 )
 
 const (
@@ -71,7 +71,7 @@ func TestDenyUnlessCan(t *testing.T) {
 		t.Errorf("allowed = %v, want nil", allowed)
 	}
 	var forbidden *auth.Error
-	if !errors.As(denied, &forbidden) || forbidden.Code() != shared.Forbidden {
+	if !errors.As(denied, &forbidden) || forbidden.Code() != apperr.CodeForbidden {
 		t.Fatalf("denied = %v, want a forbidden error", denied)
 	}
 	if want := "You do not have permission to update this novel"; forbidden.Error() != want {

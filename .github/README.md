@@ -74,8 +74,7 @@ smart-novel/
 │   │       └── utils/            # Utilities (token-bucket, notifications)
 │   └── frontend-e2e/             # Frontend E2E tests (Cypress)
 ├── infra/                        # Terraform modules and scripts for the local kind cluster (see infra/README.md)
-├── spec/                         # JSON spec of what both apps share, and the cases their helpers are tested against
-├── tools/                        # Go tools (genshared turns spec/ into constants for both apps)
+├── tools/                        # Go tools (gensdl turns the limits of the GraphQL schema into frontend constants)
 ├── scripts/                      # Repo maintenance scripts
 ├── .env.example                  # Environment variables template
 ├── Taskfile.yml                  # Task entry points; every app has its own Taskfile.yml

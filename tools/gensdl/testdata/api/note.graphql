@@ -1,0 +1,21 @@
+directive @maxLength(
+  max: Int!
+) on INPUT_FIELD_DEFINITION | ARGUMENT_DEFINITION
+directive @minLength(
+  min: Int!
+  message: String
+) on INPUT_FIELD_DEFINITION | ARGUMENT_DEFINITION
+directive @maxSize(max: Int!) on ARGUMENT_DEFINITION
+
+input RequestNoteInput {
+  text: String! @maxLength(max: 1000)
+  penName: String!
+    @minLength(min: 3, message: "Too short")
+    @maxLength(max: 50)
+  untouched: String!
+}
+
+extend type Mutation {
+  markNotesRead(noteIDs: [ID!]! @maxSize(max: 100)): Int!
+  findNotes(search: String @maxLength(max: 100)): Int!
+}

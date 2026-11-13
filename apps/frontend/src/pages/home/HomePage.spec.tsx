@@ -143,7 +143,9 @@ describe('HomePage', () => {
           ? {
               data: undefined,
               isLoading: false,
-              error: new GraphqlRequestError('Invalid cursor'),
+              error: new GraphqlRequestError('Invalid cursor', {
+                code: 'INVALID_CURSOR',
+              }),
             }
           : {
               data: {

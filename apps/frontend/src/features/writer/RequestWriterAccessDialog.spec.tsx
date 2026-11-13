@@ -1,16 +1,10 @@
-import { act, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import {
-  PEN_NAME_TAKEN,
-  WRITER_NOTE_MAX_LENGTH,
-} from '../../generated/shared';
+import { REQUEST_WRITER_ACCESS_NOTE_MAX_LENGTH } from '../../generated/limits';
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 import { showApiError, showSuccess } from '../../utils/notification';
-import {
-  PEN_NAME_TAKEN_HIGHLIGHT_MS,
-  RequestWriterAccessDialog,
-} from './RequestWriterAccessDialog';
+import { RequestWriterAccessDialog } from './RequestWriterAccessDialog';
 
 const requestWriterAccess = vi.hoisted(() => ({
   mutate: vi.fn(),
@@ -70,86 +64,6 @@ describe('RequestWriterAccessDialog', () => {
     expect(send).toBeDisabled();
   });
 
-  describe('when the pen name is taken', () => {
-    const takenError = () =>
-      new GraphqlRequestError(
-        'That pen name is already taken, please choose another one',
-        { code: PEN_NAME_TAKEN },
-      );
-
-    async function sendTakenName() {
-      const rendered = renderDialog();
-      requestWriterAccess.mutate.mockImplementation(
-        (_variables, options) => options.onError(takenError()),
-      );
-      await rendered.user.type(
-        screen.getByLabelText(noteLabel),
-        'I write fantasy.',
-      );
-      await rendered.user.type(
-        screen.getByLabelText(penNameLabel),
-        penName,
-      );
-      await rendered.user.click(
-        screen.getByRole('button', { name: 'Send request' }),
-      );
-
-      return rendered;
-    }
-
-    it('turns the pen name red and tells the user, keeping the dialog and the note', async () => {
-      const { onRequested } = await sendTakenName();
-
-      expect(screen.getByLabelText(penNameLabel)).toHaveAttribute(
-        'aria-invalid',
-        'true',
-      );
-      expect(screen.getByLabelText(penNameLabel)).toHaveClass(
-        'border-red-500',
-      );
-      expect(showApiError).toHaveBeenCalledWith(
-        expect.stringContaining(`"${penName}" is already taken`),
-      );
-      expect(screen.getByLabelText(noteLabel)).toHaveValue(
-        'I write fantasy.',
-      );
-      expect(onRequested).not.toHaveBeenCalled();
-      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    });
-
-    it('turns it back after a few seconds', async () => {
-      vi.useFakeTimers({ shouldAdvanceTime: true });
-
-      try {
-        await sendTakenName();
-
-        act(() => {
-          vi.advanceTimersByTime(PEN_NAME_TAKEN_HIGHLIGHT_MS);
-        });
-
-        expect(screen.getByLabelText(penNameLabel)).not.toHaveClass(
-          'border-red-500',
-        );
-        expect(screen.getByLabelText(penNameLabel)).toHaveAttribute(
-          'aria-invalid',
-          'false',
-        );
-      } finally {
-        vi.useRealTimers();
-      }
-    });
-
-    it('turns it back as soon as the user edits the pen name', async () => {
-      const { user } = await sendTakenName();
-
-      await user.type(screen.getByLabelText(penNameLabel), '_Two');
-
-      expect(screen.getByLabelText(penNameLabel)).not.toHaveClass(
-        'border-red-500',
-      );
-    });
-  });
-
   it('counts the characters against the limit and stops typing at it', async () => {
     const { user } = renderDialog();
     const textarea = screen.getByLabelText(noteLabel);
@@ -158,10 +72,12 @@ describe('RequestWriterAccessDialog', () => {
 
     expect(textarea).toHaveAttribute(
       'maxLength',
-      String(WRITER_NOTE_MAX_LENGTH),
+      String(REQUEST_WRITER_ACCESS_NOTE_MAX_LENGTH),
     );
     expect(
-      screen.getByText(`7 / ${WRITER_NOTE_MAX_LENGTH}`),
+      screen.getByText(
+        `7 / ${REQUEST_WRITER_ACCESS_NOTE_MAX_LENGTH}`,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -196,6 +112,7 @@ describe('RequestWriterAccessDialog', () => {
   it.each([
     'You already have a pending writer request',
     'A pen name needs at least 3 characters',
+    'That pen name is already taken, please choose another one',
   ])(
     'shows the refusal "%s" inside the dialog and keeps it open',
     async (message) => {

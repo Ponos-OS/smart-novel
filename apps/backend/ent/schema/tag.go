@@ -8,8 +8,11 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+)
 
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
+const (
+	tagNameMaxLength        = 50
+	tagDescriptionMaxLength = 650
 )
 
 type Tag struct {
@@ -25,12 +28,12 @@ func (Tag) Fields() []ent.Field {
 		field.String("name").
 			SchemaType(map[string]string{dialect.Postgres: "citext"}).
 			Unique().
-			MaxLen(shared.TagNameMaxLength).
+			MaxLen(tagNameMaxLength).
 			Comment("Unique and compared without regard to case.").
 			Annotations(entgql.OrderField("NAME")),
 		field.String("description").
 			Default("").
-			MaxLen(shared.TagDescriptionMaxLength),
+			MaxLen(tagDescriptionMaxLength),
 		field.Enum("status").
 			Values("APPROVED", "PENDING").
 			Default("APPROVED").

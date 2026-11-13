@@ -10,7 +10,6 @@ import (
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/scalar"
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
 )
 
 func TestCursorRoundTrips(t *testing.T) {
@@ -30,8 +29,8 @@ func TestUnmarshalCursorRefusesWhatEntDidNotMake(t *testing.T) {
 		_, err := scalar.UnmarshalCursor(value)
 
 		var bad *apperr.Error
-		if !errors.As(err, &bad) || bad.Code() != shared.BadRequest || bad.Error() != shared.InvalidCursorMessage {
-			t.Errorf("UnmarshalCursor(%v) err = %v, want a bad request %q", value, err, shared.InvalidCursorMessage)
+		if !errors.As(err, &bad) || bad.Code() != apperr.CodeInvalidCursor || bad.Error() != scalar.InvalidCursorMessage {
+			t.Errorf("UnmarshalCursor(%v) err = %v, want an invalid cursor error %q", value, err, scalar.InvalidCursorMessage)
 		}
 	}
 }

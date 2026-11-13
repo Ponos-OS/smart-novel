@@ -56,7 +56,7 @@ tasks:
 
   gen-graphql-schema:
     desc: Generate the GraphQL SDL schema file on the host
-    deps: [generate, ":generate:shared"]
+    deps: [generate]
     cmds:
       - npx ts-node --files -r tsconfig-paths/register --project tsconfig.app.json gen-graphql-schema.ts
 
@@ -72,7 +72,7 @@ tasks:
       - node -r @swc-node/register src/main.ts
 
   test:
-    deps: [generate, ":generate:shared"]
+    deps: [generate]
     cmds:
       - npx vitest run --config vitest.config.ts {{.CLI_ARGS}}
 

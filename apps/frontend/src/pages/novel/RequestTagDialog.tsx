@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Dialog } from '../../components/Dialog';
 import { DialogFormFooter } from '../../components/DialogFormFooter';
 import { useRequestTagMutation } from '../../generated/graphql';
-import { TAG_DESCRIPTION_MAX_LENGTH } from '../../generated/shared';
+import { REQUEST_TAG_INPUT_DESCRIPTION_MAX_LENGTH } from '../../generated/limits';
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 import { showApiError, showSuccess } from '../../utils/notification';
 
@@ -108,7 +108,7 @@ export function RequestTagDialog({
           </span>
           <textarea
             rows={3}
-            maxLength={TAG_DESCRIPTION_MAX_LENGTH}
+            maxLength={REQUEST_TAG_INPUT_DESCRIPTION_MAX_LENGTH}
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             disabled={requestTag.isPending}
@@ -121,7 +121,8 @@ export function RequestTagDialog({
         </label>
         <p className="text-xs text-gray-400">
           What the tag is for, so an admin and other writers know when
-          to use it. {description.length}/{TAG_DESCRIPTION_MAX_LENGTH}
+          to use it. {description.length}/
+          {REQUEST_TAG_INPUT_DESCRIPTION_MAX_LENGTH}
         </p>
         <DialogFormFooter
           refusal={refusal}

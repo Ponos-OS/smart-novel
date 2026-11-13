@@ -156,7 +156,9 @@ describe(useAdminNovels.name, () => {
     fetchPage
       .mockResolvedValueOnce(firstPage)
       .mockRejectedValueOnce(
-        new GraphqlRequestError('Invalid cursor'),
+        new GraphqlRequestError('Invalid cursor', {
+          code: 'INVALID_CURSOR',
+        }),
       )
       .mockResolvedValueOnce(firstPage);
     const { result } = renderList(undefined, undefined);

@@ -9,11 +9,15 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
-
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
 )
 
 const systemOwner = "system"
+
+const (
+	licenseNameMaxLength = 200
+	// licenseTextMaxLength fits the longest canonical text (CC BY-NC-SA 4.0), about 20k characters.
+	licenseTextMaxLength = 100000
+)
 
 type License struct {
 	ent.Schema
@@ -29,10 +33,10 @@ func (License) Mixin() []ent.Mixin {
 func (License) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("name").
-			MaxLen(shared.LicenseNameMaxLength).
+			MaxLen(licenseNameMaxLength).
 			NotEmpty(),
 		field.String("text").
-			MaxLen(shared.LicenseTextMaxLength).
+			MaxLen(licenseTextMaxLength).
 			SchemaType(map[string]string{dialect.Postgres: "text"}),
 		field.String("text_hash").
 			Optional().

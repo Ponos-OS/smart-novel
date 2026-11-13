@@ -1,8 +1,7 @@
 import {
-  INVALID_CURSOR_MESSAGE,
-  PEN_NAME_TAKEN,
+  INVALID_CURSOR,
   PLATFORM_TERMS_NOT_ACCEPTED,
-} from '../generated/shared';
+} from './api-error-codes';
 
 /**
  * @description Thrown by {@link graphqlFetcher} for a GraphQL-level error response
@@ -25,22 +24,12 @@ export function isConflictError(error: unknown): boolean {
 }
 
 /**
- * @description The backend refused a pagination cursor: it was changed, belongs to another query, or predates a change of the signing key.
+ * @description The backend refused a pagination cursor: it was not made by the backend, so a page that was kept across a release can no longer be used.
  */
 export function isInvalidCursorError(error: unknown): boolean {
   return (
     error instanceof GraphqlRequestError &&
-    error.message === INVALID_CURSOR_MESSAGE
-  );
-}
-
-/**
- * @description Another writer already has the pen name that was asked for, in any case.
- */
-export function isPenNameTakenError(error: unknown): boolean {
-  return (
-    error instanceof GraphqlRequestError &&
-    error.extensions?.code === PEN_NAME_TAKEN
+    error.extensions?.code === INVALID_CURSOR
   );
 }
 

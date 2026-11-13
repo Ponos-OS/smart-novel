@@ -1,9 +1,21 @@
 version: "3"
 
 tasks:
+  limits:
+    desc: The limits of the validation directives of the Go schema, as constants (needs Go, so it runs on the host)
+    dir: "{{.ROOT_DIR}}"
+    sources:
+      - apps/backend/api/*.graphql
+      - tools/go.mod
+      - tools/gensdl/*.go
+    generates:
+      - apps/frontend/src/generated/limits.ts
+    cmds:
+      - go run ./tools/gensdl -schema apps/backend/api -out apps/frontend/src/generated/limits.ts
+
   generate:
-    desc: Typed React Query hooks from the GraphQL schema
-    deps: [":backend-nest:gen-graphql-schema"]
+    desc: Typed React Query hooks from the GraphQL schema, and the limits
+    deps: [":backend-nest:gen-graphql-schema", limits]
     sources:
       - codegen.ts
       - src/**/*.graphql
@@ -25,17 +37,17 @@ tasks:
 
   build:
     desc: Production build into dist/apps/frontend
-    deps: [generate, ":generate:shared"]
+    deps: [generate]
     cmds:
       - npx vite build
 
   typecheck:
-    deps: [generate, ":generate:shared"]
+    deps: [generate]
     cmds:
       - npx tsc --noEmit -p tsconfig.app.json
 
   test:
-    deps: [generate, ":generate:shared"]
+    deps: [generate]
     cmds:
       - npx vitest run --config vitest.config.ts {{.CLI_ARGS}}
 
@@ -52,6 +64,6 @@ tasks:
       - npx storybook dev -p 6006 {{.CLI_ARGS}}
 
   storybook:build:
-    deps: [generate, ":generate:shared"]
+    deps: [generate]
     cmds:
       - npx storybook build

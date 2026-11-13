@@ -12,7 +12,7 @@ import {
 import {
   COVER_CONTENT_TYPE_EXTENSIONS,
   COVER_MAX_SIZE_BYTES,
-} from '../../generated/shared';
+} from '../../lib/pending-limits';
 import { NovelCoverConfirmForm } from './NovelCoverConfirmForm';
 
 interface NovelCoverUploadProps {

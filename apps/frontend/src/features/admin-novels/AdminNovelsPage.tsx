@@ -12,8 +12,8 @@ import {
   OrderDirection,
   useDeleteNovelMutation,
 } from '../../generated/graphql';
-import { Role } from '../../generated/shared';
 import { useAuth } from '../../hooks/useAuth';
+import { Role } from '../../lib/role';
 import { showApiError, showSuccess } from '../../utils/notification';
 import { ContentStatsCards } from './ContentStatsCards';
 import {

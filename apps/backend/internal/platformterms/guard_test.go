@@ -8,9 +8,9 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/vektah/gqlparser/v2/ast"
 
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platformterms"
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
 )
 
 type acceptances struct {
@@ -36,9 +36,9 @@ func fieldWith(object string, directives ...string) context.Context {
 }
 
 func TestGuard(t *testing.T) {
-	writer := auth.Viewer{Subject: "399193312025837589", Roles: []string{string(shared.RoleWriter)}}
-	admin := auth.Viewer{Subject: "399193312025837590", Roles: []string{string(shared.RoleAdmin)}}
-	reader := auth.Viewer{Subject: "399193312025837591", Roles: []string{string(shared.RoleUser)}}
+	writer := auth.Viewer{Subject: "399193312025837589", Roles: []string{string(auth.RoleWriter)}}
+	admin := auth.Viewer{Subject: "399193312025837590", Roles: []string{string(auth.RoleAdmin)}}
+	reader := auth.Viewer{Subject: "399193312025837591", Roles: []string{string(auth.RoleUser)}}
 	cases := []struct {
 		name       string
 		object     string
@@ -82,14 +82,14 @@ func TestGuard(t *testing.T) {
 func assertNotAccepted(t *testing.T, err error) {
 	t.Helper()
 	var coded interface{ Code() string }
-	if !errors.As(err, &coded) || coded.Code() != shared.PlatformTermsNotAccepted {
-		t.Errorf("err = %v, want %s", err, shared.PlatformTermsNotAccepted)
+	if !errors.As(err, &coded) || coded.Code() != apperr.CodePlatformTermsNotAccepted {
+		t.Errorf("err = %v, want %s", err, apperr.CodePlatformTermsNotAccepted)
 	}
 }
 
 func TestGuardPassesOnADatabaseFailureAsAnError(t *testing.T) {
 	failure := errors.New("connection refused")
-	ctx := auth.WithViewer(fieldWith("Mutation"), auth.Viewer{Subject: "399193312025837589", Roles: []string{string(shared.RoleWriter)}})
+	ctx := auth.WithViewer(fieldWith("Mutation"), auth.Viewer{Subject: "399193312025837589", Roles: []string{string(auth.RoleWriter)}})
 
 	_, err := platformterms.Guard(&acceptances{err: failure})(ctx, func(context.Context) (any, error) { return nil, nil })
 

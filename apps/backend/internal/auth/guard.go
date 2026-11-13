@@ -5,8 +5,6 @@ import (
 	"strings"
 
 	"github.com/99designs/gqlgen/graphql"
-
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
 )
 
 const (
@@ -29,7 +27,7 @@ func Guard() graphql.FieldMiddleware {
 			return next(ctx)
 		}
 		if marker := directives.ForName(hasRoleDirective); marker != nil {
-			if _, err := RequireRole(ctx, shared.Role(marker.Arguments.ForName(roleArgument).Value.Raw)); err != nil {
+			if _, err := RequireRole(ctx, Role(marker.Arguments.ForName(roleArgument).Value.Raw)); err != nil {
 				return nil, err
 			}
 

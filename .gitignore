@@ -68,5 +68,3 @@ infra/terraform/local/1-app/*-config
 terraform.tfvars
 infra/terraform/modules/*/.terraform.lock.hcl
 .task
-apps/backend/internal/shared/shared_gen.go
-apps/backend-nest/src/legacy-shared/shared.gen.ts

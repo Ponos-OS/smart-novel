@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
 import { useMarkChaptersReadMutation } from '../generated/graphql';
-import { MARK_CHAPTERS_READ_MAX_BATCH_SIZE } from '../generated/shared';
+import { MARK_CHAPTERS_READ_CHAPTER_IDS_MAX_SIZE } from '../generated/limits';
 import { ReadChaptersStorage } from '../services/read-chapters-storage.service';
 import { logger } from '../utils/logger';
 import { useAuth } from './useAuth';
@@ -44,12 +44,12 @@ export function useSyncReadChapters({
     for (
       let i = 0;
       i < storedChapters.length;
-      i += MARK_CHAPTERS_READ_MAX_BATCH_SIZE
+      i += MARK_CHAPTERS_READ_CHAPTER_IDS_MAX_SIZE
     ) {
       batches.push(
         storedChapters.slice(
           i,
-          i + MARK_CHAPTERS_READ_MAX_BATCH_SIZE,
+          i + MARK_CHAPTERS_READ_CHAPTER_IDS_MAX_SIZE,
         ),
       );
     }

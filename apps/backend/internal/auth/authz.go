@@ -3,10 +3,10 @@ package auth
 import (
 	"fmt"
 
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 )
 
-// Can holds the permission rules. Roles rank admin > writer > user (see shared.HasMinimumRole).
+// Can holds the permission rules. Roles rank admin > writer > user (see role.go).
 // A novel is owned by its writer's user ID, a chapter belongs to the owner of its novel, and the callers look that ID up.
 
 type Action string
@@ -42,7 +42,7 @@ func DenyUnlessCan(viewer Viewer, action Action, resource Resource) error {
 	}
 
 	return &Error{
-		code:    shared.Forbidden,
+		code:    apperr.CodeForbidden,
 		message: fmt.Sprintf("You do not have permission to %s this %s", action, resource.noun()),
 	}
 }
@@ -56,7 +56,7 @@ func Can(viewer Viewer, action Action, resource Resource) bool {
 	switch resource := resource.(type) {
 	case Novel:
 		if action == Create {
-			return shared.IsWriterOrHigher(viewer.Roles)
+			return viewer.IsWriterOrHigher()
 		}
 
 		return isOwningWriter(viewer, resource.OwnerUserID)
@@ -68,5 +68,5 @@ func Can(viewer Viewer, action Action, resource Resource) bool {
 }
 
 func isOwningWriter(viewer Viewer, ownerUserID string) bool {
-	return shared.IsWriterOrHigher(viewer.Roles) && viewer.Subject == ownerUserID
+	return viewer.IsWriterOrHigher() && viewer.Subject == ownerUserID
 }

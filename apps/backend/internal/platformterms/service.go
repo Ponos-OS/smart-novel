@@ -7,7 +7,6 @@ import (
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
 )
 
 // Status says whether a user accepted the current terms.
@@ -61,7 +60,7 @@ func (s *Service) HasAcceptedCurrent(ctx context.Context, userID string) (bool, 
 // Accept records the acceptance of the current version; any other version is refused, and accepting twice changes nothing.
 func (s *Service) Accept(ctx context.Context, userID string, version int) (Status, error) {
 	if version != s.terms.Version {
-		return Status{}, apperr.WithCode(shared.PlatformTermsVersionMismatch,
+		return Status{}, apperr.WithCode(apperr.CodePlatformTermsVersionMismatch,
 			fmt.Sprintf("The platform terms are at version %d, not %d. Reload them before accepting.", s.terms.Version, version))
 	}
 	if err := s.repo.accept(ctx, userID, version); err != nil {
@@ -73,5 +72,5 @@ func (s *Service) Accept(ctx context.Context, userID string, version int) (Statu
 
 // NotAccepted is the error for a writer who has not accepted the current terms.
 func NotAccepted() error {
-	return apperr.WithCode(shared.PlatformTermsNotAccepted, "You must accept the current platform terms first")
+	return apperr.WithCode(apperr.CodePlatformTermsNotAccepted, "You must accept the current platform terms first")
 }

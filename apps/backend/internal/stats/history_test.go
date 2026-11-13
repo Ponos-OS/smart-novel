@@ -7,7 +7,6 @@ import (
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/stats"
 )
 
@@ -47,7 +46,7 @@ func TestWithinDaysRefusesARangeThatEndsBeforeItStarts(t *testing.T) {
 	_, err := stats.WithinDays(&ent.StatsSnapshotWhereInput{DayGTE: &from, DayLTE: &to})
 
 	var bad *apperr.Error
-	if !errors.As(err, &bad) || bad.Code() != shared.BadRequest {
+	if !errors.As(err, &bad) || bad.Code() != apperr.CodeBadRequest {
 		t.Errorf("err = %v, want a bad request", err)
 	}
 }

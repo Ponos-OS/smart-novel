@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { StatusToggleGroup } from '../../components/StatusToggleGroup';
 import { WriterStatus } from '../../generated/graphql';
-import { Role } from '../../generated/shared';
 import { useAuth } from '../../hooks/useAuth';
+import { Role } from '../../lib/role';
 import { RejectWriterDialog } from './RejectWriterDialog';
 import {
   ADMIN_WRITERS_KEY,

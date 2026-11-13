@@ -266,7 +266,7 @@ describe('License drafts (e2e)', () => {
       );
 
       expect(data.errors[0].message).toBe('Invalid cursor');
-      expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
+      expect(data.errors[0].extensions.code).toBe('INVALID_CURSOR');
     });
 
     it('should page through the drafts of a writer', async () => {

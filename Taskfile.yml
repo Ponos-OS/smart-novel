@@ -29,22 +29,6 @@ tasks:
     desc: Regenerate everything that is git-ignored
     deps: [backend:generate, backend-nest:generate, frontend:generate]
 
-  generate:shared:
-    desc: Constants both apps share, from spec/shared.json (needs Go, so it runs on the host)
-    sources:
-      - spec/shared.json
-      - tools/go.mod
-      - tools/genshared/*.go
-    generates:
-      - apps/frontend/src/generated/shared.ts
-      - apps/backend-nest/src/legacy-shared/shared.gen.ts
-      - apps/backend/internal/shared/shared_gen.go
-    cmds:
-      - >-
-        go run ./tools/genshared -spec spec/shared.json
-        -ts apps/frontend/src/generated/shared.ts,apps/backend-nest/src/legacy-shared/shared.gen.ts
-        -go apps/backend/internal/shared/shared_gen.go
-
   lint:
     desc: Lint and fix every project, then look for copy-pasted code
     cmds:
@@ -85,7 +69,6 @@ tasks:
       - >-
         rm -rf apps/frontend-e2e/cypress apps/frontend/src/generated
         apps/frontend/storybook-static apps/backend-nest/schema.gql
-        apps/backend-nest/src/legacy-shared/shared.gen.ts
         apps/backend-nest/src/shared/beatrice/graphql-env.d.ts
         apps/backend-nest/src/shared/beatrice/schema.graphql
         apps/backend-nest/src/shared/fithara/openapi.json

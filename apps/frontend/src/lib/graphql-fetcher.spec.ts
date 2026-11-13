@@ -2,7 +2,6 @@ import {
   graphqlFetcher,
   GraphqlRequestError,
   isInvalidCursorError,
-  isPenNameTakenError,
   isPlatformTermsNotAcceptedError,
 } from './graphql-fetcher';
 
@@ -88,46 +87,29 @@ describe(isPlatformTermsNotAcceptedError.name, () => {
 
 describe(isInvalidCursorError.name, () => {
   it.each([
-    [new GraphqlRequestError('Invalid cursor'), true],
+    [
+      new GraphqlRequestError('Invalid cursor', {
+        code: 'INVALID_CURSOR',
+      }),
+      true,
+    ],
+    [new GraphqlRequestError('Invalid cursor'), false],
     [
       new GraphqlRequestError('Invalid cursor', {
         code: 'BAD_REQUEST',
       }),
-      true,
+      false,
     ],
     [
-      new GraphqlRequestError('first and last can be at most 100'),
+      new GraphqlRequestError('first and last can be at most 100', {
+        code: 'BAD_REQUEST',
+      }),
       false,
     ],
     [new Error('Invalid cursor'), false],
     [undefined, false],
   ])('should answer for %j', (error, expected) => {
     const result = isInvalidCursorError(error);
-
-    expect(result).toBe(expected);
-  });
-});
-
-describe(isPenNameTakenError.name, () => {
-  it.each([
-    [
-      new GraphqlRequestError('That pen name is already taken', {
-        code: 'PEN_NAME_TAKEN',
-      }),
-      true,
-    ],
-    [
-      new GraphqlRequestError('Conflict', { code: 'CONFLICT' }),
-      false,
-    ],
-    [
-      new GraphqlRequestError('That pen name is already taken'),
-      false,
-    ],
-    [new Error('PEN_NAME_TAKEN'), false],
-    [undefined, false],
-  ])('should answer for %j', (error, expected) => {
-    const result = isPenNameTakenError(error);
 
     expect(result).toBe(expected);
   });

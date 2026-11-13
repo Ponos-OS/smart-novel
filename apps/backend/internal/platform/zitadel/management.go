@@ -14,8 +14,8 @@ import (
 	zitadelapi "github.com/zitadel/zitadel-go/v3/pkg/zitadel"
 	"google.golang.org/grpc"
 
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/config"
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
 )
 
 const defaultHTTPPort = "80"
@@ -75,7 +75,7 @@ func instance(target *url.URL) (*zitadelapi.Zitadel, error) {
 }
 
 // SetUserProjectRole makes role the only role the user holds on the project. Calling it again with the same arguments changes nothing.
-func (m *Management) SetUserProjectRole(ctx context.Context, userID string, role shared.Role) error {
+func (m *Management) SetUserProjectRole(ctx context.Context, userID string, role auth.Role) error {
 	authorizations := m.api.AuthorizationServiceV2()
 	found, err := authorizations.ListAuthorizations(ctx, &authorization.ListAuthorizationsRequest{
 		Filters: []*authorization.AuthorizationsSearchFilter{

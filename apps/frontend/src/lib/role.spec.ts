@@ -1,18 +1,36 @@
-import cases from '../../../../spec/cases/role.json';
-import { Role } from '../generated/shared';
-import { hasMinimumRole, isAdmin, isWriterOrHigher } from './role';
+import {
+  hasMinimumRole,
+  isAdmin,
+  isWriterOrHigher,
+  Role,
+} from './role';
 
 describe('role helpers', () => {
-  it.each(cases.hasMinimumRole)(
+  it.each([
+    { roles: ['writer'], minimum: Role.user, expected: true },
+    { roles: ['user'], minimum: Role.writer, expected: false },
+    { roles: ['admin'], minimum: Role.writer, expected: true },
+    {
+      roles: ['user', 'writer'],
+      minimum: Role.writer,
+      expected: true,
+    },
+    { roles: ['unknown-role'], minimum: Role.user, expected: false },
+    { roles: [], minimum: Role.user, expected: false },
+  ])(
     'hasMinimumRole should return $expected for $roles against $minimum',
     ({ roles, minimum, expected }) => {
-      const result = hasMinimumRole(roles, minimum as Role);
+      const result = hasMinimumRole(roles, minimum);
 
       expect(result).toBe(expected);
     },
   );
 
-  it.each(cases.isAdmin)(
+  it.each([
+    { roles: ['admin'], expected: true },
+    { roles: ['writer'], expected: false },
+    { roles: [], expected: false },
+  ])(
     'isAdmin should return $expected for $roles',
     ({ roles, expected }) => {
       const result = isAdmin(roles);
@@ -21,7 +39,12 @@ describe('role helpers', () => {
     },
   );
 
-  it.each(cases.isWriterOrHigher)(
+  it.each([
+    { roles: ['admin'], expected: true },
+    { roles: ['writer'], expected: true },
+    { roles: ['user'], expected: false },
+    { roles: [], expected: false },
+  ])(
     'isWriterOrHigher should return $expected for $roles',
     ({ roles, expected }) => {
       const result = isWriterOrHigher(roles);

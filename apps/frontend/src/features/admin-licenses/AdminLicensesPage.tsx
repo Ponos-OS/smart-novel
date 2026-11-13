@@ -9,9 +9,9 @@ import {
   useDefaultLicenseQuery,
   useSetDefaultLicenseMutation,
 } from '../../generated/graphql';
-import { Role } from '../../generated/shared';
 import { useAuth } from '../../hooks/useAuth';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { Role } from '../../lib/role';
 import { showSuccess } from '../../utils/notification';
 import { CreateLicenseDialog } from './CreateLicenseDialog';
 import {

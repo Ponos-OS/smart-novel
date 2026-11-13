@@ -1,13 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { Dialog } from '../../components/Dialog';
 import { DialogFormFooter } from '../../components/DialogFormFooter';
 import { useRequestWriterAccessMutation } from '../../generated/graphql';
-import { WRITER_NOTE_MAX_LENGTH } from '../../generated/shared';
-import {
-  GraphqlRequestError,
-  isPenNameTakenError,
-} from '../../lib/graphql-fetcher';
+import { REQUEST_WRITER_ACCESS_NOTE_MAX_LENGTH } from '../../generated/limits';
+import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 import { showApiError, showSuccess } from '../../utils/notification';
 
 interface RequestWriterAccessDialogProps {
@@ -15,11 +12,8 @@ interface RequestWriterAccessDialogProps {
   onClose: () => void;
 }
 
-/** @description How long the pen name field stays red after the server said the name is taken. */
-export const PEN_NAME_TAKEN_HIGHLIGHT_MS = 3000;
-
 /**
- * @description The server answers a refused request (a request is already pending, the note is empty or too long) with a 400 whose message is meant for the user, so it is shown here instead of the generic error toast.
+ * @description The server answers a refused request (a request is already pending, the note is empty or too long, the pen name is taken or does not follow the rule) with a 400 whose message is meant for the user, so it is shown here instead of the generic error toast.
  */
 function getRefusalMessage(error: unknown): string | null {
   if (
@@ -39,33 +33,12 @@ export function RequestWriterAccessDialog({
   const [note, setNote] = useState('');
   const [penName, setPenName] = useState('');
   const [refusal, setRefusal] = useState<string | null>(null);
-  const [takenAttempt, setTakenAttempt] = useState(0);
-  const [isPenNameHighlighted, setIsPenNameHighlighted] =
-    useState(false);
   const requestWriterAccess = useRequestWriterAccessMutation();
   const trimmedPenName = penName.trim();
   const canSubmit =
     note.trim().length > 0 &&
     trimmedPenName.length > 0 &&
     !requestWriterAccess.isPending;
-
-  useEffect(() => {
-    if (takenAttempt === 0) {
-      return;
-    }
-
-    const timer = setTimeout(
-      () => setIsPenNameHighlighted(false),
-      PEN_NAME_TAKEN_HIGHLIGHT_MS,
-    );
-
-    return () => clearTimeout(timer);
-  }, [takenAttempt]);
-
-  const handlePenNameChange = (value: string) => {
-    setPenName(value);
-    setIsPenNameHighlighted(false);
-  };
 
   const handleSubmit = () => {
     if (!canSubmit) {
@@ -81,15 +54,6 @@ export function RequestWriterAccessDialog({
           onRequested();
         },
         onError: (error) => {
-          if (isPenNameTakenError(error)) {
-            setIsPenNameHighlighted(true);
-            setTakenAttempt((attempt) => attempt + 1);
-            showApiError(
-              `The pen name "${trimmedPenName}" is already taken. Please choose another one.`,
-            );
-            return;
-          }
-
           const message = getRefusalMessage(error);
 
           if (message) {
@@ -124,18 +88,12 @@ export function RequestWriterAccessDialog({
             <input
               type="text"
               value={penName}
-              onChange={(event) =>
-                handlePenNameChange(event.target.value)
-              }
+              onChange={(event) => setPenName(event.target.value)}
               autoComplete="off"
               disabled={requestWriterAccess.isPending}
-              aria-invalid={isPenNameHighlighted}
+              aria-invalid={refusal !== null}
               aria-describedby="request-writer-access-pen-name-hint"
-              className={`w-full rounded-lg border bg-gray-900 px-3 py-2 text-white transition-colors disabled:opacity-50 ${
-                isPenNameHighlighted
-                  ? 'border-red-500'
-                  : 'border-gray-600'
-              }`}
+              className="w-full rounded-lg border border-gray-600 bg-gray-900 px-3 py-2 text-white disabled:opacity-50"
             />
           </label>
           <p
@@ -155,7 +113,7 @@ export function RequestWriterAccessDialog({
             <textarea
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              maxLength={WRITER_NOTE_MAX_LENGTH}
+              maxLength={REQUEST_WRITER_ACCESS_NOTE_MAX_LENGTH}
               rows={5}
               disabled={requestWriterAccess.isPending}
               aria-invalid={refusal !== null}
@@ -166,7 +124,7 @@ export function RequestWriterAccessDialog({
             />
           </label>
           <span className="mt-1 block text-right text-xs text-gray-400">
-            {note.length} / {WRITER_NOTE_MAX_LENGTH}
+            {note.length} / {REQUEST_WRITER_ACCESS_NOTE_MAX_LENGTH}
           </span>
         </div>
         <DialogFormFooter

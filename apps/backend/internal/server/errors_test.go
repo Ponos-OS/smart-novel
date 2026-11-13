@@ -10,10 +10,10 @@ import (
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
-type penNameTakenError struct{}
+type licenseRetiredError struct{}
 
-func (penNameTakenError) Error() string { return "That pen name is taken" }
-func (penNameTakenError) Code() string  { return "PEN_NAME_TAKEN" }
+func (licenseRetiredError) Error() string { return "That license is retired" }
+func (licenseRetiredError) Code() string  { return "CANONICAL_LICENSE_RETIRED" }
 
 type invalidInputError struct{}
 
@@ -44,10 +44,10 @@ func TestErrorPresenter(t *testing.T) {
 		wantMessage string
 		wantCode    any
 	}{
-		{"client error keeps its message and code", penNameTakenError{}, "That pen name is taken", "PEN_NAME_TAKEN"},
+		{"client error keeps its message and code", licenseRetiredError{}, "That license is retired", "CANONICAL_LICENSE_RETIRED"},
 		{"unexpected error is hidden", errors.New(`pq: relation "writer" does not exist`), "Internal server error", "INTERNAL_SERVER_ERROR"},
 		{"introspection is refused, not reported as a failure", errors.New("introspection disabled"), "introspection disabled", "GRAPHQL_VALIDATION_FAILED"},
-		{"wrapped client error is still recognised", errors.Join(errors.New("context"), penNameTakenError{}), "That pen name is taken", "PEN_NAME_TAKEN"},
+		{"wrapped client error is still recognised", errors.Join(errors.New("context"), licenseRetiredError{}), "That license is retired", "CANONICAL_LICENSE_RETIRED"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

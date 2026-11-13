@@ -1,0 +1,3 @@
+input GeneratedInput {
+  skipped: String! @maxLength(max: 1)
+}

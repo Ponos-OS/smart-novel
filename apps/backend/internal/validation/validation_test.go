@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/validation"
 )
 
@@ -54,7 +54,7 @@ func TestCheckerWithNothingWrongHasNoError(t *testing.T) {
 func TestErrorIsABadRequestWithItsViolations(t *testing.T) {
 	err := &validation.Error{Violations: []validation.Violation{{Field: "note", Rule: validation.RuleBlank}}}
 
-	if err.Code() != shared.BadRequest || err.Error() != "Invalid input" {
+	if err.Code() != apperr.CodeBadRequest || err.Error() != "Invalid input" {
 		t.Errorf("code = %q, message = %q", err.Code(), err.Error())
 	}
 	if got := err.Extensions()["violations"]; !reflect.DeepEqual(got, err.Violations) {

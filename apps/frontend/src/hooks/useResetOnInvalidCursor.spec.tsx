@@ -51,7 +51,9 @@ describe(useResetOnInvalidCursor.name, () => {
       .fn<(cursor: string | undefined) => Promise<typeof firstPage>>()
       .mockResolvedValueOnce(firstPage)
       .mockRejectedValueOnce(
-        new GraphqlRequestError('Invalid cursor'),
+        new GraphqlRequestError('Invalid cursor', {
+          code: 'INVALID_CURSOR',
+        }),
       )
       .mockResolvedValueOnce(firstPage);
     const { result } = renderList(fetchPage);

@@ -206,7 +206,7 @@ describe('Writer requests (e2e)', () => {
     });
 
     it.each([taken, taken.toUpperCase(), taken.toLowerCase()])(
-      'should answer PEN_NAME_TAKEN for %s, whatever its case',
+      'should refuse %s as taken, whatever its case',
       async (penName) => {
         const data = await graphql(
           REQUEST_WRITER_ACCESS,
@@ -214,7 +214,7 @@ describe('Writer requests (e2e)', () => {
           userAuthorization,
         );
 
-        expect(data.errors[0].extensions.code).toBe('PEN_NAME_TAKEN');
+        expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
         expect(data.errors[0].message).toContain('already taken');
       },
     );

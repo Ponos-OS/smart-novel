@@ -1,4 +1,15 @@
-import { Role, ROLE_HIERARCHY } from '../generated/shared';
+export enum Role {
+  admin = 'admin',
+  user = 'user',
+  writer = 'writer',
+}
+
+/** @description Higher number = more privileges. */
+const ROLE_HIERARCHY: Record<Role, number> = {
+  [Role.admin]: 3,
+  [Role.writer]: 2,
+  [Role.user]: 1,
+};
 
 export function hasMinimumRole(
   userRoles: string[],

@@ -7,7 +7,7 @@ import {
   LICENSE_ASSISTANT_RATE_LIMITED,
   LICENSE_ASSISTANT_UNAVAILABLE,
   PLATFORM_TERMS_NOT_ACCEPTED,
-} from '../../generated/shared';
+} from '../../lib/api-error-codes';
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 
 export type LicenseAssistantErrorKind =

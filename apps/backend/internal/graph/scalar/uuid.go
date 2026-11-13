@@ -5,7 +5,7 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/google/uuid"
 
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 )
 
 // InvalidIDError is what a client gets for an ID argument that is not a UUID: a bad request, not a server error.
@@ -13,7 +13,7 @@ type InvalidIDError struct{}
 
 func (InvalidIDError) Error() string { return "Invalid ID" }
 
-func (InvalidIDError) Code() string { return shared.BadRequest }
+func (InvalidIDError) Code() string { return apperr.CodeBadRequest }
 
 // MarshalUUID writes an ID, and null for the zero UUID.
 func MarshalUUID(id uuid.UUID) graphql.Marshaler {

@@ -8,9 +8,9 @@ import {
   TagStatus,
   useDeleteTagMutation,
 } from '../../generated/graphql';
-import { Role } from '../../generated/shared';
 import { useAuth } from '../../hooks/useAuth';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { Role } from '../../lib/role';
 import { showApiError, showSuccess } from '../../utils/notification';
 import { CreateTagDialog } from './CreateTagDialog';
 import { type AdminTag, TagRow } from './TagRow';

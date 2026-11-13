@@ -15,7 +15,6 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/entx"
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
 )
 
 const (
@@ -28,7 +27,7 @@ const (
 
 // RoleGranter gives a user a role of the project in the identity provider.
 type RoleGranter interface {
-	SetUserProjectRole(ctx context.Context, userID string, role shared.Role) error
+	SetUserProjectRole(ctx context.Context, userID string, role auth.Role) error
 }
 
 // Identity is who asks to become a writer, as the identity provider says.
@@ -52,7 +51,7 @@ func NewService(client *ent.Client, roles RoleGranter) *Service {
 // Request files the application of the viewer. A user has one row for life: the first request creates it, and a rejected user who asks
 // again gets a new entry in the history and the status back to PENDING. The note is already cleaned and checked, the pen name is checked by the schema.
 func (s *Service) Request(ctx context.Context, viewer auth.Viewer, note, penName string) (*ent.Writer, error) {
-	if viewer.HasMinimumRole(shared.RoleWriter) {
+	if viewer.HasMinimumRole(auth.RoleWriter) {
 		return nil, apperr.BadRequest(alreadyWriterMessage)
 	}
 	if err := s.refusePenNameOfAnother(ctx, penName, viewer.Subject); err != nil {
@@ -107,7 +106,7 @@ func (s *Service) refusePenNameOfAnother(ctx context.Context, penName, userID st
 		return err
 	}
 	if owner != "" && owner != userID {
-		return apperr.WithCode(shared.PenNameTaken, penNameTakenMessage)
+		return apperr.BadRequest(penNameTakenMessage)
 	}
 
 	return nil
@@ -130,7 +129,7 @@ func (s *Service) Approve(ctx context.Context, id uuid.UUID, adminID string) (*e
 	if err != nil {
 		return nil, err
 	}
-	if err = s.roles.SetUserProjectRole(ctx, pending.UserID, shared.RoleWriter); err != nil {
+	if err = s.roles.SetUserProjectRole(ctx, pending.UserID, auth.RoleWriter); err != nil {
 		return nil, fmt.Errorf("granting the writer role to %s: %w", pending.UserID, err)
 	}
 

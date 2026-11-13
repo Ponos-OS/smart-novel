@@ -65,12 +65,12 @@ describe('Cursor validation (e2e)', () => {
       ['after', { after: 'not-base64!!' }],
       ['after', { after: uuidCursor }],
     ])(
-      'should answer a malformed %s cursor with a bad request',
+      'should answer a malformed %s cursor with INVALID_CURSOR',
       async (_arg, variables) => {
         const data = await graphql(query, variables);
 
         expect(data.errors[0].message).toBe('Invalid cursor');
-        expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
+        expect(data.errors[0].extensions.code).toBe('INVALID_CURSOR');
       },
     );
   });

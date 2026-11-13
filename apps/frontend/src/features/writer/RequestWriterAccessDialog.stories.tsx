@@ -128,29 +128,3 @@ export const InvalidPenName: Story = {
     ).toBeDisabled();
   },
 };
-
-export const PenNameTaken: Story = {
-  beforeEach: () => {
-    mockRequestWriterAccessState.outcome = 'taken';
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement.ownerDocument.body);
-
-    await userEvent.type(
-      canvas.getByLabelText('Pen name'),
-      'Mina_Ardalan',
-    );
-    await userEvent.type(
-      canvas.getByLabelText('Why do you want to write here?'),
-      'Hello',
-    );
-    await userEvent.click(
-      canvas.getByRole('button', { name: 'Send request' }),
-    );
-
-    await expect(canvas.getByLabelText('Pen name')).toHaveAttribute(
-      'aria-invalid',
-      'true',
-    );
-  },
-};

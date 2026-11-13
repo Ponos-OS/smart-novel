@@ -5,9 +5,9 @@ import {
   LicenseScope,
   useDefaultLicenseQuery,
 } from '../../generated/graphql';
-import { Role } from '../../generated/shared';
 import { useAuth } from '../../hooks/useAuth';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { Role } from '../../lib/role';
 import { type LicenseSummary } from '../novel-license/license-notice';
 import { LicenseTextDialog } from './LicenseTextDialog';
 import { useLicenses } from './use-licenses';

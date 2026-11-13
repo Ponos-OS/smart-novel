@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Dialog } from '../../components/Dialog';
 import { DialogFormFooter } from '../../components/DialogFormFooter';
 import { useCreateTagMutation } from '../../generated/graphql';
-import { TAG_DESCRIPTION_MAX_LENGTH } from '../../generated/shared';
+import { CREATE_TAG_INPUT_DESCRIPTION_MAX_LENGTH } from '../../generated/limits';
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 import { showApiError, showSuccess } from '../../utils/notification';
 
@@ -100,7 +100,7 @@ export function CreateTagDialog({
           </span>
           <textarea
             rows={3}
-            maxLength={TAG_DESCRIPTION_MAX_LENGTH}
+            maxLength={CREATE_TAG_INPUT_DESCRIPTION_MAX_LENGTH}
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             disabled={createTag.isPending}
@@ -113,7 +113,7 @@ export function CreateTagDialog({
         </label>
         <p className="text-xs text-gray-400">
           What the tag is for. {description.length}/
-          {TAG_DESCRIPTION_MAX_LENGTH}
+          {CREATE_TAG_INPUT_DESCRIPTION_MAX_LENGTH}
         </p>
         <DialogFormFooter
           refusal={refusal}

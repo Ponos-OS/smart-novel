@@ -6,8 +6,7 @@ vars:
 
 tasks:
   generate:
-    desc: Everything generated for the Go backend (ent, gqlgen, the shared constants)
-    deps: [":generate:shared"]
+    desc: Everything generated for the Go backend (ent and gqlgen)
     cmds:
       - task: codegen
 

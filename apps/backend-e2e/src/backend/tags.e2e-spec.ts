@@ -126,7 +126,7 @@ describe('Tags (e2e)', () => {
     });
 
     expect(data.errors[0].message).toBe('Invalid cursor');
-    expect(data.errors[0].extensions.code).toBe('BAD_REQUEST');
+    expect(data.errors[0].extensions.code).toBe('INVALID_CURSOR');
   });
 
   it('should return a page of 20 at most when no size is given', async () => {

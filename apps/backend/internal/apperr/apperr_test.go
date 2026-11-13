@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/shared"
 )
 
 func TestErrors(t *testing.T) {
@@ -14,9 +13,9 @@ func TestErrors(t *testing.T) {
 		err      error
 		wantCode string
 	}{
-		{"bad request", apperr.BadRequest("Provide a name"), shared.BadRequest},
-		{"not found", apperr.NotFound("Tag not found"), shared.NotFound},
-		{"conflict", apperr.Conflict("Reload"), shared.Conflict},
+		{"bad request", apperr.BadRequest("Provide a name"), apperr.CodeBadRequest},
+		{"not found", apperr.NotFound("Tag not found"), apperr.CodeNotFound},
+		{"conflict", apperr.Conflict("Reload"), apperr.CodeConflict},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

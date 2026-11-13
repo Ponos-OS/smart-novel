@@ -10,7 +10,7 @@ import {
   useApproveTagMutation,
   useUpdateTagMutation,
 } from '../../generated/graphql';
-import { TAG_DESCRIPTION_MAX_LENGTH } from '../../generated/shared';
+import { UPDATE_TAG_INPUT_DESCRIPTION_MAX_LENGTH } from '../../generated/limits';
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 import { showApiError } from '../../utils/notification';
 import { ADMIN_TAGS_KEY } from './use-admin-tags';
@@ -146,7 +146,7 @@ export function TagRow({ tag, onDelete }: TagRowProps) {
             />
             <textarea
               rows={3}
-              maxLength={TAG_DESCRIPTION_MAX_LENGTH}
+              maxLength={UPDATE_TAG_INPUT_DESCRIPTION_MAX_LENGTH}
               aria-label={`Description of ${tag.name}`}
               aria-invalid={refusal !== null}
               value={draft.description}
@@ -180,7 +180,7 @@ export function TagRow({ tag, onDelete }: TagRowProps) {
               </Button>
               <span className="text-xs text-gray-400">
                 {draft.description.length}/
-                {TAG_DESCRIPTION_MAX_LENGTH}
+                {UPDATE_TAG_INPUT_DESCRIPTION_MAX_LENGTH}
               </span>
             </div>
             {refusal && (
