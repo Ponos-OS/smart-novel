@@ -4,6 +4,7 @@ package novel
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/google/uuid"
@@ -13,6 +14,7 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/entx"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/license"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/objectstorage"
 )
 
 const notFoundMessage = "Novel not found"
@@ -28,10 +30,12 @@ type Service struct {
 	repo           *repository
 	estimator      RowEstimator
 	licenseService *license.Service
+	storage        *objectstorage.Client
+	logger         *slog.Logger
 }
 
-func NewService(client *ent.Client, estimator RowEstimator, licenseService *license.Service) *Service {
-	return &Service{client: client, repo: newRepository(client), estimator: estimator, licenseService: licenseService}
+func NewService(client *ent.Client, estimator RowEstimator, licenseService *license.Service, storage *objectstorage.Client, logger *slog.Logger) *Service {
+	return &Service{client: client, repo: newRepository(client), estimator: estimator, licenseService: licenseService, storage: storage, logger: logger}
 }
 
 // Get returns a novel, or the not found error.
@@ -135,7 +139,7 @@ func (s *Service) chosenLicense(ctx context.Context, viewer auth.Viewer, id uuid
 	return &chosen.ID, nil
 }
 
-// Deleted is what Delete leaves behind for the caller to clean up outside the database.
+// Deleted is what Delete leaves behind outside the database. The cover is removed from the bucket by Delete itself; the narration audio is the caller's until step 8c.
 type Deleted struct {
 	CoverURL      *string
 	NarrationURLs []string
@@ -159,6 +163,10 @@ func (s *Service) Delete(ctx context.Context, viewer auth.Viewer, id uuid.UUID) 
 
 		return repo.deleteNovel(ctx, id, contentIDs(chapters))
 	})
+
+	if err == nil && deleted.CoverURL != nil {
+		s.removeObject(ctx, *deleted.CoverURL)
+	}
 
 	return deleted, err
 }

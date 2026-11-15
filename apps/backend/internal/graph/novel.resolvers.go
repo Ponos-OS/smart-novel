@@ -54,6 +54,30 @@ func (r *mutationResolver) DeleteNovel(ctx context.Context, id uuid.UUID) (*mode
 	return &model.DeleteNovelResponse{ID: id}, nil
 }
 
+// CreateNovelCoverUploadURL is the resolver for the createNovelCoverUploadURL field.
+func (r *mutationResolver) CreateNovelCoverUploadURL(ctx context.Context, novelID uuid.UUID, contentType string, contentLength int) (*novel.CoverUpload, error) {
+	viewer, err := auth.Require(ctx)
+	if err != nil {
+		return nil, err
+	}
+	upload, err := r.NovelService.CreateCoverUpload(ctx, viewer, novelID, contentType, contentLength)
+	if err != nil {
+		return nil, err
+	}
+
+	return &upload, nil
+}
+
+// SetNovelCover is the resolver for the setNovelCover field.
+func (r *mutationResolver) SetNovelCover(ctx context.Context, novelID uuid.UUID, objectKey string) (*ent.Novel, error) {
+	viewer, err := auth.Require(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.NovelService.SetCover(ctx, viewer, novelID, objectKey)
+}
+
 // AllowedActions is the resolver for the allowedActions field.
 func (r *novelResolver) AllowedActions(ctx context.Context, obj *ent.Novel) ([]model.NovelAction, error) {
 	viewer, ok := auth.ViewerFrom(ctx)

@@ -222,4 +222,48 @@ extend type Mutation {
   Permanently delete a novel with its chapters, contents and read history.
   """
   deleteNovel(id: ID!): DeleteNovelResponse! @hasRole(role: writer)
+
+  """
+  First step of a cover change: get a presigned URL to PUT the image to, with the same Content-Type and Content-Length that were asked for. Allowed types are image/jpeg, image/png and image/webp, up to 5 MB. Call `setNovelCover` once the upload succeeded.
+  """
+  createNovelCoverUploadURL(
+    novelID: ID!
+
+    """
+    MIME type of the image
+    """
+    contentType: String! @isString
+
+    """
+    Size of the image in bytes
+    """
+    contentLength: Int!
+  ): NovelCoverUpload! @hasRole(role: writer)
+
+  """
+  Second step of a cover change: make the uploaded object the novel cover. The previous cover is removed from the bucket.
+  """
+  setNovelCover(
+    """
+    The ID of the novel
+    """
+    novelID: ID!
+
+    """
+    The key returned by `createNovelCoverUploadURL`
+    """
+    objectKey: String! @isString
+  ): Novel! @hasRole(role: writer)
+}
+
+type NovelCoverUpload {
+  """
+  Presigned URL to PUT the image to, with the same Content-Type and Content-Length that were asked for
+  """
+  uploadURL: String!
+
+  """
+  Pass this to `setNovelCover` once the upload is done
+  """
+  objectKey: String!
 }

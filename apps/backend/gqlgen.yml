@@ -72,6 +72,9 @@ models:
   LicenseScope:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/internal/license.Scope
+  NovelCoverUpload:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/novel.CoverUpload
   CreateNovelInput:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/internal/novel.CreateInput

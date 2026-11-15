@@ -3,19 +3,27 @@ import { randomUUID } from 'node:crypto';
 import { AuthorizationFixture, graphql } from '../../support';
 
 const CREATE_UPLOAD_URL = `#graphql
-  mutation CreateNovelCoverUploadUrl($novelId: ID!, $contentType: String!, $contentLength: Int!) {
-    createNovelCoverUploadUrl(novelId: $novelId, contentType: $contentType, contentLength: $contentLength) {
-      uploadUrl
+  mutation CreateNovelCoverUploadURL($novelID: ID!, $contentType: String!, $contentLength: Int!) {
+    createNovelCoverUploadURL(novelID: $novelID, contentType: $contentType, contentLength: $contentLength) {
+      uploadURL
       objectKey
     }
   }
 `;
 
 const SET_COVER = `#graphql
-  mutation SetNovelCover($novelId: ID!, $objectKey: String!) {
-    setNovelCover(novelId: $novelId, objectKey: $objectKey) {
+  mutation SetNovelCover($novelID: ID!, $objectKey: String!) {
+    setNovelCover(novelID: $novelID, objectKey: $objectKey) {
       id
-      coverUrl
+      coverURL
+    }
+  }
+`;
+
+const DELETE_NOVEL = `#graphql
+  mutation DeleteNovel($id: ID!) {
+    deleteNovel(id: $id) {
+      id
     }
   }
 `;
@@ -28,11 +36,11 @@ const PNG = Buffer.from(
 const FRONTEND_ORIGIN = 'http://localhost:8080';
 
 function putToBucket(
-  uploadUrl: string,
+  uploadURL: string,
   body: Buffer,
   contentType: string,
 ) {
-  return fetch(uploadUrl, {
+  return fetch(uploadURL, {
     method: 'PUT',
     headers: { 'Content-Type': contentType },
     body,
@@ -72,42 +80,42 @@ describe('Novel cover (e2e)', () => {
     const urlData = await graphql(
       CREATE_UPLOAD_URL,
       {
-        novelId,
+        novelID: novelId,
         contentType: 'image/png',
         contentLength: image.length,
       },
       authorization,
     );
-    const { uploadUrl, objectKey } =
-      urlData.data.createNovelCoverUploadUrl;
-    const response = await putToBucket(uploadUrl, image, 'image/png');
+    const { uploadURL, objectKey } =
+      urlData.data.createNovelCoverUploadURL;
+    const response = await putToBucket(uploadURL, image, 'image/png');
 
-    return { uploadUrl, objectKey, response };
+    return { uploadURL, objectKey, response };
   }
 
   it('should upload from the browser-reachable endpoint, confirm and serve the cover', async () => {
     const { novelId, writer } = await createNovel();
 
-    const { uploadUrl, objectKey, response } = await uploadCover(
+    const { uploadURL, objectKey, response } = await uploadCover(
       novelId,
       writer,
     );
     const confirmed = await graphql(
       SET_COVER,
-      { novelId, objectKey },
+      { novelID: novelId, objectKey },
       writer,
     );
 
-    expect(new URL(uploadUrl).host).toBe('s3.localhost:8080');
+    expect(new URL(uploadURL).host).toBe('s3.localhost:8080');
     expect(objectKey).toMatch(
       new RegExp(`^covers/${novelId}/[0-9a-f-]{36}\\.png$`),
     );
     expect(response.status).toBe(200);
     expect(confirmed.errors).toBeUndefined();
-    expect(confirmed.data.setNovelCover.coverUrl).toContain(
+    expect(confirmed.data.setNovelCover.coverURL).toContain(
       objectKey,
     );
-    const cover = await fetch(confirmed.data.setNovelCover.coverUrl);
+    const cover = await fetch(confirmed.data.setNovelCover.coverURL);
     expect(cover.status).toBe(200);
     expect(Buffer.from(await cover.arrayBuffer())).toEqual(PNG);
   });
@@ -117,7 +125,7 @@ describe('Novel cover (e2e)', () => {
     const urlData = await graphql(
       CREATE_UPLOAD_URL,
       {
-        novelId,
+        novelID: novelId,
         contentType: 'image/png',
         contentLength: PNG.length,
       },
@@ -125,7 +133,7 @@ describe('Novel cover (e2e)', () => {
     );
 
     const preflight = await fetch(
-      urlData.data.createNovelCoverUploadUrl.uploadUrl,
+      urlData.data.createNovelCoverUploadURL.uploadURL,
       {
         method: 'OPTIONS',
         headers: {
@@ -149,28 +157,48 @@ describe('Novel cover (e2e)', () => {
     const first = await uploadCover(novelId, writer);
     const firstConfirmed = await graphql(
       SET_COVER,
-      { novelId, objectKey: first.objectKey },
+      { novelID: novelId, objectKey: first.objectKey },
       writer,
     );
     const second = await uploadCover(novelId, writer);
 
     const secondConfirmed = await graphql(
       SET_COVER,
-      { novelId, objectKey: second.objectKey },
+      { novelID: novelId, objectKey: second.objectKey },
       writer,
     );
 
-    expect(secondConfirmed.data.setNovelCover.coverUrl).toContain(
+    expect(secondConfirmed.data.setNovelCover.coverURL).toContain(
       second.objectKey,
     );
     const previous = await fetch(
-      firstConfirmed.data.setNovelCover.coverUrl,
+      firstConfirmed.data.setNovelCover.coverURL,
     );
     expect(previous.status).toBe(404);
     const current = await fetch(
-      secondConfirmed.data.setNovelCover.coverUrl,
+      secondConfirmed.data.setNovelCover.coverURL,
     );
     expect(current.status).toBe(200);
+  });
+
+  it('should remove the cover from the bucket when the novel is deleted', async () => {
+    const { novelId, writer } = await createNovel();
+    const uploaded = await uploadCover(novelId, writer);
+    const confirmed = await graphql(
+      SET_COVER,
+      { novelID: novelId, objectKey: uploaded.objectKey },
+      writer,
+    );
+
+    const deleted = await graphql(
+      DELETE_NOVEL,
+      { id: novelId },
+      writer,
+    );
+
+    expect(deleted.errors).toBeUndefined();
+    const cover = await fetch(confirmed.data.setNovelCover.coverURL);
+    expect(cover.status).toBe(404);
   });
 
   describe('rejections', () => {
@@ -197,7 +225,7 @@ describe('Novel cover (e2e)', () => {
 
         const data = await graphql(
           CREATE_UPLOAD_URL,
-          { novelId, contentType, contentLength },
+          { novelID: novelId, contentType, contentLength },
           writer,
         );
 
@@ -211,7 +239,7 @@ describe('Novel cover (e2e)', () => {
       const urlData = await graphql(
         CREATE_UPLOAD_URL,
         {
-          novelId,
+          novelID: novelId,
           contentType: 'image/png',
           contentLength: PNG.length,
         },
@@ -219,7 +247,7 @@ describe('Novel cover (e2e)', () => {
       );
 
       const response = await putToBucket(
-        urlData.data.createNovelCoverUploadUrl.uploadUrl,
+        urlData.data.createNovelCoverUploadURL.uploadURL,
         PNG,
         'text/html',
       );
@@ -232,7 +260,7 @@ describe('Novel cover (e2e)', () => {
       const urlData = await graphql(
         CREATE_UPLOAD_URL,
         {
-          novelId,
+          novelID: novelId,
           contentType: 'image/png',
           contentLength: PNG.length,
         },
@@ -240,7 +268,7 @@ describe('Novel cover (e2e)', () => {
       );
 
       const response = await putToBucket(
-        urlData.data.createNovelCoverUploadUrl.uploadUrl,
+        urlData.data.createNovelCoverUploadURL.uploadURL,
         Buffer.concat([PNG, PNG]),
         'image/png',
       );
@@ -255,7 +283,7 @@ describe('Novel cover (e2e)', () => {
 
       const data = await graphql(
         SET_COVER,
-        { novelId: mine.novelId, objectKey: uploaded.objectKey },
+        { novelID: mine.novelId, objectKey: uploaded.objectKey },
         mine.writer,
       );
 
@@ -270,7 +298,7 @@ describe('Novel cover (e2e)', () => {
       const data = await graphql(
         SET_COVER,
         {
-          novelId,
+          novelID: novelId,
           objectKey: `covers/${novelId}/${randomUUID()}.png`,
         },
         writer,
@@ -286,7 +314,7 @@ describe('Novel cover (e2e)', () => {
 
       const data = await graphql(
         SET_COVER,
-        { novelId, objectKey: 'narrations/anything.mp3' },
+        { novelID: novelId, objectKey: 'narrations/anything.mp3' },
         writer,
       );
 
@@ -302,6 +330,7 @@ describe('Novel cover (e2e)', () => {
         role: 'user',
         getAuthorizationHeader:
           AuthorizationFixture.getUserAuthorizationHeader,
+        message: 'You need at least the "writer" role',
       },
       {
         role: 'writer who does not own the novel',
@@ -309,10 +338,11 @@ describe('Novel cover (e2e)', () => {
           AuthorizationFixture.getWriterAuthorizationHeader({
             fresh: true,
           }),
+        message: 'You do not have permission to update this novel',
       },
     ])(
       'should NOT allow $role to request an upload URL or set a cover',
-      async ({ getAuthorizationHeader }) => {
+      async ({ getAuthorizationHeader, message }) => {
         const { novelId, writer } = await createNovel();
         const uploaded = await uploadCover(novelId, writer);
         const authorization = await getAuthorizationHeader();
@@ -320,7 +350,7 @@ describe('Novel cover (e2e)', () => {
         const urlData = await graphql(
           CREATE_UPLOAD_URL,
           {
-            novelId,
+            novelID: novelId,
             contentType: 'image/png',
             contentLength: PNG.length,
           },
@@ -328,16 +358,14 @@ describe('Novel cover (e2e)', () => {
         );
         const coverData = await graphql(
           SET_COVER,
-          { novelId, objectKey: uploaded.objectKey },
+          { novelID: novelId, objectKey: uploaded.objectKey },
           authorization,
         );
 
-        expect(urlData.errors[0].message).toContain(
-          'You do not have permission to update this novel',
-        );
-        expect(coverData.errors[0].message).toContain(
-          'You do not have permission to update this novel',
-        );
+        expect(urlData.errors[0].extensions.code).toBe('FORBIDDEN');
+        expect(urlData.errors[0].message).toContain(message);
+        expect(coverData.errors[0].extensions.code).toBe('FORBIDDEN');
+        expect(coverData.errors[0].message).toContain(message);
       },
     );
 
@@ -349,7 +377,7 @@ describe('Novel cover (e2e)', () => {
 
       const data = await graphql(
         SET_COVER,
-        { novelId, objectKey: uploaded.objectKey },
+        { novelID: novelId, objectKey: uploaded.objectKey },
         admin,
       );
 

@@ -14,6 +14,8 @@ import (
 	"github.com/zitadel/zitadel-go/v3/pkg/client/zitadel/user/v2"
 	zitadelapi "github.com/zitadel/zitadel-go/v3/pkg/zitadel"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/config"
@@ -84,8 +86,12 @@ func (m *Management) GrantProjectRoleIfAbsent(ctx context.Context, userID string
 	if len(found) > 0 {
 		return nil
 	}
+	// Somebody else gave the user a role between the look and the grant: that is what this call is for.
+	if err := m.grant(ctx, userID, role); status.Code(err) != codes.AlreadyExists {
+		return err
+	}
 
-	return m.grant(ctx, userID, role)
+	return nil
 }
 
 // SetUserProjectRole makes role the only role the user holds on the project. Calling it again with the same arguments changes nothing.

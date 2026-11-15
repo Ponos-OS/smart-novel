@@ -1,5 +1,5 @@
 /**
- * @description Limits whose rule is not in the Go schema yet, so `generated/limits.ts` cannot hold them. Each leaves this file when its feature reaches the backend: the cover ones in step 8.
+ * @description Limits whose rule is not in the Go schema yet, so `generated/limits.ts` cannot hold them. Each leaves this file when its feature reaches the backend: the cover ones in step 9 (the backend checks them in Go, not with a directive).
  */
 export const COVER_MAX_SIZE_BYTES = 5242880;
 export const COVER_CONTENT_TYPE_EXTENSIONS: Readonly<

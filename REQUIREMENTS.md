@@ -257,7 +257,7 @@ Built as (decisions and deviations):
 Too large for one pass, so it is split like step 7, each part committed on its own:
 
 - **8a:** Redis and the cache of the platform terms acceptance, the stats snapshot runner (with its catch-up at start), the ZITADEL events webhook.
-- **8b:** object storage and the covers (`createNovelCoverUploadUrl`, `setNovelCover`, the cleanup that `novel.Delete` and `chapter.Delete` leave to this step).
+- **8b:** object storage and the covers (`createNovelCoverUploadURL`, `setNovelCover`, the removal of covers).
 - **8c:** Beatrice (the client and schema fetch of `fetch-beatrice-schema.ts`), RabbitMQ, the TTS callbacks, `generateChapterAudio`, `chapterNarrationUpdated`, the `llm` module (`explainWord`), and the helper that runs a side effect after a committed write without failing the mutation (rule in `CONTRIBUTING.md`; NestJS's `BackgroundRunnerService`, which only 8c needs).
 
 ### Step 8a: Redis, snapshots and the ZITADEL webhook
@@ -275,9 +275,25 @@ Built as (decisions and deviations):
 - **A bug of step 7a, found here:** `Management` created an authorization without `OrganizationId`, which ZITADEL refuses; every earlier e2e hit the update path (the fixture grants a role first), so the create path had never run. It now looks up the organization of the user (`GetUserByID`, the resource owner) first.
 - e2e: new `zitadel-events` spec (a user registered in ZITADEL ends with exactly the `user` role without anybody calling the backend, an unsigned call and a call signed with another key are refused). `stats-snapshot`, `zitadel-events`, `platform-terms`, `license*` and `writer*` pass (126 tests); the whole suite gives 309 passed and 25 failed, all in the specs that belong to 8b and 8c (`novel-cover` 11, `beatrice-callbacks` 7, `chapter-narration` 6, `llm` 1). `nx e2e` itself was not run.
 
-### Step 8b and 8c
+### Step 8b: Object storage and covers
 
-Verify: the matching `backend-e2e` specs pass (`novel-cover` for 8b; `beatrice-callbacks`, `chapter-narration`, `llm` for 8c); each consumer or runner has a log line proving it started, checked in the pod logs.
+`createNovelCoverUploadURL`, `setNovelCover`, and the removal of a cover from the bucket when it is replaced or its novel is deleted.
+
+Verify: the `novel-cover` e2e spec passes; the previous cover is gone from the bucket after a replacement and after a delete.
+
+Built as (decisions and deviations):
+
+- **`internal/platform/objectstorage`** wraps the AWS SDK for Go v2 like `platform/redis` wraps go-redis: `Open` takes `OBJECT_STORAGE_*` (region, bucket and public URL required; the internal endpoint and the key pair optional, and the keys only together; without them the SDK's default credentials apply, as on AWS), `PresignUpload`, `Head` (`found` is false for a missing object), `Delete` (a missing object is fine), `URLOf` and `KeyOf`. It keeps two S3 clients, as NestJS did: one on the endpoint of the cluster for `Head` and `Delete`, one on the public URL that only signs, because the signature covers the host and a browser reaches the bucket on `s3.localhost:8080`. Path-style addressing. Checked on the stack: the signed type and size make the bucket answer 403 to a PUT with another type or size.
+- **Names follow the Go rule** (`createNovelCoverUploadURL`, `novelID`, `uploadURL`, `coverURL`); the frontend moves in step 9. `contentType` is checked in `novel.Service` against the three types (`image/jpeg`, `image/png`, `image/webp`, with the extensions `jpg`, `png`, `webp`) and `contentLength` with `validation.Checker` (1 byte to 5 MB, `CoverMaxBytes`), not with schema directives: there is no numeric directive, and adding one for two numbers was not worth a new directive and a `gensdl` change. So the frontend keeps `COVER_MAX_SIZE_BYTES` and `COVER_CONTENT_TYPE_EXTENSIONS` in `lib/pending-limits.ts` until step 9 decides.
+- **Keys:** `covers/<novelID>/<uuid>.<ext>`, made by the backend; `setNovelCover` accepts only such a key of the same novel (the uuid in its canonical form), then looks at the object: it must exist, be an allowed type and be at most 5 MB. An unsigned file cannot be a cover because the URL only lets the signed type and size in.
+- **Cleanup:** after the write is committed, the previous cover is removed (`setNovelCover`) and the cover of a deleted novel is removed (`novel.Service.Delete`). A bucket that fails is logged (`removing an object that is not used any more`) and never fails the mutation (rule in `CONTRIBUTING.md`): a leftover object costs a little space, a failed mutation costs the writer their change. A cover URL that is not in our bucket is left alone. The narration audio of a deleted novel or chapter is still not removed; `Deleted.NarrationURLs` carries it to step 8c.
+- **Both mutations** need the writer role and the right to update the novel (an admin may change any cover); the terms guard gates them like every mutation. A plain user gets `FORBIDDEN` from the role, a writer who does not own the novel gets the ownership message.
+- **A race of step 8a, found here:** the ZITADEL webhook and the e2e fixture can both give a new user a role at the same moment; ZITADEL answered `AlreadyExists` to the second and the webhook answered 500. `GrantProjectRoleIfAbsent` takes `AlreadyExists` as done.
+- e2e: `novel-cover` (15, with the new case that a deleted novel loses its cover) and `novel-delete` pass; the whole suite gives 321 passed and 14 failed, all in the specs of 8c (`beatrice-callbacks` 7, `chapter-narration` 6, `llm` 1).
+
+### Step 8c: Beatrice, RabbitMQ and narration
+
+Verify: the matching `backend-e2e` specs pass (`beatrice-callbacks`, `chapter-narration`, `llm`); each consumer or runner has a log line proving it started, checked in the pod logs, not only a passing probe.
 
 ## Step 9: Frontend against the Go schema
 

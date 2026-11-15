@@ -138,6 +138,8 @@ linters:
             - github.com/rs/cors
             - go.opentelemetry.io
             - github.com/redis/go-redis
+            - github.com/aws/aws-sdk-go-v2
+            - github.com/aws/smithy-go
             - github.com/robfig/cron
             - github.com/google/uuid
             - github.com/jackc/pgx

@@ -11,6 +11,7 @@ type Config struct {
 	Database Database
 	Zitadel  Zitadel
 	Redis    Redis
+	Storage  ObjectStorage
 	Stats    Stats
 	Fithara  Fithara
 	OTel     OTel
@@ -43,6 +44,19 @@ type Zitadel struct {
 type Redis struct {
 	URL      string
 	Password string
+}
+
+// ObjectStorage is the S3-compatible bucket of the covers and the narration audio.
+type ObjectStorage struct {
+	Region string
+	// Endpoint is where the backend reaches the bucket; empty means AWS.
+	Endpoint string
+	// PublicURL is where a browser reaches it, and the base of the URLs the backend hands out.
+	PublicURL string
+	Bucket    string
+	// AccessKey and SecretKey are empty when the credentials come from the environment of the machine, as on AWS.
+	AccessKey string
+	SecretKey string
 }
 
 type Stats struct {
@@ -117,6 +131,7 @@ func Load(lookup Lookup) (Config, error) {
 			URL:      r.required("REDIS_URL"),
 			Password: r.text("REDIS_PASSWORD", ""),
 		},
+		Storage: r.objectStorage(),
 		Stats: Stats{
 			SnapshotSchedule: r.schedule("STATS_SNAPSHOT_CRON"),
 		},
@@ -124,20 +139,13 @@ func Load(lookup Lookup) (Config, error) {
 			URL:     r.required("FITHARA_URL"),
 			Timeout: r.duration("FITHARA_TIMEOUT", defaultFitharaTimeout),
 		},
-		OTel: OTel{
-			Enabled:          r.boolean("OTEL_ENABLED", false),
-			Endpoint:         r.text("OTEL_EXPORTER_OTLP_ENDPOINT", ""),
-			TracesSampler:    r.oneOf("OTEL_TRACES_SAMPLER", []string{"parentbased_traceidratio", "traceidratio", "always_on", "always_off"}, "parentbased_traceidratio"),
-			TracesSamplerArg: r.ratio("OTEL_TRACES_SAMPLER_ARG", 1),
-			MaxQueueSize:     r.positiveInt("OTEL_BATCH_MAX_PENDING_SPANS", defaultMaxQueueSize),
-			BatchSize:        r.positiveInt("OTEL_BATCH_SPANS_PER_EXPORT", defaultBatchSize),
-			FlushInterval:    r.milliseconds("OTEL_BATCH_FLUSH_INTERVAL_MS", defaultFlushInterval),
-			ExportTimeout:    r.milliseconds("OTEL_BATCH_EXPORT_TIMEOUT_MS", defaultExportTimeout),
-			LogsExporter:     r.oneOf("OTEL_LOGS_EXPORTER", []string{LogsExporterOTLP, LogsExporterStdout}, LogsExporterStdout),
-		},
+		OTel: r.otel(),
 	}
 	if cfg.Database.SyncSchema && cfg.App.Env == EnvProduction {
 		r.fail("DEV_SYNC_DATABASE_SCHEMA", "must not be true when APP_ENV is production: production applies the versioned migrations")
+	}
+	if (cfg.Storage.AccessKey == "") != (cfg.Storage.SecretKey == "") {
+		r.fail("OBJECT_STORAGE_ACCESS_KEY", "and OBJECT_STORAGE_SECRET_KEY must be set together")
 	}
 	if cfg.OTel.Enabled && cfg.OTel.Endpoint == "" {
 		r.fail("OTEL_EXPORTER_OTLP_ENDPOINT", "is required when OTEL_ENABLED is true")

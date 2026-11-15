@@ -195,3 +195,28 @@ func (r *reader) list(key string) []string {
 func (r *reader) err() error {
 	return errors.Join(r.errs...)
 }
+
+func (r *reader) objectStorage() ObjectStorage {
+	return ObjectStorage{
+		Region:    r.required("OBJECT_STORAGE_REGION"),
+		Endpoint:  r.text("OBJECT_STORAGE_ENDPOINT", ""),
+		PublicURL: r.required("OBJECT_STORAGE_PUBLIC_URL"),
+		Bucket:    r.required("OBJECT_STORAGE_BUCKET"),
+		AccessKey: r.text("OBJECT_STORAGE_ACCESS_KEY", ""),
+		SecretKey: r.text("OBJECT_STORAGE_SECRET_KEY", ""),
+	}
+}
+
+func (r *reader) otel() OTel {
+	return OTel{
+		Enabled:          r.boolean("OTEL_ENABLED", false),
+		Endpoint:         r.text("OTEL_EXPORTER_OTLP_ENDPOINT", ""),
+		TracesSampler:    r.oneOf("OTEL_TRACES_SAMPLER", []string{"parentbased_traceidratio", "traceidratio", "always_on", "always_off"}, "parentbased_traceidratio"),
+		TracesSamplerArg: r.ratio("OTEL_TRACES_SAMPLER_ARG", 1),
+		MaxQueueSize:     r.positiveInt("OTEL_BATCH_MAX_PENDING_SPANS", defaultMaxQueueSize),
+		BatchSize:        r.positiveInt("OTEL_BATCH_SPANS_PER_EXPORT", defaultBatchSize),
+		FlushInterval:    r.milliseconds("OTEL_BATCH_FLUSH_INTERVAL_MS", defaultFlushInterval),
+		ExportTimeout:    r.milliseconds("OTEL_BATCH_EXPORT_TIMEOUT_MS", defaultExportTimeout),
+		LogsExporter:     r.oneOf("OTEL_LOGS_EXPORTER", []string{LogsExporterOTLP, LogsExporterStdout}, LogsExporterStdout),
+	}
+}

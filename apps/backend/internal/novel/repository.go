@@ -74,6 +74,10 @@ func (r *repository) updateNovel(ctx context.Context, id uuid.UUID, input Update
 	return update.Exec(ctx)
 }
 
+func (r *repository) setCover(ctx context.Context, id uuid.UUID, coverURL string) error {
+	return r.client.Novel.UpdateOneID(id).SetCoverURL(coverURL).Exec(ctx)
+}
+
 func (r *repository) chaptersOf(ctx context.Context, novelID uuid.UUID) ([]*ent.Chapter, error) {
 	return r.client.Chapter.Query().Where(chapter.NovelID(novelID)).All(ctx)
 }

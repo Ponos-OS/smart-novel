@@ -22,6 +22,7 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/novel"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/database"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/logging"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/objectstorage"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/redis"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/telemetry"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/zitadel"
@@ -141,11 +142,15 @@ func newResolver(ctx context.Context, cfg config.Config, db *database.Database, 
 		return nil, fmt.Errorf("creating the Fithara client: %w", err)
 	}
 	licenseService := license.NewService(db.Client, fitharaClient, logger)
-	if _, err := licenseService.EnsureDefault(ctx); err != nil {
+	if _, err = licenseService.EnsureDefault(ctx); err != nil {
 		return nil, err
 	}
 	go licenseService.KeepCanonicalSynced(ctx)
 
+	storage, err := objectstorage.Open(ctx, cfg.Storage)
+	if err != nil {
+		return nil, err
+	}
 	statsService := stats.NewService(db, db.Client, logger)
 	go statsService.KeepSnapshotted(ctx, cfg.Stats.SnapshotSchedule)
 
@@ -153,7 +158,7 @@ func newResolver(ctx context.Context, cfg config.Config, db *database.Database, 
 		Client:         db.Client,
 		Logger:         logger,
 		TagService:     tag.NewService(db.Client, db),
-		NovelService:   novel.NewService(db.Client, db, licenseService),
+		NovelService:   novel.NewService(db.Client, db, licenseService, storage, logger),
 		LicenseService: licenseService,
 		ChapterService: chapter.NewService(db.Client),
 		StatsService:   statsService,
