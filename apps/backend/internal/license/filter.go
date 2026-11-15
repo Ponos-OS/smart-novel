@@ -9,12 +9,16 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 )
 
-// ListFilter builds the filter of the licenses list for a viewer: an admin sees every license, a writer the shared ones and their own
-// licenses and drafts, never another writer's. scope narrows that, and a blank search is ignored.
+// ListFilter builds the filter of the licenses list. A finished license is released: everybody, signed in or not, sees it. A draft is private:
+// only its writer sees it, and an admin sees every license and draft. scope narrows that, and a blank search is ignored.
 func ListFilter(viewer auth.Viewer, where *ent.LicenseWhereInput, scope *Scope, search *string) func(*ent.LicenseQuery) (*ent.LicenseQuery, error) {
 	predicates := []predicate.License{}
 	if !viewer.IsAdmin() {
-		predicates = append(predicates, entlicense.Or(entlicense.And(entlicense.IsDraft(false), entlicense.OwnerID(SystemOwner)), entlicense.OwnerID(viewer.Subject)))
+		visible := entlicense.IsDraft(false)
+		if viewer.Subject != "" {
+			visible = entlicense.Or(visible, entlicense.OwnerID(viewer.Subject))
+		}
+		predicates = append(predicates, visible)
 	}
 	if scope != nil {
 		predicates = append(predicates, scopePredicate(*scope))

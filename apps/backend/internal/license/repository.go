@@ -2,6 +2,10 @@ package license
 
 import (
 	"context"
+	stdsql "database/sql"
+	"errors"
+
+	"entgo.io/ent/dialect/sql"
 
 	"github.com/google/uuid"
 
@@ -27,6 +31,15 @@ type stored struct {
 	OwnerID     string
 	SourceType  entlicense.SourceType
 	CanonicalID *string
+	// Version is the edition of a license a writer or an admin made; a canonical license has the registry's version in Metadata.
+	Version string
+	// Metadata is what the registry says about a canonical license; nil for any other.
+	Metadata *canonicalMetadata
+}
+
+type canonicalMetadata struct {
+	Version     string
+	OfficialURL string
 }
 
 func (r *repository) defaultLicense(ctx context.Context) (*ent.License, error) {
@@ -43,22 +56,58 @@ func (r *repository) byText(ctx context.Context, ownerID, textHash string) (*ent
 }
 
 func (r *repository) insert(ctx context.Context, data stored) (*ent.License, error) {
-	return r.client.License.Create().
+	return r.newLicense(data).Save(ctx)
+}
+
+func (r *repository) newLicense(data stored) *ent.LicenseCreate {
+	create := r.client.License.Create().
 		SetName(data.Name).
 		SetText(data.Text).
 		SetTextHash(data.TextHash).
 		SetOwnerID(data.OwnerID).
 		SetSourceType(data.SourceType).
-		SetNillableCanonicalID(data.CanonicalID).
-		Save(ctx)
+		SetNillableCanonicalID(data.CanonicalID)
+	if m := data.Metadata; m != nil {
+		create.SetVersion(m.Version).SetOfficialURL(m.OfficialURL)
+	}
+	if data.Version != "" {
+		create.SetVersion(data.Version)
+	}
+
+	return create
+}
+
+// upsertCanonical stores a canonical license, or makes the stored one with the same registry ID what the registry says now, its text too. It is one statement, so replicas that run it together queue on the row. The row is written only when something differs, or every round would move every canonical license to the top of the list ordered by update time. ent's upsert cannot express that comparison, so the condition is SQL, and the predicate of the partial index is written as the index has it.
+func (r *repository) upsertCanonical(ctx context.Context, data stored) error {
+	changed := sql.P(func(b *sql.Builder) {
+		b.WriteString("(licenses.name, licenses.text_hash, licenses.version, licenses.official_url) IS DISTINCT FROM " +
+			"(excluded.name, excluded.text_hash, excluded.version, excluded.official_url)")
+	})
+
+	err := r.newLicense(data).
+		OnConflict(
+			sql.ConflictColumns(entlicense.FieldCanonicalID),
+			sql.ConflictWhere(sql.P(func(b *sql.Builder) { b.WriteString("source_type = 'CANONICAL' AND is_draft = false") })),
+			sql.UpdateWhere(changed),
+		).
+		Update(func(u *ent.LicenseUpsert) {
+			u.UpdateName().UpdateText().UpdateTextHash().UpdateVersion().UpdateOfficialURL().UpdateUpdatedAt()
+		}).
+		Exec(ctx)
+	if errors.Is(err, stdsql.ErrNoRows) {
+		return nil // the row is there and has nothing to change, so the statement returned no row
+	}
+
+	return err
 }
 
 func (r *repository) countDrafts(ctx context.Context, ownerID string) (int, error) {
 	return r.client.License.Query().Where(entlicense.OwnerID(ownerID), entlicense.IsDraft(true)).Count(ctx)
 }
 
-func (r *repository) insertDraft(ctx context.Context, ownerID string, base DraftSave) (*ent.License, error) {
+func (r *repository) insertDraft(ctx context.Context, ownerID string, base DraftSave, version string) (*ent.License, error) {
 	return r.client.License.Create().
+		SetVersion(version).
 		SetName(base.Name).
 		SetText(base.Text).
 		SetSourceType(base.SourceType).
@@ -101,7 +150,7 @@ func (r *repository) deleteDraft(ctx context.Context, ownerID string, id uuid.UU
 
 // promote turns a draft of the owner into the finished license data. It returns how many rows changed.
 func (r *repository) promote(ctx context.Context, ownerID string, id uuid.UUID, data stored) (int, error) {
-	return r.client.License.Update().
+	update := r.client.License.Update().
 		Where(entlicense.ID(id), entlicense.OwnerID(ownerID), entlicense.IsDraft(true)).
 		SetName(data.Name).
 		SetText(data.Text).
@@ -109,8 +158,12 @@ func (r *repository) promote(ctx context.Context, ownerID string, id uuid.UUID, 
 		SetOwnerID(data.OwnerID).
 		SetSourceType(data.SourceType).
 		SetNillableCanonicalID(data.CanonicalID).
-		SetIsDraft(false).
-		Save(ctx)
+		SetIsDraft(false)
+	if m := data.Metadata; m != nil {
+		update.SetVersion(m.Version).SetOfficialURL(m.OfficialURL)
+	}
+
+	return update.Save(ctx)
 }
 
 // lockDefault serializes the switches of the default license: the database cannot hold a partial unique index on is_default, and ent

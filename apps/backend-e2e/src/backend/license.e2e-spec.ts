@@ -1,7 +1,6 @@
-import axios from 'axios';
 import { randomUUID } from 'node:crypto';
 
-import { AuthorizationFixture } from '../support';
+import { AuthorizationFixture, graphql } from '../support';
 
 const DEFAULT_LICENSE = `#graphql
   query DefaultLicense {
@@ -116,23 +115,6 @@ const NOVELS_LICENSES = `#graphql
     }
   }
 `;
-
-async function graphql(
-  query: string,
-  variables: Record<string, unknown>,
-  authorization: string,
-) {
-  const { data } = await axios.post(
-    '/graphql',
-    { query, variables },
-    {
-      headers: authorization ? { Authorization: authorization } : {},
-      validateStatus: () => true,
-    },
-  );
-
-  return data;
-}
 
 function uniqueLicense() {
   return {

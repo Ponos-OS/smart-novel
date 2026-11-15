@@ -1,7 +1,6 @@
-import axios from 'axios';
 import { randomUUID } from 'node:crypto';
 
-import { AuthorizationFixture } from '../support';
+import { AuthorizationFixture, graphql } from '../support';
 
 const LICENSES_CONNECTION = `#graphql
   query Licenses(
@@ -26,6 +25,10 @@ const LICENSES_CONNECTION = `#graphql
           scope
           isDefault
           ownerID
+          sourceType
+          canonicalID
+          version
+          officialURL
         }
       }
       pageInfo {
@@ -59,23 +62,6 @@ const FINALIZE_LICENSE_DRAFT = `#graphql
     }
   }
 `;
-
-async function graphql(
-  query: string,
-  variables: Record<string, unknown>,
-  authorization: string,
-) {
-  const { data } = await axios.post(
-    '/graphql',
-    { query, variables },
-    {
-      headers: { Authorization: authorization },
-      validateStatus: () => true,
-    },
-  );
-
-  return data;
-}
 
 describe('licenses (e2e)', () => {
   let admin: string;
@@ -175,24 +161,16 @@ describe('licenses (e2e)', () => {
     });
   });
 
-  it("should give a writer the shared licenses and their own, never another writer's", async () => {
+  it("should give a writer every finished license and their own drafts, never another writer's", async () => {
     const result = await list({ first: 100 }, writer);
 
     const ids = result.edges.map(({ node }: any) => node.id);
-    expect(ids).toIncludeAllMembers([writerLicenseId, writerDraftId]);
-    expect(ids).not.toContainAnyValues([
+    expect(ids).toIncludeAllMembers([
+      writerLicenseId,
+      writerDraftId,
       otherWriterLicenseId,
-      otherWriterDraftId,
     ]);
-    expect(
-      result.edges.every(
-        ({ node }: any) =>
-          node.ownerID === 'system' ||
-          node.id === writerLicenseId ||
-          node.id === writerDraftId ||
-          node.scope !== 'SHARED',
-      ),
-    ).toBeTrue();
+    expect(ids).not.toContain(otherWriterDraftId);
   });
 
   it.each([
@@ -244,17 +222,55 @@ describe('licenses (e2e)', () => {
     expect(data.errors).toBeDefined();
   });
 
-  it('should refuse a plain user', async () => {
-    const user =
-      await AuthorizationFixture.getUserAuthorizationHeader();
+  it.each([
+    {
+      who: 'a reader',
+      getAuthorization: () =>
+        AuthorizationFixture.getUserAuthorizationHeader(),
+    },
+    { who: 'an anonymous caller', getAuthorization: async () => '' },
+  ])(
+    'should give $who every finished license and no draft',
+    async ({ getAuthorization }) => {
+      const authorization = await getAuthorization();
 
-    const data = await graphql(
-      LICENSES_CONNECTION,
-      { first: 10 },
-      user,
-    );
+      const result = await list({ first: 100 }, authorization);
 
-    expect(data.errors).toBeDefined();
-    expect(data.data).toBeNull();
+      const ids = result.edges.map(({ node }: any) => node.id);
+      expect(ids).toIncludeAllMembers([
+        writerLicenseId,
+        otherWriterLicenseId,
+      ]);
+      expect(ids).not.toContainAnyValues([
+        writerDraftId,
+        otherWriterDraftId,
+      ]);
+      expect(
+        result.edges.some(({ node }: any) => node.isDefault),
+      ).toBeTrue();
+    },
+  );
+
+  it('should list the licenses of the Fithara registry with their metadata, stored by the backend', async () => {
+    const canonical = async () => {
+      const result = await list({ first: 100, scope: 'SHARED' }, '');
+
+      return result.edges
+        .map(({ node }: any) => node)
+        .find(
+          ({ canonicalID }: any) => canonicalID === 'CC-BY-NC-4.0',
+        );
+    };
+
+    await expect.poll(canonical, { timeout: 60_000 }).toBeDefined();
+
+    expect(await canonical()).toMatchObject({
+      name: 'CC BY-NC 4.0',
+      scope: 'SHARED',
+      ownerID: 'system',
+      sourceType: 'CANONICAL',
+      version: '4.0',
+      officialURL: expect.stringContaining('creativecommons.org'),
+    });
   });
 });

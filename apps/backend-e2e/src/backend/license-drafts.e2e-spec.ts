@@ -1,7 +1,6 @@
-import axios from 'axios';
 import { randomUUID } from 'node:crypto';
 
-import { AuthorizationFixture } from '../support';
+import { AuthorizationFixture, graphql } from '../support';
 
 const DRAFT_FIELDS = `
   id
@@ -95,23 +94,6 @@ const CREATE_NOVEL = `#graphql
     }
   }
 `;
-
-async function graphql(
-  query: string,
-  variables: Record<string, unknown>,
-  authorization: string,
-) {
-  const { data } = await axios.post(
-    '/graphql',
-    { query, variables },
-    {
-      headers: { Authorization: authorization },
-      validateStatus: () => true,
-    },
-  );
-
-  return data;
-}
 
 function uniqueText() {
   return `You may read this novel. You may not copy it. ${randomUUID()}`;

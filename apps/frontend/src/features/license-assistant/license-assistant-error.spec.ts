@@ -5,7 +5,7 @@ describe(toLicenseAssistantError.name, () => {
   it.each([
     ['PLATFORM_TERMS_NOT_ACCEPTED', 'terms-not-accepted', false],
     ['LICENSE_ASSISTANT_RATE_LIMITED', 'rate-limited', true],
-    ['LICENSE_ASSISTANT_UNAVAILABLE', 'unavailable', true],
+    ['SERVICE_UNAVAILABLE', 'unavailable', true],
     ['LICENSE_ASSISTANT_INVALID_REQUEST', 'invalid-request', false],
     ['BAD_REQUEST', 'invalid-request', false],
     ['CANONICAL_LICENSE_NOT_FOUND', 'license-not-found', false],
@@ -31,7 +31,7 @@ describe(toLicenseAssistantError.name, () => {
   it('passes the request id along so the author can quote it to support', () => {
     // Arrange
     const error = new GraphqlRequestError('unavailable', {
-      code: 'LICENSE_ASSISTANT_UNAVAILABLE',
+      code: 'SERVICE_UNAVAILABLE',
       requestId: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
     });
 

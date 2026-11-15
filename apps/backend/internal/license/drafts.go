@@ -3,6 +3,7 @@ package license
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/google/uuid"
 
@@ -11,6 +12,9 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 )
+
+// firstEdition is the version of a license that begins a line: one written from nothing, or a fork of a canonical license.
+const firstEdition = "1"
 
 // A draft is a license row flagged as a draft and owned by its writer. It is mutable, has no hash and is invisible to every other path; every
 // statement names the owner, and writes also name the flag, so a draft finalized a moment ago can never be changed by a late save.
@@ -27,36 +31,53 @@ func (s *Service) CreateDraft(ctx context.Context, ownerID string, start DraftSt
 	if drafts >= DraftsPerWriterMax {
 		return nil, apperr.BadRequest(fmt.Sprintf("You have %d unfinished license drafts. Finish or discard one first.", DraftsPerWriterMax))
 	}
-	base, err := s.draftBase(ctx, ownerID, start)
+	base, version, err := s.draftBase(ctx, ownerID, start)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.repo.insertDraft(ctx, ownerID, base)
+	return s.repo.insertDraft(ctx, ownerID, base, version)
 }
 
-func (s *Service) draftBase(ctx context.Context, ownerID string, start DraftStart) (DraftSave, error) {
+// draftBase gives the text a new draft starts with and its version (the edition of the license it will become). The version is set here, once:
+// saving the draft does not change it, and finalizing it keeps it.
+func (s *Service) draftBase(ctx context.Context, ownerID string, start DraftStart) (DraftSave, string, error) {
 	if start.LicenseID != nil {
 		found, err := s.FindUsable(ctx, *start.LicenseID, ownerID)
 		if err != nil {
-			return DraftSave{}, err
+			return DraftSave{}, "", err
 		}
 
-		return DraftSave{Name: found.Name, Text: found.Text, SourceType: found.SourceType, CanonicalID: found.CanonicalID}, nil
+		return DraftSave{Name: found.Name, Text: found.Text, SourceType: found.SourceType, CanonicalID: found.CanonicalID}, editionAfter(found), nil
 	}
 	if start.CanonicalID != nil {
 		canonical, err := s.findCanonical(ctx, *start.CanonicalID)
 		if err != nil {
-			return DraftSave{}, err
+			return DraftSave{}, "", err
 		}
 		if canonical == nil {
-			return DraftSave{}, apperr.BadRequest(fmt.Sprintf("%s is not a known canonical license", *start.CanonicalID))
+			return DraftSave{}, "", apperr.BadRequest(fmt.Sprintf("%s is not a known canonical license", *start.CanonicalID))
 		}
 
-		return DraftSave{Name: canonical.ShortName, Text: canonical.Body, SourceType: entlicense.SourceTypeCANONICAL, CanonicalID: &canonical.Id}, nil
+		return DraftSave{Name: canonical.ShortName, Text: canonical.Body, SourceType: entlicense.SourceTypeCANONICAL, CanonicalID: &canonical.Id}, firstEdition, nil
 	}
 
-	return DraftSave{SourceType: entlicense.SourceTypeCUSTOM}, nil
+	return DraftSave{SourceType: entlicense.SourceTypeCUSTOM}, firstEdition, nil
+}
+
+// editionAfter is the version of a license started from base: one more than base's, or the first when base is a canonical license, whose own version is the registry's (a fork of it begins its own line). A license stored without a version counts as the first.
+func editionAfter(base *ent.License) string {
+	if base.SourceType == entlicense.SourceTypeCANONICAL {
+		return firstEdition
+	}
+	edition := 1
+	if base.Version != nil {
+		if parsed, err := strconv.Atoi(*base.Version); err == nil {
+			edition = parsed
+		}
+	}
+
+	return strconv.Itoa(edition + 1)
 }
 
 // SaveDraft stores the whole draft. Saving what is already saved writes nothing, and the last save wins.

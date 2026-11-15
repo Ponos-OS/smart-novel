@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -84,30 +83,5 @@ func TestFindCanonicalIsUnavailableWhenFitharaCannotBeAsked(t *testing.T) {
 				t.Errorf("error = %v, want %s", err, apperr.CodeUnavailable)
 			}
 		})
-	}
-}
-
-func TestOfficialURLIsListedOnceAndKept(t *testing.T) {
-	var calls atomic.Int32
-	uut := newServiceWithFithara(t, func(w http.ResponseWriter, r *http.Request) {
-		calls.Add(1)
-		answer(http.StatusOK, listed)(w, r)
-	})
-
-	first := uut.OfficialURL(context.Background(), "CC-BY-NC-4.0")
-	unknown := uut.OfficialURL(context.Background(), "MIT")
-
-	if first != "https://creativecommons.org/licenses/by-nc/4.0/legalcode" || unknown != "" || calls.Load() != 1 {
-		t.Errorf("url = %q, unknown = %q, %d calls", first, unknown, calls.Load())
-	}
-}
-
-func TestOfficialURLIsEmptyWhenFitharaCannotBeReached(t *testing.T) {
-	uut := newServiceWithFithara(t, answer(http.StatusInternalServerError, `{}`))
-
-	url := uut.OfficialURL(context.Background(), "CC-BY-NC-4.0")
-
-	if url != "" {
-		t.Errorf("got %q, want nothing", url)
 	}
 }

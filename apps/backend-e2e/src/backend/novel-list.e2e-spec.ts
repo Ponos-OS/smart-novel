@@ -1,7 +1,6 @@
-import axios from 'axios';
 import { randomUUID } from 'node:crypto';
 
-import { AuthorizationFixture } from '../support';
+import { AuthorizationFixture, graphql } from '../support';
 
 const NOVEL_LIST = `#graphql
   query NovelList(
@@ -133,23 +132,6 @@ function toArguments({
       firstChapterCreatedAtLTE: firstChapterCreatedAt?.to,
     },
   };
-}
-
-async function graphql(
-  query: string,
-  variables: Record<string, unknown>,
-  authorization?: string,
-) {
-  const { data } = await axios.post(
-    '/graphql',
-    { query, variables },
-    {
-      headers: authorization ? { Authorization: authorization } : {},
-      validateStatus: () => true,
-    },
-  );
-
-  return data;
 }
 
 describe('Novel list (e2e)', () => {

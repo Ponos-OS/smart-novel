@@ -1,7 +1,6 @@
-import axios from 'axios';
 import { randomUUID } from 'node:crypto';
 
-import { AuthorizationFixture } from '../../support';
+import { AuthorizationFixture, graphql } from '../../support';
 
 const CREATE_NOVEL = `#graphql
   mutation CreateNovel($input: CreateNovelInput!) {
@@ -37,24 +36,6 @@ const UPDATE_NOVEL = `#graphql
     }
   }
 `;
-
-async function graphql(
-  query: string,
-  variables: Record<string, unknown>,
-  authorization: string,
-) {
-  const { data } = await axios.post(
-    '/graphql',
-    { query, variables },
-    {
-      headers: { Authorization: authorization },
-      // An invalid enum value is rejected by GraphQL itself with a 400.
-      validateStatus: () => true,
-    },
-  );
-
-  return data;
-}
 
 // Novels cannot be deleted yet and tags are shared with the other specs' filters, so every run uses its own tag names.
 const REQUEST_TAG = `

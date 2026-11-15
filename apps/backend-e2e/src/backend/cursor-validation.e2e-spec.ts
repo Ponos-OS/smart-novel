@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { graphql } from '../support';
 
 const novelId = 'c1d31ec2-f478-4648-b90b-d1e53de2a829';
 const notAUuid = Buffer.from('example-novel').toString('base64');
@@ -37,19 +37,6 @@ const TAGS = `#graphql
     }
   }
 `;
-
-async function graphql(
-  query: string,
-  variables: Record<string, unknown>,
-) {
-  const { data } = await axios.post(
-    '/graphql',
-    { query, variables },
-    { validateStatus: () => true },
-  );
-
-  return data;
-}
 
 describe('Cursor validation (e2e)', () => {
   const connections: [string, string][] = [

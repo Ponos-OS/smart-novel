@@ -268,7 +268,7 @@ describe(useLicenseAssistant.name, () => {
             message:
               'The license assistant is not available right now.',
             extensions: {
-              code: 'LICENSE_ASSISTANT_UNAVAILABLE',
+              code: 'SERVICE_UNAVAILABLE',
               requestId: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
             },
           },

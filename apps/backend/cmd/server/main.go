@@ -134,6 +134,7 @@ func newResolver(ctx context.Context, cfg config.Config, db *database.Database, 
 	if _, err := licenseService.EnsureDefault(ctx); err != nil {
 		return nil, err
 	}
+	go licenseService.KeepCanonicalSynced(ctx)
 
 	return &graph.Resolver{
 		Client:         db.Client,

@@ -1,7 +1,6 @@
-import axios from 'axios';
 import { randomUUID } from 'node:crypto';
 
-import { AuthorizationFixture } from '../support';
+import { AuthorizationFixture, graphql } from '../support';
 
 const PLATFORM_TERMS = `#graphql
   query PlatformTerms {
@@ -63,23 +62,6 @@ const DELETE_READ_HISTORY = `#graphql
     }
   }
 `;
-
-async function graphql(
-  query: string,
-  variables: Record<string, unknown>,
-  authorization?: string,
-) {
-  const { data } = await axios.post(
-    '/graphql',
-    { query, variables },
-    {
-      headers: authorization ? { Authorization: authorization } : {},
-      validateStatus: () => true,
-    },
-  );
-
-  return data;
-}
 
 describe('Platform terms (e2e)', () => {
   const novelInput = {
@@ -200,9 +182,7 @@ describe('Platform terms (e2e)', () => {
     });
   });
 
-  // draftLicense returns in step 7c; then this becomes an `it`.
-  // eslint-disable-next-line vitest/no-disabled-tests
-  it.skip('should not let a reader use the license assistant', async () => {
+  it('should NOT let a reader use the license assistant', async () => {
     const authorization =
       await AuthorizationFixture.getUserAuthorizationHeader();
 

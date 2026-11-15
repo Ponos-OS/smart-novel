@@ -13,6 +13,11 @@ const (
 	CodeInvalidCursor                = "INVALID_CURSOR"
 	CodePlatformTermsNotAccepted     = "PLATFORM_TERMS_NOT_ACCEPTED"
 	CodePlatformTermsVersionMismatch = "PLATFORM_TERMS_VERSION_MISMATCH"
+
+	CodeLicenseAssistantRateLimited    = "LICENSE_ASSISTANT_RATE_LIMITED"
+	CodeLicenseAssistantInvalidRequest = "LICENSE_ASSISTANT_INVALID_REQUEST"
+	CodeCanonicalLicenseNotFound       = "CANONICAL_LICENSE_NOT_FOUND"
+	CodeCanonicalLicenseRetired        = "CANONICAL_LICENSE_RETIRED"
 )
 
 // Error is an error whose message a client may read.

@@ -1,7 +1,6 @@
-import axios from 'axios';
 import { randomUUID } from 'node:crypto';
 
-import { AuthorizationFixture } from '../../support';
+import { AuthorizationFixture, graphql } from '../../support';
 
 const CREATE_UPLOAD_URL = `#graphql
   mutation CreateNovelCoverUploadUrl($novelId: ID!, $contentType: String!, $contentLength: Int!) {
@@ -27,20 +26,6 @@ const PNG = Buffer.from(
   'base64',
 );
 const FRONTEND_ORIGIN = 'http://localhost:8080';
-
-async function graphql(
-  query: string,
-  variables: Record<string, unknown>,
-  authorization: string,
-) {
-  const { data } = await axios.post(
-    '/graphql',
-    { query, variables },
-    { headers: { Authorization: authorization } },
-  );
-
-  return data;
-}
 
 function putToBucket(
   uploadUrl: string,

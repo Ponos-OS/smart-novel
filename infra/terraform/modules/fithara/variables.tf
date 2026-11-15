@@ -45,6 +45,7 @@ variable "llm_timeout_ms" {
   default     = null
 }
 
+# TODO: the limit is shared by every user, so one busy writer can use all of it. A per-user limit and usage metering belong in the backend: https://github.com/Ponos-OS/smart-novel/issues/38
 variable "rate_limit_per_minute" {
   description = "Requests per minute Fithara accepts from one client; all users reach it through the backend, so this is shared by every user"
   type        = number

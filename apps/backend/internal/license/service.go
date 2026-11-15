@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
-	"sync"
-	"time"
 
 	"github.com/google/uuid"
 
@@ -29,10 +27,6 @@ type Service struct {
 	repo          *repository
 	fitharaClient *fithara.ClientWithResponses
 	logger        *slog.Logger
-
-	mutex                sync.Mutex
-	officialURLs         map[string]string
-	officialURLsExpireAt time.Time
 }
 
 // NewService makes the service; fitharaClient may be nil in a program that never asks Fithara (devdata).
@@ -125,6 +119,7 @@ func (s *Service) prepare(ctx context.Context, input Input, ownerID string) (*en
 		OwnerID:     ownerID,
 		SourceType:  input.SourceType,
 		CanonicalID: input.CanonicalID,
+		Version:     firstEdition,
 	}, nil
 }
 
@@ -162,14 +157,7 @@ func (s *Service) verifyCanonical(ctx context.Context, input Input, hash string)
 		return stored{}, apperr.BadRequest(fmt.Sprintf("This text is not the canonical license %s, send it as FORKED or CUSTOM", *input.CanonicalID))
 	}
 
-	return stored{
-		Name:        canonical.ShortName,
-		Text:        NormalizeText(input.Text),
-		TextHash:    hash,
-		OwnerID:     SystemOwner,
-		SourceType:  entlicense.SourceTypeCANONICAL,
-		CanonicalID: &canonical.Id,
-	}, nil
+	return storedCanonical(canonical), nil
 }
 
 // SetDefault changes the license new novels get; existing novels keep theirs. An admin only. The default belongs to everybody, so it is

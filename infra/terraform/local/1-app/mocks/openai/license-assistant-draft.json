@@ -1,0 +1,41 @@
+{
+  "name": "responses: final_result, forked draft",
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/responses",
+    "bodyPatterns": [
+      {
+        "contains": "Draft me a license"
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "id": "resp_5b1f0c9a7d",
+      "object": "response",
+      "created_at": 1767225600,
+      "status": "completed",
+      "model": "gpt-4.1-mini",
+      "output": [
+        {
+          "type": "function_call",
+          "id": "fc_5b1f0c9a7d",
+          "call_id": "call_5b1f0c9a7d",
+          "name": "final_result",
+          "arguments": "{\"assistantMessage\": \"Here is a draft based on CC BY-NC 4.0 with a short note added for readers.\", \"draft\": {\"title\": \"Custom license (derived from CC BY-NC 4.0)\", \"text\": \"# Custom license\\n\\nBased on CC BY-NC 4.0. Readers may remix this novel, credit the author and not sell it.\", \"source\": {\"type\": \"forked\", \"canonicalId\": \"CC-BY-NC-4.0\"}}, \"draftChanged\": true, \"recommendations\": [\"CC-BY-NC-4.0\"], \"disclaimers\": [\"This is not legal advice. Consult a qualified lawyer before relying on this draft.\", \"This draft is no longer equivalent to the canonical license.\"], \"isReadyToFinalize\": true}",
+          "status": "completed"
+        }
+      ],
+      "usage": {
+        "input_tokens": 900,
+        "output_tokens": 120,
+        "total_tokens": 1020
+      }
+    }
+  }
+}

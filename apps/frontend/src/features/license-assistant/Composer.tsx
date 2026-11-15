@@ -1,7 +1,7 @@
 import { type KeyboardEvent, type Ref, useId } from 'react';
 
 import { Button } from '../../components/Button';
-import { LICENSE_ASSISTANT_MESSAGE_MAX_LENGTH } from '../../lib/pending-limits';
+import { DRAFT_LICENSE_INPUT_MESSAGE_MAX_LENGTH } from '../../generated/limits';
 import { useMessages } from './i18n';
 
 interface ComposerProps {
@@ -25,11 +25,11 @@ export function Composer({
   const hintId = useId();
   const message = text.trim();
   const isTooLong =
-    text.length > LICENSE_ASSISTANT_MESSAGE_MAX_LENGTH;
+    text.length > DRAFT_LICENSE_INPUT_MESSAGE_MAX_LENGTH;
   const canSend = !isPending && message.length > 0 && !isTooLong;
   const counter = {
     count: text.length,
-    max: LICENSE_ASSISTANT_MESSAGE_MAX_LENGTH,
+    max: DRAFT_LICENSE_INPUT_MESSAGE_MAX_LENGTH,
   };
 
   const send = () => {

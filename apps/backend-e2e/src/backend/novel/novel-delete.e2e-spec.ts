@@ -1,21 +1,10 @@
-import axios from 'axios';
 import { randomUUID } from 'node:crypto';
 
-import { AuthorizationFixture, ClusterFixture } from '../../support';
-
-async function graphql(
-  query: string,
-  variables: Record<string, unknown>,
-  authorization: string,
-) {
-  const { data } = await axios.post(
-    '/graphql',
-    { query, variables },
-    { headers: { Authorization: authorization } },
-  );
-
-  return data;
-}
+import {
+  AuthorizationFixture,
+  ClusterFixture,
+  graphql,
+} from '../../support';
 
 function count(table: string, where: string): number {
   return Number(

@@ -1,5 +1,5 @@
 """
-SHARED belongs to the platform and any writer may use it, PERSONAL was finalized by a writer and is private to them, DRAFT is still being worked on
+SHARED belongs to the platform and any writer may use it, PERSONAL was finalized by a writer and only that writer may use it (everybody can read it), DRAFT is still being worked on and is private to its writer
 """
 enum LicenseScope {
   SHARED
@@ -12,11 +12,6 @@ extend type License {
   SHARED, PERSONAL or DRAFT. A draft is a license being worked on: private to its writer, mutable, and not usable on a novel until it is finalized. Its name and text may be empty.
   """
   scope: LicenseScope! @goField(forceResolver: true)
-
-  """
-  Link to the authoritative text of the canonical license this is, or was modified from. Null for CUSTOM, or when the registry cannot be reached.
-  """
-  officialURL: String @goField(forceResolver: true)
 }
 
 """
@@ -65,6 +60,109 @@ input SaveLicenseDraftInput {
   canonicalID: String @isString
 }
 
+enum LicenseAssistantMessageRole {
+  ASSISTANT
+  USER
+}
+
+"""
+One turn of the conversation with the license assistant.
+"""
+type LicenseAssistantMessage {
+  role: LicenseAssistantMessageRole!
+  content: String!
+}
+
+"""
+The license text being worked on.
+"""
+type LicenseAssistantDraft {
+  name: String!
+
+  """
+  The draft text, as Markdown
+  """
+  text: String!
+  sourceType: LicenseSourceType!
+
+  """
+  The canonical license the draft is, or was modified from. Null for CUSTOM.
+  """
+  canonicalID: String
+}
+
+"""
+The assistant answer to one message.
+"""
+type LicenseAssistantTurn {
+  assistantMessage: String!
+  draft: LicenseAssistantDraft
+
+  """
+  False when the assistant only explained something; the draft must not be flashed then
+  """
+  draftChanged: Boolean!
+
+  """
+  Canonical license IDs the assistant suggests
+  """
+  recommendations: [String!]!
+
+  """
+  Always non-empty and always to be shown
+  """
+  disclaimers: [String!]!
+
+  """
+  The assistant's opinion on readiness. The client decides whether to act on it.
+  """
+  isReadyToFinalize: Boolean!
+
+  """
+  The conversation to send as `conversation` on the next request, exactly as returned. A long history is condensed in it, so keep your own transcript to show every message.
+  """
+  conversation: [LicenseAssistantMessage!]!
+}
+
+input LicenseAssistantMessageInput {
+  role: LicenseAssistantMessageRole!
+  content: String! @isString(multiline: true) @maxLength(max: 4000)
+}
+
+"""
+The draft the author is working on, as the client holds it.
+"""
+input LicenseAssistantDraftInput {
+  name: String! @isString(allowEmpty: true) @maxLength(max: 200)
+  text: String!
+    @isString(multiline: true, allowEmpty: true)
+    @maxLength(max: 100000)
+  sourceType: LicenseSourceType!
+  canonicalID: String @isString
+}
+
+input LicenseAssistantPreferencesInput {
+  """
+  A canonical license category to prefer
+  """
+  category: String @isString
+}
+
+input DraftLicenseInput {
+  """
+  The `conversation` of the previous answer, unchanged. Empty to start a new conversation. Nothing is stored here: the client keeps the conversation.
+  """
+  conversation: [LicenseAssistantMessageInput!]! = []
+    @maxSize(max: 50)
+
+  """
+  The draft the author is working on, as the client holds it. It may have been edited since the previous answer.
+  """
+  draft: LicenseAssistantDraftInput
+  message: String! @isString(multiline: true) @maxLength(max: 2000)
+  preferences: LicenseAssistantPreferencesInput
+}
+
 extend type Query {
   """
   The license new novels get when none is chosen
@@ -72,7 +170,7 @@ extend type Query {
   defaultLicense: License!
 
   """
-  Paginated licenses, newest save first unless `orderBy` says otherwise, narrowed by `scope` and `search` (the name contains it, whatever the case). An admin gets every license; a writer gets the shared ones and their own licenses and drafts. Without `first` or `last` a page of 20 is returned, at most 100 are allowed.
+  Paginated licenses, newest save first unless `orderBy` says otherwise, narrowed by `scope` and `search` (the name contains it, whatever the case). Anybody, signed in or not, gets every finished license; a writer also gets their own drafts, never another writer's; an admin gets every license and draft. A writer can put on a novel only a shared license or their own, whatever they can read. Canonical licenses carry the registry's `version` and `officialURL`. Without `first` or `last` a page of 20 is returned, at most 100 are allowed.
   """
   licenses(
     after: Cursor
@@ -87,7 +185,7 @@ extend type Query {
     """
     scope: LicenseScope
     search: String @isString(allowEmpty: true) @maxLength(max: 100)
-  ): LicenseConnection! @hasRole(role: writer)
+  ): LicenseConnection! @public
 
   """
   A license draft of the caller; an admin can read anybody's. Another writer's is not found.
@@ -96,6 +194,12 @@ extend type Query {
 }
 
 extend type Mutation {
+  """
+  Send one message to the license assistant. Nothing is stored: send the conversation of the previous answer back with the next message. Answers `LICENSE_ASSISTANT_RATE_LIMITED` when Fithara limits the writer, `LICENSE_ASSISTANT_INVALID_REQUEST`, `CANONICAL_LICENSE_NOT_FOUND`, `CANONICAL_LICENSE_RETIRED` or `SERVICE_UNAVAILABLE`.
+  """
+  draftLicense(input: DraftLicenseInput!): LicenseAssistantTurn!
+    @hasRole(role: writer)
+
   """
   Admin only. Store a license every writer can use. An already stored text is returned as it is. The default license does not change.
   """

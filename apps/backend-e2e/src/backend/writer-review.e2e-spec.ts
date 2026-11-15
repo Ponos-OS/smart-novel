@@ -1,8 +1,7 @@
-import axios from 'axios';
-
 import {
   AuthorizationFixture,
   ClusterFixture,
+  graphql,
   uniquePenName,
 } from '../support';
 
@@ -99,23 +98,6 @@ const WHO_AM_I = `#graphql
     }
   }
 `;
-
-async function graphql(
-  query: string,
-  variables: Record<string, unknown>,
-  authorization?: string,
-) {
-  const { data } = await axios.post(
-    '/graphql',
-    { query, variables },
-    {
-      headers: authorization ? { Authorization: authorization } : {},
-      validateStatus: () => true,
-    },
-  );
-
-  return data;
-}
 
 describe('Writer request review (e2e)', () => {
   const unknownId = '0b0b5a4e-3a8f-4d52-9c6e-7d8f1a2b3c4d';

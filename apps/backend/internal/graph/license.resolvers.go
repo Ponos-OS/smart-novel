@@ -21,17 +21,9 @@ func (r *licenseResolver) Scope(ctx context.Context, obj *ent.License) (license.
 	return license.ScopeOf(obj), nil
 }
 
-// OfficialURL is the resolver for the officialURL field.
-func (r *licenseResolver) OfficialURL(ctx context.Context, obj *ent.License) (*string, error) {
-	if obj.CanonicalID == nil {
-		return nil, nil
-	}
-	url := r.LicenseService.OfficialURL(ctx, *obj.CanonicalID)
-	if url == "" {
-		return nil, nil
-	}
-
-	return &url, nil
+// DraftLicense is the resolver for the draftLicense field.
+func (r *mutationResolver) DraftLicense(ctx context.Context, input license.AssistantRequest) (*license.AssistantTurn, error) {
+	return r.LicenseService.Assist(ctx, input)
 }
 
 // CreateLicense is the resolver for the createLicense field.
@@ -104,11 +96,8 @@ func (r *queryResolver) DefaultLicense(ctx context.Context) (*ent.License, error
 
 // Licenses is the resolver for the licenses field.
 func (r *queryResolver) Licenses(ctx context.Context, after *entgql.Cursor[uuid.UUID], first *int, before *entgql.Cursor[uuid.UUID], last *int, orderBy *ent.LicenseOrder, where *ent.LicenseWhereInput, scope *license.Scope, search *string) (*ent.LicenseConnection, error) {
-	viewer, err := auth.Require(ctx)
-	if err != nil {
-		return nil, err
-	}
-	first, last, err = pagination.Bound(first, last, licensesPage)
+	viewer, _ := auth.ViewerFrom(ctx)
+	first, last, err := pagination.Bound(first, last, licensesPage)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,8 @@
-import axios from 'axios';
-
-import { AuthorizationFixture, ClusterFixture } from '../support';
+import {
+  AuthorizationFixture,
+  ClusterFixture,
+  graphql,
+} from '../support';
 
 const STATS = `#graphql
   query ContentStats {
@@ -57,23 +59,6 @@ const HISTORY = `#graphql
     }
   }
 `;
-
-async function graphql(
-  query: string,
-  variables: Record<string, unknown>,
-  authorization?: string,
-) {
-  const { data } = await axios.post(
-    '/graphql',
-    { query, variables },
-    {
-      headers: authorization ? { Authorization: authorization } : {},
-      validateStatus: () => true,
-    },
-  );
-
-  return data;
-}
 
 describe('Content stats (e2e)', () => {
   const seededRange = {

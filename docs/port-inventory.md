@@ -39,17 +39,17 @@ The grouping in `REQUIREMENTS.md` holds, with these corrections found while read
 
 `Query`:
 
-| Operation                                                         | Module            | Step     |
-| ----------------------------------------------------------------- | ----------------- | -------- |
-| `health`                                                          | app               | 3 (done) |
-| `whoAmI`                                                          | auth              | 5 (done) |
-| `tagsConnection` (now `tags`)                                     | tag               | 6 (done) |
-| `novel`, `novelsConnection` (now `novels`)                        | novel             | 6 (done) |
-| `contentStats`, `statsSnapshotsConnection` (now `statsSnapshots`) | stats             | 6 (done) |
-| `defaultLicense`, `licenses`, `licenseDraft`                      | license           | 7        |
-| `canonicalLicenses`, `canonicalLicense`                           | license-assistant | 7        |
-| `platformTerms`, `myPlatformTermsStatus`                          | platform-terms    | 7        |
-| `myWriter`, `writers`                                             | writer            | 7        |
+| Operation                                                         | Module                                           | Step     |
+| ----------------------------------------------------------------- | ------------------------------------------------ | -------- |
+| `health`                                                          | app                                              | 3 (done) |
+| `whoAmI`                                                          | auth                                             | 5 (done) |
+| `tagsConnection` (now `tags`)                                     | tag                                              | 6 (done) |
+| `novel`, `novelsConnection` (now `novels`)                        | novel                                            | 6 (done) |
+| `contentStats`, `statsSnapshotsConnection` (now `statsSnapshots`) | stats                                            | 6 (done) |
+| `defaultLicense`, `licenses`, `licenseDraft`                      | license                                          | 7        |
+| `canonicalLicenses`, `canonicalLicense`                           | removed: `licenses` with the registry's metadata | 7c       |
+| `platformTerms`, `myPlatformTermsStatus`                          | platform-terms                                   | 7        |
+| `myWriter`, `writers`                                             | writer                                           | 7        |
 
 `Mutation`:
 

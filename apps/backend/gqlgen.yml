@@ -45,6 +45,30 @@ models:
   SaveLicenseDraftInput:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/internal/license.DraftSave
+  LicenseAssistantMessageRole:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/license.AssistantRole
+  LicenseAssistantMessage:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/license.AssistantMessage
+  LicenseAssistantMessageInput:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/license.AssistantMessage
+  LicenseAssistantDraft:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/license.AssistantDraft
+  LicenseAssistantDraftInput:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/license.AssistantDraft
+  LicenseAssistantPreferencesInput:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/license.AssistantPreferences
+  LicenseAssistantTurn:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/license.AssistantTurn
+  DraftLicenseInput:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/license.AssistantRequest
   LicenseScope:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/internal/license.Scope

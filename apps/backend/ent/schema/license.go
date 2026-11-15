@@ -49,6 +49,14 @@ func (License) Fields() []ent.Field {
 		field.String("canonical_id").
 			Optional().
 			Nillable(),
+		field.String("version").
+			Optional().
+			Nillable().
+			Comment("The registry's metadata of a canonical license, kept when the registry is read; null for any other license."),
+		field.String("official_url").
+			Optional().
+			Nillable().
+			Comment("Link to the authoritative text of the canonical license; null for any other license."),
 		field.Bool("is_default").
 			Default(false),
 		field.Bool("is_draft").
@@ -70,6 +78,10 @@ func (License) Indexes() []ent.Index {
 		index.Fields("owner_id", "text_hash").
 			Unique().
 			StorageKey("licenses_owner_id_text_hash_key"),
+		index.Fields("canonical_id").
+			Unique().
+			StorageKey("licenses_canonical_id_canonical_key").
+			Annotations(entsql.IndexWhere("source_type = 'CANONICAL' AND is_draft = false")),
 	}
 }
 

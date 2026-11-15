@@ -1,0 +1,36 @@
+{
+  "name": "responses: final_result, explanation",
+  "priority": 5,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/responses"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "id": "resp_5b1f0c9a7d",
+      "object": "response",
+      "created_at": 1767225600,
+      "status": "completed",
+      "model": "gpt-4.1-mini",
+      "output": [
+        {
+          "type": "function_call",
+          "id": "fc_5b1f0c9a7d",
+          "call_id": "call_5b1f0c9a7d",
+          "name": "final_result",
+          "arguments": "{\"assistantMessage\": \"CC BY-NC 4.0 lets others remix your novel and share it, as long as they credit you and do not sell it.\", \"draft\": null, \"draftChanged\": false, \"recommendations\": [\"CC-BY-NC-4.0\"], \"disclaimers\": [\"This is not legal advice. Consult a qualified lawyer before relying on this draft.\"], \"isReadyToFinalize\": false}",
+          "status": "completed"
+        }
+      ],
+      "usage": {
+        "input_tokens": 900,
+        "output_tokens": 120,
+        "total_tokens": 1020
+      }
+    }
+  }
+}

@@ -1,24 +1,9 @@
-import axios from 'axios';
 import { randomUUID } from 'node:crypto';
 
-import { AuthorizationFixture } from '../support';
+import { AuthorizationFixture, graphql } from '../support';
 
 describe('Chapter deletion (e2e)', () => {
   const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829'; // example-novel from seed data, owned by the writer
-
-  async function graphql(
-    query: string,
-    variables: Record<string, unknown>,
-    authorizationHeader: string,
-  ) {
-    const { data } = await axios.post(
-      '/graphql',
-      { query, variables },
-      { headers: { Authorization: authorizationHeader } },
-    );
-
-    return data;
-  }
 
   async function createChapter(
     title: string,

@@ -5,8 +5,8 @@ import {
   CANONICAL_LICENSE_RETIRED,
   LICENSE_ASSISTANT_INVALID_REQUEST,
   LICENSE_ASSISTANT_RATE_LIMITED,
-  LICENSE_ASSISTANT_UNAVAILABLE,
   PLATFORM_TERMS_NOT_ACCEPTED,
+  SERVICE_UNAVAILABLE,
 } from '../../lib/api-error-codes';
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 
@@ -43,7 +43,7 @@ const BY_CODE: Record<
     messageKey: 'error.rateLimited',
     retryable: true,
   },
-  [LICENSE_ASSISTANT_UNAVAILABLE]: {
+  [SERVICE_UNAVAILABLE]: {
     kind: 'unavailable',
     messageKey: 'error.unavailable',
     retryable: true,
