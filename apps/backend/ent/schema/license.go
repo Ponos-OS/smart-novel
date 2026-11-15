@@ -26,7 +26,7 @@ type License struct {
 func (License) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		uuidID{},
-		timestamps{inAPI: true}, // Adds the timestamps fields to the GraphQL API for License object type
+		timestamps{inAPI: true}, // Adds the timestamps fields to the GraphQL API for License, orderable by both
 	}
 }
 
@@ -34,7 +34,7 @@ func (License) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("name").
 			MaxLen(licenseNameMaxLength).
-			NotEmpty(),
+			Comment("Empty only while the row is a draft."),
 		field.String("text").
 			MaxLen(licenseTextMaxLength).
 			SchemaType(map[string]string{dialect.Postgres: "text"}),

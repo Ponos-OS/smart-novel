@@ -22,6 +22,7 @@ func environment(overrides map[string]string) config.Lookup {
 		"ZITADEL_INTROSPECTION_CLIENT_SECRET": "4Jt0l3Ww9yq1a7mXf2Nn",
 		"ZITADEL_PROJECT_ID":                  "399193312042352663",
 		"ZITADEL_MANAGEMENT_PAT":              "pat-4Jt0l3Ww9yq1a7mXf2NnQb8Zc",
+		"FITHARA_URL":                         "http://fithara:8000",
 	}
 	for key, value := range overrides {
 		values[key] = value
@@ -68,6 +69,20 @@ func TestLoadReadsZitadelSettings(t *testing.T) {
 
 	if cfg.Zitadel.IssuerURL != "http://auth.localhost:8080" || cfg.Zitadel.InternalURL != "http://traefik:80" || cfg.Zitadel.IntrospectionClientID == "" {
 		t.Errorf("unexpected ZITADEL settings: %+v", cfg.Zitadel)
+	}
+}
+
+func TestLoadReadsFitharaSettings(t *testing.T) {
+	cfg := loadDefaults(t)
+	configured, err := config.Load(environment(map[string]string{"FITHARA_TIMEOUT": "2m"}))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Fithara.URL != "http://fithara:8000" || cfg.Fithara.Timeout != time.Minute {
+		t.Errorf("unexpected defaults: %+v", cfg.Fithara)
+	}
+	if configured.Fithara.Timeout != 2*time.Minute {
+		t.Errorf("timeout = %v, want 2m", configured.Fithara.Timeout)
 	}
 }
 
@@ -134,6 +149,8 @@ func TestLoadRejectsBadSettings(t *testing.T) {
 		{"missing introspection client secret", map[string]string{"ZITADEL_INTROSPECTION_CLIENT_SECRET": ""}, "ZITADEL_INTROSPECTION_CLIENT_SECRET is required"},
 		{"missing project id", map[string]string{"ZITADEL_PROJECT_ID": ""}, "ZITADEL_PROJECT_ID is required"},
 		{"missing management pat", map[string]string{"ZITADEL_MANAGEMENT_PAT": ""}, "ZITADEL_MANAGEMENT_PAT is required"},
+		{"missing fithara url", map[string]string{"FITHARA_URL": ""}, "FITHARA_URL is required"},
+		{"fithara timeout without a unit", map[string]string{"FITHARA_TIMEOUT": "60"}, "FITHARA_TIMEOUT must be a positive duration"},
 		{"no origins", map[string]string{"CORS_ALLOWED_ORIGINS": " , "}, "CORS_ALLOWED_ORIGINS is required"},
 		{"sampler ratio above one", map[string]string{"OTEL_TRACES_SAMPLER_ARG": "1.5"}, "OTEL_TRACES_SAMPLER_ARG must be a number"},
 		{"batch size not a number", map[string]string{"OTEL_BATCH_SPANS_PER_EXPORT": "many"}, "OTEL_BATCH_SPANS_PER_EXPORT must be a positive integer"},

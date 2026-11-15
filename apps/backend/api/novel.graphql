@@ -176,6 +176,11 @@ input CreateNovelInput {
   Names of approved tags, compared case-insensitively. Unknown or pending ones are rejected.
   """
   tags: [String!] @isString
+
+  """
+  A shared license or one of the caller's, finalized (see `finalizeLicenseDraft`). Omit for the default license.
+  """
+  licenseID: ID
 }
 
 input UpdateNovelInput {
@@ -194,6 +199,11 @@ input UpdateNovelInput {
   Replaces the current tags; omit to keep them. Names must be approved tags.
   """
   tags: [String!] @isString
+
+  """
+  Another license, shared or the caller's. Omit to keep the current one. A new text is stored first, with `finalizeLicenseDraft`.
+  """
+  licenseID: ID
 }
 
 extend type Mutation {

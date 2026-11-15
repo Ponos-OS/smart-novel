@@ -9,35 +9,66 @@ const DEFAULT_LICENSE = `#graphql
       id
       name
       sourceType
-      canonicalId
+      canonicalID
       text
     }
   }
 `;
 
 const SET_DEFAULT_LICENSE = `#graphql
-  mutation SetDefaultLicense($input: SetDefaultLicenseInput!) {
-    setDefaultLicense(input: $input) {
+  mutation SetDefaultLicense($licenseID: ID!) {
+    setDefaultLicense(licenseID: $licenseID) {
       id
       name
       sourceType
-      canonicalId
+      canonicalID
       text
     }
   }
 `;
 
 const CREATE_LICENSE = `#graphql
-  mutation CreateLicense($input: LicenseDraftInput!) {
+  mutation CreateLicense($input: LicenseInput!) {
     createLicense(input: $input) {
       id
       name
       sourceType
-      canonicalId
+      canonicalID
       text
       scope
       isDefault
-      ownerId
+      ownerID
+      officialURL
+    }
+  }
+`;
+
+const CREATE_LICENSE_DRAFT = `#graphql
+  mutation CreateLicenseDraft($input: CreateLicenseDraftInput!) {
+    createLicenseDraft(input: $input) {
+      id
+    }
+  }
+`;
+
+const SAVE_LICENSE_DRAFT = `#graphql
+  mutation SaveLicenseDraft($input: SaveLicenseDraftInput!) {
+    saveLicenseDraft(input: $input) {
+      id
+    }
+  }
+`;
+
+const FINALIZE_LICENSE_DRAFT = `#graphql
+  mutation FinalizeLicenseDraft($id: ID!) {
+    finalizeLicenseDraft(id: $id) {
+      id
+      name
+      sourceType
+      canonicalID
+      scope
+      ownerID
+      officialURL
     }
   }
 `;
@@ -73,7 +104,7 @@ const NOVEL_LICENSE = `#graphql
 
 const NOVELS_LICENSES = `#graphql
   query NovelsLicenses {
-    novelsConnection(first: 50) {
+    novels(first: 50) {
       edges {
         node {
           id
@@ -82,26 +113,6 @@ const NOVELS_LICENSES = `#graphql
           }
         }
       }
-    }
-  }
-`;
-
-const CANONICAL_LICENSES = `#graphql
-  query CanonicalLicenses {
-    canonicalLicenses {
-      id
-      shortName
-      officialUrl
-    }
-  }
-`;
-
-const CANONICAL_LICENSE = `#graphql
-  query CanonicalLicense($id: ID!) {
-    canonicalLicense(id: $id) {
-      id
-      shortName
-      body
     }
   }
 `;
@@ -123,12 +134,39 @@ async function graphql(
   return data;
 }
 
-function uniqueDraft() {
+function uniqueLicense() {
   return {
-    title: 'Read it, do not copy it',
+    name: 'Read it, do not copy it',
     text: `You may read this novel. You may not copy it. ${randomUUID()}`,
-    source: { type: 'CUSTOM' },
+    sourceType: 'CUSTOM',
   };
+}
+
+/**
+ * @description A writer stores a license through a draft: the only way for them to get a new text, since the novel takes only the ID of a license.
+ */
+async function finalizeLicense(
+  authorization: string,
+  license: {
+    name: string;
+    text: string;
+    sourceType: string;
+    canonicalID?: string;
+  },
+) {
+  const created = await graphql(
+    CREATE_LICENSE_DRAFT,
+    { input: {} },
+    authorization,
+  );
+  const id = created.data.createLicenseDraft.id;
+  await graphql(
+    SAVE_LICENSE_DRAFT,
+    { input: { id, ...license } },
+    authorization,
+  );
+
+  return graphql(FINALIZE_LICENSE_DRAFT, { id }, authorization);
 }
 
 describe('Licenses (e2e)', () => {
@@ -137,11 +175,16 @@ describe('Licenses (e2e)', () => {
     description: 'A lighthouse keeper finds a door in the fog.',
   };
   let adminAuthorization: string;
+  let writer: string;
   let originalDefaultId: string;
 
   beforeAll(async () => {
     adminAuthorization =
       await AuthorizationFixture.getAdminAuthorizationHeader();
+    // Fresh: the refused drafts stay behind, and a writer may keep only 20.
+    writer = await AuthorizationFixture.getWriterAuthorizationHeader({
+      fresh: true,
+    });
 
     const data = await graphql(
       DEFAULT_LICENSE,
@@ -155,16 +198,13 @@ describe('Licenses (e2e)', () => {
   afterAll(async () => {
     await graphql(
       SET_DEFAULT_LICENSE,
-      { input: { licenseId: originalDefaultId } },
+      { licenseID: originalDefaultId },
       adminAuthorization,
     );
   });
 
   describe('defaultLicense', () => {
     it('should be the seeded CC BY 4.0', async () => {
-      const writer =
-        await AuthorizationFixture.getWriterAuthorizationHeader();
-
       const data = await graphql(DEFAULT_LICENSE, {}, writer);
 
       expect(data.errors).toBeUndefined();
@@ -172,7 +212,7 @@ describe('Licenses (e2e)', () => {
         id: originalDefaultId,
         name: 'CC BY 4.0',
         sourceType: 'CANONICAL',
-        canonicalId: 'CC-BY-4.0',
+        canonicalID: 'CC-BY-4.0',
         text: expect.stringContaining(
           'Attribution 4.0 International',
         ),
@@ -199,22 +239,25 @@ describe('Licenses (e2e)', () => {
 
         const data = await graphql(
           SET_DEFAULT_LICENSE,
-          { input: { licenseId: originalDefaultId } },
+          { licenseID: originalDefaultId },
           authorization,
         );
 
-        expect(data.errors[0].message).toContain(
-          'You do not have permission to update this license',
-        );
+        expect(data.errors).toBeDefined();
+        expect(data.data).toBeNull();
       },
     );
 
     it('should let an admin change the default, and keep exactly one', async () => {
-      const draft = uniqueDraft();
+      const created = await graphql(
+        CREATE_LICENSE,
+        { input: uniqueLicense() },
+        adminAuthorization,
+      );
 
       const changed = await graphql(
         SET_DEFAULT_LICENSE,
-        { input: { licenseDraft: draft } },
+        { licenseID: created.data.createLicense.id },
         adminAuthorization,
       );
       const current = await graphql(
@@ -225,27 +268,30 @@ describe('Licenses (e2e)', () => {
 
       expect(changed.errors).toBeUndefined();
       expect(changed.data.setDefaultLicense).toStrictEqual({
-        id: expect.toBeString(),
-        name: draft.title,
+        id: created.data.createLicense.id,
+        name: created.data.createLicense.name,
         sourceType: 'CUSTOM',
-        canonicalId: null,
-        text: draft.text,
+        canonicalID: null,
+        text: created.data.createLicense.text,
       });
       expect(current.data.defaultLicense.id).toBe(
         changed.data.setDefaultLicense.id,
       );
     });
 
-    it('should reject a call that selects nothing', async () => {
+    it("should refuse a writer's own license as the default", async () => {
+      const finalized = await finalizeLicense(
+        writer,
+        uniqueLicense(),
+      );
+
       const data = await graphql(
         SET_DEFAULT_LICENSE,
-        { input: {} },
+        { licenseID: finalized.data.finalizeLicenseDraft.id },
         adminAuthorization,
       );
 
-      expect(data.errors[0].message).toContain(
-        'Pass either licenseId or licenseDraft',
-      );
+      expect(data.errors[0].message).toContain('not found');
     });
   });
 
@@ -268,22 +314,21 @@ describe('Licenses (e2e)', () => {
 
         const data = await graphql(
           CREATE_LICENSE,
-          { input: uniqueDraft() },
+          { input: uniqueLicense() },
           authorization,
         );
 
-        expect(data.errors[0].message).toContain(
-          'You do not have permission to create this license',
-        );
+        expect(data.errors).toBeDefined();
+        expect(data.data).toBeNull();
       },
     );
 
     it('should let an admin store a shared license without changing the default', async () => {
-      const draft = uniqueDraft();
+      const license = uniqueLicense();
 
       const created = await graphql(
         CREATE_LICENSE,
-        { input: draft },
+        { input: license },
         adminAuthorization,
       );
       const current = await graphql(
@@ -295,13 +340,14 @@ describe('Licenses (e2e)', () => {
       expect(created.errors).toBeUndefined();
       expect(created.data.createLicense).toStrictEqual({
         id: expect.toBeString(),
-        name: draft.title,
+        name: license.name,
         sourceType: 'CUSTOM',
-        canonicalId: null,
-        text: draft.text,
+        canonicalID: null,
+        text: license.text,
         scope: 'SHARED',
         isDefault: false,
-        ownerId: 'system',
+        ownerID: 'system',
+        officialURL: null,
       });
       expect(current.data.defaultLicense.id).not.toBe(
         created.data.createLicense.id,
@@ -309,16 +355,16 @@ describe('Licenses (e2e)', () => {
     });
 
     it('should return the stored license when the same text is created again', async () => {
-      const draft = uniqueDraft();
+      const license = uniqueLicense();
 
       const first = await graphql(
         CREATE_LICENSE,
-        { input: draft },
+        { input: license },
         adminAuthorization,
       );
       const second = await graphql(
         CREATE_LICENSE,
-        { input: draft },
+        { input: { ...license, text: `${license.text}  \r\n` } },
         adminAuthorization,
       );
 
@@ -327,36 +373,57 @@ describe('Licenses (e2e)', () => {
       );
     });
 
-    it('should refuse a text that claims to be canonical but is not', async () => {
-      const data = await graphql(
-        CREATE_LICENSE,
-        {
-          input: {
-            ...uniqueDraft(),
-            source: { type: 'CANONICAL', canonicalId: 'CC-BY-4.0' },
-          },
+    it.each([
+      {
+        scenario: 'its text is not the registry text',
+        input: {
+          ...uniqueLicense(),
+          sourceType: 'CANONICAL',
+          canonicalID: 'CC-BY-4.0',
         },
-        adminAuthorization,
-      );
+        message: 'is not the canonical license',
+      },
+      {
+        scenario: 'it claims to be canonical without saying which',
+        input: { ...uniqueLicense(), sourceType: 'CANONICAL' },
+        message: 'needs its canonicalId',
+      },
+      {
+        scenario: 'it is a fork without saying what it forks',
+        input: { ...uniqueLicense(), sourceType: 'FORKED' },
+        message: 'needs the canonicalId it was modified from',
+      },
+      {
+        scenario: 'it is custom and still names a canonical license',
+        input: { ...uniqueLicense(), canonicalID: 'CC-BY-4.0' },
+        message: 'has no canonicalId',
+      },
+    ])(
+      'should refuse a license when $scenario',
+      async ({ input, message }) => {
+        const data = await graphql(
+          CREATE_LICENSE,
+          { input },
+          adminAuthorization,
+        );
 
-      expect(data.errors[0].message).toContain(
-        'is not the canonical license',
-      );
-    });
+        expect(data.errors[0].message).toContain(message);
+      },
+    );
+  });
 
-    it('should give a writer a license they can put on their novel', async () => {
-      const writer =
-        await AuthorizationFixture.getWriterAuthorizationHeader();
+  describe('licenses on novels', () => {
+    it('should give a writer a shared license they can put on their novel', async () => {
       const created = await graphql(
         CREATE_LICENSE,
-        { input: uniqueDraft() },
+        { input: uniqueLicense() },
         adminAuthorization,
       );
-      const licenseId = created.data.createLicense.id;
+      const licenseID = created.data.createLicense.id;
 
       const novel = await graphql(
         CREATE_NOVEL,
-        { input: { ...novelInput, licenseId } },
+        { input: { ...novelInput, licenseID } },
         writer,
       );
       const licensed = await graphql(
@@ -366,63 +433,67 @@ describe('Licenses (e2e)', () => {
       );
 
       expect(novel.errors).toBeUndefined();
-      expect(licensed.data.novel.license.id).toBe(licenseId);
-    });
-  });
-
-  describe('license draft on novels', () => {
-    it('should store a distinct text once, however many times it is sent', async () => {
-      const draft = uniqueDraft();
-
-      const first = await graphql(
-        SET_DEFAULT_LICENSE,
-        { input: { licenseDraft: draft } },
-        adminAuthorization,
-      );
-      const second = await graphql(
-        SET_DEFAULT_LICENSE,
-        {
-          input: {
-            licenseDraft: { ...draft, text: `${draft.text}  \r\n` },
-          },
-        },
-        adminAuthorization,
-      );
-
-      expect(second.data.setDefaultLicense.id).toBe(
-        first.data.setDefaultLicense.id,
-      );
+      expect(licensed.data.novel.license.id).toBe(licenseID);
     });
 
-    it('should let a writer create a novel with their own draft and then switch it to an existing license', async () => {
-      const writer =
-        await AuthorizationFixture.getWriterAuthorizationHeader();
+    it('should let a writer create a novel with their own license and then switch it to an existing one', async () => {
+      const own = await finalizeLicense(writer, uniqueLicense());
+      const ownID = own.data.finalizeLicenseDraft.id;
 
       const created = await graphql(
         CREATE_NOVEL,
-        { input: { ...novelInput, licenseDraft: uniqueDraft() } },
+        { input: { ...novelInput, licenseID: ownID } },
         writer,
       );
       const updated = await graphql(
         UPDATE_NOVEL,
         {
           id: created.data.createNovel.id,
-          input: { licenseId: originalDefaultId },
+          input: { licenseID: originalDefaultId },
         },
+        writer,
+      );
+      const licensed = await graphql(
+        NOVEL_LICENSE,
+        { id: created.data.createNovel.id },
         writer,
       );
 
       expect(created.errors).toBeUndefined();
       expect(updated.errors).toBeUndefined();
+      expect(licensed.data.novel.license.id).toBe(originalDefaultId);
+    });
+
+    it('should give a novel the current default license when none is chosen', async () => {
+      const current = await graphql(DEFAULT_LICENSE, {}, writer);
+
+      const novel = await graphql(
+        CREATE_NOVEL,
+        { input: novelInput },
+        writer,
+      );
+      const licensed = await graphql(
+        NOVEL_LICENSE,
+        { id: novel.data.createNovel.id },
+        writer,
+      );
+
+      expect(licensed.data.novel.license.id).toBe(
+        current.data.defaultLicense.id,
+      );
     });
 
     it('should expose the license of a novel on the detail and on the list', async () => {
-      const writer =
-        await AuthorizationFixture.getWriterAuthorizationHeader();
-      const draft = uniqueDraft();
+      const license = uniqueLicense();
+      const own = await finalizeLicense(writer, license);
       const created = await graphql(
         CREATE_NOVEL,
-        { input: { ...novelInput, licenseDraft: draft } },
+        {
+          input: {
+            ...novelInput,
+            licenseID: own.data.finalizeLicenseDraft.id,
+          },
+        },
         writer,
       );
       const novelId = created.data.createNovel.id;
@@ -436,134 +507,111 @@ describe('Licenses (e2e)', () => {
 
       expect(detail.data.novel.license).toEqual(
         expect.objectContaining({
-          name: draft.title,
+          name: license.name,
           sourceType: 'CUSTOM',
-          text: draft.text,
+          text: license.text,
         }),
       );
       expect(list.errors).toBeUndefined();
-      expect(list.data.novelsConnection.edges).not.toBeEmpty();
+      expect(list.data.novels.edges).not.toBeEmpty();
       expect(
-        list.data.novelsConnection.edges.every(
+        list.data.novels.edges.every(
           ({ node }: { node: { license: { id: string } } }) =>
             node.license.id,
         ),
       ).toBeTrue();
     });
 
-    it.each([
-      {
-        scenario: 'both an id and a draft are sent',
-        license: {
-          licenseId: randomUUID(),
-          licenseDraft: uniqueDraft(),
-        },
-        message: 'either licenseId or licenseDraft',
-      },
-      {
-        scenario: 'the license does not exist',
-        license: { licenseId: randomUUID() },
-        message: 'not found',
-      },
-      {
-        scenario:
-          'a text claims to be canonical without saying which',
-        license: {
-          licenseDraft: {
-            ...uniqueDraft(),
-            source: { type: 'CANONICAL' },
-          },
-        },
-        message: 'needs its canonicalId',
-      },
-    ])(
-      'should reject creating a novel when $scenario',
-      async ({ license, message }) => {
-        const writer =
-          await AuthorizationFixture.getWriterAuthorizationHeader();
-
-        const data = await graphql(
-          CREATE_NOVEL,
-          { input: { ...novelInput, ...license } },
-          writer,
-        );
-
-        expect(data.errors[0].message).toContain(message);
-      },
-    );
-  });
-
-  describe('canonical licenses of the Fithara registry', () => {
-    const canonicalId = 'CC-BY-NC-4.0';
-
-    async function readCanonicalLicense(writer: string) {
+    it('should reject creating a novel with a license that does not exist', async () => {
       const data = await graphql(
-        CANONICAL_LICENSE,
-        { id: canonicalId },
+        CREATE_NOVEL,
+        { input: { ...novelInput, licenseID: randomUUID() } },
         writer,
       );
 
-      return data.data.canonicalLicense;
-    }
+      expect(data.errors[0].message).toContain('not found');
+    });
+  });
 
-    it('should list the registry for a writer', async () => {
-      const writer =
-        await AuthorizationFixture.getWriterAuthorizationHeader();
+  describe('canonical licenses of the Fithara registry', () => {
+    const canonicalID = 'CC-BY-NC-4.0';
+    let writer: string;
 
-      const data = await graphql(CANONICAL_LICENSES, {}, writer);
-
-      expect(
-        data.data.canonicalLicenses.map(
-          ({ id }: { id: string }) => id,
-        ),
-      ).toContain(canonicalId);
+    beforeAll(async () => {
+      // Fresh: the refused drafts stay behind, and a writer may keep only 20.
+      writer =
+        await AuthorizationFixture.getWriterAuthorizationHeader({
+          fresh: true,
+        });
     });
 
-    it('should store the registry text as a canonical license, under the name of the registry', async () => {
-      const writer =
-        await AuthorizationFixture.getWriterAuthorizationHeader();
-      const canonical = await readCanonicalLicense(writer);
+    async function draftFromRegistry(writer: string) {
+      const created = await graphql(
+        CREATE_LICENSE_DRAFT,
+        { input: { canonicalID } },
+        writer,
+      );
+
+      return created.data.createLicenseDraft.id as string;
+    }
+
+    it('should store the registry text as a shared canonical license, under the name of the registry, with its official link', async () => {
+      const id = await draftFromRegistry(writer);
 
       const data = await graphql(
-        CREATE_NOVEL,
-        {
-          input: {
-            ...novelInput,
-            licenseDraft: {
-              title: 'Whatever the client calls it',
-              text: canonical.body,
-              source: { type: 'CANONICAL', canonicalId },
-            },
-          },
-        },
+        FINALIZE_LICENSE_DRAFT,
+        { id },
         writer,
       );
 
       expect(data.errors).toBeUndefined();
+      expect(data.data.finalizeLicenseDraft).toStrictEqual({
+        id: expect.toBeString(),
+        name: 'CC BY-NC 4.0',
+        sourceType: 'CANONICAL',
+        canonicalID,
+        scope: 'SHARED',
+        ownerID: 'system',
+        officialURL: expect.stringContaining('creativecommons.org'),
+      });
     });
 
-    it('should refuse a text that claims to be canonical but is not the registry text', async () => {
-      const writer =
-        await AuthorizationFixture.getWriterAuthorizationHeader();
-      const canonical = await readCanonicalLicense(writer);
-
-      const data = await graphql(
-        CREATE_NOVEL,
+    it('should refuse a draft that claims to be canonical but is not the registry text', async () => {
+      const id = await draftFromRegistry(writer);
+      await graphql(
+        SAVE_LICENSE_DRAFT,
         {
           input: {
-            ...novelInput,
-            licenseDraft: {
-              title: canonical.shortName,
-              text: `${canonical.body}\n\nYou may also sell it.`,
-              source: { type: 'CANONICAL', canonicalId },
-            },
+            id,
+            name: 'CC BY-NC 4.0',
+            text: `${uniqueLicense().text}\n\nYou may also sell it.`,
+            sourceType: 'CANONICAL',
+            canonicalID,
           },
         },
         writer,
       );
 
+      const data = await graphql(
+        FINALIZE_LICENSE_DRAFT,
+        { id },
+        writer,
+      );
+
       expect(data.errors[0].message).toContain(
-        `is not the canonical license ${canonicalId}`,
+        `is not the canonical license ${canonicalID}`,
+      );
+    });
+
+    it('should refuse a draft from a canonical license the registry does not know', async () => {
+      const data = await graphql(
+        CREATE_LICENSE_DRAFT,
+        { input: { canonicalID: 'NOT-A-LICENSE' } },
+        writer,
+      );
+
+      expect(data.errors[0].message).toContain(
+        'is not a known canonical license',
       );
     });
   });

@@ -8,6 +8,7 @@ const (
 	CodeNotFound        = "NOT_FOUND"
 	CodeConflict        = "CONFLICT"
 	CodeBadRequest      = "BAD_REQUEST"
+	CodeUnavailable     = "SERVICE_UNAVAILABLE"
 
 	CodeInvalidCursor                = "INVALID_CURSOR"
 	CodePlatformTermsNotAccepted     = "PLATFORM_TERMS_NOT_ACCEPTED"
@@ -32,6 +33,11 @@ func BadRequest(message string) error {
 // NotFound is for something the caller asked for by ID that does not exist.
 func NotFound(message string) error {
 	return &Error{code: CodeNotFound, message: message}
+}
+
+// Unavailable is for a service the request needs that cannot be reached right now; the caller may try again later.
+func Unavailable(message string) error {
+	return &Error{code: CodeUnavailable, message: message}
 }
 
 // Conflict is for an edit based on a version that is no longer the current one.

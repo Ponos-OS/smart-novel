@@ -15,7 +15,9 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/chapter"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/config"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/fithara"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/license"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/novel"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/database"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/logging"
@@ -124,11 +126,21 @@ func newResolver(ctx context.Context, cfg config.Config, db *database.Database, 
 		return nil, err
 	}
 
+	fitharaClient, err := fithara.NewClientWithResponses(cfg.Fithara.URL, fithara.WithHTTPClient(&http.Client{Timeout: cfg.Fithara.Timeout}))
+	if err != nil {
+		return nil, fmt.Errorf("creating the Fithara client: %w", err)
+	}
+	licenseService := license.NewService(db.Client, fitharaClient, logger)
+	if _, err := licenseService.EnsureDefault(ctx); err != nil {
+		return nil, err
+	}
+
 	return &graph.Resolver{
 		Client:         db.Client,
 		Logger:         logger,
 		TagService:     tag.NewService(db.Client, db),
-		NovelService:   novel.NewService(db.Client, db),
+		NovelService:   novel.NewService(db.Client, db, licenseService),
+		LicenseService: licenseService,
 		ChapterService: chapter.NewService(db.Client),
 		StatsService:   stats.NewService(db, logger),
 		WriterService:  writer.NewService(db.Client, management),

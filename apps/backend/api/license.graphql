@@ -1,0 +1,130 @@
+"""
+SHARED belongs to the platform and any writer may use it, PERSONAL was finalized by a writer and is private to them, DRAFT is still being worked on
+"""
+enum LicenseScope {
+  SHARED
+  PERSONAL
+  DRAFT
+}
+
+extend type License {
+  """
+  SHARED, PERSONAL or DRAFT. A draft is a license being worked on: private to its writer, mutable, and not usable on a novel until it is finalized. Its name and text may be empty.
+  """
+  scope: LicenseScope! @goField(forceResolver: true)
+
+  """
+  Link to the authoritative text of the canonical license this is, or was modified from. Null for CUSTOM, or when the registry cannot be reached.
+  """
+  officialURL: String @goField(forceResolver: true)
+}
+
+"""
+A license text the author picked or wrote. Stored once per distinct text.
+"""
+input LicenseInput {
+  """
+  E.g. "CC BY 4.0"
+  """
+  name: String! @isString @maxLength(max: 200)
+
+  """
+  The full license text
+  """
+  text: String! @isString(multiline: true) @maxLength(max: 100000)
+  sourceType: LicenseSourceType!
+
+  """
+  Required for CANONICAL and FORKED, must be omitted for CUSTOM
+  """
+  canonicalID: String @isString
+}
+
+input CreateLicenseDraftInput {
+  """
+  Start from the text of this license. Exclusive with `canonicalID`. Omit both to start from nothing.
+  """
+  licenseID: ID
+
+  """
+  Start from the text of this canonical license of the registry, e.g. "CC-BY-NC-4.0".
+  """
+  canonicalID: String @isString
+}
+
+"""
+The whole draft, as the writer has it. A draft may be empty or inconsistent while it is being written; finalizing checks it.
+"""
+input SaveLicenseDraftInput {
+  id: ID!
+  name: String! @isString(allowEmpty: true) @maxLength(max: 200)
+  text: String!
+    @isString(multiline: true, allowEmpty: true)
+    @maxLength(max: 100000)
+  sourceType: LicenseSourceType!
+  canonicalID: String @isString
+}
+
+extend type Query {
+  """
+  The license new novels get when none is chosen
+  """
+  defaultLicense: License!
+
+  """
+  Paginated licenses, newest save first unless `orderBy` says otherwise, narrowed by `scope` and `search` (the name contains it, whatever the case). An admin gets every license; a writer gets the shared ones and their own licenses and drafts. Without `first` or `last` a page of 20 is returned, at most 100 are allowed.
+  """
+  licenses(
+    after: Cursor
+    first: Int
+    before: Cursor
+    last: Int
+    orderBy: LicenseOrder
+    where: LicenseWhereInput
+
+    """
+    Omit to get every scope the caller may see
+    """
+    scope: LicenseScope
+    search: String @isString(allowEmpty: true) @maxLength(max: 100)
+  ): LicenseConnection! @hasRole(role: writer)
+
+  """
+  A license draft of the caller; an admin can read anybody's. Another writer's is not found.
+  """
+  licenseDraft(id: ID!): License! @hasRole(role: writer)
+}
+
+extend type Mutation {
+  """
+  Admin only. Store a license every writer can use. An already stored text is returned as it is. The default license does not change.
+  """
+  createLicense(input: LicenseInput!): License! @hasRole(role: admin)
+
+  """
+  Admin only. Change the license new novels get to a shared one (see `createLicense`); existing novels keep theirs.
+  """
+  setDefaultLicense(licenseID: ID!): License! @hasRole(role: admin)
+
+  """
+  Start a license draft, from the text of a license, of a canonical license, or from nothing. At most 20 unfinished drafts per writer. Returns it with its ID; save it by that ID.
+  """
+  createLicenseDraft(input: CreateLicenseDraftInput!): License!
+    @hasRole(role: writer)
+
+  """
+  Save the whole draft. Saving what is already saved writes nothing. The last save wins.
+  """
+  saveLicenseDraft(input: SaveLicenseDraftInput!): License!
+    @hasRole(role: writer)
+
+  """
+  Say the draft is finished: it becomes a license, or is replaced by the stored license with the same text. Use the returned license, its ID can differ from the draft's. The draft is gone afterwards.
+  """
+  finalizeLicenseDraft(id: ID!): License! @hasRole(role: writer)
+
+  """
+  Throw a draft away
+  """
+  discardLicenseDraft(id: ID!): Boolean! @hasRole(role: writer)
+}

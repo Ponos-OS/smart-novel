@@ -5,6 +5,7 @@ import (
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/chapter"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/license"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/novel"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platformterms"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/stats"
@@ -18,6 +19,7 @@ type Resolver struct {
 	Logger         *slog.Logger
 	TagService     *tag.Service
 	NovelService   *novel.Service
+	LicenseService *license.Service
 	ChapterService *chapter.Service
 	StatsService   *stats.Service
 	WriterService  *writer.Service

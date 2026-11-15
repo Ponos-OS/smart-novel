@@ -36,6 +36,18 @@ models:
   UpdateTagInput:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/internal/tag.Update
+  LicenseInput:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/license.Input
+  CreateLicenseDraftInput:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/license.DraftStart
+  SaveLicenseDraftInput:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/license.DraftSave
+  LicenseScope:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/license.Scope
   CreateNovelInput:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/internal/novel.CreateInput

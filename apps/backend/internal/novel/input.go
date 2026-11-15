@@ -1,6 +1,8 @@
 package novel
 
 import (
+	"github.com/google/uuid"
+
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent/novel"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/validation"
 )
@@ -11,6 +13,8 @@ type CreateInput struct {
 	Description string
 	State       *novel.State
 	Tags        []string
+	// LicenseID is the license; nil gives the default license.
+	LicenseID *uuid.UUID
 }
 
 // UpdateInput is what updateNovel takes; a nil field stays as it is, and Tags, when given, replaces the current ones.
@@ -19,6 +23,8 @@ type UpdateInput struct {
 	Description *string
 	State       *novel.State
 	Tags        []string
+	// LicenseID is another license; nil keeps the current one.
+	LicenseID *uuid.UUID
 }
 
 // ChapterCountRange narrows a novel list to the novels with this many chapters; a nil bound is open.

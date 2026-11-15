@@ -4,17 +4,19 @@ import { randomUUID } from 'node:crypto';
 import { AuthorizationFixture } from '../support';
 
 const LICENSES_CONNECTION = `#graphql
-  query LicensesConnection(
+  query Licenses(
     $first: Int
     $last: Int
-    $after: String
-    $filters: LicenseFiltersInput
+    $after: Cursor
+    $scope: LicenseScope
+    $search: String
   ) {
-    licensesConnection(
+    licenses(
       first: $first
       last: $last
       after: $after
-      filters: $filters
+      scope: $scope
+      search: $search
     ) {
       edges {
         cursor
@@ -23,7 +25,7 @@ const LICENSES_CONNECTION = `#graphql
           name
           scope
           isDefault
-          ownerId
+          ownerID
         }
       }
       pageInfo {
@@ -34,19 +36,25 @@ const LICENSES_CONNECTION = `#graphql
   }
 `;
 
-const CREATE_NOVEL = `#graphql
-  mutation CreateNovel($input: CreateNovelInput!) {
-    createNovel(input: $input) {
-      license {
-        id
-      }
+const CREATE_LICENSE_DRAFT = `#graphql
+  mutation CreateLicenseDraft($input: CreateLicenseDraftInput!) {
+    createLicenseDraft(input: $input) {
+      id
     }
   }
 `;
 
-const CREATE_LICENSE_DRAFT = `#graphql
-  mutation CreateLicenseDraft($input: CreateLicenseDraftInput!) {
-    createLicenseDraft(input: $input) {
+const SAVE_LICENSE_DRAFT = `#graphql
+  mutation SaveLicenseDraft($input: SaveLicenseDraftInput!) {
+    saveLicenseDraft(input: $input) {
+      id
+    }
+  }
+`;
+
+const FINALIZE_LICENSE_DRAFT = `#graphql
+  mutation FinalizeLicenseDraft($id: ID!) {
+    finalizeLicenseDraft(id: $id) {
       id
     }
   }
@@ -69,7 +77,7 @@ async function graphql(
   return data;
 }
 
-describe('licensesConnection (e2e)', () => {
+describe('licenses (e2e)', () => {
   let admin: string;
   let writer: string;
   let otherWriter: string;
@@ -88,27 +96,30 @@ describe('licensesConnection (e2e)', () => {
       authorization,
     );
 
-    return data.data.licensesConnection;
+    return data.data.licenses;
   }
 
   async function createPersonalLicense(authorization: string) {
-    const data = await graphql(
-      CREATE_NOVEL,
+    const draftId = await createDraft(authorization);
+    await graphql(
+      SAVE_LICENSE_DRAFT,
       {
         input: {
-          name: 'The Lantern Keeper',
-          description: 'A lighthouse keeper finds a door in the fog.',
-          licenseDraft: {
-            title: 'Read it, do not copy it',
-            text: `You may read this novel. ${randomUUID()}`,
-            source: { type: 'CUSTOM' },
-          },
+          id: draftId,
+          name: 'Read it, do not copy it',
+          text: `You may read this novel. ${randomUUID()}`,
+          sourceType: 'CUSTOM',
         },
       },
       authorization,
     );
+    const data = await graphql(
+      FINALIZE_LICENSE_DRAFT,
+      { id: draftId },
+      authorization,
+    );
 
-    return data.data.createNovel.license.id as string;
+    return data.data.finalizeLicenseDraft.id as string;
   }
 
   async function createDraft(authorization: string) {
@@ -125,8 +136,9 @@ describe('licensesConnection (e2e)', () => {
 
   beforeAll(async () => {
     admin = await AuthorizationFixture.getAdminAuthorizationHeader();
-    writer =
-      await AuthorizationFixture.getWriterAuthorizationHeader();
+    writer = await AuthorizationFixture.getWriterAuthorizationHeader({
+      fresh: true,
+    });
     otherWriter =
       await AuthorizationFixture.getWriterAuthorizationHeader({
         fresh: true,
@@ -150,10 +162,7 @@ describe('licensesConnection (e2e)', () => {
   });
 
   it('should flag exactly one license as the default', async () => {
-    const result = await list(
-      { first: 100, filters: { scope: 'SHARED' } },
-      admin,
-    );
+    const result = await list({ first: 100, scope: 'SHARED' }, admin);
 
     const defaults = result.edges.filter(
       ({ node }: any) => node.isDefault,
@@ -162,7 +171,7 @@ describe('licensesConnection (e2e)', () => {
     expect(defaults[0].node).toMatchObject({
       name: 'CC BY 4.0',
       scope: 'SHARED',
-      ownerId: 'system',
+      ownerID: 'system',
     });
   });
 
@@ -178,7 +187,7 @@ describe('licensesConnection (e2e)', () => {
     expect(
       result.edges.every(
         ({ node }: any) =>
-          node.ownerId === 'system' ||
+          node.ownerID === 'system' ||
           node.id === writerLicenseId ||
           node.id === writerDraftId ||
           node.scope !== 'SHARED',
@@ -190,24 +199,21 @@ describe('licensesConnection (e2e)', () => {
     ['SHARED', 'system'],
     ['PERSONAL', undefined],
     ['DRAFT', undefined],
-  ])('should narrow to the %s scope', async (scope, ownerId) => {
-    const result = await list(
-      { first: 100, filters: { scope } },
-      admin,
-    );
+  ])('should narrow to the %s scope', async (scope, ownerID) => {
+    const result = await list({ first: 100, scope }, admin);
 
     expect(result.edges).not.toBeEmpty();
     for (const { node } of result.edges) {
       expect(node.scope).toBe(scope);
-      if (ownerId) {
-        expect(node.ownerId).toBe(ownerId);
+      if (ownerID) {
+        expect(node.ownerID).toBe(ownerID);
       }
     }
   });
 
   it('should find a license by part of its name, ignoring case', async () => {
     const result = await list(
-      { first: 100, filters: { search: 'cc BY' } },
+      { first: 100, search: 'cc BY' },
       writer,
     );
 
@@ -250,17 +256,5 @@ describe('licensesConnection (e2e)', () => {
 
     expect(data.errors).toBeDefined();
     expect(data.data).toBeNull();
-  });
-
-  it('should refuse a cursor issued to another writer', async () => {
-    const adminPage = await list({ first: 1 }, admin);
-
-    const data = await graphql(
-      LICENSES_CONNECTION,
-      { first: 1, after: adminPage.pageInfo.endCursor },
-      writer,
-    );
-
-    expect(data.errors).toBeDefined();
   });
 });

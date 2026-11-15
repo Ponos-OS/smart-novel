@@ -39,17 +39,17 @@ The grouping in `REQUIREMENTS.md` holds, with these corrections found while read
 
 `Query`:
 
-| Operation                                                                         | Module            | Step     |
-| --------------------------------------------------------------------------------- | ----------------- | -------- |
-| `health`                                                                          | app               | 3 (done) |
-| `whoAmI`                                                                          | auth              | 5 (done) |
-| `tagsConnection` (now `tags`)                                                     | tag               | 6 (done) |
-| `novel`, `novelsConnection` (now `novels`)                                        | novel             | 6 (done) |
-| `contentStats`, `statsSnapshotsConnection` (now `statsSnapshots`)                 | stats             | 6 (done) |
-| `defaultLicense`, `licensesConnection`, `licenseDraftsConnection`, `licenseDraft` | license           | 7        |
-| `canonicalLicenses`, `canonicalLicense`                                           | license-assistant | 7        |
-| `platformTerms`, `myPlatformTermsStatus`                                          | platform-terms    | 7        |
-| `myWriter`, `writers`                                                             | writer            | 7        |
+| Operation                                                         | Module            | Step     |
+| ----------------------------------------------------------------- | ----------------- | -------- |
+| `health`                                                          | app               | 3 (done) |
+| `whoAmI`                                                          | auth              | 5 (done) |
+| `tagsConnection` (now `tags`)                                     | tag               | 6 (done) |
+| `novel`, `novelsConnection` (now `novels`)                        | novel             | 6 (done) |
+| `contentStats`, `statsSnapshotsConnection` (now `statsSnapshots`) | stats             | 6 (done) |
+| `defaultLicense`, `licenses`, `licenseDraft`                      | license           | 7        |
+| `canonicalLicenses`, `canonicalLicense`                           | license-assistant | 7        |
+| `platformTerms`, `myPlatformTermsStatus`                          | platform-terms    | 7        |
+| `myWriter`, `writers`                                             | writer            | 7        |
 
 `Mutation`:
 
@@ -156,6 +156,6 @@ Keys in `apps/backend-nest/src/app/configs/app.config.ts`, from `.env.example` a
 | `app`                                                                                                                                                                                                                                  | 3                                                |
 | `auth`                                                                                                                                                                                                                                 | 5                                                |
 | `tags`, `cursor-validation`, `novels`, `novel-list`, `novel-first-chapter-created-at`, `novel/*` except cover, `chapter`, `chapter-delete`, `chapter-user-state`, `content-stats`, `stats-snapshot` (the cron part: 8), `novel-writer` | 6 (done)                                         |
-| `license`, `license-drafts`, `licenses-connection`, `platform-terms`, `writer`, `writer-review`                                                                                                                                        | 7                                                |
+| `license`, `license-drafts`, `licenses`, `platform-terms`, `writer`, `writer-review`                                                                                                                                                   | 7                                                |
 | `novel/novel-cover`, `chapter-narration/*`, `beatrice-callbacks`, `llm`                                                                                                                                                                | 8                                                |
 | `ingress-routing`                                                                                                                                                                                                                      | 10 (it tests ZITADEL's ingress, not the backend) |

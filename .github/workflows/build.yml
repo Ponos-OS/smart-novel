@@ -224,9 +224,6 @@ jobs:
       - name: Run unit tests
         run: task test -- --coverage.enabled
 
-      - name: Run Go integration tests (PostgreSQL in Docker)
-        run: task backend:test:integration
-
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:

@@ -146,6 +146,7 @@ linters:
             - gopkg.in/yaml.v3
             - github.com/adrg/frontmatter
             - github.com/vikstrous/dataloadgen
+            - github.com/oapi-codegen/runtime
             - github.com/testcontainers/testcontainers-go
         test:
           list-mode: original

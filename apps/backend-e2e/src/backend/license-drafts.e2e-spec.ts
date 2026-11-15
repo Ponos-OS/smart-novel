@@ -5,13 +5,12 @@ import { AuthorizationFixture } from '../support';
 
 const DRAFT_FIELDS = `
   id
-  ownerId
-  title
+  ownerID
+  scope
+  name
   text
-  source {
-    type
-    canonicalId
-  }
+  sourceType
+  canonicalID
   updatedAt
 `;
 
@@ -48,18 +47,18 @@ const DISCARD_LICENSE_DRAFT = `#graphql
   }
 `;
 
-const LICENSE_DRAFTS_CONNECTION = `#graphql
-  query LicenseDraftsConnection(
-    $first: Int
-    $after: String
-    $filters: LicenseDraftFiltersInput
+const DRAFTS = `#graphql
+  query Drafts(
+    $first: Int,
+    $after: Cursor,
+    $where: LicenseWhereInput
   ) {
-    licenseDraftsConnection(first: $first, after: $after, filters: $filters) {
+    licenses(first: $first, after: $after, scope: DRAFT, where: $where) {
       edges {
         cursor
         node {
           id
-          ownerId
+          ownerID
         }
       }
       pageInfo {
@@ -74,6 +73,14 @@ const LICENSE_DRAFT = `#graphql
   query LicenseDraft($id: ID!) {
     licenseDraft(id: $id) {
       ${DRAFT_FIELDS}
+    }
+  }
+`;
+
+const CREATE_LICENSE = `#graphql
+  mutation CreateLicense($input: LicenseInput!) {
+    createLicense(input: $input) {
+      id
     }
   }
 `;
@@ -118,13 +125,9 @@ describe('License drafts (e2e)', () => {
     variables: Record<string, unknown>,
     authorization: string,
   ): Promise<string[]> {
-    const data = await graphql(
-      LICENSE_DRAFTS_CONNECTION,
-      variables,
-      authorization,
-    );
+    const data = await graphql(DRAFTS, variables, authorization);
 
-    return data.data.licenseDraftsConnection.edges.map(
+    return data.data.licenses.edges.map(
       ({ node }: { node: { id: string } }) => node.id,
     );
   }
@@ -143,9 +146,9 @@ describe('License drafts (e2e)', () => {
       {
         input: {
           id: created.data.createLicenseDraft.id,
-          title: 'Read it, do not copy it',
+          name: 'Read it, do not copy it',
           text,
-          source: { type: 'CUSTOM' },
+          sourceType: 'CUSTOM',
         },
       },
       authorization,
@@ -155,8 +158,10 @@ describe('License drafts (e2e)', () => {
   }
 
   beforeAll(async () => {
-    writer =
-      await AuthorizationFixture.getWriterAuthorizationHeader();
+    // Fresh writers: a writer may keep only 20 unfinished drafts, and this spec leaves some behind.
+    writer = await AuthorizationFixture.getWriterAuthorizationHeader({
+      fresh: true,
+    });
     otherWriter =
       await AuthorizationFixture.getWriterAuthorizationHeader({
         fresh: true,
@@ -202,9 +207,9 @@ describe('License drafts (e2e)', () => {
         variables: (id: string) => ({
           input: {
             id,
-            title: 'Mine now',
+            name: 'Mine now',
             text: 'Stolen',
-            source: { type: 'CUSTOM' },
+            sourceType: 'CUSTOM',
           },
         }),
       },
@@ -249,45 +254,21 @@ describe('License drafts (e2e)', () => {
   });
 
   describe('listing', () => {
-    it('should refuse a cursor issued to another writer', async () => {
-      await startDraft();
-      const page = await graphql(
-        LICENSE_DRAFTS_CONNECTION,
-        { first: 1 },
-        writer,
-      );
-      const cursor =
-        page.data.licenseDraftsConnection.edges[0].cursor;
-
-      const data = await graphql(
-        LICENSE_DRAFTS_CONNECTION,
-        { first: 1, after: cursor },
-        otherWriter,
-      );
-
-      expect(data.errors[0].message).toBe('Invalid cursor');
-      expect(data.errors[0].extensions.code).toBe('INVALID_CURSOR');
-    });
-
     it('should page through the drafts of a writer', async () => {
       const first = await startDraft();
       const second = await startDraft();
       const third = await startDraft();
 
-      const page = await graphql(
-        LICENSE_DRAFTS_CONNECTION,
-        { first: 2 },
-        writer,
-      );
-      const connection = page.data.licenseDraftsConnection;
+      const page = await graphql(DRAFTS, { first: 2 }, writer);
+      const connection = page.data.licenses;
       const next = await graphql(
-        LICENSE_DRAFTS_CONNECTION,
+        DRAFTS,
         { first: 100, after: connection.pageInfo.endCursor },
         writer,
       );
       const seen = [
         ...connection.edges,
-        ...next.data.licenseDraftsConnection.edges,
+        ...next.data.licenses.edges,
       ].map(({ node }: { node: { id: string } }) => node.id);
 
       expect(connection.edges).toHaveLength(2);
@@ -298,21 +279,21 @@ describe('License drafts (e2e)', () => {
       );
     });
 
-    it('should let a writer name themselves, and refuse them anybody else', async () => {
+    it('should let a writer name themselves, and show them nothing of anybody else', async () => {
       const draft = await startDraft();
       const own = await listIds(
-        { filters: { ownerIds: [draft.ownerId] } },
+        { where: { ownerIDIn: [draft.ownerID] } },
         writer,
       );
 
-      const other = await graphql(
-        LICENSE_DRAFTS_CONNECTION,
-        { filters: { ownerIds: [draft.ownerId] } },
+      const other = await listIds(
+        { first: 100, where: { ownerIDIn: [draft.ownerID] } },
         otherWriter,
       );
 
       expect(own).toContain(draft.id);
-      expect(other.errors[0].message).toContain('only their own');
+      expect(other).not.toContain(draft.id);
+      expect(other).toBeEmpty();
     });
 
     it("should let an admin list every writer's drafts, or the writers they name, and read them", async () => {
@@ -323,11 +304,14 @@ describe('License drafts (e2e)', () => {
 
       const everyone = await listIds({ first: 100 }, admin);
       const named = await listIds(
-        { filters: { ownerIds: [mine.ownerId, theirs.ownerId] } },
+        {
+          first: 100,
+          where: { ownerIDIn: [mine.ownerID, theirs.ownerID] },
+        },
         admin,
       );
       const onlyOne = await listIds(
-        { filters: { ownerIds: [theirs.ownerId] } },
+        { first: 100, where: { ownerIDIn: [theirs.ownerID] } },
         admin,
       );
       const read = await graphql(
@@ -354,9 +338,9 @@ describe('License drafts (e2e)', () => {
         variables: (id: string) => ({
           input: {
             id,
-            title: 'Admin edit',
+            name: 'Admin edit',
             text: 'Changed',
-            source: { type: 'CUSTOM' },
+            sourceType: 'CUSTOM',
           },
         }),
       },
@@ -439,7 +423,7 @@ describe('License drafts (e2e)', () => {
             name: 'The Lantern Keeper',
             description:
               'A lighthouse keeper finds a door in the fog.',
-            licenseId: license.id,
+            licenseID: license.id,
           },
         },
         writer,
@@ -486,6 +470,34 @@ describe('License drafts (e2e)', () => {
       );
     });
 
+    it('should give the shared license to a writer who finalizes its exact text', async () => {
+      const admin =
+        await AuthorizationFixture.getAdminAuthorizationHeader();
+      const text = uniqueText();
+      const shared = await graphql(
+        CREATE_LICENSE,
+        {
+          input: {
+            name: 'Read it, do not copy it',
+            text,
+            sourceType: 'CUSTOM',
+          },
+        },
+        admin,
+      );
+      const draft = await startDraft(writer, text);
+
+      const finalized = await graphql(
+        FINALIZE_LICENSE_DRAFT,
+        { id: draft.id },
+        writer,
+      );
+
+      expect(finalized.data.finalizeLicenseDraft.id).toBe(
+        shared.data.createLicense.id,
+      );
+    });
+
     it('should keep a draft that is not finished', async () => {
       const created = await graphql(
         CREATE_LICENSE_DRAFT,
@@ -508,6 +520,31 @@ describe('License drafts (e2e)', () => {
     });
   });
 
+  it('should limit a writer to 20 unfinished drafts, without limiting another writer', async () => {
+    const busyWriter =
+      await AuthorizationFixture.getWriterAuthorizationHeader({
+        fresh: true,
+      });
+    for (let count = 0; count < 20; count++) {
+      await graphql(CREATE_LICENSE_DRAFT, { input: {} }, busyWriter);
+    }
+
+    const tooMany = await graphql(
+      CREATE_LICENSE_DRAFT,
+      { input: {} },
+      busyWriter,
+    );
+    const other = await graphql(
+      CREATE_LICENSE_DRAFT,
+      { input: {} },
+      otherWriter,
+    );
+
+    expect(tooMany.errors).toBeDefined();
+    expect(tooMany.data).toBeNull();
+    expect(other.data.createLicenseDraft.id).toBeString();
+  });
+
   it('should not accept a draft as the license of a novel', async () => {
     const draft = await startDraft();
 
@@ -517,7 +554,7 @@ describe('License drafts (e2e)', () => {
         input: {
           name: 'The Lantern Keeper',
           description: 'A lighthouse keeper finds a door in the fog.',
-          licenseId: draft.id,
+          licenseID: draft.id,
         },
       },
       writer,
@@ -540,7 +577,7 @@ describe('License drafts (e2e)', () => {
         input: {
           name: 'The Lantern Keeper',
           description: 'A lighthouse keeper finds a door in the fog.',
-          licenseId: finalized.data.finalizeLicenseDraft.id,
+          licenseID: finalized.data.finalizeLicenseDraft.id,
         },
       },
       otherWriter,
@@ -560,7 +597,7 @@ describe('License drafts (e2e)', () => {
     const data = await graphql(
       CREATE_LICENSE_DRAFT,
       {
-        input: { licenseId: finalized.data.finalizeLicenseDraft.id },
+        input: { licenseID: finalized.data.finalizeLicenseDraft.id },
       },
       otherWriter,
     );

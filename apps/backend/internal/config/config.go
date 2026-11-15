@@ -10,6 +10,7 @@ type Config struct {
 	App      App
 	Database Database
 	Zitadel  Zitadel
+	Fithara  Fithara
 	OTel     OTel
 }
 
@@ -36,6 +37,12 @@ type Zitadel struct {
 	ManagementPAT             string
 }
 
+// Fithara is the service of the canonical licenses and the license assistant.
+type Fithara struct {
+	URL     string
+	Timeout time.Duration
+}
+
 type OTel struct {
 	Enabled          bool
 	Endpoint         string
@@ -60,6 +67,8 @@ const (
 	defaultBatchSize     = 512
 	defaultFlushInterval = 5 * time.Second
 	defaultExportTimeout = 30 * time.Second
+
+	defaultFitharaTimeout = 60 * time.Second
 
 	LogsExporterOTLP   = "otlp"
 	LogsExporterStdout = "stdout"
@@ -89,6 +98,10 @@ func Load(lookup Lookup) (Config, error) {
 			IntrospectionClientSecret: r.required("ZITADEL_INTROSPECTION_CLIENT_SECRET"),
 			ProjectID:                 r.required("ZITADEL_PROJECT_ID"),
 			ManagementPAT:             r.required("ZITADEL_MANAGEMENT_PAT"),
+		},
+		Fithara: Fithara{
+			URL:     r.required("FITHARA_URL"),
+			Timeout: r.duration("FITHARA_TIMEOUT", defaultFitharaTimeout),
 		},
 		OTel: OTel{
 			Enabled:          r.boolean("OTEL_ENABLED", false),

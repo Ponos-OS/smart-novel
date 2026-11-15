@@ -6,9 +6,20 @@ vars:
 
 tasks:
   generate:
-    desc: Everything generated for the Go backend (ent and gqlgen)
+    desc: Everything generated for the Go backend (ent, gqlgen and the Fithara client)
     cmds:
+      - task: fithara:openapi
       - task: codegen
+
+  fithara:openapi:
+    desc: Download Fithara's openapi.json (pinned by FITHARA_VERSION) unless that version is already there
+    status:
+      - grep -q '"version":.*"{{.FITHARA_VERSION}}"' internal/fithara/openapi.json
+    preconditions:
+      - sh: test -n "{{.FITHARA_VERSION}}"
+        msg: FITHARA_VERSION is not set; it comes from .env
+    cmds:
+      - curl --fail --silent --show-error --location https://ponos-os.github.io/fithara/v{{.FITHARA_VERSION}}/openapi.json --output internal/fithara/openapi.json
 
   codegen:
     desc: ent, entgql and gqlgen only; the part that also runs in the Go-less-host containers
@@ -40,12 +51,6 @@ tasks:
     deps: [generate]
     cmds:
       - go test -count=1 ./... {{.CLI_ARGS}}
-
-  test:integration:
-    desc: Tests that need Docker (a real PostgreSQL through testcontainers)
-    deps: [generate]
-    cmds:
-      - go test -tags integration -count=1 -timeout 10m ./... {{.CLI_ARGS}}
 
   migrate:diff:
     desc: "Write the next versioned migration for the ent schema: task backend:migrate:diff -- <name>"

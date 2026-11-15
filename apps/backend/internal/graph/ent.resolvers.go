@@ -16,6 +16,11 @@ import (
 	"github.com/google/uuid"
 )
 
+// License is the resolver for the license field.
+func (r *novelResolver) License(ctx context.Context, obj *ent.Novel) (*ent.License, error) {
+	return loadersFrom(ctx).licenses.Load(ctx, obj.LicenseID)
+}
+
 // Chapters is the resolver for the chapters field.
 func (r *novelResolver) Chapters(ctx context.Context, obj *ent.Novel, after *entgql.Cursor[uuid.UUID], first *int, before *entgql.Cursor[uuid.UUID], last *int, orderBy *ent.ChapterOrder, where *ent.ChapterWhereInput) (*ent.ChapterConnection, error) {
 	first, last, err := pagination.Bound(first, last, chaptersSize)
@@ -73,6 +78,9 @@ func (r *queryResolver) Tags(ctx context.Context, after *entgql.Cursor[uuid.UUID
 // Chapter returns ChapterResolver implementation.
 func (r *Resolver) Chapter() ChapterResolver { return &chapterResolver{r} }
 
+// License returns LicenseResolver implementation.
+func (r *Resolver) License() LicenseResolver { return &licenseResolver{r} }
+
 // Novel returns NovelResolver implementation.
 func (r *Resolver) Novel() NovelResolver { return &novelResolver{r} }
 
@@ -87,6 +95,7 @@ func (r *Resolver) Writer() WriterResolver { return &writerResolver{r} }
 
 type (
 	chapterResolver struct{ *Resolver }
+	licenseResolver struct{ *Resolver }
 	novelResolver   struct{ *Resolver }
 	queryResolver   struct{ *Resolver }
 	tagResolver     struct{ *Resolver }

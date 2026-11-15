@@ -9,3 +9,5 @@
 /internal/graph/generated.go
 /internal/graph/model/*
 !/internal/graph/model/doc.go
+/internal/fithara/client.gen.go
+/internal/fithara/openapi.json

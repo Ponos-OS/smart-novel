@@ -8,7 +8,6 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent/chapter"
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent/chaptercontent"
-	"github.com/Ponos-OS/smart-novel/apps/backend/ent/license"
 	entnovel "github.com/Ponos-OS/smart-novel/apps/backend/ent/novel"
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent/tag"
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent/writer"
@@ -43,10 +42,6 @@ func (r *repository) writerID(ctx context.Context, userID string) (uuid.UUID, er
 	return r.client.Writer.Query().Where(writer.UserID(userID)).OnlyID(ctx)
 }
 
-func (r *repository) defaultLicenseID(ctx context.Context) (uuid.UUID, error) {
-	return r.client.License.Query().Where(license.IsDefault(true)).OnlyID(ctx)
-}
-
 func (r *repository) approvedTags(ctx context.Context, names []string) ([]*ent.Tag, error) {
 	return r.client.Tag.Query().Where(tag.NameIn(names...), tag.StatusEQ(tag.StatusAPPROVED)).All(ctx)
 }
@@ -65,9 +60,10 @@ func (r *repository) createNovel(ctx context.Context, input CreateInput, writerI
 	return create.Save(ctx)
 }
 
-// updateNovel changes the given fields. When replaceTags is set the tags become exactly tagIDs.
-func (r *repository) updateNovel(ctx context.Context, id uuid.UUID, input UpdateInput, replaceTags bool, tagIDs []uuid.UUID) error {
+// updateNovel changes the given fields; a nil licenseID keeps the license. When replaceTags is set the tags become exactly tagIDs.
+func (r *repository) updateNovel(ctx context.Context, id uuid.UUID, input UpdateInput, licenseID *uuid.UUID, replaceTags bool, tagIDs []uuid.UUID) error {
 	update := r.client.Novel.UpdateOneID(id).
+		SetNillableLicenseID(licenseID).
 		SetNillableName(input.Name).
 		SetNillableDescription(input.Description).
 		SetNillableState(input.State)

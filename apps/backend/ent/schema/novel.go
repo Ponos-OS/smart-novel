@@ -66,7 +66,8 @@ func (Novel) Edges() []ent.Edge {
 			Ref("novels").
 			Field("license_id").
 			Unique().
-			Required(),
+			Required().
+			Annotations(forceResolver),
 		// Resolved by us (graph/ent.resolvers.go) to default the order to the chapter number (ent's is the ID) and to bound the page.
 		// The price is that ent's reuse of chapters it preloaded for a list of novels is not used, so a list of novels that each select `chapters` runs one query per novel; calling ent's method from the resolver would not fix it, since ent preloads with the arguments the client sent, before the defaults exist.
 		edge.To("chapters", Chapter.Type).

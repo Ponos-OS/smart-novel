@@ -12,6 +12,7 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/entx"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/license"
 )
 
 const notFoundMessage = "Novel not found"
@@ -23,13 +24,14 @@ type RowEstimator interface {
 
 // Service decides who may change what and which tags and license a novel gets; the queries are in the repository.
 type Service struct {
-	client    *ent.Client
-	repo      *repository
-	estimator RowEstimator
+	client         *ent.Client
+	repo           *repository
+	estimator      RowEstimator
+	licenseService *license.Service
 }
 
-func NewService(client *ent.Client, estimator RowEstimator) *Service {
-	return &Service{client: client, repo: newRepository(client), estimator: estimator}
+func NewService(client *ent.Client, estimator RowEstimator, licenseService *license.Service) *Service {
+	return &Service{client: client, repo: newRepository(client), estimator: estimator, licenseService: licenseService}
 }
 
 // Get returns a novel, or the not found error.
@@ -42,10 +44,15 @@ func (s *Service) Get(ctx context.Context, id uuid.UUID) (*ent.Novel, error) {
 	return found, err
 }
 
-// Create makes a novel owned by the viewer, with the default license. The input is already normalized.
+// Create makes a novel owned by the viewer, with the license they chose or else the default one. The input is already normalized.
 func (s *Service) Create(ctx context.Context, viewer auth.Viewer, input CreateInput) (*ent.Novel, error) {
 	if err := auth.DenyUnlessCan(viewer, auth.Create, auth.Novel{}); err != nil {
 		return nil, err
+	}
+
+	novelLicense, licenseErr := s.licenseForNewNovel(ctx, viewer, input)
+	if licenseErr != nil {
+		return nil, licenseErr
 	}
 
 	var createdID uuid.UUID
@@ -59,11 +66,7 @@ func (s *Service) Create(ctx context.Context, viewer auth.Viewer, input CreateIn
 		if err != nil {
 			return fmt.Errorf("user %s creates a novel but has no writer row: %w", viewer.Subject, err)
 		}
-		defaultLicense, err := repo.defaultLicenseID(ctx)
-		if err != nil {
-			return fmt.Errorf("finding the default license: %w", err)
-		}
-		created, err := repo.createNovel(ctx, input, owner, defaultLicense, tagIDs)
+		created, err := repo.createNovel(ctx, input, owner, novelLicense.ID, tagIDs)
 		if err != nil {
 			return err
 		}
@@ -78,8 +81,21 @@ func (s *Service) Create(ctx context.Context, viewer auth.Viewer, input CreateIn
 	return s.repo.novel(ctx, createdID)
 }
 
+// licenseForNewNovel finds the license a new novel gets: the one the input names, or else the default.
+func (s *Service) licenseForNewNovel(ctx context.Context, viewer auth.Viewer, input CreateInput) (*ent.License, error) {
+	if input.LicenseID == nil {
+		return s.licenseService.Default(ctx)
+	}
+
+	return s.licenseService.FindUsable(ctx, *input.LicenseID, viewer.Subject)
+}
+
 // Update changes the given fields of a novel its owner or an admin owns. The input is already normalized.
 func (s *Service) Update(ctx context.Context, viewer auth.Viewer, id uuid.UUID, input UpdateInput) (*ent.Novel, error) {
+	licenseID, licenseErr := s.chosenLicense(ctx, viewer, id, input)
+	if licenseErr != nil {
+		return nil, licenseErr
+	}
 	err := entx.WithTx(ctx, s.client, func(tx *ent.Tx) error {
 		repo := newRepository(tx.Client())
 		if _, err := authorizedNovel(ctx, repo, viewer, auth.Update, id, false); err != nil {
@@ -93,13 +109,30 @@ func (s *Service) Update(ctx context.Context, viewer auth.Viewer, id uuid.UUID, 
 			}
 		}
 
-		return repo.updateNovel(ctx, id, input, input.Tags != nil, tagIDs)
+		return repo.updateNovel(ctx, id, input, licenseID, input.Tags != nil, tagIDs)
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return s.repo.novel(ctx, id)
+}
+
+// chosenLicense finds the license an update names, among those the owner of the novel may use; nil when it names none.
+func (s *Service) chosenLicense(ctx context.Context, viewer auth.Viewer, id uuid.UUID, input UpdateInput) (*uuid.UUID, error) {
+	if input.LicenseID == nil {
+		return nil, nil //nolint:nilnil // nothing to change
+	}
+	found, err := authorizedNovel(ctx, s.repo, viewer, auth.Update, id, false)
+	if err != nil {
+		return nil, err
+	}
+	chosen, err := s.licenseService.FindUsable(ctx, *input.LicenseID, found.Edges.Writer.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &chosen.ID, nil
 }
 
 // Deleted is what Delete leaves behind for the caller to clean up outside the database.

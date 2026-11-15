@@ -9,8 +9,8 @@ import {
   useCanonicalLicensesQuery,
   useCreateLicenseMutation,
 } from '../../generated/graphql';
+import { LICENSE_INPUT_NAME_MAX_LENGTH } from '../../generated/limits';
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
-import { LICENSE_NAME_MAX_LENGTH } from '../../lib/pending-limits';
 import { showApiError, showSuccess } from '../../utils/notification';
 import { LICENSE_DISCLAIMER } from '../novel-license/license-notice';
 import { OfficialLicenseLink } from '../novel-license/OfficialLicenseLink';
@@ -191,7 +191,7 @@ export function CreateLicenseDialog({
                 <input
                   type="text"
                   value={title}
-                  maxLength={LICENSE_NAME_MAX_LENGTH}
+                  maxLength={LICENSE_INPUT_NAME_MAX_LENGTH}
                   onChange={(event) => setTitle(event.target.value)}
                   disabled={createLicense.isPending}
                   className={INPUT_CLASSES}

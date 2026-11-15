@@ -37,19 +37,20 @@ func (t timestamps) Fields() []ent.Field {
 			SchemaType(timestamptz).
 			Default(time.Now).
 			Immutable().
-			Annotations(append(t.annotations(), entsql.DefaultExpr("CURRENT_TIMESTAMP"))...),
+			Annotations(t.annotations("CREATED_AT")...),
 		field.Time("updated_at").
 			SchemaType(timestamptz).
 			Default(time.Now).
 			UpdateDefault(time.Now).
-			Annotations(append(t.annotations(), entsql.DefaultExpr("CURRENT_TIMESTAMP"))...),
+			Annotations(t.annotations("UPDATED_AT")...),
 	}
 }
 
-func (t timestamps) annotations() []schema.Annotation {
-	if t.inAPI {
-		return nil
+func (t timestamps) annotations(orderField string) []schema.Annotation {
+	annotations := []schema.Annotation{entsql.DefaultExpr("CURRENT_TIMESTAMP")}
+	if !t.inAPI {
+		return append(annotations, entgql.Skip(entgql.SkipAll))
 	}
 
-	return []schema.Annotation{entgql.Skip(entgql.SkipAll)}
+	return append(annotations, entgql.OrderField(orderField))
 }

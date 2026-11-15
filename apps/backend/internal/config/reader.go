@@ -122,6 +122,20 @@ func (r *reader) milliseconds(key string, fallback time.Duration) time.Duration 
 	return time.Duration(number) * time.Millisecond
 }
 
+// duration reads a Go duration such as 60s or 2m.
+func (r *reader) duration(key string, fallback time.Duration) time.Duration {
+	value, ok := r.value(key)
+	if !ok {
+		return fallback
+	}
+	parsed, err := time.ParseDuration(value)
+	if err != nil || parsed <= 0 {
+		r.fail(key, "must be a positive duration such as 60s, got %q", value)
+	}
+
+	return parsed
+}
+
 func (r *reader) ratio(key string, fallback float64) float64 {
 	value, ok := r.value(key)
 	if !ok {

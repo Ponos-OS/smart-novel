@@ -114,13 +114,13 @@ return r.Client.Writer.Query().Paginate(ctx, after, first, before, last,
 
 `Paginate` applies the filter and the order, then the keyset condition from the cursor, as bound parameters. So the same cursor with a different `where` simply returns the rows after that position in the new result set.
 
-The one thing I kept from the old design is the error. A string that ent cannot decode is the caller's fault, not a server error, so the scalar turns it into a `BAD_REQUEST` with the old message:
+The one thing I kept from the old design is the error. A string that ent cannot decode is the caller's fault, not a server error, so the scalar turns it into its own `INVALID_CURSOR` error, which the frontend matches by code:
 
 ```go
 func UnmarshalCursor(v any) (entgql.Cursor[uuid.UUID], error) {
 	var cursor entgql.Cursor[uuid.UUID]
 	if err := cursor.UnmarshalGQL(v); err != nil {
-		return cursor, apperr.BadRequest(shared.InvalidCursorMessage)
+		return cursor, apperr.WithCode(apperr.CodeInvalidCursor, InvalidCursorMessage)
 	}
 
 	return cursor, nil
@@ -136,7 +136,7 @@ The [cursor scalar](../apps/backend/internal/graph/scalar/cursor.go) and the [e2
 | Does the cursor hold anything the client cannot already see? | No. An id, and a sort value that is in the row.                                          |
 | Can a forged cursor skip authorization?                      | No. The guard runs on every request, before the resolver.                                |
 | Can it inject SQL?                                           | No. The keyset condition is built from bound parameters.                                 |
-| What does a garbage cursor do?                               | `BAD_REQUEST`, "Invalid cursor".                                                         |
+| What does a garbage cursor do?                               | `INVALID_CURSOR`, "Invalid cursor".                                                      |
 | What does a valid cursor reused under another filter do?     | Returns the rows after that position in the filtered list. Correct data, nothing leaked. |
 
 The case I did not test is a cursor from one sort order used under another. It may return an odd slice or an error, and either way the list stays behind the same checks.

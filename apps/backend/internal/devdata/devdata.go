@@ -16,11 +16,10 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
-	"github.com/Ponos-OS/smart-novel/apps/backend/ent/license"
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent/novel"
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent/tag"
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent/writer"
-	licensetext "github.com/Ponos-OS/smart-novel/apps/backend/internal/license"
+	license "github.com/Ponos-OS/smart-novel/apps/backend/internal/license"
 )
 
 var (
@@ -31,10 +30,6 @@ var (
 const (
 	logKeyNovel    = "novel"
 	logKeyChapters = "chapters"
-
-	defaultLicenseName        = "CC BY 4.0"
-	defaultLicenseCanonicalID = "CC-BY-4.0"
-	systemOwner               = "system"
 )
 
 // Options say where the example data is and who the seeded accounts are.
@@ -60,10 +55,11 @@ func Run(ctx context.Context, client *ent.Client, options Options) error {
 	if err != nil {
 		return fmt.Errorf("adding tags: %w", err)
 	}
-	licenseID, err := addDefaultLicense(ctx, client, options.DataPath)
+	defaultLicense, err := license.NewService(client, nil, slog.Default()).EnsureDefault(ctx)
 	if err != nil {
 		return fmt.Errorf("adding the default license: %w", err)
 	}
+	licenseID := defaultLicense.ID
 	writerIDs, err := addWriters(ctx, client, options.Writers)
 	if err != nil {
 		return fmt.Errorf("adding writers: %w", err)
@@ -134,34 +130,6 @@ func addTags(ctx context.Context, client *ent.Client, names []string) (map[strin
 	}
 
 	return ids, nil
-}
-
-func addDefaultLicense(ctx context.Context, client *ent.Client, dataPath string) (uuid.UUID, error) {
-	text, err := os.ReadFile(filepath.Join(dataPath, "licenses", defaultLicenseCanonicalID+".txt")) //nolint:gosec // devdata reads the data directory its operator mounted
-	if err != nil {
-		return uuid.Nil, err
-	}
-	hash := licensetext.TextHash(string(text))
-	existing, err := client.License.Query().Where(license.OwnerID(systemOwner), license.TextHash(hash)).Only(ctx)
-	if err == nil {
-		return existing.ID, nil
-	}
-	if !ent.IsNotFound(err) {
-		return uuid.Nil, err
-	}
-	created, err := client.License.Create().
-		SetName(defaultLicenseName).
-		SetText(licensetext.NormalizeText(string(text))).
-		SetTextHash(hash).
-		SetSourceType(license.SourceTypeCANONICAL).
-		SetCanonicalID(defaultLicenseCanonicalID).
-		SetIsDefault(true).
-		Save(ctx)
-	if err != nil {
-		return uuid.Nil, err
-	}
-
-	return created.ID, nil
 }
 
 func addWriters(ctx context.Context, client *ent.Client, writers []Writer) (map[string]uuid.UUID, error) {

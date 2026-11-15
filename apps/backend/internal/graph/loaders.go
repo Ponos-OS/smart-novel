@@ -10,6 +10,7 @@ import (
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent/chaptercontent"
+	entlicense "github.com/Ponos-OS/smart-novel/apps/backend/ent/license"
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent/writer"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/chapter"
 )
@@ -28,6 +29,7 @@ type readKey struct {
 type loaders struct {
 	writers  *dataloadgen.Loader[uuid.UUID, *ent.Writer]
 	contents *dataloadgen.Loader[uuid.UUID, *ent.ChapterContent]
+	licenses *dataloadgen.Loader[uuid.UUID, *ent.License]
 	readAt   *dataloadgen.Loader[readKey, *time.Time]
 }
 
@@ -42,6 +44,11 @@ func newLoaders(client *ent.Client, chapters *chapter.Service) *loaders {
 			found, err := client.ChapterContent.Query().Where(chaptercontent.IDIn(ids...)).All(ctx)
 
 			return arrange(ids, found, err, func(c *ent.ChapterContent) uuid.UUID { return c.ID })
+		}, dataloadgen.WithWait(loadWait)),
+		licenses: dataloadgen.NewLoader(func(ctx context.Context, ids []uuid.UUID) ([]*ent.License, []error) {
+			found, err := client.License.Query().Where(entlicense.IDIn(ids...), entlicense.IsDraft(false)).All(ctx)
+
+			return arrange(ids, found, err, func(l *ent.License) uuid.UUID { return l.ID })
 		}, dataloadgen.WithWait(loadWait)),
 		readAt: dataloadgen.NewLoader(func(ctx context.Context, keys []readKey) ([]*time.Time, []error) {
 			return readTimes(ctx, chapters, keys)

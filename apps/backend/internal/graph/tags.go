@@ -49,4 +49,5 @@ var (
 	chaptersSize = pagination.Size{Default: chaptersPage, Max: maxPage}
 	statsSize    = pagination.Size{Default: statsDefault, Max: maxPage}
 	writersPage  = pagination.Size{Default: defaultPage, Max: maxPage}
+	licensesPage = pagination.Size{Default: defaultPage, Max: maxPage}
 )
