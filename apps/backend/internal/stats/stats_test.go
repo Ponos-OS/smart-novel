@@ -32,7 +32,7 @@ func TestLiveTotals(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			uut := stats.NewService(c.estimates, logger)
+			uut := stats.NewService(c.estimates, nil, logger)
 
 			got := uut.LiveTotals(t.Context())
 

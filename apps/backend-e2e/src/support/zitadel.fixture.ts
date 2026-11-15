@@ -5,7 +5,7 @@ import { config } from './config.helper';
 
 export type ProjectRole = 'user' | 'writer' | 'admin';
 
-interface UserGrant {
+export interface UserGrant {
   id: string;
   roleKeys: string[];
 }
@@ -60,7 +60,7 @@ export class ZitadelFixture {
     );
   }
 
-  private static async findGrant(
+  static async findGrant(
     userId: string,
   ): Promise<UserGrant | undefined> {
     const { data } = await ZitadelFixture.request<{

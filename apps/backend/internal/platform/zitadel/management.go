@@ -11,6 +11,7 @@ import (
 	"github.com/zitadel/zitadel-go/v3/pkg/client"
 	"github.com/zitadel/zitadel-go/v3/pkg/client/zitadel/authorization/v2"
 	"github.com/zitadel/zitadel-go/v3/pkg/client/zitadel/filter/v2"
+	"github.com/zitadel/zitadel-go/v3/pkg/client/zitadel/user/v2"
 	zitadelapi "github.com/zitadel/zitadel-go/v3/pkg/zitadel"
 	"google.golang.org/grpc"
 
@@ -74,32 +75,63 @@ func instance(target *url.URL) (*zitadelapi.Zitadel, error) {
 	return zitadelapi.New(target.Hostname(), zitadelapi.WithPort(uint16(number))), nil
 }
 
+// GrantProjectRoleIfAbsent gives the user the role when they hold none on the project, and leaves one they have as it is.
+func (m *Management) GrantProjectRoleIfAbsent(ctx context.Context, userID string, role auth.Role) error {
+	found, err := m.authorizationsOf(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if len(found) > 0 {
+		return nil
+	}
+
+	return m.grant(ctx, userID, role)
+}
+
 // SetUserProjectRole makes role the only role the user holds on the project. Calling it again with the same arguments changes nothing.
 func (m *Management) SetUserProjectRole(ctx context.Context, userID string, role auth.Role) error {
-	authorizations := m.api.AuthorizationServiceV2()
-	found, err := authorizations.ListAuthorizations(ctx, &authorization.ListAuthorizationsRequest{
+	found, err := m.authorizationsOf(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if len(found) == 0 {
+		return m.grant(ctx, userID, role)
+	}
+	current := found[0]
+	// ZITADEL answers an update that changes nothing with an error.
+	if slices.Equal(roleKeysOf(current), []string{string(role)}) {
+		return nil
+	}
+	_, err = m.api.AuthorizationServiceV2().UpdateAuthorization(ctx, &authorization.UpdateAuthorizationRequest{Id: current.GetId(), RoleKeys: []string{string(role)}})
+
+	return wrap("changing the project role", err)
+}
+
+func (m *Management) authorizationsOf(ctx context.Context, userID string) ([]*authorization.Authorization, error) {
+	found, err := m.api.AuthorizationServiceV2().ListAuthorizations(ctx, &authorization.ListAuthorizationsRequest{
 		Filters: []*authorization.AuthorizationsSearchFilter{
 			{Filter: &authorization.AuthorizationsSearchFilter_InUserIds{InUserIds: &filter.InIDsFilter{Ids: []string{userID}}}},
 			{Filter: &authorization.AuthorizationsSearchFilter_ProjectId{ProjectId: &filter.IDFilter{Id: m.projectID}}},
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("looking for the authorizations of a user: %w", err)
+		return nil, fmt.Errorf("looking for the authorizations of a user: %w", err)
 	}
-	roleKeys := []string{string(role)}
-	if len(found.GetAuthorizations()) == 0 {
-		_, err = authorizations.CreateAuthorization(ctx, &authorization.CreateAuthorizationRequest{UserId: userID, ProjectId: m.projectID, RoleKeys: roleKeys})
 
-		return wrap("granting the project role", err)
-	}
-	current := found.GetAuthorizations()[0]
-	// ZITADEL answers an update that changes nothing with an error.
-	if slices.Equal(roleKeysOf(current), roleKeys) {
-		return nil
-	}
-	_, err = authorizations.UpdateAuthorization(ctx, &authorization.UpdateAuthorizationRequest{Id: current.GetId(), RoleKeys: roleKeys})
+	return found.GetAuthorizations(), nil
+}
 
-	return wrap("changing the project role", err)
+// grant gives the user the role in the organization the user belongs to, which ZITADEL asks for when it creates an authorization.
+func (m *Management) grant(ctx context.Context, userID string, role auth.Role) error {
+	found, err := m.api.UserServiceV2().GetUserByID(ctx, &user.GetUserByIDRequest{UserId: userID})
+	if err != nil {
+		return wrap("looking for the organization of the user", err)
+	}
+	_, err = m.api.AuthorizationServiceV2().CreateAuthorization(ctx, &authorization.CreateAuthorizationRequest{
+		UserId: userID, ProjectId: m.projectID, OrganizationId: found.GetUser().GetDetails().GetResourceOwner(), RoleKeys: []string{string(role)},
+	})
+
+	return wrap("granting the project role", err)
 }
 
 func roleKeysOf(current *authorization.Authorization) []string {

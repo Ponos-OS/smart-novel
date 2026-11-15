@@ -137,6 +137,8 @@ linters:
             - entgo.io
             - github.com/rs/cors
             - go.opentelemetry.io
+            - github.com/redis/go-redis
+            - github.com/robfig/cron
             - github.com/google/uuid
             - github.com/jackc/pgx
             - github.com/lib/pq

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/99designs/gqlgen/graphql"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/chapter"
@@ -21,6 +22,7 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/novel"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/database"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/logging"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/redis"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/telemetry"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/zitadel"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platformterms"
@@ -28,6 +30,7 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/stats"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/tag"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/writer"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/zitadelevents"
 )
 
 const telemetryFlushTimeout = 10 * time.Second
@@ -79,7 +82,13 @@ func run() error {
 		}
 	}
 
-	handler, err := newHandler(ctx, cfg, db, logger)
+	cache, err := redis.Open(ctx, cfg.Redis, logger)
+	if err != nil {
+		return err
+	}
+	defer cache.Close(context.WithoutCancel(ctx))
+
+	handler, err := newHandler(ctx, cfg, db, cache, logger)
 	if err != nil {
 		return err
 	}
@@ -87,7 +96,7 @@ func run() error {
 	return server.Serve(ctx, logger, cfg.App.Port, handler)
 }
 
-func newHandler(ctx context.Context, cfg config.Config, db *database.Database, logger *slog.Logger) (http.Handler, error) {
+func newHandler(ctx context.Context, cfg config.Config, db *database.Database, cache *redis.Client, logger *slog.Logger) (http.Handler, error) {
 	verifier, err := auth.NewZitadelVerifier(ctx, auth.ZitadelConfig{
 		IssuerURL:    cfg.Zitadel.IssuerURL,
 		InternalURL:  cfg.Zitadel.InternalURL,
@@ -98,7 +107,7 @@ func newHandler(ctx context.Context, cfg config.Config, db *database.Database, l
 		return nil, err
 	}
 
-	resolver, err := newResolver(ctx, cfg, db, logger)
+	resolver, err := newResolver(ctx, cfg, db, cache, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -112,11 +121,12 @@ func newHandler(ctx context.Context, cfg config.Config, db *database.Database, l
 		}),
 		Verifier:   verifier,
 		Terms:      resolver.TermsService,
+		UserAdded:  zitadelevents.UserAdded(cfg.Zitadel.WebhookSigningKey, resolver.Management, logger),
 		Extensions: []graphql.HandlerExtension{graph.NewLoaderExtension(db.Client, resolver.ChapterService)},
 	}), nil
 }
 
-func newResolver(ctx context.Context, cfg config.Config, db *database.Database, logger *slog.Logger) (*graph.Resolver, error) {
+func newResolver(ctx context.Context, cfg config.Config, db *database.Database, cache *redis.Client, logger *slog.Logger) (*graph.Resolver, error) {
 	management, err := zitadel.NewManagement(ctx, cfg.Zitadel)
 	if err != nil {
 		return nil, err
@@ -126,7 +136,7 @@ func newResolver(ctx context.Context, cfg config.Config, db *database.Database, 
 		return nil, err
 	}
 
-	fitharaClient, err := fithara.NewClientWithResponses(cfg.Fithara.URL, fithara.WithHTTPClient(&http.Client{Timeout: cfg.Fithara.Timeout}))
+	fitharaClient, err := fithara.NewClientWithResponses(cfg.Fithara.URL, fithara.WithHTTPClient(&http.Client{Timeout: cfg.Fithara.Timeout, Transport: otelhttp.NewTransport(http.DefaultTransport)}))
 	if err != nil {
 		return nil, fmt.Errorf("creating the Fithara client: %w", err)
 	}
@@ -136,6 +146,9 @@ func newResolver(ctx context.Context, cfg config.Config, db *database.Database, 
 	}
 	go licenseService.KeepCanonicalSynced(ctx)
 
+	statsService := stats.NewService(db, db.Client, logger)
+	go statsService.KeepSnapshotted(ctx, cfg.Stats.SnapshotSchedule)
+
 	return &graph.Resolver{
 		Client:         db.Client,
 		Logger:         logger,
@@ -143,8 +156,9 @@ func newResolver(ctx context.Context, cfg config.Config, db *database.Database, 
 		NovelService:   novel.NewService(db.Client, db, licenseService),
 		LicenseService: licenseService,
 		ChapterService: chapter.NewService(db.Client),
-		StatsService:   stats.NewService(db, logger),
+		StatsService:   statsService,
 		WriterService:  writer.NewService(db.Client, management),
-		TermsService:   platformterms.NewService(db.Client, terms),
+		Management:     management,
+		TermsService:   platformterms.NewService(db.Client, terms, cache, logger),
 	}, nil
 }

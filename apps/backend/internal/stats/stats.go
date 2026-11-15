@@ -4,6 +4,8 @@ package stats
 import (
 	"context"
 	"log/slog"
+
+	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
 )
 
 const (
@@ -24,11 +26,12 @@ type Totals struct {
 
 type Service struct {
 	estimator RowEstimator
+	repo      *repository
 	logger    *slog.Logger
 }
 
-func NewService(estimator RowEstimator, logger *slog.Logger) *Service {
-	return &Service{estimator: estimator, logger: logger}
+func NewService(estimator RowEstimator, client *ent.Client, logger *slog.Logger) *Service {
+	return &Service{estimator: estimator, repo: newRepository(client), logger: logger}
 }
 
 // LiveTotals is cheap enough for every page view. A figure that cannot be read is 0 and logged.

@@ -10,6 +10,8 @@ type Config struct {
 	App      App
 	Database Database
 	Zitadel  Zitadel
+	Redis    Redis
+	Stats    Stats
 	Fithara  Fithara
 	OTel     OTel
 }
@@ -35,6 +37,17 @@ type Zitadel struct {
 	IntrospectionClientSecret string
 	ProjectID                 string
 	ManagementPAT             string
+	WebhookSigningKey         string
+}
+
+type Redis struct {
+	URL      string
+	Password string
+}
+
+type Stats struct {
+	// SnapshotSchedule is a five-field cron expression, in UTC.
+	SnapshotSchedule string
 }
 
 // Fithara is the service of the canonical licenses and the license assistant.
@@ -98,6 +111,14 @@ func Load(lookup Lookup) (Config, error) {
 			IntrospectionClientSecret: r.required("ZITADEL_INTROSPECTION_CLIENT_SECRET"),
 			ProjectID:                 r.required("ZITADEL_PROJECT_ID"),
 			ManagementPAT:             r.required("ZITADEL_MANAGEMENT_PAT"),
+			WebhookSigningKey:         r.required("ZITADEL_WEBHOOK_SIGNING_KEY"),
+		},
+		Redis: Redis{
+			URL:      r.required("REDIS_URL"),
+			Password: r.text("REDIS_PASSWORD", ""),
+		},
+		Stats: Stats{
+			SnapshotSchedule: r.schedule("STATS_SNAPSHOT_CRON"),
 		},
 		Fithara: Fithara{
 			URL:     r.required("FITHARA_URL"),

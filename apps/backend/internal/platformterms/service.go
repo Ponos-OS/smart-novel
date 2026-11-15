@@ -3,10 +3,12 @@ package platformterms
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/redis"
 )
 
 // Status says whether a user accepted the current terms.
@@ -17,14 +19,22 @@ type Status struct {
 	AcceptedAt      *time.Time
 }
 
-// Service knows the current terms and who accepted them.
+const (
+	acceptedTTL = 24 * time.Hour
+	logKeyKey   = "key"
+	logKeyError = "error"
+)
+
+// Service knows the current terms and who accepted them. Only an acceptance is cached, so a lost or stale entry can never let anybody in.
 type Service struct {
-	terms Terms
-	repo  *repository
+	terms  Terms
+	repo   *repository
+	cache  *redis.Client
+	logger *slog.Logger
 }
 
-func NewService(client *ent.Client, terms Terms) *Service {
-	return &Service{terms: terms, repo: newRepository(client)}
+func NewService(client *ent.Client, terms Terms, cache *redis.Client, logger *slog.Logger) *Service {
+	return &Service{terms: terms, repo: newRepository(client), cache: cache, logger: logger}
 }
 
 func (s *Service) Current() Terms {
@@ -52,9 +62,31 @@ func (s *Service) Status(ctx context.Context, userID string) (Status, error) {
 	return status, nil
 }
 
-// HasAcceptedCurrent is what the guard of the writer mutations asks.
+// HasAcceptedCurrent is what the guard of the writer mutations asks. A Redis that fails is logged and the database answers.
 func (s *Service) HasAcceptedCurrent(ctx context.Context, userID string) (bool, error) {
-	return s.repo.accepted(ctx, userID, s.terms.Version)
+	key := s.cacheKey(userID)
+	if _, found, err := s.cache.Get(ctx, key); err != nil {
+		s.logger.WarnContext(ctx, "reading the acceptance of the platform terms from Redis", slog.String(logKeyKey, key), slog.Any(logKeyError, err))
+	} else if found {
+		return true, nil
+	}
+	accepted, err := s.repo.accepted(ctx, userID, s.terms.Version)
+	if err != nil || !accepted {
+		return accepted, err
+	}
+	s.remember(ctx, key)
+
+	return true, nil
+}
+
+func (s *Service) cacheKey(userID string) string {
+	return fmt.Sprintf("platform-terms:accepted:%s:%d", userID, s.terms.Version)
+}
+
+func (s *Service) remember(ctx context.Context, key string) {
+	if err := s.cache.Set(ctx, key, "1", acceptedTTL); err != nil {
+		s.logger.WarnContext(ctx, "caching the acceptance of the platform terms in Redis", slog.String(logKeyKey, key), slog.Any(logKeyError, err))
+	}
 }
 
 // Accept records the acceptance of the current version; any other version is refused, and accepting twice changes nothing.
@@ -66,6 +98,7 @@ func (s *Service) Accept(ctx context.Context, userID string, version int) (Statu
 	if err := s.repo.accept(ctx, userID, version); err != nil {
 		return Status{}, err
 	}
+	s.remember(ctx, s.cacheKey(userID))
 
 	return s.Status(ctx, userID)
 }

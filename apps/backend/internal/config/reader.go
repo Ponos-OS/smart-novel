@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/robfig/cron/v3"
 )
 
 type Lookup func(key string) (string, bool)
@@ -120,6 +122,16 @@ func (r *reader) milliseconds(key string, fallback time.Duration) time.Duration 
 	}
 
 	return time.Duration(number) * time.Millisecond
+}
+
+// schedule reads a five-field cron expression.
+func (r *reader) schedule(key string) string {
+	value := r.required(key)
+	if _, err := cron.ParseStandard(value); value != "" && err != nil {
+		r.fail(key, "must be a cron expression of five fields such as '0 3 * * *': %v", err)
+	}
+
+	return value
 }
 
 // duration reads a Go duration such as 60s or 2m.
