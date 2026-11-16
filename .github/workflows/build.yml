@@ -91,7 +91,7 @@ jobs:
       - name: Export images
         env:
           IMAGE_TAG: ${{ steps.version.outputs.version }}
-        run: docker save "smart-novel-backend:$IMAGE_TAG" "smart-novel-frontend:$IMAGE_TAG" | zstd -T0 -3 -o smart-novel-images.tar.zst
+        run: docker save "smart-novel-backend:$IMAGE_TAG" "smart-novel-frontend:$IMAGE_TAG" "smart-novel-backend-devdata:$IMAGE_TAG" | zstd -T0 -3 -o smart-novel-images.tar.zst
 
       - name: List the images
         run: |

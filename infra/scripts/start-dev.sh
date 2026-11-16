@@ -50,7 +50,7 @@ fi
 if [ "$mode" = dev ]; then
   built_images="smart-novel-backend:dev smart-novel-frontend:dev"
 else
-  built_images="smart-novel-backend:$image_tag smart-novel-frontend:$image_tag"
+  built_images="smart-novel-backend:$image_tag smart-novel-frontend:$image_tag smart-novel-backend-devdata:$image_tag"
 fi
 # The images keep their tags across rebuilds; the IDs tell Terraform when to load them into the cluster again.
 # shellcheck disable=SC2086
