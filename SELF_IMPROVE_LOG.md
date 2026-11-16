@@ -222,3 +222,9 @@
 - `status` of a chapter being written made a test of NestJS's days (a title-only update leaves `narrationStatus` alone) flaky, since an earlier test's narration moves it while the test runs. The test now waits for the narration to end. A field that changes by itself needs a test that does not compare it across a gap.
 - Removing the inline `licenseDraft` of the novel form moved a decision to the frontend (store a draft first). It is the user's to review: it costs three requests and may leave a license of the writer's own nobody uses.
 - A rename script that follows a schema rename must stop at the boundary of the schema: it renamed the frontend's own props, state and locals too (`narrationUrl` to `narrationURL`) and invented `narrationURLProp`, which mixed two styles in one file. The user caught it. Rule used to undo it: a name that comes from or goes to the schema, or belongs to a type filled straight from a response, follows the schema; everything else keeps the frontend's camelCase. The typechecker cannot tell the two apart (the mock data of specs is untyped), so the rename list was written by reading each occurrence.
+
+### Step 10
+
+- Every earlier step ran on a tree where the git-ignored files already existed; `task clean` first showed two bugs at once: `go generate ./...` loads every package for gqlgen, so the clients it imports must exist before it runs, and `gensdl` assumed `src/generated/` existed. A generator must work from nothing, and the check for that is a clean checkout, which the earlier steps skipped.
+- The failed first generation also rewrote `go.mod`, `go.sum` and `go.work.sum` (gqlgen tidied away what it could not see used). After a failed generate, look at `git status` before trusting the tree.
+- My wait on the test run matched the pattern `FAIL` against test names ("should NOT allow ...") and fired early; wait on the final summary line only.

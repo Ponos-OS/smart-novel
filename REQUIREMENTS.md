@@ -377,6 +377,20 @@ Verify: `task frontend:{lint,test,build,storybook:build}` pass; `task frontend-e
 - `npm run start:dev` twice and `stop:dev` twice to prove idempotence.
 - Record any remaining behavior difference from the inventory and decide with the user whether to fix or accept it.
 
+Built:
+
+- **Clean checkout:** `npm run stop:dev`, `task clean`, then `task backend-e2e:run` (32 files, 358 of 358 tests, 3 backend replicas) and `task frontend-e2e:run` (Cypress 7 of 7), both with the production images. Two things only a clean checkout showed were fixed: `task backend:codegen` ran gqlgen before the Beatrice and Fithara clients existed (it now generates `./internal/...` first, then the root), and `tools/gensdl` did not create `src/generated/` (it does now). A stale comment in `build-images.sh` about the NestJS schema was removed.
+- **Idempotence:** `npm run start:dev` twice and `npm run stop:dev` twice all exit 0 and the stack answers after the second start. The second start is not a no-op: Terraform replaces the backend and frontend deployments, their secret and config map and the `backend-init` Job (8 added, 9 destroyed) and updates the ZITADEL login policy in place. I did not check whether the NestJS stack did the same.
+
+Differences from NestJS that remain, for the user to accept or fix:
+
+- `node` and `nodes` need an authenticated viewer, `nodes` takes at most 100 IDs (my choice).
+- Tag search is "contains", not prefix of the name or a word of it; cursors are ent's, not signed.
+- `Chapter.narrationStatus` is written (`PROCESSING`, `READY`, `FAILED`); NestJS never wrote it. A job that never reports stays `PROCESSING` once its lock expires (no sweep).
+- The license assistant's dialogs lost the summary, permissions, limitations and conditions panels (the registry gives no such metadata); the novel form stores a custom license in three requests and may leave one nobody uses.
+- Open from the security reviews: `POST /beatrice-callbacks/status` is unauthenticated, `gen-upload-url` accepts any ZITADEL token, `chapterNarrationUpdated` is `@public`, a slow subscriber (buffer 16) misses updates (logged). `explain` is public and unlimited.
+- The backend runs 3 replicas locally and in e2e; each runs the dev schema sync at startup (`DEV_SYNC_DATABASE_SCHEMA`), so a schema change while the stack runs could race (untested).
+
 ## Step 11: Remove the old backend and update the docs
 
 - Delete `apps/backend-nest`, Prisma, the `nestjs-backend-common` and other backend-only npm dependencies, and the `gen-graphql-schema.ts` resolver rule.

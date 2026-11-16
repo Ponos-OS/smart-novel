@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 )
 
 func main() {
@@ -24,6 +25,10 @@ func main() {
 func run(schemaDir, out string) error {
 	limits, err := readLimits(schemaDir)
 	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil { //nolint:gosec // a source directory, not a secret
 		return err
 	}
 

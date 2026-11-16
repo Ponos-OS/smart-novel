@@ -53,7 +53,7 @@ wait_for_all() {
   return "$failed"
 }
 
-# The Go sources need the ent and gqlgen output, and the frontend needs its typed hooks and the limits read from the schema. Those generators run on the host (Go and Node are prerequisites) and the images see the result, mounted in dev or copied in e2e. Until the Go schema serves the frontend (REQUIREMENTS.md step 9) the hooks still come from the NestJS schema.
+# The Go sources need the ent and gqlgen output, and the frontend needs its typed hooks and the limits read from the schema. Those generators run on the host (Go and Node are prerequisites) and the images see the result, mounted in dev or copied in e2e.
 timed "task backend:generate" sh -c 'cd "$1" && task backend:generate' sh "$repo_root"
 timed "task frontend:generate" sh -c 'cd "$1" && task frontend:generate' sh "$repo_root"
 

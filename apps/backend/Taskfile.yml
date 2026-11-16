@@ -36,7 +36,8 @@ tasks:
   codegen:
     desc: ent, entgql and gqlgen only; the part that also runs in the Go-less-host containers
     cmds:
-      - go generate ./...
+      - go generate ./internal/...
+      - go generate .
 
   build:
     desc: Static binaries at bin/server and bin/devdata
