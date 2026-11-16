@@ -147,3 +147,8 @@ func (r *mutationResolver) GenerateChapterAudio(ctx context.Context, id uuid.UUI
 
 	return &response, nil
 }
+
+// ChapterNarrationUpdated is the resolver for the chapterNarrationUpdated field.
+func (r *subscriptionResolver) ChapterNarrationUpdated(ctx context.Context, chapterID uuid.UUID) (<-chan *narration.Event, error) {
+	return r.NarrationService.Subscribe(ctx, chapterID), nil
+}

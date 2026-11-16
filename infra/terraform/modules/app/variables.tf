@@ -188,6 +188,12 @@ variable "wait_for_zitadel_credentials" {
   default     = false
 }
 
+variable "backend_replicas" {
+  description = "How many pods run the backend"
+  type        = number
+  default     = 3
+}
+
 variable "backend_port" {
   description = "Port the backend listens on"
   type        = number

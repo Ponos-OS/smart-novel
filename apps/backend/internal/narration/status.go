@@ -2,9 +2,8 @@ package narration
 
 import (
 	"context"
-	"log/slog"
-	"sync"
-	"time"
+	"encoding/json"
+	"fmt"
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/ttscallbacks"
 )
@@ -15,10 +14,8 @@ const (
 	statusCompleted = "completed"
 	statusFailed    = "failed"
 
-	logKeyProgress = "progress"
-
+	// progressKeepFor is how long Redis remembers how far a job came: as long as an update of it may still arrive.
 	progressKeepFor = 2 * lockTTL
-	sweepEvery      = time.Minute
 )
 
 var transientStatuses = map[string]bool{"queued": true, "generating": true, "uploading": true}
@@ -31,74 +28,45 @@ func isKnown(status string) bool {
 	return isTerminal(status) || transientStatuses[status]
 }
 
-type jobProgress struct {
-	lastSeen int
-	terminal bool
-	// ended is the terminal status, completed or failed, when terminal.
-	ended string
-	at    time.Time
+func progressKey(jobID string) string {
+	return "chapter_tts_progress:" + jobID
 }
 
-// progressBook remembers, per job, how far the updates have come, so that one arriving out of order is dropped. Beatrice's queued and
-// generating callbacks race each other over the network, and progress only means a bigger number is later for this job. It lives in the
-// memory of the replica, like the lock tokens do, and forgets a job when its updates cannot come any more.
-type progressBook struct {
-	mutex     sync.Mutex
-	jobs      map[string]jobProgress
-	nextSweep time.Time
+// endedKey holds the terminal update of a job, completed or failed, so the first one wins and everything after it is dropped.
+func endedKey(jobID string) string {
+	return "chapter_tts_ended:" + jobID
 }
 
-func newProgressBook() *progressBook {
-	return &progressBook{jobs: make(map[string]jobProgress)}
-}
-
-// apply says whether the update is news. After a terminal update every later one is dropped, whatever made it late; the terminal mark stays
-// so that a late retry of an earlier stage does not look like a new job.
-func (b *progressBook) apply(ctx context.Context, update ttscallbacks.Update, now time.Time, logger *slog.Logger) bool {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-	b.sweep(now)
-	seen := b.jobs[update.JobID]
-	if seen.terminal {
-		logger.DebugContext(ctx, "dropping an update after the job ended", slog.String(logKeyJobID, update.JobID), slog.String(logKeyStatus, update.Status))
-
-		return false
-	}
+// isNews says whether the update is news for its job, so that one arriving out of order is dropped: Beatrice's queued and generating callbacks race each other over the network, and progress only means a bigger number is later for this job. After a terminal update every later one is dropped, whatever made it late. Any replica may be the one called, so what each job has shown lives in Redis.
+func (s *Service) isNews(ctx context.Context, update ttscallbacks.Update) (bool, error) {
 	if isTerminal(update.Status) {
-		b.jobs[update.JobID] = jobProgress{lastSeen: seen.lastSeen, terminal: true, ended: update.Status, at: now}
+		ended, err := json.Marshal(update)
+		if err != nil {
+			return false, fmt.Errorf("keeping how a job ended: %w", err)
+		}
 
-		return true
+		return s.cache.SetIfAbsent(ctx, endedKey(update.JobID), string(ended), progressKeepFor)
+	}
+	_, ended, err := s.cache.Get(ctx, endedKey(update.JobID))
+	if err != nil || ended {
+		return false, err
 	}
 	if update.Progress == nil {
-		return true
+		return true, nil
 	}
-	if *update.Progress <= seen.lastSeen {
-		logger.DebugContext(ctx, "dropping a stale update", slog.String(logKeyJobID, update.JobID), slog.String(logKeyStatus, update.Status), slog.Int(logKeyProgress, *update.Progress))
 
-		return false
-	}
-	b.jobs[update.JobID] = jobProgress{lastSeen: *update.Progress, at: now}
-
-	return true
+	return s.cache.RaiseTo(ctx, progressKey(update.JobID), *update.Progress, progressKeepFor)
 }
 
-// endedWith is the terminal status of the job when it ended already. A job can end before the code that started it has written it down.
-func (b *progressBook) endedWith(jobID string) (status string, ended bool) {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-	seen := b.jobs[jobID]
-
-	return seen.ended, seen.terminal
-}
-
-func (b *progressBook) sweep(now time.Time) {
-	if now.Before(b.nextSweep) {
-		return
+// endedWith is the terminal update of the job when it ended already. A job can end before the code that started it has written it down.
+func (s *Service) endedWith(ctx context.Context, jobID string) (update ttscallbacks.Update, ended bool, err error) {
+	stored, ended, err := s.cache.Get(ctx, endedKey(jobID))
+	if err != nil || !ended {
+		return update, false, err
 	}
-	for id, seen := range b.jobs {
-		if now.Sub(seen.at) > progressKeepFor {
-			delete(b.jobs, id)
-		}
+	if err = json.Unmarshal([]byte(stored), &update); err != nil {
+		return update, false, fmt.Errorf("reading how a job ended: %w", err)
 	}
-	b.nextSweep = now.Add(sweepEvery)
+
+	return update, true, nil
 }

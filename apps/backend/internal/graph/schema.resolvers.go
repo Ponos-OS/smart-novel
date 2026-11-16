@@ -17,4 +17,10 @@ func (r *queryResolver) Health(ctx context.Context) (string, error) {
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
-type mutationResolver struct{ *Resolver }
+// Subscription returns SubscriptionResolver implementation.
+func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionResolver{r} }
+
+type (
+	mutationResolver     struct{ *Resolver }
+	subscriptionResolver struct{ *Resolver }
+)

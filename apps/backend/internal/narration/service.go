@@ -4,6 +4,7 @@ package narration
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -23,6 +24,8 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/ttscallbacks"
 )
 
+var errLockLost = errors.New("the lock of the chapter expired while its narration was being started")
+
 const (
 	// lockTTL is how long a chapter stays locked at most: the lock is released when the job ends, and this is for a job that never reports.
 	lockTTL    = time.Hour
@@ -32,8 +35,8 @@ const (
 	logKeyJobID     = "jobID"
 	logKeyStatus    = "status"
 	logKeyError     = "error"
-	logKeyPanic     = "panic"
 	logKeyFailure   = "failure"
+	logKeyURL       = "url"
 )
 
 // Response is what generateChapterAudio answers: the job is started, not done.
@@ -42,13 +45,7 @@ type Response struct {
 	NarrationURL *string
 }
 
-type heldLock struct {
-	key    string
-	token  string
-	jobKey string
-}
-
-// Service starts narrations and follows them. Nothing about a running job is in the database: the lock is in Redis and the rest in the memory of the replica that started it.
+// Service starts narrations and follows them. Nothing about a running job is in the database or in the memory of a replica: the lock of the chapter holds the job, and Redis remembers how far each job came, so whichever replica Beatrice calls can handle its update.
 type Service struct {
 	repo        *repository
 	cache       *redis.Client
@@ -58,9 +55,8 @@ type Service struct {
 	internalURL string
 	logger      *slog.Logger
 
-	mutex    sync.Mutex
-	held     map[string]heldLock
-	progress *progressBook
+	mutex       sync.Mutex
+	subscribers map[uuid.UUID]map[chan *Event]struct{}
 }
 
 // NewService takes the voice every narration is made with and the address Beatrice reaches this backend on.
@@ -68,18 +64,12 @@ func NewService(client *ent.Client, cache *redis.Client, storage *objectstorage.
 	return &Service{
 		repo: newRepository(client), cache: cache, storage: storage, beatrice: beatriceClient, voice: voice,
 		internalURL: strings.TrimRight(internalURL, "/"), logger: logger,
-		held: make(map[string]heldLock), progress: newProgressBook(),
+		subscribers: make(map[uuid.UUID]map[chan *Event]struct{}),
 	}
 }
 
 func lockKey(chapterID uuid.UUID) string {
 	return "chapter_tts:" + chapterID.String()
-}
-
-// jobKey holds the job we started for a chapter, next to its lock. Every replica reads it, so an update that names another job, or a
-// chapter we started nothing for, never gets to change a chapter.
-func jobKey(chapterID uuid.UUID) string {
-	return "chapter_tts_job:" + chapterID.String()
 }
 
 // Generate is the writer's button: it always makes new audio, and refuses only when a job for the chapter is running already.
@@ -139,9 +129,25 @@ func (s *Service) Regenerate(ctx context.Context, chapterID uuid.UUID, text stri
 	}
 }
 
-// start asks Beatrice for a job and keeps the lock until the job ends. The token of the writer goes along: Beatrice brings it back on its
-// callbacks. The chapter is the context of the job, so every update says which chapter it is about without a lookup.
+// start marks the chapter as being narrated and asks Beatrice for a job. The status is written before the call, so an update that comes back
+// quickly cannot be overwritten by it; a narration that cannot be started leaves the chapter FAILED.
 func (s *Service) start(ctx context.Context, chapterID uuid.UUID, text, token string) error {
+	if err := s.repo.setStatus(ctx, chapterID, entchapter.NarrationStatusPROCESSING); err != nil {
+		return fmt.Errorf("marking a chapter as being narrated: %w", err)
+	}
+	err := s.ask(ctx, chapterID, text, token)
+	if err == nil {
+		return nil
+	}
+	if statusErr := s.repo.setStatus(ctx, chapterID, entchapter.NarrationStatusFAILED); statusErr != nil {
+		s.logger.WarnContext(ctx, "marking a chapter as not narrated", slog.String(logKeyChapterID, chapterID.String()), slog.Any(logKeyError, statusErr))
+	}
+
+	return err
+}
+
+// ask asks Beatrice for a job and keeps the lock until the job ends. The lock held the token of this call; it now holds the job, which is how any replica tells that an update is about the job started for the chapter, and releases the lock when the job ends. The token of the writer goes along: Beatrice brings it back on its callbacks. The chapter is the context of the job, so every update says which chapter it is about without a lookup.
+func (s *Service) ask(ctx context.Context, chapterID uuid.UUID, text, token string) error {
 	if bearer, ok := auth.BearerFrom(ctx); ok {
 		ctx = beatrice.WithAuthorization(ctx, bearer)
 	}
@@ -151,30 +157,34 @@ func (s *Service) start(ctx context.Context, chapterID uuid.UUID, text, token st
 		return fmt.Errorf("asking Beatrice for audio: %w", err)
 	}
 	job := response.GenerateAudio.JobId
-	if err = s.cache.Set(ctx, jobKey(chapterID), job, lockTTL); err != nil {
+	swapped, err := s.cache.Swap(ctx, lockKey(chapterID), token, job)
+	if err != nil {
 		return fmt.Errorf("remembering the job of a chapter: %w", err)
 	}
-	s.mutex.Lock()
-	s.held[job] = heldLock{key: lockKey(chapterID), token: token, jobKey: jobKey(chapterID)}
-	s.mutex.Unlock()
+	if !swapped {
+		return errLockLost
+	}
 	s.logger.InfoContext(ctx, "narration started", slog.String(logKeyChapterID, chapterID.String()), slog.String(logKeyJobID, job))
 	s.finishIfEnded(ctx, chapterID, job)
 
 	return nil
 }
 
-// finishIfEnded does what the listener could not do for a job that ended before start had written it down: Beatrice answers the call that
-// starts a job only after it has queued it, and a job can be reported done sooner than that answer is handled. Without this the lock of the
-// chapter would stay held until it expires.
+// finishIfEnded does what Handle could not do for a job that ended before start had written it down: Beatrice answers the call that starts a job only after it has queued it, and a job can be reported done sooner than that answer is handled. Without this the lock of the chapter would stay held until it expires.
 func (s *Service) finishIfEnded(ctx context.Context, chapterID uuid.UUID, jobID string) {
-	status, ended := s.progress.endedWith(jobID)
+	update, ended, err := s.endedWith(ctx, jobID)
+	if err != nil {
+		s.logger.WarnContext(ctx, "looking at how a job ended", slog.String(logKeyJobID, jobID), slog.Any(logKeyError, err))
+
+		return
+	}
 	if !ended {
 		return
 	}
-	if status == statusCompleted {
-		s.keepAudio(ctx, chapterID, jobID)
+	if err = s.report(ctx, chapterID, update); err != nil {
+		s.logger.ErrorContext(ctx, "reporting a job that ended", slog.String(logKeyJobID, jobID), slog.Any(logKeyError, err))
 	}
-	s.releaseJob(ctx, jobID)
+	s.release(ctx, lockKey(chapterID), jobID)
 }
 
 func (s *Service) release(ctx context.Context, key, token string) {
@@ -183,18 +193,17 @@ func (s *Service) release(ctx context.Context, key, token string) {
 	}
 }
 
-// KeepListening follows what Beatrice says about its jobs, from the first moment until ctx ends. Every replica hears every update; the one
-// that started the job releases its lock. A Redis that cannot be reached is tried again, because narrations started meanwhile would never
-// get their audio address.
+// KeepListening hands what the replicas announce about a narration to the subscribers of this replica, from the first moment until ctx ends.
+// A Redis that cannot be reached is tried again.
 func (s *Service) KeepListening(ctx context.Context) {
 	for {
-		err := s.cache.Subscribe(ctx, ttscallbacks.StatusChannel, s.handle)
+		err := s.cache.Subscribe(ctx, eventsChannel, s.hear)
 		if err == nil {
-			s.logger.InfoContext(ctx, "narration status listener started")
+			s.logger.InfoContext(ctx, "narration events listener started")
 
 			return
 		}
-		s.logger.WarnContext(ctx, "listening for narration updates", slog.Any(logKeyError, err))
+		s.logger.WarnContext(ctx, "listening for narration events", slog.Any(logKeyError, err))
 		select {
 		case <-ctx.Done():
 			return
@@ -203,80 +212,86 @@ func (s *Service) KeepListening(ctx context.Context) {
 	}
 }
 
-func (s *Service) handle(ctx context.Context, message string) {
-	defer func() {
-		if recovered := recover(); recovered != nil {
-			s.logger.ErrorContext(ctx, "handling a narration update panicked", slog.Any(logKeyPanic, recovered))
-		}
-	}()
-	update, chapterID, ok := s.read(ctx, message)
-	if !ok || !s.progress.apply(ctx, update, time.Now(), s.logger) {
-		return
+// Handle is what the replica Beatrice called does with an update of a job. The chapter it belongs to comes from the context Beatrice echoes; an update that names none, such as one from a job started by an older release, is dropped. An error is for Beatrice to try again.
+func (s *Service) Handle(ctx context.Context, update ttscallbacks.Update) error {
+	chapterID, ok := s.chapterOf(ctx, update)
+	if !ok {
+		return nil
+	}
+	news, err := s.isNews(ctx, update)
+	if err != nil {
+		return fmt.Errorf("looking at how far the job came: %w", err)
+	}
+	if !news {
+		s.logger.DebugContext(ctx, "dropping an update that is not news", slog.String(logKeyJobID, update.JobID), slog.String(logKeyStatus, update.Status))
+
+		return nil
 	}
 	if !isKnown(update.Status) {
 		s.logger.WarnContext(ctx, "Beatrice sent a status this release does not know, treating it as in progress", slog.String(logKeyJobID, update.JobID), slog.String(logKeyStatus, update.Status))
 	}
-	if update.Status == statusCompleted {
-		s.keepAudio(ctx, chapterID, update.JobID)
-	}
-	if update.Status == statusFailed {
-		s.logger.ErrorContext(ctx, "Beatrice could not narrate a chapter", slog.String(logKeyChapterID, chapterID.String()), slog.String(logKeyJobID, update.JobID), slog.String(logKeyFailure, failure(update)))
+	if err = s.report(ctx, chapterID, update); err != nil {
+		if isTerminal(update.Status) {
+			s.forgetEnd(ctx, update.JobID)
+		}
+
+		return err
 	}
 	if isTerminal(update.Status) {
-		s.releaseJob(ctx, update.JobID)
+		s.release(ctx, lockKey(chapterID), update.JobID)
+	}
+
+	return nil
+}
+
+// forgetEnd makes the terminal update news again, for the one Beatrice sends again after Handle failed.
+func (s *Service) forgetEnd(ctx context.Context, jobID string) {
+	if _, err := s.cache.Del(ctx, endedKey(jobID)); err != nil {
+		s.logger.WarnContext(ctx, "forgetting how a job ended", slog.String(logKeyJobID, jobID), slog.Any(logKeyError, err))
 	}
 }
 
-// read checks the update and finds the chapter it is about, which Beatrice echoes from what the job was started with. An update that names no
-// chapter, such as one from a job started by an older release, is dropped.
-func (s *Service) read(ctx context.Context, message string) (update ttscallbacks.Update, chapterID uuid.UUID, ok bool) {
-	update, err := ttscallbacks.ParseUpdate([]byte(message))
-	if err != nil {
-		s.logger.WarnContext(ctx, "an update of Beatrice is not valid", slog.Any(logKeyError, err))
-
-		return update, chapterID, false
-	}
+func (s *Service) chapterOf(ctx context.Context, update ttscallbacks.Update) (uuid.UUID, bool) {
 	if update.ClientContextID != nil {
-		chapterID, err = uuid.Parse(*update.ClientContextID)
+		if chapterID, err := uuid.Parse(*update.ClientContextID); err == nil {
+			return chapterID, true
+		}
 	}
-	if update.ClientContextID == nil || err != nil {
-		s.logger.WarnContext(ctx, "an update of Beatrice names no chapter, dropping it", slog.String(logKeyJobID, update.JobID), slog.String(logKeyStatus, update.Status))
+	s.logger.WarnContext(ctx, "an update of Beatrice names no chapter, dropping it", slog.String(logKeyJobID, update.JobID), slog.String(logKeyStatus, update.Status))
 
-		return update, chapterID, false
-	}
-
-	return update, chapterID, true
+	return uuid.UUID{}, false
 }
 
-// keepAudio stores the address of the audio on the chapter, but only for the job this backend started for it: an update nobody asked for, or
-// about another job, must not be able to point a chapter at some audio.
-func (s *Service) keepAudio(ctx context.Context, chapterID uuid.UUID, jobID string) {
-	started, found, err := s.cache.Get(ctx, jobKey(chapterID))
-	if err != nil || !found || started != jobID {
-		s.logger.WarnContext(ctx, "this is not the job started for this chapter, not keeping the audio", slog.String(logKeyChapterID, chapterID.String()), slog.String(logKeyJobID, jobID), slog.Any(logKeyError, err))
-
-		return
+// startedFor tells whether the job is the one this backend started for the chapter: an update nobody asked for, or about another job, must not
+// be able to change a chapter.
+func (s *Service) startedFor(ctx context.Context, chapterID uuid.UUID, jobID string) (bool, error) {
+	started, found, err := s.cache.Get(ctx, lockKey(chapterID))
+	if err != nil {
+		return false, fmt.Errorf("looking at the job of a chapter: %w", err)
 	}
-	if err = s.repo.setNarrationURL(ctx, chapterID, s.storage.URLOf(ttscallbacks.AudioKey(jobID))); err != nil {
-		s.logger.ErrorContext(ctx, "keeping the audio address of a chapter", slog.String(logKeyChapterID, chapterID.String()), slog.Any(logKeyError, err))
+	if !found || started != jobID {
+		s.logger.WarnContext(ctx, "this is not the job started for this chapter, ignoring it", slog.String(logKeyChapterID, chapterID.String()), slog.String(logKeyJobID, jobID))
 
-		return
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// keepAudio stores the address of the audio on the chapter and marks it READY, but only for the job this backend started for it. kept is false,
+// without an error, for any other job.
+func (s *Service) keepAudio(ctx context.Context, chapterID uuid.UUID, jobID string) (url string, kept bool, err error) {
+	started, err := s.startedFor(ctx, chapterID, jobID)
+	if err != nil || !started {
+		return "", false, err
+	}
+	url = s.storage.URLOf(ttscallbacks.AudioKey(jobID))
+	if err = s.repo.setReady(ctx, chapterID, url); err != nil {
+		return "", false, fmt.Errorf("keeping the audio address of a chapter: %w", err)
 	}
 	s.logger.InfoContext(ctx, "audio address kept", slog.String(logKeyChapterID, chapterID.String()), slog.String(logKeyJobID, jobID))
-}
 
-func (s *Service) releaseJob(ctx context.Context, jobID string) {
-	s.mutex.Lock()
-	lock, ok := s.held[jobID]
-	delete(s.held, jobID)
-	s.mutex.Unlock()
-	if !ok {
-		return
-	}
-	s.release(ctx, lock.key, lock.token)
-	if _, err := s.cache.Del(ctx, lock.jobKey); err != nil {
-		s.logger.WarnContext(ctx, "forgetting the job of a chapter", slog.String(logKeyJobID, jobID), slog.Any(logKeyError, err))
-	}
+	return url, true, nil
 }
 
 func failure(update ttscallbacks.Update) string {

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	coderws "github.com/coder/websocket"
 	"go.opentelemetry.io/otel/attribute"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
@@ -323,6 +324,35 @@ func TestANULAnywhereInAnArgumentIsABadRequest(t *testing.T) {
 
 			if !strings.Contains(recorder.Body.String(), `"code":"BAD_REQUEST"`) || !strings.Contains(recorder.Body.String(), "NUL character") {
 				t.Errorf("body = %s, want a bad request about the NUL character", recorder.Body.String())
+			}
+		})
+	}
+}
+
+func TestSubscriptionsConnectFromAnAllowedOriginOnly(t *testing.T) {
+	cases := []struct {
+		name   string
+		origin string
+		want   bool
+	}{
+		{"allowed origin", "http://localhost:8080", true},
+		{"unknown origin", "https://evil.example.com", false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			server := httptest.NewServer(newHandler(config.EnvProduction))
+			t.Cleanup(server.Close)
+
+			conn, _, err := coderws.Dial(t.Context(), "ws"+strings.TrimPrefix(server.URL, "http")+"/graphql", &coderws.DialOptions{ //nolint:bodyclose // the library closes the body of a websocket handshake itself
+				Subprotocols: []string{"graphql-transport-ws"},
+				HTTPHeader:   http.Header{"Origin": []string{c.origin}},
+			})
+
+			if (err == nil) != c.want {
+				t.Errorf("connected = %v (%v), want %v", err == nil, err, c.want)
+			}
+			if err == nil {
+				_ = conn.CloseNow() //nolint:errcheck // the test is over
 			}
 		})
 	}

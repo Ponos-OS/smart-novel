@@ -142,7 +142,7 @@ func newHandler(ctx context.Context, cfg config.Config, db *database.Database, c
 		Routes: map[string]http.Handler{
 			"POST /zitadel-events/user-added":         zitadelevents.UserAdded(cfg.Zitadel.WebhookSigningKey, resolver.Management, logger),
 			"POST /beatrice-callbacks/gen-upload-url": ttscallbacks.GenUploadURL(issuerCheck, storage, logger),
-			"POST /beatrice-callbacks/status":         ttscallbacks.Status(cache, logger),
+			"POST /beatrice-callbacks/status":         ttscallbacks.Status(resolver.NarrationService.Handle, logger),
 		},
 		Extensions: []graphql.HandlerExtension{graph.NewLoaderExtension(db.Client, resolver.ChapterService)},
 	}), nil
@@ -179,7 +179,7 @@ func newResolver(ctx context.Context, cfg config.Config, db *database.Database, 
 		Client:           db.Client,
 		Logger:           logger,
 		TagService:       tag.NewService(db.Client, db),
-		NovelService:     novel.NewService(db.Client, db, licenseService, storage, logger),
+		NovelService:     novel.NewService(db.Client, db, licenseService, storage, narrationService, logger),
 		LicenseService:   licenseService,
 		ChapterService:   chapter.NewService(db.Client, narrationService, logger),
 		NarrationService: narrationService,

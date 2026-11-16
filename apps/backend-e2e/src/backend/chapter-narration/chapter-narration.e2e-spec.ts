@@ -1,13 +1,17 @@
 import axios from 'axios';
 import { createClient } from 'graphql-ws';
 import Redis from 'ioredis';
+import { randomUUID } from 'node:crypto';
 import { WebSocket } from 'ws';
 
-import { AuthorizationFixture, graphql } from '../../support';
+import {
+  AuthorizationFixture,
+  graphql,
+  lockedJobOfChapter,
+} from '../../support';
 import { ChapterNarrationFixture } from './chapter-narration.fixture';
 
 /** @description Must match `StatusChannel` in apps/backend/internal/ttscallbacks/handlers.go */
-const TTS_STATUS_CHANNEL = 'tts-audio:status';
 
 describe('Chapter Narration (e2e)', () => {
   let fixture: ChapterNarrationFixture;
@@ -95,82 +99,42 @@ describe('Chapter Narration (e2e)', () => {
         }
       }
     `;
-    const host = process.env.HOST ?? 'localhost';
-    const port = process.env.REDIS_PORT ?? '6379';
-    const redisSubscriber = new Redis(`redis://${host}:${port}`, {
-      password: process.env.REDIS_PASSWORD,
+
+    // Arrange & Act: fire the first call (kicks off a real, in-flight Beatrice job — the lock stays held until it reaches a terminal status) and immediately fire a second one.
+    const firstRes = await axios.post(
+      '/graphql',
+      { query, variables: { id: CHAPTER_THREE_ID } },
+      { headers: { Authorization: authorizationHeader } },
+    );
+    const firstJob = await lockedJobOfChapter(CHAPTER_THREE_ID);
+    const secondRes = await axios.post(
+      '/graphql',
+      { query, variables: { id: CHAPTER_THREE_ID } },
+      { headers: { Authorization: authorizationHeader } },
+    );
+
+    // Assert
+    expect(firstRes.data.errors).toBeUndefined();
+    expect(firstRes.data.data.generateChapterAudio).toEqual({
+      status: 'PROCESSING',
     });
+    expect(secondRes.data.errors).toBeDefined();
+    expect(secondRes.data.errors[0].message).toContain(
+      'already in progress',
+    );
 
-    try {
-      // Arrange: listen for the real jobId Beatrice assigns, so we can release its
-      // lock ourselves at the end — otherwise this chapter stays locked (up to the
-      // 1h TTL) until the real, unmocked Beatrice job happens to finish on its own,
-      // which would leak into (and likely time out) any later test on this chapter.
-      // Real CPU-based TTS synthesis (openai-compatible-tts) has been observed taking 200s+ per
-      // job, and Beatrice serializes jobs through one worker — a prior test's job
-      // still processing can delay this one's "queued" message well past 30s.
-      const queued = new Promise<{ jobId: string }>(
-        (resolve, reject) => {
-          const timeout = setTimeout(
-            () =>
-              reject(
-                new Error('No "queued" message received in 250s'),
-              ),
-            250_000,
-          );
-
-          redisSubscriber.on('message', (channel, message) => {
-            if (channel !== TTS_STATUS_CHANNEL) {
-              return;
-            }
-            const parsed = JSON.parse(message);
-            if (parsed.status !== 'queued') {
-              return;
-            }
-            clearTimeout(timeout);
-            resolve(parsed);
-          });
-        },
-      );
-      await redisSubscriber.subscribe(TTS_STATUS_CHANNEL);
-
-      // Act: fire the first call (kicks off a real, in-flight Beatrice job — the lock
-      // stays held until it reaches a terminal status) and immediately fire a second one.
-      const firstRes = await axios.post(
-        '/graphql',
-        { query, variables: { id: CHAPTER_THREE_ID } },
-        { headers: { Authorization: authorizationHeader } },
-      );
-      const secondRes = await axios.post(
-        '/graphql',
-        { query, variables: { id: CHAPTER_THREE_ID } },
-        { headers: { Authorization: authorizationHeader } },
-      );
-
-      // Assert
-      expect(firstRes.data.errors).toBeUndefined();
-      expect(firstRes.data.data.generateChapterAudio).toEqual({
-        status: 'PROCESSING',
-      });
-      expect(secondRes.data.errors).toBeDefined();
-      expect(secondRes.data.errors[0].message).toContain(
-        'already in progress',
-      );
-
-      // Cleanup: terminate the first call's job so its lock doesn't linger into
-      // later tests on this chapter.
-      const { jobId } = await queued;
+    // Cleanup: terminate the first call's job so its lock doesn't linger into later tests on this chapter. The lock holds the job from the moment the first call is answered; a job that has finished already left nothing to terminate.
+    if (firstJob) {
       await axios.post('/beatrice-callbacks/status', {
-        jobId,
+        jobId: firstJob,
         status: 'failed',
         failedAt: new Date().toISOString(),
+        clientContextId: CHAPTER_THREE_ID,
         error: {
           code: 'TTS_PROVIDER_ERROR',
           message: 'test cleanup',
         },
       });
-    } finally {
-      await redisSubscriber.quit();
     }
   }, 260_000);
 
@@ -263,6 +227,92 @@ describe('Chapter Narration (e2e)', () => {
     }
   }, 320_000);
 
+  it.each([
+    {
+      deleting: 'the chapter',
+      mutation: `#graphql
+        mutation Delete($chapterID: ID!) {
+          deleteChapter(id: $chapterID) {
+            id
+          }
+        }
+      `,
+    },
+    {
+      deleting: 'the novel',
+      mutation: `#graphql
+        mutation Delete($novelID: ID!) {
+          deleteNovel(id: $novelID) {
+            id
+          }
+        }
+      `,
+    },
+  ])(
+    'should remove the audio from the bucket when $deleting is deleted',
+    async ({ mutation }) => {
+      const writer =
+        await AuthorizationFixture.getWriterAuthorizationHeader({
+          fresh: true,
+        });
+      const novel = await graphql(
+        `
+          #graphql
+          mutation CreateNovel($input: CreateNovelInput!) {
+            createNovel(input: $input) {
+              id
+            }
+          }
+        `,
+        {
+          input: {
+            name: 'The Lantern Keeper',
+            description:
+              'A lighthouse keeper finds a door in the fog.',
+          },
+        },
+        writer,
+      );
+      const novelID = novel.data.createNovel.id;
+      const chapter = await graphql(
+        `
+          #graphql
+          mutation CreateChapter(
+            $novelID: ID!
+            $input: CreateChapterInput!
+          ) {
+            createChapter(novelID: $novelID, input: $input) {
+              id
+            }
+          }
+        `,
+        {
+          novelID,
+          input: {
+            title: 'One',
+            content: `The door was there. ${randomUUID()}`,
+          },
+        },
+        writer,
+      );
+      const chapterID = chapter.data.createChapter.id;
+      const narrationURL = await fixture.waitFor(novelID, chapterID);
+      const before = await fetch(narrationURL);
+
+      const deleted = await graphql(
+        mutation,
+        { novelID, chapterID },
+        writer,
+      );
+
+      const after = await fetch(narrationURL);
+      expect(deleted.errors).toBeUndefined();
+      expect(before.status).toBe(200);
+      expect(after.status).toBe(404);
+    },
+    320_000,
+  );
+
   it('should return error for non-existent chapter', async () => {
     const authorizationHeader =
       await AuthorizationFixture.getWriterAuthorizationHeader();
@@ -303,8 +353,8 @@ describe('Chapter Narration (e2e)', () => {
           const unsubscribe = client.subscribe(
             {
               query: `#graphql
-                subscription ChapterNarrationUpdated($chapterId: ID!) {
-                  chapterNarrationUpdated(chapterId: $chapterId) {
+                subscription ChapterNarrationUpdated($chapterID: ID!) {
+                  chapterNarrationUpdated(chapterID: $chapterID) {
                     status
                     narrationURL
                     error
@@ -312,7 +362,7 @@ describe('Chapter Narration (e2e)', () => {
                 }
               `,
               variables: {
-                chapterId: CHAPTER_THREE_ID,
+                chapterID: CHAPTER_THREE_ID,
               },
             },
             {

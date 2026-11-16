@@ -14,6 +14,7 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/entx"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/license"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/narration"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/objectstorage"
 )
 
@@ -31,11 +32,12 @@ type Service struct {
 	estimator      RowEstimator
 	licenseService *license.Service
 	storage        *objectstorage.Client
+	narration      *narration.Service
 	logger         *slog.Logger
 }
 
-func NewService(client *ent.Client, estimator RowEstimator, licenseService *license.Service, storage *objectstorage.Client, logger *slog.Logger) *Service {
-	return &Service{client: client, repo: newRepository(client), estimator: estimator, licenseService: licenseService, storage: storage, logger: logger}
+func NewService(client *ent.Client, estimator RowEstimator, licenseService *license.Service, storage *objectstorage.Client, narrationService *narration.Service, logger *slog.Logger) *Service {
+	return &Service{client: client, repo: newRepository(client), estimator: estimator, licenseService: licenseService, storage: storage, narration: narrationService, logger: logger}
 }
 
 // Get returns a novel, or the not found error.
@@ -139,7 +141,7 @@ func (s *Service) chosenLicense(ctx context.Context, viewer auth.Viewer, id uuid
 	return &chosen.ID, nil
 }
 
-// Deleted is what Delete leaves behind outside the database. The cover is removed from the bucket by Delete itself; the narration audio is the caller's until step 8c.
+// Deleted is what Delete leaves behind outside the database. Delete removes the narration audio from the bucket inside its transaction, and the cover after it commits.
 type Deleted struct {
 	CoverURL      *string
 	NarrationURLs []string
@@ -161,14 +163,21 @@ func (s *Service) Delete(ctx context.Context, viewer auth.Viewer, id uuid.UUID) 
 		}
 		deleted = leftBehind(found, chapters)
 
-		return repo.deleteNovel(ctx, id, contentIDs(chapters))
-	})
+		if err = repo.deleteNovel(ctx, id, contentIDs(chapters)); err != nil {
+			return err
+		}
 
-	if err == nil && deleted.CoverURL != nil {
+		// Last, so the rows are only committed once the audio is gone; a failure here rolls the delete back and the writer can try again.
+		return s.narration.RemoveAudio(ctx, deleted.NarrationURLs...)
+	})
+	if err != nil {
+		return deleted, err
+	}
+	if deleted.CoverURL != nil {
 		s.removeObject(ctx, *deleted.CoverURL)
 	}
 
-	return deleted, err
+	return deleted, nil
 }
 
 func leftBehind(found *ent.Novel, chapters []*ent.Chapter) Deleted {

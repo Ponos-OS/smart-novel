@@ -151,3 +151,37 @@ extend type Mutation {
     id: ID!
   ): ChapterNarrationResponse! @hasRole(role: writer)
 }
+
+type ChapterNarrationEvent {
+  """
+  Updated status of the narration
+  """
+  status: NarrationStatus!
+
+  """
+  Public URL of the narration audio file, once the status is READY
+  """
+  narrationURL: String
+
+  """
+  Why the narration failed, when the status is FAILED
+  """
+  error: String
+
+  """
+  Beatrice's own word for how far the job is (queued, generating, uploading), while the status is PROCESSING
+  """
+  stage: String
+}
+
+extend type Subscription {
+  """
+  Receive real-time updates when the narration of a chapter changes. Open to everyone, as it was before; an update carries no more than the chapter's public audio address.
+  """
+  chapterNarrationUpdated(
+    """
+    The ID of the chapter
+    """
+    chapterID: ID!
+  ): ChapterNarrationEvent! @public
+}

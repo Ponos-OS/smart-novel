@@ -75,6 +75,9 @@ models:
   ChapterNarrationResponse:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/internal/narration.Response
+  ChapterNarrationEvent:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/narration.Event
   WordExplanation:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/internal/llm.Explanation

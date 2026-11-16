@@ -4,10 +4,10 @@ import Redis from 'ioredis';
 import { randomUUID } from 'node:crypto';
 import { WebSocket } from 'ws';
 
-import { AuthorizationFixture } from '../support';
+import { AuthorizationFixture, holdNarrationLock } from '../support';
 
 /** @description Must match `StatusChannel` in apps/backend/internal/ttscallbacks/handlers.go */
-const TTS_STATUS_CHANNEL = 'tts-audio:status';
+const TTS_EVENTS_CHANNEL = 'chapter-narration:events';
 
 async function getContentUpdatedAt(
   novelId: string,
@@ -108,22 +108,22 @@ describe('Beatrice callbacks (e2e)', () => {
       await redisSubscriber.quit();
     });
 
-    it('should publish a valid payload on the TTS status Redis channel and respond 204', async () => {
+    it('should handle a valid payload, announce it to the replicas and respond 204', async () => {
+      const chapterId = randomUUID();
       const payload = {
         attempt: 1,
-        fileSizeBytes: 4,
-        jobId: '2bce49d6-6592-4ed3-b421-f913b9ecc3bd',
-        status: 'completed',
+        clientContextId: chapterId,
+        jobId: randomUUID(),
+        progress: 2,
+        status: 'generating',
       };
-      // Filter by our own jobId — other tests' real Beatrice jobs publish onto this
-      // same channel concurrently, so "the next message" isn't reliably ours.
       const received = waitForMessage(
         redisSubscriber,
-        TTS_STATUS_CHANNEL,
+        TTS_EVENTS_CHANNEL,
         5000,
-        (message) => JSON.parse(message).jobId === payload.jobId,
+        (message) => JSON.parse(message).ChapterID === chapterId,
       );
-      await redisSubscriber.subscribe(TTS_STATUS_CHANNEL);
+      await redisSubscriber.subscribe(TTS_EVENTS_CHANNEL);
 
       const res = await axios.post(
         '/beatrice-callbacks/status',
@@ -131,7 +131,10 @@ describe('Beatrice callbacks (e2e)', () => {
       );
 
       expect(res.status).toBe(204);
-      expect(JSON.parse(await received)).toEqual(payload);
+      expect(JSON.parse(await received)).toMatchObject({
+        ChapterID: chapterId,
+        Event: { Status: 'PROCESSING', Stage: 'generating' },
+      });
     });
 
     it('should reject a malformed payload with 400 and not publish anything', async () => {
@@ -146,47 +149,16 @@ describe('Beatrice callbacks (e2e)', () => {
   });
 
   describe('Step 2.1: reacting to a "completed" status', () => {
-    // Not used by any other spec's updateContent/generateAudio call — keeps this
-    // test's TTS_STATUS_CHANNEL listening free of unrelated "queued" messages.
+    // Not used by any other spec's updateContent/generateAudio call, so no other narration holds its lock.
     const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829';
     const CHAPTER_TWO_ID = '4769a024-6267-4abc-a412-5ab0241a8d0e';
 
-    let redisSubscriber: Redis;
-
-    beforeAll(() => {
-      const host = process.env.HOST ?? 'localhost';
-      const port = process.env.REDIS_PORT ?? '6379';
-
-      redisSubscriber = new Redis(`redis://${host}:${port}`, {
-        password: process.env.REDIS_PASSWORD,
-      });
-    });
-
-    afterAll(async () => {
-      await redisSubscriber.quit();
-    });
-
-    it('should persist the audio URL onto the chapter once Beatrice reports the job as completed', async () => {
+    it('should keep the audio URL of the chapter once Beatrice reports the job it started as completed', async () => {
       const authorization =
         await AuthorizationFixture.getWriterAuthorizationHeader();
+      const before = await getNarrationUrl(NOVEL_ID, CHAPTER_TWO_ID);
 
-      // Arrange: subscribe before triggering generation so the "queued" message (which carries the real jobId Beatrice assigned) can't be missed. Beatrice picks the job up off RabbitMQ asynchronously, so this can take a few seconds under load — well past the 5s default used by the other test in this file (a direct, synchronous POST /status call). Filter for "queued" specifically — other tests' real Beatrice jobs share this channel too, and a "generating"/"failed" message from one of those arriving in the same window would otherwise be mistaken for ours. The budget here is generous because Beatrice serializes jobs through one worker and a prior test's job may still be in flight, which can delay this one's "queued" message if a prior job is still processing.
-      const queued = waitForMessage(
-        redisSubscriber,
-        TTS_STATUS_CHANNEL,
-        250_000,
-        (message) => {
-          const update = JSON.parse(message);
-
-          return (
-            update.status === 'queued' &&
-            update.clientContextId === CHAPTER_TWO_ID
-          );
-        },
-      );
-      await redisSubscriber.subscribe(TTS_STATUS_CHANNEL);
-
-      // Act: trigger generation (Step 2.0b) via updateContent.
+      // Act: saving the text starts a narration (Step 2.0b); Beatrice reports it to whichever replica its callback reaches.
       const updateRes = await axios.post(
         '/graphql',
         {
@@ -213,31 +185,18 @@ describe('Beatrice callbacks (e2e)', () => {
 
       expect(updateRes.data.errors).toBeUndefined();
 
-      const { jobId } = JSON.parse(await queued) as { jobId: string };
-
-      // Act: simulate Beatrice's "completed" status callback for that job.
-      const statusRes = await axios.post(
-        '/beatrice-callbacks/status',
-        {
-          jobId,
-          status: 'completed',
-          fileSizeBytes: 4,
-          attempt: 1,
-          clientContextId: CHAPTER_TWO_ID,
-        },
-      );
-
-      expect(statusRes.status).toBe(204);
-
-      // Assert: the chapter's narrationURL reflects this specific job. Polling for
-      // this exact substring (rather than any truthy value) matters because
-      // CHAPTER_TWO_ID's narrationURL is also written by the old piper-based flow's
-      // e2e tests elsewhere in the suite — checking for our own job's URL, not just
-      // "is it set", keeps this assertion correct even if those tests interleave.
-      await expectNarrationUrlToContain(
+      // Assert: the chapter gets the address of the audio of the job Beatrice made for it. Beatrice serializes jobs through one worker, so a job of another test may come first.
+      const narrationUrl = await waitForNarrationUrl(
         NOVEL_ID,
         CHAPTER_TWO_ID,
-        `narrations/${jobId}.mp3`,
+        (url) =>
+          url !== before &&
+          /narrations\/[0-9a-f-]{36}\.mp3$/.test(url),
+        250_000,
+      );
+      expect(narrationUrl).toContain('narrations/');
+      expect(await getNarrationStatus(NOVEL_ID, CHAPTER_TWO_ID)).toBe(
+        'READY',
       );
     }, 260_000);
   });
@@ -246,24 +205,7 @@ describe('Beatrice callbacks (e2e)', () => {
     const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829';
     const CHAPTER_TWO_ID = '4769a024-6267-4abc-a412-5ab0241a8d0e';
 
-    let redisSubscriber: Redis;
-
-    beforeAll(() => {
-      const host = process.env.HOST ?? 'localhost';
-      const port = process.env.REDIS_PORT ?? '6379';
-
-      redisSubscriber = new Redis(`redis://${host}:${port}`, {
-        password: process.env.REDIS_PASSWORD,
-      });
-    });
-
-    afterAll(async () => {
-      await redisSubscriber.quit();
-    });
-
     it('should stream generating/uploading/completed progress over the chapterNarrationUpdated subscription, in order', async () => {
-      const authorization =
-        await AuthorizationFixture.getWriterAuthorizationHeader();
       const wsHost = process.env.HOST ?? 'localhost';
       const wsPort = process.env.TRAEFIK_EXPOSED_PORT ?? '8080';
       const client = createClient({
@@ -282,8 +224,8 @@ describe('Beatrice callbacks (e2e)', () => {
         const unsubscribe = client.subscribe(
           {
             query: `#graphql
-                subscription ChapterNarrationUpdated($chapterId: ID!) {
-                  chapterNarrationUpdated(chapterId: $chapterId) {
+                subscription ChapterNarrationUpdated($chapterID: ID!) {
+                  chapterNarrationUpdated(chapterID: $chapterID) {
                     status
                     narrationURL
                     stage
@@ -291,7 +233,7 @@ describe('Beatrice callbacks (e2e)', () => {
                   }
                 }
               `,
-            variables: { chapterId: CHAPTER_TWO_ID },
+            variables: { chapterID: CHAPTER_TWO_ID },
           },
           {
             next: (data: any) => {
@@ -313,54 +255,9 @@ describe('Beatrice callbacks (e2e)', () => {
         // Small delay to ensure the subscription is active before triggering generation.
         await new Promise((resolve) => setTimeout(resolve, 100));
 
-        // Arrange: subscribe to the raw channel too, to learn the real jobId
-        // Beatrice assigns — chapterNarrationUpdated events don't expose jobId
-        // by design, so this is the only way to correlate.
-        // Beatrice serializes jobs through one worker — a prior test's job still
-        // processing can delay this one's "queued" message.
-        const queued = waitForMessage(
-          redisSubscriber,
-          TTS_STATUS_CHANNEL,
-          250_000,
-          (message) => {
-            const update = JSON.parse(message);
-
-            return (
-              update.status === 'queued' &&
-              update.clientContextId === CHAPTER_TWO_ID
-            );
-          },
-        );
-        await redisSubscriber.subscribe(TTS_STATUS_CHANNEL);
-
-        const updateRes = await axios.post(
-          '/graphql',
-          {
-            query: `#graphql
-                mutation UpdateContent($id: ID!, $content: String!, $expectedContentUpdatedAt: Time!) {
-                  updateContent(id: $id, content: $content, expectedContentUpdatedAt: $expectedContentUpdatedAt) {
-                    id
-                  }
-                }
-              `,
-            variables: {
-              id: CHAPTER_TWO_ID,
-              content: '# Chapter 2\n\nStep 2.2 e2e content',
-              expectedContentUpdatedAt: await getContentUpdatedAt(
-                NOVEL_ID,
-                CHAPTER_TWO_ID,
-                authorization,
-              ),
-            },
-          },
-          { headers: { Authorization: authorization } },
-        );
-
-        expect(updateRes.data.errors).toBeUndefined();
-
-        const { jobId } = JSON.parse(await queued) as {
-          jobId: string;
-        };
+        // The lock of the chapter holds the job the backend started; this test is that job's Beatrice, so the job is its own and no job of Beatrice can finish first.
+        const jobId = randomUUID();
+        await holdNarrationLock(CHAPTER_TWO_ID, jobId);
 
         // Act: simulate the rest of Beatrice's progress sequence directly. The raw
         // `stage` string doubles as our own distinctive marker here, same role
@@ -418,6 +315,9 @@ describe('Beatrice callbacks (e2e)', () => {
             ),
         );
 
+        expect(
+          await getNarrationStatus(NOVEL_ID, CHAPTER_TWO_ID),
+        ).toBe('READY');
         expect(generatingIndex).toBeLessThan(uploadingIndex);
         expect(uploadingIndex).toBeLessThan(completedIndex);
 
@@ -426,6 +326,51 @@ describe('Beatrice callbacks (e2e)', () => {
         client.dispose();
       }
     }, 260_000);
+  });
+
+  describe('Step 2.3: the status of the narration kept on the chapter', () => {
+    const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829';
+    const CHAPTER_TWO_ID = '4769a024-6267-4abc-a412-5ab0241a8d0e';
+
+    it('should mark the chapter FAILED when the job started for it fails, and ignore the failure of another job', async () => {
+      // Arrange: this test is the Beatrice of a job of its own.
+      const jobId = randomUUID();
+      await holdNarrationLock(CHAPTER_TWO_ID, jobId);
+      const failure = {
+        status: 'failed',
+        failedAt: new Date().toISOString(),
+        clientContextId: CHAPTER_TWO_ID,
+        error: {
+          code: 'TTS_PROVIDER_ERROR',
+          message: 'quota exceeded',
+        },
+      };
+
+      // Act
+      const otherRes = await axios.post(
+        '/beatrice-callbacks/status',
+        {
+          ...failure,
+          jobId: randomUUID(),
+        },
+      );
+      const statusAfterOther = await getNarrationStatus(
+        NOVEL_ID,
+        CHAPTER_TWO_ID,
+      );
+      const ownRes = await axios.post('/beatrice-callbacks/status', {
+        ...failure,
+        jobId,
+      });
+
+      // Assert
+      expect(otherRes.status).toBe(204);
+      expect(statusAfterOther).not.toBe('FAILED');
+      expect(ownRes.status).toBe(204);
+      expect(await getNarrationStatus(NOVEL_ID, CHAPTER_TWO_ID)).toBe(
+        'FAILED',
+      );
+    });
   });
 
   describe('Step 2: dropping a stale out-of-order status callback', () => {
@@ -444,7 +389,7 @@ describe('Beatrice callbacks (e2e)', () => {
       // A synthetic jobId is enough here — this exercises the ordering guard in
       // `ChapterNarrationService.handleStatusUpdate` directly via REST, without needing a
       // real Beatrice job in flight.
-      const jobId = '505fa613-318c-43c4-9d5f-64927757087d';
+      const jobId = randomUUID();
 
       const events: Array<{ status: string; stage: string | null }> =
         [];
@@ -453,14 +398,14 @@ describe('Beatrice callbacks (e2e)', () => {
         const unsubscribe = client.subscribe(
           {
             query: `#graphql
-                subscription ChapterNarrationUpdated($chapterId: ID!) {
-                  chapterNarrationUpdated(chapterId: $chapterId) {
+                subscription ChapterNarrationUpdated($chapterID: ID!) {
+                  chapterNarrationUpdated(chapterID: $chapterID) {
                     status
                     stage
                   }
                 }
               `,
-            variables: { chapterId: CHAPTER_TWO_ID },
+            variables: { chapterID: CHAPTER_TWO_ID },
           },
           {
             next: (data: any) => {
@@ -530,42 +475,69 @@ describe('Beatrice callbacks (e2e)', () => {
   });
 });
 
-/**
- * @description Polls the chapter's `narrationURL` until it contains `expectedSubstring`,
- * or throws after 10s.
- */
-async function expectNarrationUrlToContain(
+async function getNarrationUrl(
   novelId: string,
   chapterId: string,
-  expectedSubstring: string,
-): Promise<void> {
-  const maxAttempts = 40;
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const res = await axios.post('/graphql', {
-      query: `#graphql
-        query GetChapter($novelId: ID!, $chapterId: ID!) {
-          novel(id: $novelId) {
-            chapter(id: $chapterId) {
-              narrationURL
-            }
+): Promise<string | null> {
+  const res = await axios.post('/graphql', {
+    query: `#graphql
+      query GetChapter($novelId: ID!, $chapterId: ID!) {
+        novel(id: $novelId) {
+          chapter(id: $chapterId) {
+            narrationURL
           }
         }
-      `,
-      variables: { novelId, chapterId },
-    });
+      }
+    `,
+    variables: { novelId, chapterId },
+  });
 
-    const narrationURL = res.data.data.novel.chapter.narrationURL;
+  return res.data.data.novel.chapter.narrationURL;
+}
 
-    if (narrationURL?.includes(expectedSubstring)) {
-      return;
+async function getNarrationStatus(
+  novelId: string,
+  chapterId: string,
+): Promise<string | null> {
+  const res = await axios.post('/graphql', {
+    query: `#graphql
+      query GetChapter($novelId: ID!, $chapterId: ID!) {
+        novel(id: $novelId) {
+          chapter(id: $chapterId) {
+            narrationStatus
+          }
+        }
+      }
+    `,
+    variables: { novelId, chapterId },
+  });
+
+  return res.data.data.novel.chapter.narrationStatus;
+}
+
+/**
+ * @description Polls the chapter's `narrationURL` until `accept` takes it, and returns it, or throws after `timeoutMs`.
+ */
+async function waitForNarrationUrl(
+  novelId: string,
+  chapterId: string,
+  accept: (url: string) => boolean,
+  timeoutMs = 10_000,
+): Promise<string> {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const narrationURL = await getNarrationUrl(novelId, chapterId);
+
+    if (narrationURL && accept(narrationURL)) {
+      return narrationURL;
     }
 
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
 
   throw new Error(
-    `narrationURL never contained "${expectedSubstring}" within 10s`,
+    `narrationURL of ${chapterId} was never one that was waited for within ${timeoutMs}ms`,
   );
 }
 

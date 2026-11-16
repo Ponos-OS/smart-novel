@@ -66,3 +66,25 @@ run "secrets_stay_out_of_the_pod_spec" {
     error_message = "the database URL carries a password and must come from the secret"
   }
 }
+
+run "runs_three_pods_unless_told_otherwise" {
+  command = plan
+
+  assert {
+    condition     = kubernetes_deployment_v1.backend[0].spec[0].replicas == "3"
+    error_message = "the backend runs 3 pods by default, so replication problems show up locally"
+  }
+}
+
+run "an_environment_may_ask_for_fewer_pods" {
+  command = plan
+
+  variables {
+    replicas = 1
+  }
+
+  assert {
+    condition     = kubernetes_deployment_v1.backend[0].spec[0].replicas == "1"
+    error_message = "the given number of pods must run"
+  }
+}

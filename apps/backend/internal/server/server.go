@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -13,6 +14,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
+	coderws "github.com/coder/websocket"
 	"github.com/rs/cors"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/trace"
@@ -26,6 +28,7 @@ const (
 	graphqlPath      = "/graphql"
 	shutdownTimeout  = 15 * time.Second
 	readHeaderTimout = 10 * time.Second
+	websocketPing    = 10 * time.Second
 )
 
 type Options struct {
@@ -45,10 +48,9 @@ func New(options Options) http.Handler {
 	for pattern, route := range options.Routes {
 		mux.Handle(pattern, route)
 	}
-	mux.Handle("POST "+graphqlPath, graphqlHandler(options))
-	if options.Config.App.Env != config.EnvProduction {
-		mux.Handle("GET "+graphqlPath, playground.Handler("smart-novel", graphqlPath))
-	}
+	graphqlOverHTTP := graphqlHandler(options)
+	mux.Handle("POST "+graphqlPath, graphqlOverHTTP)
+	mux.Handle("GET "+graphqlPath, upgradedOr(graphqlOverHTTP, playgroundHandler(options.Config)))
 
 	allowed := cors.New(cors.Options{
 		AllowedOrigins:   options.Config.App.CORSAllowedOrigins,
@@ -75,9 +77,51 @@ func New(options Options) http.Handler {
 	return withSpanName(traced)
 }
 
+// playgroundHandler is the page for a browser outside production, and what a GET gets in production: nothing, as before subscriptions.
+func playgroundHandler(cfg config.Config) http.Handler {
+	if cfg.App.Env != config.EnvProduction {
+		return playground.Handler("smart-novel", graphqlPath)
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Allow", http.MethodPost)
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	})
+}
+
+// upgradedOr gives the websocket handshakes of subscriptions to socket and every other GET to other.
+func upgradedOr(socket, other http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Upgrade") != "" {
+			socket.ServeHTTP(w, r)
+
+			return
+		}
+		other.ServeHTTP(w, r)
+	})
+}
+
+// originHosts are the hosts a browser may open a websocket from: the ones that may call the API.
+func originHosts(origins []string) []string {
+	hosts := make([]string, 0, len(origins))
+	for _, origin := range origins {
+		if parsed, err := url.Parse(origin); err == nil && parsed.Host != "" {
+			hosts = append(hosts, parsed.Host)
+		}
+	}
+
+	return hosts
+}
+
 func graphqlHandler(options Options) http.Handler {
 	srv := handler.New(options.Schema)
 	srv.AddTransport(transport.POST{})
+	srv.AddTransport(transport.Websocket{
+		KeepAlivePingInterval: websocketPing,
+		Implementation: transport.CoderWebsocketImplementation{
+			AcceptOptions: coderws.AcceptOptions{OriginPatterns: originHosts(options.Config.App.CORSAllowedOrigins)},
+		},
+	})
 	srv.SetErrorPresenter(errorPresenter(options.Logger))
 	srv.Use(operationSpan{})
 	srv.AroundFields(auth.Guard())

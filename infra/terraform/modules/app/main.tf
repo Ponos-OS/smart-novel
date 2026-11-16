@@ -136,6 +136,7 @@ module "backend" {
   labels             = var.labels
   enabled            = !var.wait_for_zitadel_credentials
   image              = var.images["backend"]
+  replicas           = var.backend_replicas
   port               = var.backend_port
   environment        = local.backend_environment
   secret_environment = local.backend_secret_environment

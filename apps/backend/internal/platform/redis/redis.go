@@ -119,6 +119,42 @@ func (c *Client) Unlock(ctx context.Context, key, token string) error {
 	return unlockScript.Run(ctx, c.client, []string{key}, token).Err()
 }
 
+// SetIfAbsent writes a key unless it is there, and reports whether it did.
+func (c *Client) SetIfAbsent(ctx context.Context, key, value string, ttl time.Duration) (bool, error) {
+	return c.client.SetNX(ctx, key, value, ttl).Result()
+}
+
+// raiseScript sets the key to a number only when it is greater than what the key holds, a missing key counting as 0.
+var raiseScript = goredis.NewScript(`
+local current = tonumber(redis.call("GET", KEYS[1]) or "0")
+if tonumber(ARGV[1]) <= current then
+	return 0
+end
+redis.call("SET", KEYS[1], ARGV[1], "PX", ARGV[2])
+return 1`)
+
+// RaiseTo keeps the greatest number a key was given, for ttl after the last raise, and reports whether value is greater than what was there.
+func (c *Client) RaiseTo(ctx context.Context, key string, value int, ttl time.Duration) (bool, error) {
+	raised, err := raiseScript.Run(ctx, c.client, []string{key}, value, ttl.Milliseconds()).Int()
+
+	return raised == 1, err
+}
+
+// swapScript replaces the value of the key while it still holds the old one, and keeps the expiry the key had.
+var swapScript = goredis.NewScript(`
+if redis.call("GET", KEYS[1]) == ARGV[1] then
+	redis.call("SET", KEYS[1], ARGV[2], "KEEPTTL")
+	return 1
+end
+return 0`)
+
+// Swap replaces the value of a key that still holds old, and reports whether it did; the expiry is kept.
+func (c *Client) Swap(ctx context.Context, key, oldValue, newValue string) (bool, error) {
+	swapped, err := swapScript.Run(ctx, c.client, []string{key}, oldValue, newValue).Int()
+
+	return swapped == 1, err
+}
+
 // Del removes a key and reports whether it was there.
 func (c *Client) Del(ctx context.Context, key string) (bool, error) {
 	removed, err := c.client.Del(ctx, key).Result()

@@ -136,6 +136,7 @@ linters:
             - github.com/vektah/gqlparser
             - entgo.io
             - github.com/rs/cors
+            - github.com/coder/websocket
             - go.opentelemetry.io
             - github.com/redis/go-redis
             - github.com/aws/aws-sdk-go-v2
@@ -169,6 +170,7 @@ linters:
             - github.com/testcontainers/testcontainers-go
             - github.com/go-jose/go-jose
             - github.com/Khan/genqlient
+            - github.com/coder/websocket
     dupl:
       threshold: 150
     errchkjson:

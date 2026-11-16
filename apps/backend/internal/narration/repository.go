@@ -32,7 +32,12 @@ func (r *repository) text(ctx context.Context, contentID uuid.UUID) (string, err
 	return content.Content, nil
 }
 
-// setNarrationURL does not mind a chapter that was deleted while its audio was made: there is nothing to update then, which is not an error.
-func (r *repository) setNarrationURL(ctx context.Context, id uuid.UUID, url string) error {
-	return r.client.Chapter.Update().Where(chapter.ID(id)).SetNarrationURL(url).Exec(ctx)
+// setStatus does not mind a chapter that was deleted while its audio was made: there is nothing to update then, which is not an error.
+func (r *repository) setStatus(ctx context.Context, id uuid.UUID, status chapter.NarrationStatus) error {
+	return r.client.Chapter.Update().Where(chapter.ID(id)).SetNarrationStatus(status).Exec(ctx)
+}
+
+// setReady keeps the audio and the status together, so a chapter is never READY without its address.
+func (r *repository) setReady(ctx context.Context, id uuid.UUID, url string) error {
+	return r.client.Chapter.Update().Where(chapter.ID(id)).SetNarrationStatus(chapter.NarrationStatusREADY).SetNarrationURL(url).Exec(ctx)
 }

@@ -2,6 +2,7 @@
 package ttscallbacks
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,12 +15,9 @@ import (
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/objectstorage"
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/redis"
 )
 
 const (
-	// StatusChannel is the Redis channel every replica hears the status updates on, whichever replica Beatrice called.
-	StatusChannel = "tts-audio:status"
 	// AudioKeyPrefix is where the audio of a job is stored: narrations/<jobId>.mp3.
 	AudioKeyPrefix = "narrations"
 
@@ -94,8 +92,8 @@ type UpdateError struct {
 	Message string `json:"message"`
 }
 
-// Status answers Beatrice's statusCallbackUrl: a valid update is published on StatusChannel for every replica to hear, and nothing is answered but 204.
-func Status(cache *redis.Client, logger *slog.Logger) http.Handler {
+// Status answers Beatrice's statusCallbackUrl: a valid update is handled by the replica Beatrice called, and nothing is answered but 204. Handling that fails answers 500, so Beatrice may send the update again.
+func Status(handle func(ctx context.Context, update Update) error, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxBodyBytes))
 		if err != nil {
@@ -110,13 +108,9 @@ func Status(cache *redis.Client, logger *slog.Logger) http.Handler {
 			return
 		}
 		logger.InfoContext(r.Context(), "status callback of Beatrice", slog.String(logKeyStatus, update.Status), slog.String(logKeyJobID, update.JobID))
-		published, err := json.Marshal(update)
-		if err == nil {
-			err = cache.Publish(r.Context(), StatusChannel, string(published))
-		}
-		if err != nil {
-			logger.ErrorContext(r.Context(), "publishing a status update of Beatrice", slog.String(logKeyJobID, update.JobID), slog.Any(logKeyError, err))
-			refuse(w, http.StatusInternalServerError, "Could not publish the status update")
+		if err = handle(r.Context(), update); err != nil {
+			logger.ErrorContext(r.Context(), "handling a status update of Beatrice", slog.String(logKeyJobID, update.JobID), slog.Any(logKeyError, err))
+			refuse(w, http.StatusInternalServerError, "Could not handle the status update")
 
 			return
 		}

@@ -20,6 +20,17 @@ variable "image" {
   type        = string
 }
 
+variable "replicas" {
+  description = "How many pods run the backend. Local development runs several, so what breaks under replication shows up there; an environment that wants fewer sets it"
+  type        = number
+  default     = 3
+
+  validation {
+    condition     = var.replicas >= 1
+    error_message = "replicas must be at least 1"
+  }
+}
+
 variable "port" {
   description = "Port the backend listens on"
   type        = number

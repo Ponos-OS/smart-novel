@@ -70,6 +70,7 @@ module "app" {
   fithara_llm_timeout_ms = var.fithara_llm_timeout_ms
 
   wait_for_zitadel_credentials = false
+  backend_replicas             = 1
   backend_environment          = local.backend_environment
   backend_secret_environment   = local.backend_secret_environment
   frontend_environment         = local.frontend_environment

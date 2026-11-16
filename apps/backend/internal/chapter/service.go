@@ -120,7 +120,7 @@ func (s *Service) UpdateMetadata(ctx context.Context, viewer auth.Viewer, id uui
 	return s.repo.updateTitle(ctx, id, input.Title)
 }
 
-// Deleted is what Delete leaves behind for the caller to clean up outside the database.
+// Deleted describes the chapter Delete removed, with the narration audio it removed from the bucket in the same transaction.
 type Deleted struct {
 	ID           uuid.UUID
 	NovelID      uuid.UUID
@@ -140,8 +140,12 @@ func (s *Service) Delete(ctx context.Context, viewer auth.Viewer, id uuid.UUID) 
 			return err
 		}
 		deleted = Deleted{ID: doomed.ID, NovelID: doomed.NovelID, NarrationURL: doomed.NarrationURL}
+		if doomed.NarrationURL == nil {
+			return nil
+		}
 
-		return nil
+		// Last, so the rows are only committed once the audio is gone; a failure here rolls the delete back and the writer can try again.
+		return s.narration.RemoveAudio(ctx, *doomed.NarrationURL)
 	})
 
 	return deleted, err
