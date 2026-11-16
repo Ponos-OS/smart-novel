@@ -32,7 +32,7 @@ done
 # Both environments own host port 8080, so the e2e environment cannot start next to a running one. Exit code 3 tells callers nothing was started, so they must not tear anything down.
 if [ "$mode" = e2e ] && kind get clusters 2> /dev/null | grep -qx "$cluster_name"; then
   echo "Error: the kind cluster '$cluster_name' already exists, either the dev environment or an interrupted e2e run." >&2
-  echo "Both use host port 8080. Run 'npm run stop:dev' first." >&2
+  echo "Both use host port 8080. Run 'task dev:stop' first." >&2
   exit 3
 fi
 

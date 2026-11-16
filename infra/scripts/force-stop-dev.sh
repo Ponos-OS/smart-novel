@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stops the local stack when `npm run stop:dev` cannot: kills what holds the Terraform
+# Stops the local stack when `task dev:stop` cannot: kills what holds the Terraform
 # state lock, deletes the kind cluster directly and forgets the throwaway state.
 # Run it from anywhere: `bash infra/scripts/force-stop-dev.sh`
 
@@ -33,4 +33,4 @@ if pgrep -af "terraform" >/dev/null; then
 fi
 
 echo "Clusters left: $(kind get clusters 2>&1 | tr '\n' ' ')"
-echo "Done. Start again with: npm run start:dev"
+echo "Done. Start again with: task dev:start"

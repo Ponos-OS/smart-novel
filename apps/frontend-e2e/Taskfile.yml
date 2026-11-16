@@ -8,7 +8,7 @@ tasks:
       - node apps/frontend-e2e/src/support/run-frontend-e2e.mjs apps/frontend-e2e
 
   open:
-    desc: Cypress UI against a running `npm run start:dev`
+    desc: Cypress UI against a running `task dev:start`
     dir: "{{.ROOT_DIR}}"
     cmds:
       - npx cypress open --project apps/frontend-e2e

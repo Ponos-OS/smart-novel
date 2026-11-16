@@ -51,18 +51,7 @@
     "node": "v24.13.0"
   },
   "scripts": {
-    "start:dev": "sh infra/scripts/start-dev.sh",
-    "stop:dev": "sh infra/scripts/stop-dev.sh",
-    "force:stop:dev": "sh infra/scripts/force-stop-dev.sh",
-    "prepare": "lefthook install || true",
-    "format": "task format",
-    "format:check": "prettier . --check -u",
-    "lint": "task lint",
-    "lint:check": "task lint:check",
-    "cypress:open": "task frontend-e2e:open",
-    "clean": "task clean",
-    "docs:structure": "python3 scripts/update_project_structure.py",
-    "init": "npm ci && cp --update=none .env.example .env || true"
+    "prepare": "lefthook install || true"
   },
   "private": true,
   "devDependencies": {

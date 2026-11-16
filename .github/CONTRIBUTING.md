@@ -1,6 +1,6 @@
 ## 🚀 Quick Start
 
-Prerequisites are Docker, Terraform, Go, [Task](https://taskfile.dev/installation) and the [`kind` CLI](https://kind.sigs.k8s.io/docs/user/quick-start). Learn more about kind cluster here [`infra/README.md`](../infra/README.md). If you need DevTools such as RedisInsight or pgAdmin, put this in `infra/terraform/local/1-app/terraform.tfvars` (git-ignored) and run `npm run start:dev` again:
+Prerequisites are Docker, Terraform, Go, [Task](https://taskfile.dev/installation) and the [`kind` CLI](https://kind.sigs.k8s.io/docs/user/quick-start). Learn more about kind cluster here [`infra/README.md`](../infra/README.md). If you need DevTools such as RedisInsight or pgAdmin, put this in `infra/terraform/local/1-app/terraform.tfvars` (git-ignored) and run `task dev:start` again:
 
 ```hcl
 enable_devtools = true
@@ -8,7 +8,7 @@ enable_devtools = true
 
 Beatrice talks to an OpenAI-compatible LLM and an OpenAI-compatible speech endpoint; Fithara (the license assistant) talks to the same kind of LLM endpoint with its own model, one that the `llmcapa` model catalog knows.
 
-- `npm run start:dev` sends the requests to the real provider you set in `.env`. Every call costs money.
+- `task dev:start` sends the requests to the real provider you set in `.env`. Every call costs money.
 - `task backend-e2e:run` and `task frontend-e2e:run` deploy WireMock (`infra/terraform/local/1-app/mocks/openai`) and point Beatrice and Fithara at it, whatever `.env` says, so the tests are free, fast and deterministic. To change an answer, edit the stub there.
 
 ```bash
@@ -24,18 +24,18 @@ BEATRICE_TTS_VOICES=alloy,nova
 FITHARA_LLM_API_KEY=sk-...
 ```
 
-`BEATRICE_DEFAULT_VOICE` must be one of `BEATRICE_TTS_VOICES`. Without `BEATRICE_LLM_BASE_URL` and `BEATRICE_TTS_BASE_URL`, `npm run start:dev` skips Beatrice and RabbitMQ.
+`BEATRICE_DEFAULT_VOICE` must be one of `BEATRICE_TTS_VOICES`. Without `BEATRICE_LLM_BASE_URL` and `BEATRICE_TTS_BASE_URL`, `task dev:start` skips Beatrice and RabbitMQ.
 
 ```bash
 npm ci
-npm run start:dev
+task dev:start
 ```
 
 ## Where to Change Things (Infrastructure)
 
 - A new component (a database, a worker, a tool): add `infra/terraform/modules/<component>` with only the inputs it needs and a `.tftest.hcl`, then call it from `infra/terraform/modules/app`. A module that serves HTTP contributes its ingress routes (`name`, `path`, `service_name`, `service_port`) through a `routes` output, and `modules/app` puts them in its `Ingress`. What a shared cluster would provide (ingress controller, ZITADEL server, observability) is called only from `local/1-app`.
 - A new variable in a module: give it a default that suits local development, and set it in an environment only if that one differs.
-- A change to ZITADEL itself (a role, an application, a user, a policy): `infra/terraform/modules/zitadel_config`, with the local values in `infra/terraform/local/2-zitadel-config/main.tf`. `npm run start:dev` applies it between the cluster and the workloads. What the workloads need from it (client ID, PAT) reaches them as environment settings from `local/1-app`.
+- A change to ZITADEL itself (a role, an application, a user, a policy): `infra/terraform/modules/zitadel_config`, with the local values in `infra/terraform/local/2-zitadel-config/main.tf`. `task dev:start` applies it between the cluster and the workloads. What the workloads need from it (client ID, PAT) reaches them as environment settings from `local/1-app`.
 - A new application setting (`.env` key): add it to `.env.example`. `local/1-app` hands the whole `.env` to the backend, the `VITE_` keys to the frontend, and keys that look like secrets (`PASSWORD`, `SECRET`, `MASTERKEY`, `ACCESS_KEY`) go to a Secret. Values that depend on a deployed component are filled in by `modules/app`.
 - Anything specific to one environment (hot reload, host ports, devtools, which images run): `infra/terraform/<environment>`, passed to `module "app"` as generic inputs. Modules must be identical in every environment, so they never mention `dev`, `local` or `kind`.
 - An external service instead of an in-cluster one: set the matching `*_url` input of `module "app"`.
@@ -169,8 +169,8 @@ task backend-e2e:run
 #### Run E2E Tests Locally
 
 ```bash
-npm run start:dev
+task dev:start
 npx cypress open --project apps/frontend-e2e
 ```
 
-`task backend-e2e:run` and `task frontend-e2e:run` start their own cluster with the production images (`infra/scripts/start-dev.sh e2e`) and tear it down afterwards. They cannot run next to `npm run start:dev` (both use host port 8080), so run `npm run stop:dev` first.
+`task backend-e2e:run` and `task frontend-e2e:run` start their own cluster with the production images (`infra/scripts/start-dev.sh e2e`) and tear it down afterwards. They cannot run next to `task dev:start` (both use host port 8080), so run `task dev:stop` first.

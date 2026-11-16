@@ -64,3 +64,35 @@ tasks:
         dist coverage Diffs.txt local-setup/client local-setup/logs
         local-setup/pats local-setup/user-ids .task
       - git clean -fdXq apps/backend
+
+  format:check:
+    desc: Check the formatting of the repository
+    cmds:
+      - npx prettier . --check -u
+
+  init:
+    desc: Install the dependencies and seed .env from .env.example
+    cmds:
+      - npm ci
+      - cmd: cp --update=none .env.example .env
+        ignore_error: true
+
+  dev:start:
+    desc: Build the images, create the kind cluster and apply the three Terraform stages
+    cmds:
+      - sh infra/scripts/start-dev.sh
+
+  dev:stop:
+    desc: Destroy the cluster and forget the state of the ZITADEL configuration
+    cmds:
+      - sh infra/scripts/stop-dev.sh
+
+  dev:force-stop:
+    desc: Stop the local stack when dev:stop cannot
+    cmds:
+      - sh infra/scripts/force-stop-dev.sh
+
+  docs:structure:
+    desc: Regenerate the project structure in .github/README.md
+    cmds:
+      - python3 scripts/update_project_structure.py

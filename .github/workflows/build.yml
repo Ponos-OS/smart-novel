@@ -188,14 +188,14 @@ jobs:
         run: cp .env.example .env
 
       - name: Lint
-        run: npm run lint:check
+        run: task lint:check
 
       - name: Check formatting
-        run: npm run format:check
+        run: task format:check
 
       - name: Project structure has not drifted away
         run: |
-          npm run docs:structure
+          task docs:structure
           git diff --exit-code .github/README.md
 
   test:

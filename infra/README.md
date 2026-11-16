@@ -38,8 +38,8 @@ Each component is its own module under `modules/`. `modules/app` is the app laye
 We need Docker, Terraform and the [`kind` CLI](https://kind.sigs.k8s.io/docs/user/quick-start).
 
 ```bash
-npm run start:dev   # builds the images, creates the cluster, loads the images, applies the three stages
-npm run stop:dev    # destroys the cluster and forgets the state of the ZITADEL configuration
+task dev:start   # builds the images, creates the cluster, loads the images, applies the three stages
+task dev:stop    # destroys the cluster and forgets the state of the ZITADEL configuration
 ```
 
 Both are safe to run twice. The app is served on `http://localhost:8080`. The kubeconfig is written to `infra/terraform/local/1-app/smart-novel-config`:
@@ -48,7 +48,7 @@ Both are safe to run twice. The app is served on `http://localhost:8080`. The ku
 kubectl --kubeconfig infra/terraform/local/1-app/smart-novel-config -n smart-novel get all
 ```
 
-Code changes need no rebuild: `local/1-app` mounts `apps/` into the kind node and feeds it to `module "app"` as volumes (see Backend and Frontend). Rebuild only when dependencies change, by running `start:dev` again.
+Code changes need no rebuild: `local/1-app` mounts `apps/` into the kind node and feeds it to `module "app"` as volumes (see Backend and Frontend). Rebuild only when dependencies change, by running `task dev:start` again.
 
 ## Hetzner Access
 
@@ -157,13 +157,13 @@ Everything specific to hot reload lives in `local/1-app/main.tf`: the developmen
 
 Each tool is deployed only when the service it inspects runs in the cluster (an external `database_url` or `redis_url` skips pgAdmin or RedisInsight). Nothing outside `modules/devtools` refers to it, so a deployed environment leaves the module call out, or keeps `enable_devtools` false.
 
-`stop:dev` falls back to deleting the kind cluster when Terraform can no longer reach it, for example right after the cluster definition changed.
+`task dev:stop` falls back to deleting the kind cluster when Terraform can no longer reach it, for example right after the cluster definition changed.
 
 ## End-to-End Tests
 
 `task backend-e2e:run` and `task frontend-e2e:run` run `infra/scripts/start-dev.sh e2e`, which builds the production backend and frontend images (the init Job still uses the development image and the mounted sources), applies `local/1-app` with `mode = e2e`, `enable_devtools = false` and `mock_ai_providers = true`, and tears everything down with `stop-dev.sh` afterwards. Redis is exposed on `localhost:6379` because the backend suites subscribe to it directly. `backend-e2e` reads the project ID, the user IDs and the integration-test bot's key and client from `terraform output -json` of `local/2-zitadel-config`, so nothing is copied out of the cluster or written to the host.
 
-The dev and e2e environments both use the cluster name `smart-novel` and host port 8080, so they cannot run together: `start-dev.sh e2e` exits with code 3 and an instruction to run `npm run stop:dev` first when the cluster exists, and the callers then skip their teardown instead of destroying the environment that is running.
+The dev and e2e environments both use the cluster name `smart-novel` and host port 8080, so they cannot run together: `start-dev.sh e2e` exits with code 3 and an instruction to run `task dev:stop` first when the cluster exists, and the callers then skip their teardown instead of destroying the environment that is running.
 
 ## Hetzner
 
