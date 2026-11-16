@@ -133,7 +133,7 @@ describe('Beatrice callbacks (e2e)', () => {
       expect(res.status).toBe(204);
       expect(JSON.parse(await received)).toMatchObject({
         ChapterID: chapterId,
-        Event: { Status: 'PROCESSING', Stage: 'generating' },
+        Event: { status: 'PROCESSING', stage: 'generating' },
       });
     });
 
