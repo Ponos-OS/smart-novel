@@ -263,7 +263,7 @@ func TestOnlyTheseMutationsSkipTheTermsOfServiceCheck(t *testing.T) {
 	}
 
 	slices.Sort(skipping)
-	want := []string{"acceptPlatformTerms", "deleteReadHistory", "markChaptersRead", "requestWriterAccess"}
+	want := []string{"acceptPlatformTerms", "deleteReadHistory", "explain", "markChaptersRead", "requestWriterAccess"}
 	if !slices.Equal(skipping, want) {
 		t.Errorf("mutations that skip the terms check = %v, want %v: every other mutation needs the terms accepted", skipping, want)
 	}

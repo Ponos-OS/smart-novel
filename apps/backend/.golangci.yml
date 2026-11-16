@@ -140,6 +140,8 @@ linters:
             - github.com/redis/go-redis
             - github.com/aws/aws-sdk-go-v2
             - github.com/aws/smithy-go
+            - github.com/Khan/genqlient
+            - golang.org/x/sync
             - github.com/robfig/cron
             - github.com/google/uuid
             - github.com/jackc/pgx

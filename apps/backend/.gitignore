@@ -11,3 +11,6 @@
 !/internal/graph/model/doc.go
 /internal/fithara/client.gen.go
 /internal/fithara/openapi.json
+/internal/beatrice/schema.graphql
+/internal/beatrice/schema.version
+/internal/beatrice/generated.go

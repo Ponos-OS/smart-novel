@@ -1,0 +1,40 @@
+type WordExplanation {
+  """
+  List of antonyms or opposite terms for the word
+  """
+  antonyms: [String!]!
+
+  """
+  The meaning of the word
+  """
+  meaning: String!
+
+  """
+  A simplified explanation of the word
+  """
+  simplifiedExplanation: String!
+
+  """
+  List of synonyms or similar terms for the word
+  """
+  synonyms: [String!]!
+
+  """
+  Canonical cache key for client-side micro-caching
+  """
+  cacheKey: String!
+}
+
+extend type Mutation {
+  """
+  Explain a word as it is used in a sentence. Anybody may ask, also somebody who has not accepted the platform terms: it only helps reading. An explanation is kept for a while, so the same question is answered fast. Answers `SERVICE_UNAVAILABLE` when Beatrice cannot be reached.
+  """
+  explain(
+    word: String! @isString @maxLength(max: 100)
+
+    """
+    The sentence the word is in
+    """
+    context: String! @isString(multiline: true) @maxLength(max: 2000)
+  ): WordExplanation! @public @skipTermsOfServiceCheck
+}

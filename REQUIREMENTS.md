@@ -258,7 +258,7 @@ Too large for one pass, so it is split like step 7, each part committed on its o
 
 - **8a:** Redis and the cache of the platform terms acceptance, the stats snapshot runner (with its catch-up at start), the ZITADEL events webhook.
 - **8b:** object storage and the covers (`createNovelCoverUploadURL`, `setNovelCover`, the removal of covers).
-- **8c:** Beatrice (the client and schema fetch of `fetch-beatrice-schema.ts`), RabbitMQ, the TTS callbacks, `generateChapterAudio`, `chapterNarrationUpdated`, the `llm` module (`explainWord`), and the helper that runs a side effect after a committed write without failing the mutation (rule in `CONTRIBUTING.md`; NestJS's `BackgroundRunnerService`, which only 8c needs).
+- **8c:** Beatrice, split again because it is the largest part: **8c-1** the Beatrice client (generated from its schema) and `explain` with its cache; **8c-2** the REST callbacks Beatrice makes (`POST /beatrice-callbacks/gen-upload-url`, which answers a presigned PUT URL for `narrations/<jobId>.mp3` signed for the cluster endpoint, and `POST /beatrice-callbacks/status`; both guarded by the bearer token of the request that started the job, checked for signature and issuer but not for expiry), the narration lock, `generateChapterAudio`, the regeneration after a content save, the helper that runs a side effect after a committed write without failing the mutation (rule in `CONTRIBUTING.md`; NestJS's `BackgroundRunnerService`), and the TTS text preparation; **8c-3** `chapterNarrationUpdated` (a GraphQL subscription over Redis pub/sub) and the removal of narration audio.
 
 ### Step 8a: Redis, snapshots and the ZITADEL webhook
 
@@ -291,9 +291,23 @@ Built as (decisions and deviations):
 - **A race of step 8a, found here:** the ZITADEL webhook and the e2e fixture can both give a new user a role at the same moment; ZITADEL answered `AlreadyExists` to the second and the webhook answered 500. `GrantProjectRoleIfAbsent` takes `AlreadyExists` as done.
 - e2e: `novel-cover` (15, with the new case that a deleted novel loses its cover) and `novel-delete` pass; the whole suite gives 321 passed and 14 failed, all in the specs of 8c (`beatrice-callbacks` 7, `chapter-narration` 6, `llm` 1).
 
-### Step 8c: Beatrice, RabbitMQ and narration
+### Step 8c-1: The Beatrice client and `explain`
 
-Verify: the matching `backend-e2e` specs pass (`beatrice-callbacks`, `chapter-narration`, `llm`); each consumer or runner has a log line proving it started, checked in the pod logs, not only a passing probe.
+`explain(word, context)` (NestJS: the `llm` module) and the client of Beatrice's GraphQL API, which 8c-2 and 8c-3 use too. RabbitMQ is Beatrice's own, the backend does not talk to it.
+
+Verify: the `llm` e2e spec passes; the pod logs show an explanation asked twice, once from Beatrice and once from Redis.
+
+Built as (decisions and deviations):
+
+- **The client is generated** like Fithara's, by the user's rule that a client of another service is never written by hand: `internal/beatrice` has `operations.graphql` (committed; only `ExplainWord` until 8c-2 needs more), `genqlient.yaml`, and the git-ignored `schema.graphql` (downloaded by `task backend:beatrice:schema` from `https://ponos-os.github.io/smart-novel-beatrice/v<BEATRICE_VERSION>/schema.graphql`, and again when `BEATRICE_VERSION` changes, because it writes the version it fetched next to it; NestJS skipped the download when any file was there), `schema.version` and `generated.go`. `genqlient` v0.8.1 is a `tool` in `go.mod`; `task backend:generate` downloads, then generates.
+- **`BEATRICE_URL` is required** (decided by the user; NestJS validated it as required too, so a backend without Beatrice never started). `BEATRICE_TIMEOUT` (default 180s) and `LLM_CACHE_TTL` (default 12h) are Go durations. The infrastructure still deploys Beatrice only when both LLM base URLs are set and then sets `BEATRICE_URL`, so a stack without them stops the backend at start with `BEATRICE_URL is required`; `CONTRIBUTING.md` still says such a stack "skips Beatrice", which is for the user to settle (deploy it always, or fail the plan). The HTTP client carries the trace to Beatrice (`otelhttp.NewTransport`), like Fithara's.
+- **`explain`** is `@public` and `@skipTermsOfServiceCheck` (it only helps reading, and a writer who has not accepted the terms reads too; NestJS never gated it). The `skipTermsOfServiceCheck` list of the guard test has it now. The limits are the user's to confirm: `word` 100 characters, `context` 2000, which NestJS did not have (it only refused an empty text); `cacheKey` is a `String`, not an `ID`.
+- **The cache** is `internal/llm`: the key is the NestJS one (`explain:<word in lower case>:<sha256 of the sentence with spaces collapsed, in lower case>`, a unit test holds the key of the e2e sentence), the value is the JSON of the explanation in Redis for `LLM_CACHE_TTL`, and a miss is answered by one call to Beatrice shared by every request for the same key that runs at the same moment (`singleflight`, per process, as NestJS's map was; it does not stop when the first caller gives up). A Redis that fails is logged and Beatrice answers. A failure of Beatrice is logged and answered `SERVICE_UNAVAILABLE` (NestJS: a bare 500). One log line per explanation says whether it was a cache hit or a shared call. Checked on the stack: the first question took 564 ms from Beatrice, the same question with another case 0 ms from Redis (`cacheHit=true`, key TTL about 43,200 s).
+- e2e: `llm` passes; the whole suite gives 322 passed and 13 failed, all of them in the specs of 8c-2 and 8c-3 (`beatrice-callbacks` 7, `chapter-narration` 6).
+
+### Step 8c-2 and 8c-3
+
+Verify: the matching `backend-e2e` specs pass (`beatrice-callbacks` and `chapter-narration`); each consumer or runner has a log line proving it started, checked in the pod logs, not only a passing probe.
 
 ## Step 9: Frontend against the Go schema
 

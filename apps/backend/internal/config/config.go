@@ -12,6 +12,7 @@ type Config struct {
 	Zitadel  Zitadel
 	Redis    Redis
 	Storage  ObjectStorage
+	Beatrice Beatrice
 	Stats    Stats
 	Fithara  Fithara
 	OTel     OTel
@@ -59,6 +60,15 @@ type ObjectStorage struct {
 	SecretKey string
 }
 
+// Beatrice is the service that explains words and narrates chapters with an LLM.
+type Beatrice struct {
+	// URL is its GraphQL endpoint.
+	URL     string
+	Timeout time.Duration
+	// ExplanationTTL is how long an explanation of a word is kept.
+	ExplanationTTL time.Duration
+}
+
 type Stats struct {
 	// SnapshotSchedule is a five-field cron expression, in UTC.
 	SnapshotSchedule string
@@ -95,7 +105,9 @@ const (
 	defaultFlushInterval = 5 * time.Second
 	defaultExportTimeout = 30 * time.Second
 
-	defaultFitharaTimeout = 60 * time.Second
+	defaultFitharaTimeout  = 60 * time.Second
+	defaultBeatriceTimeout = 180 * time.Second
+	defaultExplanationTTL  = 12 * time.Hour
 
 	LogsExporterOTLP   = "otlp"
 	LogsExporterStdout = "stdout"
@@ -132,6 +144,11 @@ func Load(lookup Lookup) (Config, error) {
 			Password: r.text("REDIS_PASSWORD", ""),
 		},
 		Storage: r.objectStorage(),
+		Beatrice: Beatrice{
+			URL:            r.required("BEATRICE_URL"),
+			Timeout:        r.duration("BEATRICE_TIMEOUT", defaultBeatriceTimeout),
+			ExplanationTTL: r.duration("LLM_CACHE_TTL", defaultExplanationTTL),
+		},
 		Stats: Stats{
 			SnapshotSchedule: r.schedule("STATS_SNAPSHOT_CRON"),
 		},

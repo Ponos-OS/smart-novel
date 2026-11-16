@@ -31,6 +31,7 @@ func environment(overrides map[string]string) config.Lookup {
 		"OBJECT_STORAGE_BUCKET":               "smart-novel",
 		"OBJECT_STORAGE_PUBLIC_URL":           "http://s3.localhost:8080",
 		"STATS_SNAPSHOT_CRON":                 "0 3 * * *",
+		"BEATRICE_URL":                        "http://beatrice:3000/graphql",
 		"FITHARA_URL":                         "http://fithara:8000",
 	}
 	for key, value := range overrides {
@@ -165,6 +166,7 @@ func TestLoadRejectsBadSettings(t *testing.T) {
 		{"missing redis url", map[string]string{"REDIS_URL": ""}, "REDIS_URL is required"},
 		{"missing snapshot schedule", map[string]string{"STATS_SNAPSHOT_CRON": ""}, "STATS_SNAPSHOT_CRON is required"},
 		{"snapshot schedule that is not cron", map[string]string{"STATS_SNAPSHOT_CRON": "every night"}, "STATS_SNAPSHOT_CRON must be a cron expression"},
+		{"missing beatrice url", map[string]string{"BEATRICE_URL": ""}, "BEATRICE_URL is required"},
 		{"missing fithara url", map[string]string{"FITHARA_URL": ""}, "FITHARA_URL is required"},
 		{"fithara timeout without a unit", map[string]string{"FITHARA_TIMEOUT": "60"}, "FITHARA_TIMEOUT must be a positive duration"},
 		{"no origins", map[string]string{"CORS_ALLOWED_ORIGINS": " , "}, "CORS_ALLOWED_ORIGINS is required"},
@@ -198,5 +200,21 @@ func TestLoadReportsEveryMistakeAtOnce(t *testing.T) {
 		if !strings.Contains(err.Error(), key) {
 			t.Errorf("error %q does not mention %s", err, key)
 		}
+	}
+}
+
+func TestLoadAppliesBeatriceDefaults(t *testing.T) {
+	cfg := loadDefaults(t)
+
+	if cfg.Beatrice.URL != "http://beatrice:3000/graphql" || cfg.Beatrice.Timeout != 180*time.Second || cfg.Beatrice.ExplanationTTL != 12*time.Hour {
+		t.Errorf("unexpected Beatrice settings: %+v", cfg.Beatrice)
+	}
+}
+
+func TestLoadReadsBeatrice(t *testing.T) {
+	cfg, err := config.Load(environment(map[string]string{"BEATRICE_URL": "http://beatrice:3000/other", "BEATRICE_TIMEOUT": "90s", "LLM_CACHE_TTL": "1h"}))
+
+	if err != nil || cfg.Beatrice.URL != "http://beatrice:3000/other" || cfg.Beatrice.Timeout != 90*time.Second || cfg.Beatrice.ExplanationTTL != time.Hour {
+		t.Errorf("settings = %+v, err = %v", cfg.Beatrice, err)
 	}
 }

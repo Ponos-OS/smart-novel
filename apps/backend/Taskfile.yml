@@ -9,6 +9,7 @@ tasks:
     desc: Everything generated for the Go backend (ent, gqlgen and the Fithara client)
     cmds:
       - task: fithara:openapi
+      - task: beatrice:schema
       - task: codegen
 
   fithara:openapi:
@@ -20,6 +21,17 @@ tasks:
         msg: FITHARA_VERSION is not set; it comes from .env
     cmds:
       - curl --fail --silent --show-error --location https://ponos-os.github.io/fithara/v{{.FITHARA_VERSION}}/openapi.json --output internal/fithara/openapi.json
+
+  beatrice:schema:
+    desc: Download Beatrice's schema.graphql (pinned by BEATRICE_VERSION) unless that version is already there
+    status:
+      - test "$(cat internal/beatrice/schema.version 2>/dev/null)" = "{{.BEATRICE_VERSION}}"
+    preconditions:
+      - sh: test -n "{{.BEATRICE_VERSION}}"
+        msg: BEATRICE_VERSION is not set; it comes from .env
+    cmds:
+      - curl --fail --silent --show-error --location https://ponos-os.github.io/smart-novel-beatrice/v{{.BEATRICE_VERSION}}/schema.graphql --output internal/beatrice/schema.graphql
+      - echo "{{.BEATRICE_VERSION}}" > internal/beatrice/schema.version
 
   codegen:
     desc: ent, entgql and gqlgen only; the part that also runs in the Go-less-host containers

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/99designs/gqlgen/graphql"
+	genqlient "github.com/Khan/genqlient/graphql"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
@@ -19,6 +20,7 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/fithara"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/license"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/llm"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/novel"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/database"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/logging"
@@ -151,6 +153,7 @@ func newResolver(ctx context.Context, cfg config.Config, db *database.Database, 
 	if err != nil {
 		return nil, err
 	}
+	llmService := llm.NewService(genqlient.NewClient(cfg.Beatrice.URL, &http.Client{Timeout: cfg.Beatrice.Timeout, Transport: otelhttp.NewTransport(http.DefaultTransport)}), cache, cfg.Beatrice.ExplanationTTL, logger)
 	statsService := stats.NewService(db, db.Client, logger)
 	go statsService.KeepSnapshotted(ctx, cfg.Stats.SnapshotSchedule)
 
@@ -162,6 +165,7 @@ func newResolver(ctx context.Context, cfg config.Config, db *database.Database, 
 		LicenseService: licenseService,
 		ChapterService: chapter.NewService(db.Client),
 		StatsService:   statsService,
+		LLMService:     llmService,
 		WriterService:  writer.NewService(db.Client, management),
 		Management:     management,
 		TermsService:   platformterms.NewService(db.Client, terms, cache, logger),
