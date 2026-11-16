@@ -6,3 +6,21 @@ mutation ExplainWord($word: String!, $context: String!) {
     antonyms
   }
 }
+
+mutation GenerateAudio(
+  $text: String!
+  $voice: String!
+  $genUploadUrl: String!
+  $statusCallbackUrl: String!
+  $clientContextId: String
+) {
+  generateAudio(
+    text: $text
+    voice: $voice
+    genUploadUrl: $genUploadUrl
+    statusCallbackUrl: $statusCallbackUrl
+    clientContextId: $clientContextId
+  ) {
+    jobId
+  }
+}

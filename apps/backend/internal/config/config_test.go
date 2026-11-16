@@ -32,6 +32,8 @@ func environment(overrides map[string]string) config.Lookup {
 		"OBJECT_STORAGE_PUBLIC_URL":           "http://s3.localhost:8080",
 		"STATS_SNAPSHOT_CRON":                 "0 3 * * *",
 		"BEATRICE_URL":                        "http://beatrice:3000/graphql",
+		"BEATRICE_DEFAULT_VOICE":              "alloy",
+		"BACKEND_INTERNAL_URL":                "http://backend:3000",
 		"FITHARA_URL":                         "http://fithara:8000",
 	}
 	for key, value := range overrides {
@@ -166,6 +168,8 @@ func TestLoadRejectsBadSettings(t *testing.T) {
 		{"missing redis url", map[string]string{"REDIS_URL": ""}, "REDIS_URL is required"},
 		{"missing snapshot schedule", map[string]string{"STATS_SNAPSHOT_CRON": ""}, "STATS_SNAPSHOT_CRON is required"},
 		{"snapshot schedule that is not cron", map[string]string{"STATS_SNAPSHOT_CRON": "every night"}, "STATS_SNAPSHOT_CRON must be a cron expression"},
+		{"missing default voice", map[string]string{"BEATRICE_DEFAULT_VOICE": ""}, "BEATRICE_DEFAULT_VOICE is required"},
+		{"missing internal url", map[string]string{"BACKEND_INTERNAL_URL": ""}, "BACKEND_INTERNAL_URL is required"},
 		{"missing beatrice url", map[string]string{"BEATRICE_URL": ""}, "BEATRICE_URL is required"},
 		{"missing fithara url", map[string]string{"FITHARA_URL": ""}, "FITHARA_URL is required"},
 		{"fithara timeout without a unit", map[string]string{"FITHARA_TIMEOUT": "60"}, "FITHARA_TIMEOUT must be a positive duration"},

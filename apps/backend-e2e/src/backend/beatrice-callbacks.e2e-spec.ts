@@ -1,11 +1,12 @@
 import axios from 'axios';
 import { createClient } from 'graphql-ws';
 import Redis from 'ioredis';
+import { randomUUID } from 'node:crypto';
 import { WebSocket } from 'ws';
 
 import { AuthorizationFixture } from '../support';
 
-/** @description Must match `TTS_STATUS_CHANNEL` in apps/backend-nest/src/modules/tts-callbacks/constants.ts */
+/** @description Must match `StatusChannel` in apps/backend/internal/ttscallbacks/handlers.go */
 const TTS_STATUS_CHANNEL = 'tts-audio:status';
 
 async function getContentUpdatedAt(
@@ -190,7 +191,7 @@ describe('Beatrice callbacks (e2e)', () => {
         '/graphql',
         {
           query: `#graphql
-              mutation UpdateContent($id: ID!, $content: String!, $expectedContentUpdatedAt: String!) {
+              mutation UpdateContent($id: ID!, $content: String!, $expectedContentUpdatedAt: Time!) {
                 updateContent(id: $id, content: $content, expectedContentUpdatedAt: $expectedContentUpdatedAt) {
                   id
                 }
@@ -198,7 +199,8 @@ describe('Beatrice callbacks (e2e)', () => {
             `,
           variables: {
             id: CHAPTER_TWO_ID,
-            content: '# Chapter 2\n\nStep 2.1 e2e content',
+            // A new text every run: saving the text a chapter has already changes nothing, so no narration would start on a stack that ran this before.
+            content: `# Chapter 2\n\nStep 2.1 e2e content ${randomUUID()}`,
             expectedContentUpdatedAt: await getContentUpdatedAt(
               NOVEL_ID,
               CHAPTER_TWO_ID,
@@ -227,9 +229,9 @@ describe('Beatrice callbacks (e2e)', () => {
 
       expect(statusRes.status).toBe(204);
 
-      // Assert: the chapter's narrationUrl reflects this specific job. Polling for
+      // Assert: the chapter's narrationURL reflects this specific job. Polling for
       // this exact substring (rather than any truthy value) matters because
-      // CHAPTER_TWO_ID's narrationUrl is also written by the old piper-based flow's
+      // CHAPTER_TWO_ID's narrationURL is also written by the old piper-based flow's
       // e2e tests elsewhere in the suite — checking for our own job's URL, not just
       // "is it set", keeps this assertion correct even if those tests interleave.
       await expectNarrationUrlToContain(
@@ -271,7 +273,7 @@ describe('Beatrice callbacks (e2e)', () => {
 
       const events: Array<{
         status: string;
-        narrationUrl: string | null;
+        narrationURL: string | null;
         stage: string | null;
         error: string | null;
       }> = [];
@@ -283,7 +285,7 @@ describe('Beatrice callbacks (e2e)', () => {
                 subscription ChapterNarrationUpdated($chapterId: ID!) {
                   chapterNarrationUpdated(chapterId: $chapterId) {
                     status
-                    narrationUrl
+                    narrationURL
                     stage
                     error
                   }
@@ -335,7 +337,7 @@ describe('Beatrice callbacks (e2e)', () => {
           '/graphql',
           {
             query: `#graphql
-                mutation UpdateContent($id: ID!, $content: String!, $expectedContentUpdatedAt: String!) {
+                mutation UpdateContent($id: ID!, $content: String!, $expectedContentUpdatedAt: Time!) {
                   updateContent(id: $id, content: $content, expectedContentUpdatedAt: $expectedContentUpdatedAt) {
                     id
                   }
@@ -412,7 +414,7 @@ describe('Beatrice callbacks (e2e)', () => {
           (event) =>
             event.status === 'READY' &&
             Boolean(
-              event.narrationUrl?.includes(`narrations/${jobId}.mp3`),
+              event.narrationURL?.includes(`narrations/${jobId}.mp3`),
             ),
         );
 
@@ -529,7 +531,7 @@ describe('Beatrice callbacks (e2e)', () => {
 });
 
 /**
- * @description Polls the chapter's `narrationUrl` until it contains `expectedSubstring`,
+ * @description Polls the chapter's `narrationURL` until it contains `expectedSubstring`,
  * or throws after 10s.
  */
 async function expectNarrationUrlToContain(
@@ -545,7 +547,7 @@ async function expectNarrationUrlToContain(
         query GetChapter($novelId: ID!, $chapterId: ID!) {
           novel(id: $novelId) {
             chapter(id: $chapterId) {
-              narrationUrl
+              narrationURL
             }
           }
         }
@@ -553,9 +555,9 @@ async function expectNarrationUrlToContain(
       variables: { novelId, chapterId },
     });
 
-    const narrationUrl = res.data.data.novel.chapter.narrationUrl;
+    const narrationURL = res.data.data.novel.chapter.narrationURL;
 
-    if (narrationUrl?.includes(expectedSubstring)) {
+    if (narrationURL?.includes(expectedSubstring)) {
       return;
     }
 
@@ -563,7 +565,7 @@ async function expectNarrationUrlToContain(
   }
 
   throw new Error(
-    `narrationUrl never contained "${expectedSubstring}" within 10s`,
+    `narrationURL never contained "${expectedSubstring}" within 10s`,
   );
 }
 

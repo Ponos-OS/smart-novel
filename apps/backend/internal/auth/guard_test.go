@@ -3,6 +3,9 @@ package auth_test
 import (
 	"context"
 	"errors"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -22,11 +25,19 @@ type guardCase struct {
 func (c guardCase) context() context.Context {
 	field := &ast.Field{Name: c.field, Definition: &ast.FieldDefinition{Name: c.field, Directives: c.directives}}
 	ctx := graphql.WithFieldContext(context.Background(), &graphql.FieldContext{Object: c.object, Field: graphql.CollectedField{Field: field}})
-	if c.viewer != nil {
-		ctx = auth.WithViewer(ctx, *c.viewer)
+	if c.viewer == nil {
+		return ctx
 	}
 
-	return ctx
+	var seen context.Context
+	handler := auth.Middleware(&fakeVerifier{viewer: *c.viewer}, slog.New(slog.DiscardHandler))(
+		http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) { seen = r.Context() }),
+	)
+	request := httptest.NewRequestWithContext(ctx, http.MethodPost, "/graphql", nil)
+	request.Header.Set("Authorization", "Bearer eyJhbGciOiJSUzI1NiJ9.e30.sig")
+	handler.ServeHTTP(httptest.NewRecorder(), request)
+
+	return seen
 }
 
 func public() *ast.Directive { return &ast.Directive{Name: "public"} }

@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,7 +13,9 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/background"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/entx"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/narration"
 )
 
 const (
@@ -25,12 +28,14 @@ const (
 
 // Service decides who may change what and in which order; the queries are in the repository.
 type Service struct {
-	client *ent.Client
-	repo   *repository
+	client    *ent.Client
+	repo      *repository
+	narration *narration.Service
+	logger    *slog.Logger
 }
 
-func NewService(client *ent.Client) *Service {
-	return &Service{client: client, repo: newRepository(client)}
+func NewService(client *ent.Client, narrationService *narration.Service, logger *slog.Logger) *Service {
+	return &Service{client: client, repo: newRepository(client), narration: narrationService, logger: logger}
 }
 
 // Create adds a chapter at the end of a novel its owner or an admin owns. The input is already normalized.
@@ -64,8 +69,17 @@ func (s *Service) Create(ctx context.Context, viewer auth.Viewer, novelID uuid.U
 		return nil, err
 	}
 
+	s.narrate(ctx, createdID, input.Content)
+
 	// Read again outside the transaction: an entity from it cannot load its edges once it is committed.
 	return s.repo.chapter(ctx, createdID)
+}
+
+// narrate starts the audio of a chapter whose text was just saved, in the background: the save is committed and the writer should not wait for Beatrice, nor lose the save when it fails.
+func (s *Service) narrate(ctx context.Context, id uuid.UUID, text string) {
+	background.Go(ctx, s.logger, "narrating a chapter", func(ctx context.Context) {
+		s.narration.Regenerate(ctx, id, text)
+	})
 }
 
 // UpdateContent replaces the text of a chapter if nobody else changed it since the client read it at expected.
@@ -88,6 +102,7 @@ func (s *Service) UpdateContent(ctx context.Context, viewer auth.Viewer, id uuid
 	if err = s.repo.updateContent(ctx, current.ID, content, hash(content)); err != nil {
 		return nil, false, err
 	}
+	s.narrate(ctx, id, content)
 
 	return target, true, nil
 }

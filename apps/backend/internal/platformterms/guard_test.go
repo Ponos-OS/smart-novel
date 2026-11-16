@@ -3,6 +3,9 @@ package platformterms_test
 import (
 	"context"
 	"errors"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -23,6 +26,22 @@ func (a *acceptances) HasAcceptedCurrent(context.Context, string) (bool, error) 
 	a.asked++
 
 	return a.accepted, a.err
+}
+
+type verifiedAs struct{ viewer auth.Viewer }
+
+func (v verifiedAs) Verify(context.Context, string) (auth.Viewer, error) { return v.viewer, nil }
+
+func asViewer(ctx context.Context, viewer auth.Viewer) context.Context {
+	var seen context.Context
+	handler := auth.Middleware(verifiedAs{viewer}, slog.New(slog.DiscardHandler))(
+		http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) { seen = r.Context() }),
+	)
+	request := httptest.NewRequestWithContext(ctx, http.MethodPost, "/graphql", nil)
+	request.Header.Set("Authorization", "Bearer eyJhbGciOiJSUzI1NiJ9.e30.sig")
+	handler.ServeHTTP(httptest.NewRecorder(), request)
+
+	return seen
 }
 
 func fieldWith(object string, directives ...string) context.Context {
@@ -62,7 +81,7 @@ func TestGuard(t *testing.T) {
 			checker := &acceptances{accepted: c.accepted}
 			ctx := fieldWith(c.object, c.directives...)
 			if c.viewer != nil {
-				ctx = auth.WithViewer(ctx, *c.viewer)
+				ctx = asViewer(ctx, *c.viewer)
 			}
 
 			_, err := platformterms.Guard(checker)(ctx, func(context.Context) (any, error) { return "done", nil })
@@ -89,7 +108,7 @@ func assertNotAccepted(t *testing.T, err error) {
 
 func TestGuardPassesOnADatabaseFailureAsAnError(t *testing.T) {
 	failure := errors.New("connection refused")
-	ctx := auth.WithViewer(fieldWith("Mutation"), auth.Viewer{Subject: "399193312025837589", Roles: []string{string(auth.RoleWriter)}})
+	ctx := asViewer(fieldWith("Mutation"), auth.Viewer{Subject: "399193312025837589", Roles: []string{string(auth.RoleWriter)}})
 
 	_, err := platformterms.Guard(&acceptances{err: failure})(ctx, func(context.Context) (any, error) { return nil, nil })
 

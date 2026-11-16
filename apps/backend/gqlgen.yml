@@ -72,6 +72,9 @@ models:
   LicenseScope:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/internal/license.Scope
+  ChapterNarrationResponse:
+    model:
+      - github.com/Ponos-OS/smart-novel/apps/backend/internal/narration.Response
   WordExplanation:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/internal/llm.Explanation

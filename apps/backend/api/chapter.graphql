@@ -134,3 +134,20 @@ extend type Mutation {
   deleteReadHistory: DeleteReadHistoryResponse!
     @skipTermsOfServiceCheck
 }
+
+type ChapterNarrationResponse {
+  status: NarrationStatus!
+  narrationURL: String
+}
+
+extend type Mutation {
+  """
+  Start making the audio narration of a chapter: new audio every time, also when the chapter has some already. Answers at once with PROCESSING; the audio address appears on the chapter (`narrationURL`) when the job is done. Refused when a narration of the chapter is running (`CONFLICT`) or the chapter has no text (`BAD_REQUEST`); `SERVICE_UNAVAILABLE` when Beatrice cannot be reached.
+  """
+  generateChapterAudio(
+    """
+    The ID of the chapter
+    """
+    id: ID!
+  ): ChapterNarrationResponse! @hasRole(role: writer)
+}

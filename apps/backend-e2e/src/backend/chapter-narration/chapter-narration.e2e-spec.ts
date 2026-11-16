@@ -3,10 +3,10 @@ import { createClient } from 'graphql-ws';
 import Redis from 'ioredis';
 import { WebSocket } from 'ws';
 
-import { AuthorizationFixture } from '../../support';
+import { AuthorizationFixture, graphql } from '../../support';
 import { ChapterNarrationFixture } from './chapter-narration.fixture';
 
-/** @description Must match `TTS_STATUS_CHANNEL` in apps/backend-nest/src/modules/tts-callbacks/constants.ts */
+/** @description Must match `StatusChannel` in apps/backend/internal/ttscallbacks/handlers.go */
 const TTS_STATUS_CHANNEL = 'tts-audio:status';
 
 describe('Chapter Narration (e2e)', () => {
@@ -35,7 +35,7 @@ describe('Chapter Narration (e2e)', () => {
           mutation GenerateChapterAudio($id: ID!) {
             generateChapterAudio(id: $id) {
               status
-              narrationUrl
+              narrationURL
             }
           }
         `,
@@ -50,11 +50,11 @@ describe('Chapter Narration (e2e)', () => {
     expect(res.data.errors).toBeUndefined();
     expect(res.data.data.generateChapterAudio).toMatchObject({
       status: 'PROCESSING',
-      narrationUrl: null,
+      narrationURL: null,
     });
   }, 120_000);
 
-  it('should always regenerate audio, even once a narrationUrl already exists', async () => {
+  it('should always regenerate audio, even once a narrationURL already exists', async () => {
     await fixture.generateChapterAudio(CHAPTER_FOUR_ID);
     await fixture.waitFor(NOVEL_ID, CHAPTER_FOUR_ID);
 
@@ -177,15 +177,90 @@ describe('Chapter Narration (e2e)', () => {
   it('should return the narration URL', async () => {
     // Arrange & Act
     await fixture.generateChapterAudio(CHAPTER_ONE_ID);
-    const narrationUrl = await fixture.waitFor(
+    const narrationURL = await fixture.waitFor(
       NOVEL_ID,
       CHAPTER_ONE_ID,
     );
 
     // Assert
-    expect(narrationUrl).toBeTruthy();
-    expect(narrationUrl).toContain('narrations/');
-    expect(narrationUrl).toContain('.mp3');
+    expect(narrationURL).toBeTruthy();
+    expect(narrationURL).toContain('narrations/');
+    expect(narrationURL).toContain('.mp3');
+  }, 320_000);
+
+  it('should not keep the audio of a job that was not started for the chapter, even while a narration of it is running', async () => {
+    // Arrange: a chapter of its own, narrated when it is created, with the audio address of that job kept.
+    const writer =
+      await AuthorizationFixture.getWriterAuthorizationHeader({
+        fresh: true,
+      });
+    const novel = await graphql(
+      `
+        #graphql
+        mutation CreateNovel($input: CreateNovelInput!) {
+          createNovel(input: $input) {
+            id
+          }
+        }
+      `,
+      {
+        input: {
+          name: 'The Lantern Keeper',
+          description: 'A lighthouse keeper finds a door in the fog.',
+        },
+      },
+      writer,
+    );
+    const novelId = novel.data.createNovel.id;
+    const chapter = await graphql(
+      `
+        #graphql
+        mutation CreateChapter(
+          $novelID: ID!
+          $input: CreateChapterInput!
+        ) {
+          createChapter(novelID: $novelID, input: $input) {
+            id
+          }
+        }
+      `,
+      {
+        novelID: novelId,
+        input: { title: 'One', content: 'The door was there.' },
+      },
+      writer,
+    );
+    const chapterId = chapter.data.createChapter.id;
+    const narrationUrl = await fixture.waitFor(novelId, chapterId);
+    const redis = new Redis(
+      `redis://${process.env.HOST ?? 'localhost'}:${process.env.REDIS_PORT ?? '6379'}`,
+      { password: process.env.REDIS_PASSWORD },
+    );
+
+    try {
+      // Act: a narration of the chapter is running (its lock is held), and somebody reports another job as done.
+      await redis.set(
+        `chapter_tts:${chapterId}`,
+        'held-by-the-test',
+        'EX',
+        60,
+        'NX',
+      );
+      const forged = await axios.post('/beatrice-callbacks/status', {
+        jobId: '9f1d3c52-8b0e-4a39-9c4d-2f6a7e1b5d08',
+        status: 'completed',
+        clientContextId: chapterId,
+      });
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      // Assert
+      const after = await fixture.waitFor(novelId, chapterId);
+      expect(forged.status).toBe(204);
+      expect(after).toBe(narrationUrl);
+    } finally {
+      await redis.del(`chapter_tts:${chapterId}`);
+      await redis.quit();
+    }
   }, 320_000);
 
   it('should return error for non-existent chapter', async () => {
@@ -209,9 +284,7 @@ describe('Chapter Narration (e2e)', () => {
     );
 
     expect(res.data.errors).toBeDefined();
-    expect(res.data.errors[0].message).toContain(
-      'You do not have permission',
-    );
+    expect(res.data.errors[0].message).toContain('Chapter not found');
   });
 
   it('should subscribe to chapter narration updates', async () => {
@@ -225,7 +298,7 @@ describe('Chapter Narration (e2e)', () => {
 
     // Act
     try {
-      const eventPromise = new Promise<{ narrationUrl: string }>(
+      const eventPromise = new Promise<{ narrationURL: string }>(
         async (resolve, reject) => {
           const unsubscribe = client.subscribe(
             {
@@ -233,7 +306,7 @@ describe('Chapter Narration (e2e)', () => {
                 subscription ChapterNarrationUpdated($chapterId: ID!) {
                   chapterNarrationUpdated(chapterId: $chapterId) {
                     status
-                    narrationUrl
+                    narrationURL
                     error
                   }
                 }
@@ -245,8 +318,8 @@ describe('Chapter Narration (e2e)', () => {
             {
               next: (data: any) => {
                 const event = data.data?.chapterNarrationUpdated;
-                // NOTE: Wait for event with narrationUrl (READY status)
-                if (event?.narrationUrl) {
+                // NOTE: Wait for event with narrationURL (READY status)
+                if (event?.narrationURL) {
                   unsubscribe();
                   resolve(event);
                 }
@@ -256,7 +329,7 @@ describe('Chapter Narration (e2e)', () => {
                 reject(error);
               },
               complete: () => {
-                // README: Should NOT complete before we get the narrationUrl
+                // README: Should NOT complete before we get the narrationURL
               },
             },
           );
@@ -267,9 +340,9 @@ describe('Chapter Narration (e2e)', () => {
       const event = await eventPromise;
 
       // Assert
-      expect(event.narrationUrl).toBeTruthy();
-      expect(event.narrationUrl).toContain('narrations/');
-      expect(event.narrationUrl).toContain('.mp3');
+      expect(event.narrationURL).toBeTruthy();
+      expect(event.narrationURL).toContain('narrations/');
+      expect(event.narrationURL).toContain('.mp3');
     } finally {
       client.dispose();
     }

@@ -19,7 +19,9 @@ type Config struct {
 }
 
 type App struct {
-	ServiceName        string
+	ServiceName string
+	// InternalURL is how a service of the cluster reaches this backend, which Beatrice needs for its callbacks.
+	InternalURL        string
 	Port               int
 	Env                string
 	CORSAllowedOrigins []string
@@ -63,8 +65,10 @@ type ObjectStorage struct {
 // Beatrice is the service that explains words and narrates chapters with an LLM.
 type Beatrice struct {
 	// URL is its GraphQL endpoint.
-	URL     string
-	Timeout time.Duration
+	URL string
+	// DefaultVoice is the voice every narration is made with.
+	DefaultVoice string
+	Timeout      time.Duration
 	// ExplanationTTL is how long an explanation of a word is kept.
 	ExplanationTTL time.Duration
 }
@@ -120,6 +124,7 @@ func Load(lookup Lookup) (Config, error) {
 	cfg := Config{
 		App: App{
 			ServiceName:        r.text("SERVICE_NAME", "smart-novel-backend"),
+			InternalURL:        r.required("BACKEND_INTERNAL_URL"),
 			Port:               r.port("PORT"),
 			Env:                r.oneOf("APP_ENV", []string{EnvDevelopment, EnvProduction, EnvTest}, ""),
 			CORSAllowedOrigins: r.list("CORS_ALLOWED_ORIGINS"),
@@ -146,6 +151,7 @@ func Load(lookup Lookup) (Config, error) {
 		Storage: r.objectStorage(),
 		Beatrice: Beatrice{
 			URL:            r.required("BEATRICE_URL"),
+			DefaultVoice:   r.required("BEATRICE_DEFAULT_VOICE"),
 			Timeout:        r.duration("BEATRICE_TIMEOUT", defaultBeatriceTimeout),
 			ExplanationTTL: r.duration("LLM_CACHE_TTL", defaultExplanationTTL),
 		},

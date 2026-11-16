@@ -4,7 +4,7 @@ import { AuthorizationFixture } from '../../support';
 
 export class ChapterNarrationFixture {
   /**
-   * @description Polls the chapter's `narrationUrl` until it's set, or throws an exception.
+   * @description Polls the chapter's `narrationURL` until it's set, or throws an exception.
    */
   async waitFor(novelId: string, chapterId: string): Promise<string> {
     // 5.5 minutes
@@ -19,7 +19,7 @@ export class ChapterNarrationFixture {
             novel(id: $novelId) {
               chapter(id: $chapterId) {
                 id
-                narrationUrl
+                narrationURL
               }
             }
           }
@@ -29,10 +29,10 @@ export class ChapterNarrationFixture {
           chapterId,
         },
       });
-      const narrationUrl = res.data.data.novel.chapter.narrationUrl;
+      const narrationURL = res.data.data.novel.chapter.narrationURL;
 
-      if (narrationUrl) {
-        return narrationUrl;
+      if (narrationURL) {
+        return narrationURL;
       }
     }
 
@@ -50,7 +50,7 @@ export class ChapterNarrationFixture {
           mutation GenerateChapterAudio($id: ID!) {
             generateChapterAudio(id: $id) {
               status
-              narrationUrl
+              narrationURL
             }
           }
         `,

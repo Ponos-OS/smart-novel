@@ -32,7 +32,7 @@ func Middleware(verifier Verifier, logger *slog.Logger) func(http.Handler) http.
 
 				return
 			}
-			next.ServeHTTP(w, r.WithContext(withViewer(r.Context(), viewer)))
+			next.ServeHTTP(w, r.WithContext(withViewer(r.Context(), viewer, token)))
 		})
 	}
 }

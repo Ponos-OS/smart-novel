@@ -15,12 +15,14 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/beatrice"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/chapter"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/config"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/fithara"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/license"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/llm"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/narration"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/novel"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/database"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/logging"
@@ -166,21 +168,25 @@ func newResolver(ctx context.Context, cfg config.Config, db *database.Database, 
 	}
 	go licenseService.KeepCanonicalSynced(ctx)
 
-	llmService := llm.NewService(genqlient.NewClient(cfg.Beatrice.URL, &http.Client{Timeout: cfg.Beatrice.Timeout, Transport: otelhttp.NewTransport(http.DefaultTransport)}), cache, cfg.Beatrice.ExplanationTTL, logger)
+	beatriceClient := genqlient.NewClient(cfg.Beatrice.URL, beatrice.HTTPClient{HTTP: &http.Client{Timeout: cfg.Beatrice.Timeout, Transport: otelhttp.NewTransport(http.DefaultTransport)}})
+	narrationService := narration.NewService(db.Client, cache, storage, beatriceClient, cfg.Beatrice.DefaultVoice, cfg.App.InternalURL, logger)
+	go narrationService.KeepListening(ctx)
+	llmService := llm.NewService(beatriceClient, cache, cfg.Beatrice.ExplanationTTL, logger)
 	statsService := stats.NewService(db, db.Client, logger)
 	go statsService.KeepSnapshotted(ctx, cfg.Stats.SnapshotSchedule)
 
 	return &graph.Resolver{
-		Client:         db.Client,
-		Logger:         logger,
-		TagService:     tag.NewService(db.Client, db),
-		NovelService:   novel.NewService(db.Client, db, licenseService, storage, logger),
-		LicenseService: licenseService,
-		ChapterService: chapter.NewService(db.Client),
-		StatsService:   statsService,
-		LLMService:     llmService,
-		WriterService:  writer.NewService(db.Client, management),
-		Management:     management,
-		TermsService:   platformterms.NewService(db.Client, terms, cache, logger),
+		Client:           db.Client,
+		Logger:           logger,
+		TagService:       tag.NewService(db.Client, db),
+		NovelService:     novel.NewService(db.Client, db, licenseService, storage, logger),
+		LicenseService:   licenseService,
+		ChapterService:   chapter.NewService(db.Client, narrationService, logger),
+		NarrationService: narrationService,
+		StatsService:     statsService,
+		LLMService:       llmService,
+		WriterService:    writer.NewService(db.Client, management),
+		Management:       management,
+		TermsService:     platformterms.NewService(db.Client, terms, cache, logger),
 	}, nil
 }

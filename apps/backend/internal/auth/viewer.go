@@ -24,21 +24,29 @@ type sessionKey struct{}
 // session is what the HTTP middleware learned from the Authorization header.
 type session struct {
 	viewer *Viewer
+	// token is the bearer token the viewer came with, for a call made on their behalf to a service that needs it.
+	token string
 	// tokenErr is set when a token was sent but could not be verified.
 	tokenErr error
 }
 
-func withViewer(ctx context.Context, viewer Viewer) context.Context {
-	return context.WithValue(ctx, sessionKey{}, &session{viewer: &viewer})
+func withViewer(ctx context.Context, viewer Viewer, token string) context.Context {
+	return context.WithValue(ctx, sessionKey{}, &session{viewer: &viewer, token: token})
 }
 
 func withRejectedToken(ctx context.Context, err error) context.Context {
 	return context.WithValue(ctx, sessionKey{}, &session{tokenErr: err})
 }
 
-// WithViewer returns a context that carries viewer, for tests and for code that acts on behalf of a user.
-func WithViewer(ctx context.Context, viewer Viewer) context.Context {
-	return withViewer(ctx, viewer)
+// BearerFrom returns the bearer token the request came with, without the "Bearer " prefix. It is for forwarding to a service that calls back
+// with it; nothing should log it.
+func BearerFrom(ctx context.Context) (string, bool) {
+	current, ok := ctx.Value(sessionKey{}).(*session)
+	if !ok || current.token == "" {
+		return "", false
+	}
+
+	return current.token, true
 }
 
 // IsAdmin tells whether the request is by an authenticated admin; an anonymous request is not.
