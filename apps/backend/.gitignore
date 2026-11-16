@@ -7,8 +7,7 @@
 /ent/migrate/*
 !/ent/migrate/migrations/
 /internal/graph/generated.go
-/internal/graph/model/*
-!/internal/graph/model/doc.go
+/internal/graph/model/models_gen.go
 /internal/fithara/client.gen.go
 /internal/fithara/openapi.json
 /internal/beatrice/schema.graphql
