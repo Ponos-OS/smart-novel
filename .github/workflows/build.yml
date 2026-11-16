@@ -227,8 +227,11 @@ jobs:
       - name: Seed .env from .env.example
         run: cp .env.example .env
 
-      - name: Run unit tests
-        run: task test -- --coverage.enabled
+      - name: Run backend unit tests
+        run: task backend:test
+
+      - name: Run frontend unit tests
+        run: task frontend:test -- --coverage.enabled
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
