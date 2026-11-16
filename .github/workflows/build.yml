@@ -152,6 +152,9 @@ jobs:
       - name: Seed .env from .env.example
         run: cp .env.example .env
 
+      - name: Generate the GraphQL schema the frontend reads (api/ent.graphql)
+        run: task backend:generate
+
       - name: Build
         run: task frontend:build
 
