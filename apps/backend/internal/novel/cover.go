@@ -14,6 +14,7 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/entx"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/validation"
 )
 
@@ -30,34 +31,28 @@ const (
 // coverExtensions maps the allowed content types to the extension their key ends with.
 var coverExtensions = map[string]string{"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
 
-// CoverUpload is where a browser puts a cover, and the key to confirm it with.
-type CoverUpload struct {
-	UploadURL string
-	ObjectKey string
-}
-
 // CreateCoverUpload signs the upload of a cover. The key is ours, never the client's, so an upload can only land under this novel's prefix.
-func (s *Service) CreateCoverUpload(ctx context.Context, viewer auth.Viewer, novelID uuid.UUID, contentType string, contentLength int) (CoverUpload, error) {
+func (s *Service) CreateCoverUpload(ctx context.Context, viewer auth.Viewer, novelID uuid.UUID, contentType string, contentLength int) (model.NovelCoverUpload, error) {
 	if _, err := authorizedNovel(ctx, s.repo, viewer, auth.Update, novelID, false); err != nil {
-		return CoverUpload{}, err
+		return model.NovelCoverUpload{}, err
 	}
 	extension, ok := coverExtensions[contentType]
 	if !ok {
-		return CoverUpload{}, apperr.BadRequest("A cover must be one of: " + strings.Join(allowedCoverTypes(), ", "))
+		return model.NovelCoverUpload{}, apperr.BadRequest("A cover must be one of: " + strings.Join(allowedCoverTypes(), ", "))
 	}
 	var check validation.Checker
 	check.AtLeast("contentLength", contentLength, 1)
 	check.AtMost("contentLength", contentLength, CoverMaxBytes)
 	if err := check.Err(); err != nil {
-		return CoverUpload{}, err
+		return model.NovelCoverUpload{}, err
 	}
 	key := fmt.Sprintf("%s/%s/%s.%s", coverKeyPrefix, novelID, uuid.New(), extension)
 	url, err := s.storage.PresignPublicUpload(ctx, key, contentType, int64(contentLength), coverUploadTTL)
 	if err != nil {
-		return CoverUpload{}, err
+		return model.NovelCoverUpload{}, err
 	}
 
-	return CoverUpload{UploadURL: url, ObjectKey: key}, nil
+	return model.NovelCoverUpload{UploadURL: url, ObjectKey: key}, nil
 }
 
 // SetCover makes an uploaded object the cover of the novel and removes the previous cover from the bucket.

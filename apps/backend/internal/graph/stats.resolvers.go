@@ -8,11 +8,11 @@ package graph
 import (
 	"context"
 
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/stats"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 )
 
 // ContentStats is the resolver for the contentStats field.
-func (r *queryResolver) ContentStats(ctx context.Context) (*stats.Totals, error) {
+func (r *queryResolver) ContentStats(ctx context.Context) (*model.ContentStats, error) {
 	totals := r.StatsService.LiveTotals(ctx)
 
 	return &totals, nil

@@ -18,12 +18,12 @@ import (
 )
 
 // Scope is the resolver for the scope field.
-func (r *licenseResolver) Scope(ctx context.Context, obj *ent.License) (license.Scope, error) {
+func (r *licenseResolver) Scope(ctx context.Context, obj *ent.License) (model.LicenseScope, error) {
 	return license.ScopeOf(obj), nil
 }
 
 // DraftLicense is the resolver for the draftLicense field.
-func (r *mutationResolver) DraftLicense(ctx context.Context, input license.AssistantRequest) (*license.AssistantTurn, error) {
+func (r *mutationResolver) DraftLicense(ctx context.Context, input model.DraftLicenseInput) (*model.LicenseAssistantTurn, error) {
 	return r.LicenseService.Assist(ctx, input)
 }
 
@@ -96,7 +96,7 @@ func (r *queryResolver) DefaultLicense(ctx context.Context) (*ent.License, error
 }
 
 // Licenses is the resolver for the licenses field.
-func (r *queryResolver) Licenses(ctx context.Context, after *entgql.Cursor[uuid.UUID], first *int, before *entgql.Cursor[uuid.UUID], last *int, orderBy *ent.LicenseOrder, where *ent.LicenseWhereInput, scope *license.Scope, search *string) (*ent.LicenseConnection, error) {
+func (r *queryResolver) Licenses(ctx context.Context, after *entgql.Cursor[uuid.UUID], first *int, before *entgql.Cursor[uuid.UUID], last *int, orderBy *ent.LicenseOrder, where *ent.LicenseWhereInput, scope *model.LicenseScope, search *string) (*ent.LicenseConnection, error) {
 	viewer, _ := auth.ViewerFrom(ctx)
 	first, last, err := pagination.Bound(first, last, licensesPage)
 	if err != nil {

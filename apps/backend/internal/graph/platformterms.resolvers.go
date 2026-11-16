@@ -9,11 +9,11 @@ import (
 	"context"
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platformterms"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 )
 
 // AcceptPlatformTerms is the resolver for the acceptPlatformTerms field.
-func (r *mutationResolver) AcceptPlatformTerms(ctx context.Context, version int) (*platformterms.Status, error) {
+func (r *mutationResolver) AcceptPlatformTerms(ctx context.Context, version int) (*model.PlatformTermsStatus, error) {
 	viewer, err := auth.Require(ctx)
 	if err != nil {
 		return nil, err
@@ -24,14 +24,14 @@ func (r *mutationResolver) AcceptPlatformTerms(ctx context.Context, version int)
 }
 
 // PlatformTerms is the resolver for the platformTerms field.
-func (r *queryResolver) PlatformTerms(ctx context.Context) (*platformterms.Terms, error) {
+func (r *queryResolver) PlatformTerms(ctx context.Context) (*model.PlatformTerms, error) {
 	terms := r.TermsService.Current()
 
 	return &terms, nil
 }
 
 // MyPlatformTermsStatus is the resolver for the myPlatformTermsStatus field.
-func (r *queryResolver) MyPlatformTermsStatus(ctx context.Context) (*platformterms.Status, error) {
+func (r *queryResolver) MyPlatformTermsStatus(ctx context.Context) (*model.PlatformTermsStatus, error) {
 	viewer, err := auth.Require(ctx)
 	if err != nil {
 		return nil, err

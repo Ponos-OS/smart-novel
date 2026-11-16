@@ -17,6 +17,7 @@ import (
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/beatrice"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/redis"
 )
 
@@ -29,15 +30,6 @@ const (
 	logKeyInstance  = "instanceID"
 	logKeyError     = "error"
 )
-
-// Explanation is what Beatrice says about a word, and the key it is kept under, which a client may keep a copy under too.
-type Explanation struct {
-	Meaning               string   `json:"meaning"`
-	SimplifiedExplanation string   `json:"simplifiedExplanation"`
-	Synonyms              []string `json:"synonyms"`
-	Antonyms              []string `json:"antonyms"`
-	CacheKey              string   `json:"-"`
-}
 
 type Service struct {
 	beatrice graphql.Client
@@ -52,7 +44,7 @@ func NewService(beatriceClient graphql.Client, cache *redis.Client, ttl time.Dur
 }
 
 // Explain answers from Redis when it can, and otherwise asks Beatrice once for everybody who asks for the same word in the same context.
-func (s *Service) Explain(ctx context.Context, word, sentence string) (*Explanation, error) {
+func (s *Service) Explain(ctx context.Context, word, sentence string) (*model.WordExplanation, error) {
 	started := time.Now()
 	key := CacheKey(word, sentence)
 	explanation, hit := s.cached(ctx, key)
@@ -75,14 +67,14 @@ func (s *Service) Explain(ctx context.Context, word, sentence string) (*Explanat
 	return explanation, nil
 }
 
-func (s *Service) cached(ctx context.Context, key string) (*Explanation, bool) {
+func (s *Service) cached(ctx context.Context, key string) (*model.WordExplanation, bool) {
 	value, found, err := s.cache.Get(ctx, key)
 	if err != nil {
 		s.logger.WarnContext(ctx, "reading an explanation from Redis", slog.String(logKeyCacheKey, key), slog.Any(logKeyError, err))
 
 		return nil, false
 	}
-	var explanation Explanation
+	var explanation model.WordExplanation
 	if !found || json.Unmarshal([]byte(value), &explanation) != nil {
 		return nil, false
 	}
@@ -92,14 +84,14 @@ func (s *Service) cached(ctx context.Context, key string) (*Explanation, bool) {
 
 // ask shares one call to Beatrice between the requests for the same key that run together. It does not stop when the first of them gives up,
 // because the others wait for the answer.
-func (s *Service) ask(ctx context.Context, key, word, sentence string) (explanation *Explanation, coalesced bool, err error) {
+func (s *Service) ask(ctx context.Context, key, word, sentence string) (explanation *model.WordExplanation, coalesced bool, err error) {
 	asked, err, shared := s.flights.Do(key, func() (any, error) {
 		return s.askBeatrice(context.WithoutCancel(ctx), key, word, sentence)
 	})
 	if err != nil {
 		return nil, false, err
 	}
-	explained, ok := asked.(*Explanation)
+	explained, ok := asked.(*model.WordExplanation)
 	if !ok {
 		return nil, false, unavailable()
 	}
@@ -109,7 +101,7 @@ func (s *Service) ask(ctx context.Context, key, word, sentence string) (explanat
 	return &copied, shared, nil
 }
 
-func (s *Service) askBeatrice(ctx context.Context, key, word, sentence string) (*Explanation, error) {
+func (s *Service) askBeatrice(ctx context.Context, key, word, sentence string) (*model.WordExplanation, error) {
 	response, err := beatrice.ExplainWord(ctx, s.beatrice, word, sentence)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "asking Beatrice to explain a word", slog.String(logKeyWord, word), slog.Any(logKeyError, err))
@@ -117,7 +109,7 @@ func (s *Service) askBeatrice(ctx context.Context, key, word, sentence string) (
 		return nil, unavailable()
 	}
 	said := response.ExplainWord
-	explanation := &Explanation{Meaning: said.Meaning, SimplifiedExplanation: said.SimplifiedExplanation, Synonyms: said.Synonyms, Antonyms: said.Antonyms}
+	explanation := &model.WordExplanation{Meaning: said.Meaning, SimplifiedExplanation: said.SimplifiedExplanation, Synonyms: said.Synonyms, Antonyms: said.Antonyms}
 	if stored, marshalErr := json.Marshal(explanation); marshalErr == nil {
 		if setErr := s.cache.Set(ctx, key, string(stored), s.ttl); setErr != nil {
 			s.logger.WarnContext(ctx, "keeping an explanation in Redis", slog.String(logKeyCacheKey, key), slog.Any(logKeyError, setErr))

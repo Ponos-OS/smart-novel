@@ -8,16 +8,9 @@ import (
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/redis"
 )
-
-// Status says whether a user accepted the current terms.
-type Status struct {
-	RequiredVersion int
-	AcceptedVersion *int
-	Accepted        bool
-	AcceptedAt      *time.Time
-}
 
 const (
 	acceptedTTL = 24 * time.Hour
@@ -27,26 +20,26 @@ const (
 
 // Service knows the current terms and who accepted them. Only an acceptance is cached, so a lost or stale entry can never let anybody in.
 type Service struct {
-	terms  Terms
+	terms  model.PlatformTerms
 	repo   *repository
 	cache  *redis.Client
 	logger *slog.Logger
 }
 
-func NewService(client *ent.Client, terms Terms, cache *redis.Client, logger *slog.Logger) *Service {
+func NewService(client *ent.Client, terms model.PlatformTerms, cache *redis.Client, logger *slog.Logger) *Service {
 	return &Service{terms: terms, repo: newRepository(client), cache: cache, logger: logger}
 }
 
-func (s *Service) Current() Terms {
+func (s *Service) Current() model.PlatformTerms {
 	return s.terms
 }
 
-func (s *Service) Status(ctx context.Context, userID string) (Status, error) {
+func (s *Service) Status(ctx context.Context, userID string) (model.PlatformTermsStatus, error) {
 	acceptances, err := s.repo.acceptances(ctx, userID)
 	if err != nil {
-		return Status{}, err
+		return model.PlatformTermsStatus{}, err
 	}
-	status := Status{RequiredVersion: s.terms.Version}
+	status := model.PlatformTermsStatus{RequiredVersion: s.terms.Version}
 	for _, acceptance := range acceptances {
 		if status.AcceptedVersion == nil || acceptance.TermsVersion > *status.AcceptedVersion {
 			version := acceptance.TermsVersion
@@ -90,13 +83,13 @@ func (s *Service) remember(ctx context.Context, key string) {
 }
 
 // Accept records the acceptance of the current version; any other version is refused, and accepting twice changes nothing.
-func (s *Service) Accept(ctx context.Context, userID string, version int) (Status, error) {
+func (s *Service) Accept(ctx context.Context, userID string, version int) (model.PlatformTermsStatus, error) {
 	if version != s.terms.Version {
-		return Status{}, apperr.WithCode(apperr.CodePlatformTermsVersionMismatch,
+		return model.PlatformTermsStatus{}, apperr.WithCode(apperr.CodePlatformTermsVersionMismatch,
 			fmt.Sprintf("The platform terms are at version %d, not %d. Reload them before accepting.", s.terms.Version, version))
 	}
 	if err := s.repo.accept(ctx, userID, version); err != nil {
-		return Status{}, err
+		return model.PlatformTermsStatus{}, err
 	}
 	s.remember(ctx, s.cacheKey(userID))
 

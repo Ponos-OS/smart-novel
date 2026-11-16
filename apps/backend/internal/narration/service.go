@@ -19,6 +19,7 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/beatrice"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/objectstorage"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/redis"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/ttscallbacks"
@@ -39,12 +40,6 @@ const (
 	logKeyURL       = "url"
 )
 
-// Response is what generateChapterAudio answers: the job is started, not done.
-type Response struct {
-	Status       entchapter.NarrationStatus
-	NarrationURL *string
-}
-
 // Service starts narrations and follows them. Nothing about a running job is in the database or in the memory of a replica: the lock of the chapter holds the job, and Redis remembers how far each job came, so whichever replica Beatrice calls can handle its update.
 type Service struct {
 	repo        *repository
@@ -56,7 +51,7 @@ type Service struct {
 	logger      *slog.Logger
 
 	mutex       sync.Mutex
-	subscribers map[uuid.UUID]map[chan *Event]struct{}
+	subscribers map[uuid.UUID]map[chan *model.ChapterNarrationEvent]struct{}
 }
 
 // NewService takes the voice every narration is made with and the address Beatrice reaches this backend on.
@@ -64,7 +59,7 @@ func NewService(client *ent.Client, cache *redis.Client, storage *objectstorage.
 	return &Service{
 		repo: newRepository(client), cache: cache, storage: storage, beatrice: beatriceClient, voice: voice,
 		internalURL: strings.TrimRight(internalURL, "/"), logger: logger,
-		subscribers: make(map[uuid.UUID]map[chan *Event]struct{}),
+		subscribers: make(map[uuid.UUID]map[chan *model.ChapterNarrationEvent]struct{}),
 	}
 }
 
@@ -73,39 +68,39 @@ func lockKey(chapterID uuid.UUID) string {
 }
 
 // Generate is the writer's button: it always makes new audio, and refuses only when a job for the chapter is running already.
-func (s *Service) Generate(ctx context.Context, viewer auth.Viewer, chapterID uuid.UUID) (Response, error) {
+func (s *Service) Generate(ctx context.Context, viewer auth.Viewer, chapterID uuid.UUID) (model.ChapterNarrationResponse, error) {
 	found, err := s.repo.chapterWithOwner(ctx, chapterID)
 	if ent.IsNotFound(err) {
-		return Response{}, apperr.NotFound("Chapter not found")
+		return model.ChapterNarrationResponse{}, apperr.NotFound("Chapter not found")
 	}
 	if err != nil {
-		return Response{}, err
+		return model.ChapterNarrationResponse{}, err
 	}
 	if err = auth.DenyUnlessCan(viewer, auth.Update, auth.Chapter{NovelOwnerUserID: found.Edges.Novel.Edges.Writer.UserID}); err != nil {
-		return Response{}, err
+		return model.ChapterNarrationResponse{}, err
 	}
 	text, err := s.repo.text(ctx, found.ContentID)
 	if err != nil {
-		return Response{}, err
+		return model.ChapterNarrationResponse{}, err
 	}
 	if strings.TrimSpace(text) == "" {
-		return Response{}, apperr.BadRequest("Chapter has no content to narrate")
+		return model.ChapterNarrationResponse{}, apperr.BadRequest("Chapter has no content to narrate")
 	}
 	token, acquired, err := s.cache.TryLock(ctx, lockKey(chapterID), lockTTL)
 	if err != nil {
-		return Response{}, fmt.Errorf("locking the narration of a chapter: %w", err)
+		return model.ChapterNarrationResponse{}, fmt.Errorf("locking the narration of a chapter: %w", err)
 	}
 	if !acquired {
-		return Response{}, apperr.Conflict("Narration generation is already in progress for this chapter")
+		return model.ChapterNarrationResponse{}, apperr.Conflict("Narration generation is already in progress for this chapter")
 	}
 	if err = s.start(ctx, chapterID, text, token); err != nil {
 		s.release(ctx, lockKey(chapterID), token)
 		s.logger.ErrorContext(ctx, "starting the narration of a chapter", slog.String(logKeyChapterID, chapterID.String()), slog.Any(logKeyError, err))
 
-		return Response{}, apperr.Unavailable("The narration is not available right now. Try again later.")
+		return model.ChapterNarrationResponse{}, apperr.Unavailable("The narration is not available right now. Try again later.")
 	}
 
-	return Response{Status: entchapter.NarrationStatusPROCESSING}, nil
+	return model.ChapterNarrationResponse{Status: entchapter.NarrationStatusPROCESSING}, nil
 }
 
 // Regenerate is for the code that saves the text of a chapter, so the audio is never forgotten. It starts a job unless one runs already,

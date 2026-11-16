@@ -10,36 +10,27 @@ import (
 	"github.com/google/uuid"
 
 	entchapter "github.com/Ponos-OS/smart-novel/apps/backend/ent/chapter"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/ttscallbacks"
 )
-
-// Event is what a subscriber of a chapter hears about its narration.
-type Event struct {
-	Status entchapter.NarrationStatus
-	// NarrationURL is the audio address, once the status is READY.
-	NarrationURL *string
-	Error        *string
-	// Stage is Beatrice's own word for how far the job is, while the status is PROCESSING.
-	Stage *string
-}
 
 // eventsChannel is where a replica announces what it learned about a narration, and every replica hears it, so the subscriber of a chapter is told whichever replica holds its connection.
 const eventsChannel = "chapter-narration:events"
 
 type notice struct {
 	ChapterID uuid.UUID
-	Event     Event
+	Event     model.ChapterNarrationEvent
 }
 
 // subscriberBuffer is how many events a slow subscriber may be behind before it misses some; a job reports a handful.
 const subscriberBuffer = 16
 
 // Subscribe returns the events of the narration of a chapter, as this replica hears them, until ctx ends.
-func (s *Service) Subscribe(ctx context.Context, chapterID uuid.UUID) <-chan *Event {
-	events := make(chan *Event, subscriberBuffer)
+func (s *Service) Subscribe(ctx context.Context, chapterID uuid.UUID) <-chan *model.ChapterNarrationEvent {
+	events := make(chan *model.ChapterNarrationEvent, subscriberBuffer)
 	s.mutex.Lock()
 	if s.subscribers[chapterID] == nil {
-		s.subscribers[chapterID] = make(map[chan *Event]struct{})
+		s.subscribers[chapterID] = make(map[chan *model.ChapterNarrationEvent]struct{})
 	}
 	s.subscribers[chapterID][events] = struct{}{}
 	s.mutex.Unlock()
@@ -59,7 +50,7 @@ func (s *Service) Subscribe(ctx context.Context, chapterID uuid.UUID) <-chan *Ev
 }
 
 // deliver hands an event to the subscribers of this replica.
-func (s *Service) deliver(ctx context.Context, chapterID uuid.UUID, event *Event) {
+func (s *Service) deliver(ctx context.Context, chapterID uuid.UUID, event *model.ChapterNarrationEvent) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	for events := range s.subscribers[chapterID] {
@@ -79,7 +70,7 @@ func (s *Service) report(ctx context.Context, chapterID uuid.UUID, update ttscal
 		if err != nil || !kept {
 			return err
 		}
-		s.announce(ctx, chapterID, &Event{Status: entchapter.NarrationStatusREADY, NarrationURL: &url})
+		s.announce(ctx, chapterID, &model.ChapterNarrationEvent{Status: entchapter.NarrationStatusREADY, NarrationURL: &url})
 	case statusFailed:
 		s.logger.ErrorContext(ctx, "Beatrice could not narrate a chapter", slog.String(logKeyChapterID, chapterID.String()), slog.String(logKeyJobID, update.JobID), slog.String(logKeyFailure, failure(update)))
 		started, err := s.startedFor(ctx, chapterID, update.JobID)
@@ -89,16 +80,16 @@ func (s *Service) report(ctx context.Context, chapterID uuid.UUID, update ttscal
 		if err = s.repo.setStatus(ctx, chapterID, entchapter.NarrationStatusFAILED); err != nil {
 			return fmt.Errorf("marking a chapter as not narrated: %w", err)
 		}
-		s.announce(ctx, chapterID, &Event{Status: entchapter.NarrationStatusFAILED, Error: errorOf(update)})
+		s.announce(ctx, chapterID, &model.ChapterNarrationEvent{Status: entchapter.NarrationStatusFAILED, Error: errorOf(update)})
 	default:
-		s.announce(ctx, chapterID, &Event{Status: entchapter.NarrationStatusPROCESSING, Stage: &update.Status})
+		s.announce(ctx, chapterID, &model.ChapterNarrationEvent{Status: entchapter.NarrationStatusPROCESSING, Stage: &update.Status})
 	}
 
 	return nil
 }
 
 // announce tells every replica, which hand the event to the subscribers they hold. Redis keeps nothing for who is not subscribed at that moment, and the update is handled already (its audio address kept, its lock released), so a failure is logged and nothing more. Only the audio address is stored, so a subscriber that missed an event can read that back from the chapter, not a stage or a failure.
-func (s *Service) announce(ctx context.Context, chapterID uuid.UUID, event *Event) {
+func (s *Service) announce(ctx context.Context, chapterID uuid.UUID, event *model.ChapterNarrationEvent) {
 	message, err := json.Marshal(notice{ChapterID: chapterID, Event: *event})
 	if err == nil {
 		err = s.cache.Publish(ctx, eventsChannel, string(message))

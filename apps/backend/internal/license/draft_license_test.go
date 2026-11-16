@@ -10,6 +10,7 @@ import (
 	entlicense "github.com/Ponos-OS/smart-novel/apps/backend/ent/license"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/fithara"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 )
 
 const (
@@ -26,9 +27,9 @@ func TestAssistSendsTheConversationAndTheDraftToFithara(t *testing.T) {
 	})
 	canonicalID := "CC-BY-NC-4.0"
 
-	_, err := uut.Assist(context.Background(), AssistantRequest{
-		Conversation: []AssistantMessage{{Role: AssistantRoleUser, Content: "Hello"}},
-		Draft:        &AssistantDraft{Name: "Mine", Text: "Text", SourceType: entlicense.SourceTypeFORKED, CanonicalID: &canonicalID},
+	_, err := uut.Assist(context.Background(), model.DraftLicenseInput{
+		Conversation: []*model.LicenseAssistantMessageInput{{Role: model.LicenseAssistantMessageRoleUser, Content: "Hello"}},
+		Draft:        &model.LicenseAssistantDraftInput{Name: "Mine", Text: "Text", SourceType: entlicense.SourceTypeFORKED, CanonicalID: &canonicalID},
 		Message:      "No sales please",
 	})
 	if err != nil {
@@ -45,14 +46,14 @@ func TestAssistSendsTheConversationAndTheDraftToFithara(t *testing.T) {
 func TestAssistGivesTheTurnOfFithara(t *testing.T) {
 	uut := newServiceWithFithara(t, answer(http.StatusOK, turnBody))
 
-	turn, err := uut.Assist(context.Background(), AssistantRequest{Message: "No sales please"})
+	turn, err := uut.Assist(context.Background(), model.DraftLicenseInput{Message: "No sales please"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if turn.Draft == nil || turn.Draft.SourceType != entlicense.SourceTypeFORKED || *turn.Draft.CanonicalID != "CC-BY-NC-4.0" || !turn.DraftChanged {
 		t.Errorf("draft = %+v", turn.Draft)
 	}
-	if len(turn.Conversation) != 2 || turn.Conversation[1].Role != AssistantRoleAssistant || turn.Disclaimers[0] != "This is not legal advice." {
+	if len(turn.Conversation) != 2 || turn.Conversation[1].Role != model.LicenseAssistantMessageRoleAssistant || turn.Disclaimers[0] != "This is not legal advice." {
 		t.Errorf("turn = %+v", turn)
 	}
 }
@@ -74,7 +75,7 @@ func TestAssistAnswersWithTheCodeOfWhatFitharaRefused(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			uut := newServiceWithFithara(t, answer(test.status, test.body))
 
-			_, err := uut.Assist(context.Background(), AssistantRequest{Message: "Hello"})
+			_, err := uut.Assist(context.Background(), model.DraftLicenseInput{Message: "Hello"})
 
 			var coded interface{ Code() string }
 			if !errors.As(err, &coded) || coded.Code() != test.code {

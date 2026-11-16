@@ -9,11 +9,12 @@ import (
 	"github.com/google/uuid"
 
 	entchapter "github.com/Ponos-OS/smart-novel/apps/backend/ent/chapter"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/ttscallbacks"
 )
 
 func newHub() *Service {
-	return &Service{logger: slog.New(slog.DiscardHandler), subscribers: make(map[uuid.UUID]map[chan *Event]struct{})}
+	return &Service{logger: slog.New(slog.DiscardHandler), subscribers: make(map[uuid.UUID]map[chan *model.ChapterNarrationEvent]struct{})}
 }
 
 func TestSubscribersHearOnlyTheirChapter(t *testing.T) {
@@ -21,8 +22,8 @@ func TestSubscribersHearOnlyTheirChapter(t *testing.T) {
 	mine, other := uuid.New(), uuid.New()
 	events := uut.Subscribe(t.Context(), mine)
 
-	uut.deliver(t.Context(), other, &Event{Status: entchapter.NarrationStatusFAILED})
-	uut.deliver(t.Context(), mine, &Event{Status: entchapter.NarrationStatusPROCESSING})
+	uut.deliver(t.Context(), other, &model.ChapterNarrationEvent{Status: entchapter.NarrationStatusFAILED})
+	uut.deliver(t.Context(), mine, &model.ChapterNarrationEvent{Status: entchapter.NarrationStatusPROCESSING})
 
 	got := <-events
 	if got.Status != entchapter.NarrationStatusPROCESSING || len(events) != 0 {
@@ -54,7 +55,7 @@ func TestDeliverSkipsASubscriberThatIsFull(t *testing.T) {
 	events := uut.Subscribe(t.Context(), chapterID)
 
 	for range subscriberBuffer + 1 {
-		uut.deliver(t.Context(), chapterID, &Event{Status: entchapter.NarrationStatusPROCESSING})
+		uut.deliver(t.Context(), chapterID, &model.ChapterNarrationEvent{Status: entchapter.NarrationStatusPROCESSING})
 	}
 
 	if len(events) != subscriberBuffer {

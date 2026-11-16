@@ -9,53 +9,11 @@ import (
 	entlicense "github.com/Ponos-OS/smart-novel/apps/backend/ent/license"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/fithara"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 )
-
-// AssistantRole says who wrote a message of the conversation.
-type AssistantRole string
-
-const (
-	AssistantRoleAssistant AssistantRole = "ASSISTANT"
-	AssistantRoleUser      AssistantRole = "USER"
-)
-
-type AssistantMessage struct {
-	Role    AssistantRole
-	Content string
-}
-
-// AssistantDraft is the license text being worked on, as the client holds it.
-type AssistantDraft struct {
-	Name        string
-	Text        string
-	SourceType  entlicense.SourceType
-	CanonicalID *string
-}
-
-type AssistantPreferences struct {
-	Category *string
-}
-
-// AssistantRequest is one message to the assistant with everything it needs: nothing is stored, the client sends the conversation and the draft.
-type AssistantRequest struct {
-	Conversation []AssistantMessage
-	Draft        *AssistantDraft
-	Message      string
-	Preferences  *AssistantPreferences
-}
-
-type AssistantTurn struct {
-	AssistantMessage  string
-	Draft             *AssistantDraft
-	DraftChanged      bool
-	Recommendations   []string
-	Disclaimers       []string
-	IsReadyToFinalize bool
-	Conversation      []AssistantMessage
-}
 
 // Assist sends one message to Fithara.
-func (s *Service) Assist(ctx context.Context, request AssistantRequest) (*AssistantTurn, error) {
+func (s *Service) Assist(ctx context.Context, request model.DraftLicenseInput) (*model.LicenseAssistantTurn, error) {
 	response, err := s.fitharaClient.DraftV1DraftPostWithResponse(ctx, toFitharaRequest(request))
 	if err != nil {
 		return nil, s.assistantUnavailable(ctx, err)
@@ -102,7 +60,7 @@ func requestID(refusal *fithara.ErrorResponse) string {
 	return *refusal.Error.RequestId
 }
 
-func toFitharaRequest(request AssistantRequest) fithara.DraftRequest {
+func toFitharaRequest(request model.DraftLicenseInput) fithara.DraftRequest {
 	conversation := make([]fithara.ConversationTurn, 0, len(request.Conversation))
 	for _, message := range request.Conversation {
 		conversation = append(conversation, fithara.ConversationTurn{Role: toFitharaRole(message.Role), Content: message.Content})
@@ -122,12 +80,12 @@ func toFitharaRequest(request AssistantRequest) fithara.DraftRequest {
 	return out
 }
 
-func toAssistantTurn(response *fithara.DraftResponse) *AssistantTurn {
-	conversation := make([]AssistantMessage, 0, len(response.Conversation))
+func toAssistantTurn(response *fithara.DraftResponse) *model.LicenseAssistantTurn {
+	conversation := make([]*model.LicenseAssistantMessage, 0, len(response.Conversation))
 	for _, turn := range response.Conversation {
-		conversation = append(conversation, AssistantMessage{Role: toAssistantRole(turn.Role), Content: turn.Content})
+		conversation = append(conversation, &model.LicenseAssistantMessage{Role: toAssistantRole(turn.Role), Content: turn.Content})
 	}
-	turn := &AssistantTurn{
+	turn := &model.LicenseAssistantTurn{
 		AssistantMessage:  response.AssistantMessage,
 		DraftChanged:      response.DraftChanged,
 		Recommendations:   response.Recommendations,
@@ -136,7 +94,7 @@ func toAssistantTurn(response *fithara.DraftResponse) *AssistantTurn {
 		Conversation:      conversation,
 	}
 	if response.Draft != nil {
-		turn.Draft = &AssistantDraft{
+		turn.Draft = &model.LicenseAssistantDraft{
 			Name:        response.Draft.Title,
 			Text:        response.Draft.Text,
 			SourceType:  toSourceType(response.Draft.Source.Type),
@@ -147,20 +105,20 @@ func toAssistantTurn(response *fithara.DraftResponse) *AssistantTurn {
 	return turn
 }
 
-func toFitharaRole(role AssistantRole) fithara.ConversationTurnRole {
-	if role == AssistantRoleUser {
+func toFitharaRole(role model.LicenseAssistantMessageRole) fithara.ConversationTurnRole {
+	if role == model.LicenseAssistantMessageRoleUser {
 		return fithara.User
 	}
 
 	return fithara.Assistant
 }
 
-func toAssistantRole(role fithara.ConversationTurnRole) AssistantRole {
+func toAssistantRole(role fithara.ConversationTurnRole) model.LicenseAssistantMessageRole {
 	if role == fithara.User {
-		return AssistantRoleUser
+		return model.LicenseAssistantMessageRoleUser
 	}
 
-	return AssistantRoleAssistant
+	return model.LicenseAssistantMessageRoleAssistant
 }
 
 func toFitharaSourceType(sourceType entlicense.SourceType) fithara.DraftSourceType {

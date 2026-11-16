@@ -11,6 +11,7 @@ import (
 	"entgo.io/contrib/entgql"
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/pagination"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/writer"
 	"github.com/google/uuid"
@@ -71,15 +72,6 @@ func (r *queryResolver) Writers(ctx context.Context, after *entgql.Cursor[uuid.U
 }
 
 // Applications is the resolver for the applications field.
-func (r *writerResolver) Applications(ctx context.Context, obj *ent.Writer) ([]*writer.Application, error) {
-	applications, err := writer.ViewApplications(obj.Applications)
-	if err != nil {
-		return nil, err
-	}
-	views := make([]*writer.Application, len(applications))
-	for index := range applications {
-		views[index] = &applications[index]
-	}
-
-	return views, nil
+func (r *writerResolver) Applications(ctx context.Context, obj *ent.Writer) ([]*model.WriterApplication, error) {
+	return writer.ViewApplications(obj.Applications)
 }

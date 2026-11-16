@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 )
 
 const (
@@ -16,12 +17,6 @@ const (
 // RowEstimator tells how many rows a query would return, from the planner, without running it.
 type RowEstimator interface {
 	EstimateRows(ctx context.Context, query string, args ...any) (int, error)
-}
-
-// Totals are the planner's estimates of the whole catalog right now, not exact counts.
-type Totals struct {
-	EstimatedNovelCount   int
-	EstimatedChapterCount int
 }
 
 type Service struct {
@@ -35,8 +30,8 @@ func NewService(estimator RowEstimator, client *ent.Client, logger *slog.Logger)
 }
 
 // LiveTotals is cheap enough for every page view. A figure that cannot be read is 0 and logged.
-func (s *Service) LiveTotals(ctx context.Context) Totals {
-	return Totals{
+func (s *Service) LiveTotals(ctx context.Context) model.ContentStats {
+	return model.ContentStats{
 		EstimatedNovelCount:   s.estimateOrZero(ctx, "novels"),
 		EstimatedChapterCount: s.estimateOrZero(ctx, "chapters"),
 	}

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"testing"
 
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/stats"
 )
 
@@ -25,10 +26,10 @@ func TestLiveTotals(t *testing.T) {
 	cases := []struct {
 		name      string
 		estimates fakeEstimator
-		want      stats.Totals
+		want      model.ContentStats
 	}{
-		{"both read", fakeEstimator{"SELECT 1 FROM novels": 12, "SELECT 1 FROM chapters": 340}, stats.Totals{EstimatedNovelCount: 12, EstimatedChapterCount: 340}},
-		{"one cannot be read", fakeEstimator{"SELECT 1 FROM novels": 12}, stats.Totals{EstimatedNovelCount: 12}},
+		{"both read", fakeEstimator{"SELECT 1 FROM novels": 12, "SELECT 1 FROM chapters": 340}, model.ContentStats{EstimatedNovelCount: 12, EstimatedChapterCount: 340}},
+		{"one cannot be read", fakeEstimator{"SELECT 1 FROM novels": 12}, model.ContentStats{EstimatedNovelCount: 12}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

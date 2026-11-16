@@ -12,7 +12,6 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/narration"
 	"github.com/google/uuid"
 )
 
@@ -134,7 +133,7 @@ func (r *mutationResolver) DeleteReadHistory(ctx context.Context) (*model.Delete
 }
 
 // GenerateChapterAudio is the resolver for the generateChapterAudio field.
-func (r *mutationResolver) GenerateChapterAudio(ctx context.Context, id uuid.UUID) (*narration.Response, error) {
+func (r *mutationResolver) GenerateChapterAudio(ctx context.Context, id uuid.UUID) (*model.ChapterNarrationResponse, error) {
 	viewer, err := auth.Require(ctx)
 	if err != nil {
 		return nil, err
@@ -148,6 +147,6 @@ func (r *mutationResolver) GenerateChapterAudio(ctx context.Context, id uuid.UUI
 }
 
 // ChapterNarrationUpdated is the resolver for the chapterNarrationUpdated field.
-func (r *subscriptionResolver) ChapterNarrationUpdated(ctx context.Context, chapterID uuid.UUID) (<-chan *narration.Event, error) {
+func (r *subscriptionResolver) ChapterNarrationUpdated(ctx context.Context, chapterID uuid.UUID) (<-chan *model.ChapterNarrationEvent, error) {
 	return r.NarrationService.Subscribe(ctx, chapterID), nil
 }

@@ -29,11 +29,11 @@ func TestScopeOf(t *testing.T) {
 	cases := []struct {
 		name  string
 		found *ent.License
-		want  license.Scope
+		want  model.LicenseScope
 	}{
-		{"a draft of a writer", &ent.License{IsDraft: true, OwnerID: "310437862211387398"}, license.ScopeDraft},
-		{"a license of the platform", &ent.License{OwnerID: license.SystemOwner}, license.ScopeShared},
-		{"a license of a writer", &ent.License{OwnerID: "310437862211387398"}, license.ScopePersonal},
+		{"a draft of a writer", &ent.License{IsDraft: true, OwnerID: "310437862211387398"}, model.LicenseScopeDraft},
+		{"a license of the platform", &ent.License{OwnerID: license.SystemOwner}, model.LicenseScopeShared},
+		{"a license of a writer", &ent.License{OwnerID: "310437862211387398"}, model.LicenseScopePersonal},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

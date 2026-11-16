@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/adrg/frontmatter"
+
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 )
 
 // The following line is a compiler directive. It copies platform-terms.md into the binary at build time
@@ -20,33 +22,27 @@ var (
 	errNoText    = errors.New("platform terms have no text")
 )
 
-// Terms are the platform terms: a version that goes up whenever the text changes, and the text as markdown.
-type Terms struct {
-	Version  int
-	Markdown string
-}
-
 // Current reads the terms that ship with this build; it fails when the file is malformed, so a bad edit stops the backend from starting.
-func Current() (Terms, error) {
+func Current() (model.PlatformTerms, error) {
 	return Parse(source)
 }
 
 // Parse reads a markdown file that starts with a frontmatter holding a positive integer `version`.
-func Parse(text string) (Terms, error) {
+func Parse(text string) (model.PlatformTerms, error) {
 	var header struct {
 		Version int `yaml:"version"`
 	}
 	body, err := frontmatter.Parse(strings.NewReader(text), &header)
 	if err != nil {
-		return Terms{}, fmt.Errorf("%w: %w", errNoVersion, err)
+		return model.PlatformTerms{}, fmt.Errorf("%w: %w", errNoVersion, err)
 	}
 	if header.Version < 1 {
-		return Terms{}, errNoVersion
+		return model.PlatformTerms{}, errNoVersion
 	}
 	markdown := strings.TrimSpace(string(body))
 	if markdown == "" {
-		return Terms{}, errNoText
+		return model.PlatformTerms{}, errNoText
 	}
 
-	return Terms{Version: header.Version, Markdown: markdown}, nil
+	return model.PlatformTerms{Version: header.Version, Markdown: markdown}, nil
 }

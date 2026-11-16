@@ -8,10 +8,10 @@ package graph
 import (
 	"context"
 
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/llm"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 )
 
 // Explain is the resolver for the explain field.
-func (r *mutationResolver) Explain(ctx context.Context, word string, context string) (*llm.Explanation, error) {
+func (r *mutationResolver) Explain(ctx context.Context, word string, context string) (*model.WordExplanation, error) {
 	return r.LLMService.Explain(ctx, word, context)
 }

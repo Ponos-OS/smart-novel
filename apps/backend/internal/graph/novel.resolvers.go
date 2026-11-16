@@ -55,7 +55,7 @@ func (r *mutationResolver) DeleteNovel(ctx context.Context, id uuid.UUID) (*mode
 }
 
 // CreateNovelCoverUploadURL is the resolver for the createNovelCoverUploadURL field.
-func (r *mutationResolver) CreateNovelCoverUploadURL(ctx context.Context, novelID uuid.UUID, contentType string, contentLength int) (*novel.CoverUpload, error) {
+func (r *mutationResolver) CreateNovelCoverUploadURL(ctx context.Context, novelID uuid.UUID, contentType string, contentLength int) (*model.NovelCoverUpload, error) {
 	viewer, err := auth.Require(ctx)
 	if err != nil {
 		return nil, err
@@ -134,7 +134,7 @@ func (r *novelResolver) EstimatedChapterCount(ctx context.Context, obj *ent.Nove
 }
 
 // Writer is the resolver for the writer field.
-func (r *novelResolver) Writer(ctx context.Context, obj *ent.Novel) (*novel.WriterView, error) {
+func (r *novelResolver) Writer(ctx context.Context, obj *ent.Novel) (*model.NovelWriter, error) {
 	owner, err := loadersFrom(ctx).writers.Load(ctx, obj.WriterID)
 	if err != nil {
 		return nil, err
