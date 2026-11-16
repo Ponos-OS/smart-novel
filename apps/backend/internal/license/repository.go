@@ -11,6 +11,7 @@ import (
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
 	entlicense "github.com/Ponos-OS/smart-novel/apps/backend/ent/license"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 )
 
 // repository is the only place of this package that builds database queries. It decides nothing, and the errors it returns are the
@@ -105,7 +106,7 @@ func (r *repository) countDrafts(ctx context.Context, ownerID string) (int, erro
 	return r.client.License.Query().Where(entlicense.OwnerID(ownerID), entlicense.IsDraft(true)).Count(ctx)
 }
 
-func (r *repository) insertDraft(ctx context.Context, ownerID string, base DraftSave, version string) (*ent.License, error) {
+func (r *repository) insertDraft(ctx context.Context, ownerID string, base model.SaveLicenseDraftInput, version string) (*ent.License, error) {
 	return r.client.License.Create().
 		SetVersion(version).
 		SetName(base.Name).
@@ -129,7 +130,7 @@ func (r *repository) draft(ctx context.Context, id uuid.UUID, ownerID string) (*
 
 // updateDraft names the owner and the draft flag, so a draft finalized a moment ago cannot be changed by a late save. It returns how many
 // rows changed.
-func (r *repository) updateDraft(ctx context.Context, ownerID string, save DraftSave) (int, error) {
+func (r *repository) updateDraft(ctx context.Context, ownerID string, save model.SaveLicenseDraftInput) (int, error) {
 	update := r.client.License.Update().
 		Where(entlicense.ID(save.ID), entlicense.OwnerID(ownerID), entlicense.IsDraft(true)).
 		SetName(save.Name).

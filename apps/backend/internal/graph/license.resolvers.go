@@ -11,6 +11,7 @@ import (
 	"entgo.io/contrib/entgql"
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/license"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/pagination"
 	"github.com/google/uuid"
@@ -27,7 +28,7 @@ func (r *mutationResolver) DraftLicense(ctx context.Context, input license.Assis
 }
 
 // CreateLicense is the resolver for the createLicense field.
-func (r *mutationResolver) CreateLicense(ctx context.Context, input license.Input) (*ent.License, error) {
+func (r *mutationResolver) CreateLicense(ctx context.Context, input model.LicenseInput) (*ent.License, error) {
 	viewer, err := auth.Require(ctx)
 	if err != nil {
 		return nil, err
@@ -47,7 +48,7 @@ func (r *mutationResolver) SetDefaultLicense(ctx context.Context, licenseID uuid
 }
 
 // CreateLicenseDraft is the resolver for the createLicenseDraft field.
-func (r *mutationResolver) CreateLicenseDraft(ctx context.Context, input license.DraftStart) (*ent.License, error) {
+func (r *mutationResolver) CreateLicenseDraft(ctx context.Context, input model.CreateLicenseDraftInput) (*ent.License, error) {
 	viewer, err := auth.Require(ctx)
 	if err != nil {
 		return nil, err
@@ -57,7 +58,7 @@ func (r *mutationResolver) CreateLicenseDraft(ctx context.Context, input license
 }
 
 // SaveLicenseDraft is the resolver for the saveLicenseDraft field.
-func (r *mutationResolver) SaveLicenseDraft(ctx context.Context, input license.DraftSave) (*ent.License, error) {
+func (r *mutationResolver) SaveLicenseDraft(ctx context.Context, input model.SaveLicenseDraftInput) (*ent.License, error) {
 	viewer, err := auth.Require(ctx)
 	if err != nil {
 		return nil, err

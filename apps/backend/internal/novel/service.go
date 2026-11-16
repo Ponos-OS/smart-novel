@@ -13,6 +13,7 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/entx"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/license"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/narration"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/objectstorage"
@@ -51,7 +52,7 @@ func (s *Service) Get(ctx context.Context, id uuid.UUID) (*ent.Novel, error) {
 }
 
 // Create makes a novel owned by the viewer, with the license they chose or else the default one. The input is already normalized.
-func (s *Service) Create(ctx context.Context, viewer auth.Viewer, input CreateInput) (*ent.Novel, error) {
+func (s *Service) Create(ctx context.Context, viewer auth.Viewer, input model.CreateNovelInput) (*ent.Novel, error) {
 	if err := auth.DenyUnlessCan(viewer, auth.Create, auth.Novel{}); err != nil {
 		return nil, err
 	}
@@ -88,7 +89,7 @@ func (s *Service) Create(ctx context.Context, viewer auth.Viewer, input CreateIn
 }
 
 // licenseForNewNovel finds the license a new novel gets: the one the input names, or else the default.
-func (s *Service) licenseForNewNovel(ctx context.Context, viewer auth.Viewer, input CreateInput) (*ent.License, error) {
+func (s *Service) licenseForNewNovel(ctx context.Context, viewer auth.Viewer, input model.CreateNovelInput) (*ent.License, error) {
 	if input.LicenseID == nil {
 		return s.licenseService.Default(ctx)
 	}
@@ -97,7 +98,7 @@ func (s *Service) licenseForNewNovel(ctx context.Context, viewer auth.Viewer, in
 }
 
 // Update changes the given fields of a novel its owner or an admin owns. The input is already normalized.
-func (s *Service) Update(ctx context.Context, viewer auth.Viewer, id uuid.UUID, input UpdateInput) (*ent.Novel, error) {
+func (s *Service) Update(ctx context.Context, viewer auth.Viewer, id uuid.UUID, input model.UpdateNovelInput) (*ent.Novel, error) {
 	licenseID, licenseErr := s.chosenLicense(ctx, viewer, id, input)
 	if licenseErr != nil {
 		return nil, licenseErr
@@ -125,7 +126,7 @@ func (s *Service) Update(ctx context.Context, viewer auth.Viewer, id uuid.UUID, 
 }
 
 // chosenLicense finds the license an update names, among those the owner of the novel may use; nil when it names none.
-func (s *Service) chosenLicense(ctx context.Context, viewer auth.Viewer, id uuid.UUID, input UpdateInput) (*uuid.UUID, error) {
+func (s *Service) chosenLicense(ctx context.Context, viewer auth.Viewer, id uuid.UUID, input model.UpdateNovelInput) (*uuid.UUID, error) {
 	if input.LicenseID == nil {
 		return nil, nil //nolint:nilnil // nothing to change
 	}

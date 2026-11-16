@@ -7,14 +7,15 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent/novel"
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent/predicate"
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent/writer"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/validation"
 )
 
 // Predicates are the conditions of a novel list that ent's where input cannot express: the exact number of chapters and the writers by their identity provider ID.
-func Predicates(chapterCount *ChapterCountRange, ownerUserIDs []string) ([]predicate.Novel, error) {
+func Predicates(chapterCount *model.ChapterCountRangeInput, ownerUserIDs []string) ([]predicate.Novel, error) {
 	var check validation.Checker
 	if chapterCount != nil {
-		chapterCount.check(&check)
+		chapterCount.Check(&check)
 	}
 	if err := check.Err(); err != nil {
 		return nil, err

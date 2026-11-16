@@ -9,6 +9,7 @@ import (
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 )
 
 const notFoundMessage = "Tag not found"
@@ -29,14 +30,14 @@ func NewService(client *ent.Client, estimator RowEstimator) *Service {
 }
 
 // Request files a tag a writer asks for; it is pending until an admin approves it. The input is already normalized.
-func (s *Service) Request(ctx context.Context, requesterUserID string, input Input) (*ent.Tag, error) {
+func (s *Service) Request(ctx context.Context, requesterUserID string, input model.RequestTagInput) (*ent.Tag, error) {
 	created, err := s.repo.createPending(ctx, input, requesterUserID)
 
 	return created, alreadyExists(err, input.Name)
 }
 
 // Create stores a tag that is approved right away.
-func (s *Service) Create(ctx context.Context, input Input) (*ent.Tag, error) {
+func (s *Service) Create(ctx context.Context, input model.CreateTagInput) (*ent.Tag, error) {
 	created, err := s.repo.createApproved(ctx, input)
 
 	return created, alreadyExists(err, input.Name)
@@ -57,7 +58,7 @@ func (s *Service) Approve(ctx context.Context, id uuid.UUID) (*ent.Tag, error) {
 }
 
 // Update changes the name, the description or both; the novels that have the tag follow a rename. The changes are already normalized.
-func (s *Service) Update(ctx context.Context, id uuid.UUID, changes Update) (*ent.Tag, error) {
+func (s *Service) Update(ctx context.Context, id uuid.UUID, changes model.UpdateTagInput) (*ent.Tag, error) {
 	updated, err := s.repo.update(ctx, id, changes)
 	if ent.IsNotFound(err) {
 		return nil, apperr.NotFound(notFoundMessage)

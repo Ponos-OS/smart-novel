@@ -27,24 +27,6 @@ models:
   Node:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/ent.Noder
-  RequestTagInput:
-    model:
-      - github.com/Ponos-OS/smart-novel/apps/backend/internal/tag.Input
-  CreateTagInput:
-    model:
-      - github.com/Ponos-OS/smart-novel/apps/backend/internal/tag.Input
-  UpdateTagInput:
-    model:
-      - github.com/Ponos-OS/smart-novel/apps/backend/internal/tag.Update
-  LicenseInput:
-    model:
-      - github.com/Ponos-OS/smart-novel/apps/backend/internal/license.Input
-  CreateLicenseDraftInput:
-    model:
-      - github.com/Ponos-OS/smart-novel/apps/backend/internal/license.DraftStart
-  SaveLicenseDraftInput:
-    model:
-      - github.com/Ponos-OS/smart-novel/apps/backend/internal/license.DraftSave
   LicenseAssistantMessageRole:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/internal/license.AssistantRole
@@ -84,15 +66,6 @@ models:
   NovelCoverUpload:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/internal/novel.CoverUpload
-  CreateNovelInput:
-    model:
-      - github.com/Ponos-OS/smart-novel/apps/backend/internal/novel.CreateInput
-  UpdateNovelInput:
-    model:
-      - github.com/Ponos-OS/smart-novel/apps/backend/internal/novel.UpdateInput
-  ChapterCountRangeInput:
-    model:
-      - github.com/Ponos-OS/smart-novel/apps/backend/internal/novel.ChapterCountRange
   NovelWriter:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/internal/novel.WriterView
@@ -105,12 +78,6 @@ models:
   WriterApplication:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/internal/writer.Application
-  CreateChapterInput:
-    model:
-      - github.com/Ponos-OS/smart-novel/apps/backend/internal/chapter.CreateInput
-  UpdateChapterInput:
-    model:
-      - github.com/Ponos-OS/smart-novel/apps/backend/internal/chapter.UpdateInput
   ContentStats:
     model:
       - github.com/Ponos-OS/smart-novel/apps/backend/internal/stats.Totals

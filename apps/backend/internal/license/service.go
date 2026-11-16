@@ -15,6 +15,7 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/entx"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/fithara"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 )
 
 // DraftsPerWriterMax is how many unfinished drafts a writer may have.
@@ -63,7 +64,7 @@ func (s *Service) FindUsable(ctx context.Context, id uuid.UUID, ownerID string) 
 }
 
 // Create stores a license every writer can use. An admin only; a text that is stored already is returned as it is, and the default does not change.
-func (s *Service) Create(ctx context.Context, viewer auth.Viewer, input Input) (*ent.License, error) {
+func (s *Service) Create(ctx context.Context, viewer auth.Viewer, input model.LicenseInput) (*ent.License, error) {
 	if err := auth.DenyUnlessCan(viewer, auth.Create, auth.License{}); err != nil {
 		return nil, err
 	}
@@ -72,7 +73,7 @@ func (s *Service) Create(ctx context.Context, viewer auth.Viewer, input Input) (
 }
 
 // GetOrCreate reuses the stored row when the normalized text is already known, so that row keeps its own name and source.
-func (s *Service) GetOrCreate(ctx context.Context, input Input, ownerID string) (*ent.License, error) {
+func (s *Service) GetOrCreate(ctx context.Context, input model.LicenseInput, ownerID string) (*ent.License, error) {
 	existing, data, err := s.prepare(ctx, input, ownerID)
 	if err != nil {
 		return nil, err
@@ -91,7 +92,7 @@ func (s *Service) GetOrCreate(ctx context.Context, input Input, ownerID string) 
 
 // prepare runs the checks every new license goes through, whether it comes from a novel's input or from finalizing a draft. It returns
 // the license that already has the text, or what to store.
-func (s *Service) prepare(ctx context.Context, input Input, ownerID string) (*ent.License, stored, error) {
+func (s *Service) prepare(ctx context.Context, input model.LicenseInput, ownerID string) (*ent.License, stored, error) {
 	name := strings.TrimSpace(input.Name)
 	if name == "" || strings.TrimSpace(input.Text) == "" {
 		return nil, stored{}, apperr.BadRequest("A license needs a name and a text")
@@ -145,7 +146,7 @@ func (s *Service) findByText(ctx context.Context, hash, ownerID string) (*ent.Li
 
 // verifyCanonical lets a text claim to be canonical only when it is Fithara's, word for word (white space aside), so a client cannot
 // dress its own text as a well-known license. The row takes its name from Fithara.
-func (s *Service) verifyCanonical(ctx context.Context, input Input, hash string) (stored, error) {
+func (s *Service) verifyCanonical(ctx context.Context, input model.LicenseInput, hash string) (stored, error) {
 	if input.CanonicalID == nil {
 		return stored{}, apperr.BadRequest("A CANONICAL license needs its canonicalId")
 	}

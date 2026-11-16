@@ -11,6 +11,7 @@ import (
 	entnovel "github.com/Ponos-OS/smart-novel/apps/backend/ent/novel"
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent/tag"
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent/writer"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 )
 
 // repository is the only place of this package, with the list queries of filter.go and page.go, that builds database queries. It decides
@@ -46,7 +47,7 @@ func (r *repository) approvedTags(ctx context.Context, names []string) ([]*ent.T
 	return r.client.Tag.Query().Where(tag.NameIn(names...), tag.StatusEQ(tag.StatusAPPROVED)).All(ctx)
 }
 
-func (r *repository) createNovel(ctx context.Context, input CreateInput, writerID, licenseID uuid.UUID, tagIDs []uuid.UUID) (*ent.Novel, error) {
+func (r *repository) createNovel(ctx context.Context, input model.CreateNovelInput, writerID, licenseID uuid.UUID, tagIDs []uuid.UUID) (*ent.Novel, error) {
 	create := r.client.Novel.Create().
 		SetName(input.Name).
 		SetDescription(input.Description).
@@ -61,7 +62,7 @@ func (r *repository) createNovel(ctx context.Context, input CreateInput, writerI
 }
 
 // updateNovel changes the given fields; a nil licenseID keeps the license. When replaceTags is set the tags become exactly tagIDs.
-func (r *repository) updateNovel(ctx context.Context, id uuid.UUID, input UpdateInput, licenseID *uuid.UUID, replaceTags bool, tagIDs []uuid.UUID) error {
+func (r *repository) updateNovel(ctx context.Context, id uuid.UUID, input model.UpdateNovelInput, licenseID *uuid.UUID, replaceTags bool, tagIDs []uuid.UUID) error {
 	update := r.client.Novel.UpdateOneID(id).
 		SetNillableLicenseID(licenseID).
 		SetNillableName(input.Name).

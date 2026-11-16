@@ -1,22 +1,35 @@
 package novel_test
 
 import (
+	"errors"
 	"testing"
 
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/novel"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/validation"
 )
 
 func intPtr(value int) *int { return &value }
 
+func violations(t *testing.T, err error) []validation.Violation {
+	t.Helper()
+	var invalid *validation.Error
+	if !errors.As(err, &invalid) {
+		t.Fatalf("err = %v, want a validation error", err)
+	}
+
+	return invalid.Violations
+}
+
 func TestPredicatesRefuses(t *testing.T) {
 	cases := []struct {
 		name         string
-		chapterCount *novel.ChapterCountRange
+		chapterCount *model.ChapterCountRangeInput
 		ownerIDs     []string
 		field        string
 	}{
-		{"a maximum below the minimum", &novel.ChapterCountRange{Min: intPtr(5), Max: intPtr(1)}, nil, "chapterCount.max"},
-		{"a negative minimum", &novel.ChapterCountRange{Min: intPtr(-1)}, nil, "chapterCount.min"},
+		{"a maximum below the minimum", &model.ChapterCountRangeInput{Min: intPtr(5), Max: intPtr(1)}, nil, "chapterCount.max"},
+		{"a negative minimum", &model.ChapterCountRangeInput{Min: intPtr(-1)}, nil, "chapterCount.min"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -32,15 +45,15 @@ func TestPredicatesRefuses(t *testing.T) {
 func TestPredicatesCountsWhatWasAskedFor(t *testing.T) {
 	cases := []struct {
 		name         string
-		chapterCount *novel.ChapterCountRange
+		chapterCount *model.ChapterCountRangeInput
 		ownerIDs     []string
 		want         int
 	}{
 		{"nothing asked", nil, nil, 0},
 		{"an empty list of owners is no filter", nil, []string{}, 0},
-		{"a minimum", &novel.ChapterCountRange{Min: intPtr(2)}, nil, 1},
-		{"a range", &novel.ChapterCountRange{Min: intPtr(1), Max: intPtr(2)}, nil, 2},
-		{"owners and a maximum", &novel.ChapterCountRange{Max: intPtr(0)}, []string{"316784561234"}, 2},
+		{"a minimum", &model.ChapterCountRangeInput{Min: intPtr(2)}, nil, 1},
+		{"a range", &model.ChapterCountRangeInput{Min: intPtr(1), Max: intPtr(2)}, nil, 2},
+		{"owners and a maximum", &model.ChapterCountRangeInput{Max: intPtr(0)}, []string{"316784561234"}, 2},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

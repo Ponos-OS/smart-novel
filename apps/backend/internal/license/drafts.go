@@ -11,6 +11,7 @@ import (
 	entlicense "github.com/Ponos-OS/smart-novel/apps/backend/ent/license"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 )
 
 // firstEdition is the version of a license that begins a line: one written from nothing, or a fork of a canonical license.
@@ -20,7 +21,7 @@ const firstEdition = "1"
 // statement names the owner, and writes also name the flag, so a draft finalized a moment ago can never be changed by a late save.
 
 // CreateDraft starts a draft from the text of a license the writer may use, of a canonical license, or from nothing.
-func (s *Service) CreateDraft(ctx context.Context, ownerID string, start DraftStart) (*ent.License, error) {
+func (s *Service) CreateDraft(ctx context.Context, ownerID string, start model.CreateLicenseDraftInput) (*ent.License, error) {
 	if start.LicenseID != nil && start.CanonicalID != nil {
 		return nil, apperr.BadRequest("Pass either licenseID or canonicalID, not both")
 	}
@@ -41,28 +42,28 @@ func (s *Service) CreateDraft(ctx context.Context, ownerID string, start DraftSt
 
 // draftBase gives the text a new draft starts with and its version (the edition of the license it will become). The version is set here, once:
 // saving the draft does not change it, and finalizing it keeps it.
-func (s *Service) draftBase(ctx context.Context, ownerID string, start DraftStart) (DraftSave, string, error) {
+func (s *Service) draftBase(ctx context.Context, ownerID string, start model.CreateLicenseDraftInput) (model.SaveLicenseDraftInput, string, error) {
 	if start.LicenseID != nil {
 		found, err := s.FindUsable(ctx, *start.LicenseID, ownerID)
 		if err != nil {
-			return DraftSave{}, "", err
+			return model.SaveLicenseDraftInput{}, "", err
 		}
 
-		return DraftSave{Name: found.Name, Text: found.Text, SourceType: found.SourceType, CanonicalID: found.CanonicalID}, editionAfter(found), nil
+		return model.SaveLicenseDraftInput{Name: found.Name, Text: found.Text, SourceType: found.SourceType, CanonicalID: found.CanonicalID}, editionAfter(found), nil
 	}
 	if start.CanonicalID != nil {
 		canonical, err := s.findCanonical(ctx, *start.CanonicalID)
 		if err != nil {
-			return DraftSave{}, "", err
+			return model.SaveLicenseDraftInput{}, "", err
 		}
 		if canonical == nil {
-			return DraftSave{}, "", apperr.BadRequest(fmt.Sprintf("%s is not a known canonical license", *start.CanonicalID))
+			return model.SaveLicenseDraftInput{}, "", apperr.BadRequest(fmt.Sprintf("%s is not a known canonical license", *start.CanonicalID))
 		}
 
-		return DraftSave{Name: canonical.ShortName, Text: canonical.Body, SourceType: entlicense.SourceTypeCANONICAL, CanonicalID: &canonical.Id}, firstEdition, nil
+		return model.SaveLicenseDraftInput{Name: canonical.ShortName, Text: canonical.Body, SourceType: entlicense.SourceTypeCANONICAL, CanonicalID: &canonical.Id}, firstEdition, nil
 	}
 
-	return DraftSave{SourceType: entlicense.SourceTypeCUSTOM}, firstEdition, nil
+	return model.SaveLicenseDraftInput{SourceType: entlicense.SourceTypeCUSTOM}, firstEdition, nil
 }
 
 // editionAfter is the version of a license started from base: one more than base's, or the first when base is a canonical license, whose own version is the registry's (a fork of it begins its own line). A license stored without a version counts as the first.
@@ -81,7 +82,7 @@ func editionAfter(base *ent.License) string {
 }
 
 // SaveDraft stores the whole draft. Saving what is already saved writes nothing, and the last save wins.
-func (s *Service) SaveDraft(ctx context.Context, ownerID string, save DraftSave) (*ent.License, error) {
+func (s *Service) SaveDraft(ctx context.Context, ownerID string, save model.SaveLicenseDraftInput) (*ent.License, error) {
 	current, err := s.ownedDraft(ctx, ownerID, save.ID)
 	if err != nil {
 		return nil, err
@@ -100,7 +101,7 @@ func (s *Service) SaveDraft(ctx context.Context, ownerID string, save DraftSave)
 	return s.ownedDraft(ctx, ownerID, save.ID)
 }
 
-func sameDraft(current *ent.License, save DraftSave) bool {
+func sameDraft(current *ent.License, save model.SaveLicenseDraftInput) bool {
 	sameCanonical := (current.CanonicalID == nil && save.CanonicalID == nil) ||
 		(current.CanonicalID != nil && save.CanonicalID != nil && *current.CanonicalID == *save.CanonicalID)
 
@@ -150,7 +151,7 @@ func (s *Service) FinalizeDraft(ctx context.Context, ownerID string, id uuid.UUI
 	if err != nil {
 		return nil, err
 	}
-	existing, data, err := s.prepare(ctx, Input{Name: draft.Name, Text: draft.Text, SourceType: draft.SourceType, CanonicalID: draft.CanonicalID}, ownerID)
+	existing, data, err := s.prepare(ctx, model.LicenseInput{Name: draft.Name, Text: draft.Text, SourceType: draft.SourceType, CanonicalID: draft.CanonicalID}, ownerID)
 	if err != nil {
 		return nil, err
 	}

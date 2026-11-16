@@ -15,6 +15,7 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/background"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/entx"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/narration"
 )
 
@@ -39,7 +40,7 @@ func NewService(client *ent.Client, narrationService *narration.Service, logger 
 }
 
 // Create adds a chapter at the end of a novel its owner or an admin owns. The input is already normalized.
-func (s *Service) Create(ctx context.Context, viewer auth.Viewer, novelID uuid.UUID, input CreateInput) (*ent.Chapter, error) {
+func (s *Service) Create(ctx context.Context, viewer auth.Viewer, novelID uuid.UUID, input model.CreateChapterInput) (*ent.Chapter, error) {
 	var createdID uuid.UUID
 	err := entx.WithTx(ctx, s.client, func(tx *ent.Tx) error {
 		repo := newRepository(tx.Client())
@@ -108,7 +109,7 @@ func (s *Service) UpdateContent(ctx context.Context, viewer auth.Viewer, id uuid
 }
 
 // UpdateMetadata changes the title of a chapter if nobody else changed the chapter since the client read it at expected. The input is already normalized.
-func (s *Service) UpdateMetadata(ctx context.Context, viewer auth.Viewer, id uuid.UUID, input UpdateInput, expected time.Time) (*ent.Chapter, error) {
+func (s *Service) UpdateMetadata(ctx context.Context, viewer auth.Viewer, id uuid.UUID, input model.UpdateChapterInput, expected time.Time) (*ent.Chapter, error) {
 	target, err := s.authorizedChapter(ctx, viewer, auth.Update, id)
 	if err != nil {
 		return nil, err

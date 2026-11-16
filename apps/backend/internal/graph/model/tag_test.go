@@ -1,11 +1,11 @@
-package tag_test
+package model_test
 
 import (
 	"errors"
 	"testing"
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/tag"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 )
 
 func TestUpdateRequireChange(t *testing.T) {
@@ -13,13 +13,13 @@ func TestUpdateRequireChange(t *testing.T) {
 	description := "Heroes and long journeys."
 	cases := []struct {
 		name    string
-		update  tag.Update
+		update  model.UpdateTagInput
 		invalid bool
 	}{
-		{"a name", tag.Update{Name: &name}, false},
-		{"a description", tag.Update{Description: &description}, false},
-		{"both", tag.Update{Name: &name, Description: &description}, false},
-		{"nothing", tag.Update{}, true},
+		{"a name", model.UpdateTagInput{Name: &name}, false},
+		{"a description", model.UpdateTagInput{Description: &description}, false},
+		{"both", model.UpdateTagInput{Name: &name, Description: &description}, false},
+		{"nothing", model.UpdateTagInput{}, true},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

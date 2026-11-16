@@ -12,12 +12,11 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/tag"
 	"github.com/google/uuid"
 )
 
 // RequestTag is the resolver for the requestTag field.
-func (r *mutationResolver) RequestTag(ctx context.Context, input tag.Input) (*ent.Tag, error) {
+func (r *mutationResolver) RequestTag(ctx context.Context, input model.RequestTagInput) (*ent.Tag, error) {
 	viewer, err := auth.Require(ctx)
 	if err != nil {
 		return nil, err
@@ -27,7 +26,7 @@ func (r *mutationResolver) RequestTag(ctx context.Context, input tag.Input) (*en
 }
 
 // CreateTag is the resolver for the createTag field.
-func (r *mutationResolver) CreateTag(ctx context.Context, input tag.Input) (*ent.Tag, error) {
+func (r *mutationResolver) CreateTag(ctx context.Context, input model.CreateTagInput) (*ent.Tag, error) {
 	return r.TagService.Create(ctx, input)
 }
 
@@ -37,7 +36,7 @@ func (r *mutationResolver) ApproveTag(ctx context.Context, id uuid.UUID) (*ent.T
 }
 
 // UpdateTag is the resolver for the updateTag field.
-func (r *mutationResolver) UpdateTag(ctx context.Context, id uuid.UUID, input tag.Update) (*ent.Tag, error) {
+func (r *mutationResolver) UpdateTag(ctx context.Context, id uuid.UUID, input model.UpdateTagInput) (*ent.Tag, error) {
 	if err := input.RequireChange(); err != nil {
 		return nil, err
 	}

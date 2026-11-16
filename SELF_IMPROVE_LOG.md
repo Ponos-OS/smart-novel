@@ -234,3 +234,9 @@
 - A removal step needs a list of what is left to find, not only the deletion: `git grep` for the old names found the Nx and Prisma wording in six docs, four `.tftest.hcl` fixtures and a debug configuration that no compiler or test would have flagged.
 - A pre-existing red check (two `terraform test` runs in `modules/app`) is only known to be old after running it on the previous commit; I stashed to do that, and the stash round trip is worth a `git stash list` afterwards to see that only the user's three stashes remain.
 - My first draft of the Go rules in `CONTRIBUTING.md` named a retry helper in `internal/platform` that does not exist, and the step text named `testify`, which the code does not use. Check each sentence of a rule against the code before writing it.
+
+### Step 12
+
+- A hand-written type bound to a schema type was a decision I made in Step 8 without saying what it costs (every input written twice); the user saw it in one look. When I pick a layering over the tool's default, say so in the step's notes.
+- Deleting a file means looking for what else was in it: `novel/input_test.go` held a helper another test used, and `license/input.go` held the `Scope` code.
+- Step 11 removed `dotenv` with the packages that carried it, because I checked each removal by searching for its import in `package.json` terms and trusted that it was not declared. A removed dependency must be checked against what is installed afterwards (`npm ls`), and the e2e run is the check for tooling that unit tests and lint do not load.

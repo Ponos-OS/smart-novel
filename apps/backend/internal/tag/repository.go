@@ -7,6 +7,7 @@ import (
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
 	enttag "github.com/Ponos-OS/smart-novel/apps/backend/ent/tag"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 )
 
 // repository is the only place of this package that builds database queries. It decides nothing, and the errors it returns are the
@@ -19,7 +20,7 @@ func newRepository(client *ent.Client) *repository {
 	return &repository{client: client}
 }
 
-func (r *repository) createPending(ctx context.Context, input Input, requesterUserID string) (*ent.Tag, error) {
+func (r *repository) createPending(ctx context.Context, input model.RequestTagInput, requesterUserID string) (*ent.Tag, error) {
 	return r.client.Tag.Create().
 		SetName(input.Name).
 		SetDescription(input.Description).
@@ -29,7 +30,7 @@ func (r *repository) createPending(ctx context.Context, input Input, requesterUs
 }
 
 // createApproved stores a tag with the default status, which is approved.
-func (r *repository) createApproved(ctx context.Context, input Input) (*ent.Tag, error) {
+func (r *repository) createApproved(ctx context.Context, input model.CreateTagInput) (*ent.Tag, error) {
 	return r.client.Tag.Create().
 		SetName(input.Name).
 		SetDescription(input.Description).
@@ -48,7 +49,7 @@ func (r *repository) tag(ctx context.Context, id uuid.UUID) (*ent.Tag, error) {
 	return r.client.Tag.Get(ctx, id)
 }
 
-func (r *repository) update(ctx context.Context, id uuid.UUID, changes Update) (*ent.Tag, error) {
+func (r *repository) update(ctx context.Context, id uuid.UUID, changes model.UpdateTagInput) (*ent.Tag, error) {
 	return r.client.Tag.UpdateOneID(id).
 		SetNillableName(changes.Name).
 		SetNillableDescription(changes.Description).

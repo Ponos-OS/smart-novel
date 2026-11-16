@@ -22,7 +22,7 @@ import (
 )
 
 // CreateNovel is the resolver for the createNovel field.
-func (r *mutationResolver) CreateNovel(ctx context.Context, input novel.CreateInput) (*ent.Novel, error) {
+func (r *mutationResolver) CreateNovel(ctx context.Context, input model.CreateNovelInput) (*ent.Novel, error) {
 	viewer, err := auth.Require(ctx)
 	if err != nil {
 		return nil, err
@@ -32,7 +32,7 @@ func (r *mutationResolver) CreateNovel(ctx context.Context, input novel.CreateIn
 }
 
 // UpdateNovel is the resolver for the updateNovel field.
-func (r *mutationResolver) UpdateNovel(ctx context.Context, id uuid.UUID, input novel.UpdateInput) (*ent.Novel, error) {
+func (r *mutationResolver) UpdateNovel(ctx context.Context, id uuid.UUID, input model.UpdateNovelInput) (*ent.Novel, error) {
 	viewer, err := auth.Require(ctx)
 	if err != nil {
 		return nil, err
@@ -149,7 +149,7 @@ func (r *queryResolver) Novel(ctx context.Context, id uuid.UUID) (*ent.Novel, er
 }
 
 // Novels is the resolver for the novels field.
-func (r *queryResolver) Novels(ctx context.Context, after *entgql.Cursor[uuid.UUID], first *int, before *entgql.Cursor[uuid.UUID], last *int, orderBy *ent.NovelOrder, where *ent.NovelWhereInput, chapterCount *novel.ChapterCountRange, ownerIDs []string) (*ent.NovelConnection, error) {
+func (r *queryResolver) Novels(ctx context.Context, after *entgql.Cursor[uuid.UUID], first *int, before *entgql.Cursor[uuid.UUID], last *int, orderBy *ent.NovelOrder, where *ent.NovelWhereInput, chapterCount *model.ChapterCountRangeInput, ownerIDs []string) (*ent.NovelConnection, error) {
 	first, last, err := pagination.Bound(first, last, novelsPage)
 	if err != nil {
 		return nil, err

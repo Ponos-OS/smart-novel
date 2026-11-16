@@ -11,7 +11,6 @@ import (
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/chapter"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/narration"
 	"github.com/google/uuid"
@@ -62,7 +61,7 @@ func (r *chapterResolver) ViewerState(ctx context.Context, obj *ent.Chapter) (*m
 }
 
 // CreateChapter is the resolver for the createChapter field.
-func (r *mutationResolver) CreateChapter(ctx context.Context, novelID uuid.UUID, input chapter.CreateInput) (*ent.Chapter, error) {
+func (r *mutationResolver) CreateChapter(ctx context.Context, novelID uuid.UUID, input model.CreateChapterInput) (*ent.Chapter, error) {
 	viewer, err := auth.Require(ctx)
 	if err != nil {
 		return nil, err
@@ -83,7 +82,7 @@ func (r *mutationResolver) UpdateContent(ctx context.Context, id uuid.UUID, cont
 }
 
 // UpdateChapter is the resolver for the updateChapter field.
-func (r *mutationResolver) UpdateChapter(ctx context.Context, id uuid.UUID, input chapter.UpdateInput, expectedUpdatedAt time.Time) (*ent.Chapter, error) {
+func (r *mutationResolver) UpdateChapter(ctx context.Context, id uuid.UUID, input model.UpdateChapterInput, expectedUpdatedAt time.Time) (*ent.Chapter, error) {
 	viewer, err := auth.Require(ctx)
 	if err != nil {
 		return nil, err

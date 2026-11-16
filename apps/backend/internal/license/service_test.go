@@ -12,6 +12,7 @@ import (
 	entlicense "github.com/Ponos-OS/smart-novel/apps/backend/ent/license"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/graph/model"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/license"
 )
 
@@ -51,7 +52,7 @@ func TestServiceRefusesBeforeAskingTheDatabase(t *testing.T) {
 	licenseID := uuid.MustParse("a8f0c7e2-5d3b-4f6a-9c1e-2b7d84e0f913")
 	text := "You may read this novel. You may not copy it."
 	writer := auth.Viewer{Subject: "310437862211387398", Roles: []string{"writer"}}
-	custom := license.Input{Name: "Read it, do not copy it", Text: text, SourceType: entlicense.SourceTypeCUSTOM}
+	custom := model.LicenseInput{Name: "Read it, do not copy it", Text: text, SourceType: entlicense.SourceTypeCUSTOM}
 	canonicalID := "CC-BY-4.0"
 	uut := license.NewService(nil, nil, slog.New(slog.DiscardHandler))
 
@@ -61,17 +62,17 @@ func TestServiceRefusesBeforeAskingTheDatabase(t *testing.T) {
 		wantCode string
 	}{
 		{"a name that is blank", func() error {
-			_, err := uut.GetOrCreate(ctx, license.Input{Name: "  ", Text: text, SourceType: entlicense.SourceTypeCUSTOM}, writer.Subject)
+			_, err := uut.GetOrCreate(ctx, model.LicenseInput{Name: "  ", Text: text, SourceType: entlicense.SourceTypeCUSTOM}, writer.Subject)
 
 			return err
 		}, apperr.CodeBadRequest},
 		{"a text that is blank", func() error {
-			_, err := uut.GetOrCreate(ctx, license.Input{Name: "Mine", Text: " \n ", SourceType: entlicense.SourceTypeCUSTOM}, writer.Subject)
+			_, err := uut.GetOrCreate(ctx, model.LicenseInput{Name: "Mine", Text: " \n ", SourceType: entlicense.SourceTypeCUSTOM}, writer.Subject)
 
 			return err
 		}, apperr.CodeBadRequest},
 		{"a draft from a license and a canonical license", func() error {
-			_, err := uut.CreateDraft(ctx, writer.Subject, license.DraftStart{LicenseID: &licenseID, CanonicalID: &canonicalID})
+			_, err := uut.CreateDraft(ctx, writer.Subject, model.CreateLicenseDraftInput{LicenseID: &licenseID, CanonicalID: &canonicalID})
 
 			return err
 		}, apperr.CodeBadRequest},
