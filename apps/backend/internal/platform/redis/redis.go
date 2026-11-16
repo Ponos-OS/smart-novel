@@ -66,6 +66,11 @@ func (c *Client) Set(ctx context.Context, key, value string, ttl time.Duration) 
 	return c.client.Set(ctx, key, value, ttl).Err()
 }
 
+// Publish sends a message to every subscriber of the channel, in every replica. Nobody being subscribed is not an error.
+func (c *Client) Publish(ctx context.Context, channel, message string) error {
+	return c.client.Publish(ctx, channel, message).Err()
+}
+
 // Del removes a key and reports whether it was there.
 func (c *Client) Del(ctx context.Context, key string) (bool, error) {
 	removed, err := c.client.Del(ctx, key).Result()

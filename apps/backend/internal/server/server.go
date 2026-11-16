@@ -24,7 +24,6 @@ import (
 
 const (
 	graphqlPath      = "/graphql"
-	userAddedPath    = "/zitadel-events/user-added"
 	shutdownTimeout  = 15 * time.Second
 	readHeaderTimout = 10 * time.Second
 )
@@ -37,14 +36,14 @@ type Options struct {
 	Extensions     []graphql.HandlerExtension
 	TracerProvider trace.TracerProvider
 	Terms          platformterms.Acceptances
-	// UserAdded answers ZITADEL's call when somebody registers; it checks its own signature, so it needs no viewer.
-	UserAdded http.Handler
+	// Routes are the endpoints other services call, by "METHOD /path". Each checks its own caller, so none needs a viewer.
+	Routes map[string]http.Handler
 }
 
 func New(options Options) http.Handler {
 	mux := http.NewServeMux()
-	if options.UserAdded != nil {
-		mux.Handle("POST "+userAddedPath, options.UserAdded)
+	for pattern, route := range options.Routes {
+		mux.Handle(pattern, route)
 	}
 	mux.Handle("POST "+graphqlPath, graphqlHandler(options))
 	if options.Config.App.Env != config.EnvProduction {

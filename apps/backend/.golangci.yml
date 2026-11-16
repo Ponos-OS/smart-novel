@@ -167,6 +167,7 @@ linters:
             - github.com/google/uuid
             - github.com/jackc/pgx
             - github.com/testcontainers/testcontainers-go
+            - github.com/go-jose/go-jose
     dupl:
       threshold: 150
     errchkjson:

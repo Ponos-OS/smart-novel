@@ -52,7 +52,7 @@ func (s *Service) CreateCoverUpload(ctx context.Context, viewer auth.Viewer, nov
 		return CoverUpload{}, err
 	}
 	key := fmt.Sprintf("%s/%s/%s.%s", coverKeyPrefix, novelID, uuid.New(), extension)
-	url, err := s.storage.PresignUpload(ctx, key, contentType, int64(contentLength), coverUploadTTL)
+	url, err := s.storage.PresignPublicUpload(ctx, key, contentType, int64(contentLength), coverUploadTTL)
 	if err != nil {
 		return CoverUpload{}, err
 	}

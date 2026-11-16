@@ -1,5 +1,5 @@
 // Package objectstorage is the backend's client of the S3-compatible bucket. It wraps the AWS SDK so the rest of the code does not know the
-// library: it signs the URLs a browser uploads to, looks at an object, and removes one.
+// library: it signs upload URLs, looks at an object, and removes one.
 package objectstorage
 
 import (
@@ -19,13 +19,15 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/config"
 )
 
-// Client reaches the bucket on the endpoint of the cluster, and signs upload URLs for the endpoint a browser reaches it on: the signature
-// covers the host, so a URL signed for the first does not work from a browser.
+// Client reaches the bucket on the endpoint of the cluster, and signs upload URLs for that endpoint or for the public one: a signature covers
+// the host, so a URL signed for one does not work on the other.
 type Client struct {
 	bucket    string
 	publicURL string
 	storage   *s3.Client
-	signer    *s3.PresignClient
+	// publicSigner signs for the public endpoint, clusterSigner for the one other services of the cluster reach the bucket on.
+	publicSigner  *s3.PresignClient
+	clusterSigner *s3.PresignClient
 }
 
 // Object is what the bucket says about a stored object.
@@ -50,22 +52,37 @@ func Open(ctx context.Context, cfg config.ObjectStorage) (*Client, error) {
 			o.BaseEndpoint = aws.String(cfg.Endpoint)
 		}
 	})
-	forBrowsers := s3.NewFromConfig(loaded, func(o *s3.Options) {
+	forPublic := s3.NewFromConfig(loaded, func(o *s3.Options) {
 		o.UsePathStyle = true
 		o.BaseEndpoint = aws.String(cfg.PublicURL)
 	})
 
-	return &Client{bucket: cfg.Bucket, publicURL: strings.TrimRight(cfg.PublicURL, "/"), storage: storage, signer: s3.NewPresignClient(forBrowsers)}, nil
+	return &Client{
+		bucket: cfg.Bucket, publicURL: strings.TrimRight(cfg.PublicURL, "/"),
+		storage: storage, publicSigner: s3.NewPresignClient(forPublic), clusterSigner: s3.NewPresignClient(storage),
+	}, nil
 }
 
-// PresignUpload signs a PUT of one object, for a browser. The content type and the size are part of the signature, so the bucket refuses a
+// PresignPublicUpload signs a PUT of one object for the public endpoint, the one anybody outside the cluster reaches, a browser included.
+// A signature covers the host, so the URL works only there. The content type and the size are part of the signature, so the bucket refuses a
 // body of another type or size.
-func (c *Client) PresignUpload(ctx context.Context, key, contentType string, contentLength int64, ttl time.Duration) (string, error) {
-	signed, err := c.signer.PresignPutObject(ctx, &s3.PutObjectInput{
+func (c *Client) PresignPublicUpload(ctx context.Context, key, contentType string, contentLength int64, ttl time.Duration) (string, error) {
+	return c.sign(ctx, c.publicSigner, key, contentType, &contentLength, ttl)
+}
+
+// PresignClusterUpload signs a PUT of one object for the cluster endpoint, which only a service inside the cluster reaches. The size is not
+// known beforehand, so only the content type is signed.
+func (c *Client) PresignClusterUpload(ctx context.Context, key, contentType string, ttl time.Duration) (string, error) {
+	return c.sign(ctx, c.clusterSigner, key, contentType, nil, ttl)
+}
+
+// sign builds the PUT once; a nil contentLength leaves the size out of the signature.
+func (c *Client) sign(ctx context.Context, signer *s3.PresignClient, key, contentType string, contentLength *int64, ttl time.Duration) (string, error) {
+	signed, err := signer.PresignPutObject(ctx, &s3.PutObjectInput{
 		Bucket:        aws.String(c.bucket),
 		Key:           aws.String(key),
 		ContentType:   aws.String(contentType),
-		ContentLength: aws.Int64(contentLength),
+		ContentLength: contentLength,
 	}, s3.WithPresignExpires(ttl))
 	if err != nil {
 		return "", fmt.Errorf("signing an upload URL: %w", err)

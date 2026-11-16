@@ -32,6 +32,7 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/server"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/stats"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/tag"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/ttscallbacks"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/writer"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/zitadelevents"
 )
@@ -99,18 +100,30 @@ func run() error {
 	return server.Serve(ctx, logger, cfg.App.Port, handler)
 }
 
-func newHandler(ctx context.Context, cfg config.Config, db *database.Database, cache *redis.Client, logger *slog.Logger) (http.Handler, error) {
-	verifier, err := auth.NewZitadelVerifier(ctx, auth.ZitadelConfig{
+func zitadelConfig(cfg config.Config) auth.ZitadelConfig {
+	return auth.ZitadelConfig{
 		IssuerURL:    cfg.Zitadel.IssuerURL,
 		InternalURL:  cfg.Zitadel.InternalURL,
 		ClientID:     cfg.Zitadel.IntrospectionClientID,
 		ClientSecret: cfg.Zitadel.IntrospectionClientSecret,
-	})
+	}
+}
+
+func newHandler(ctx context.Context, cfg config.Config, db *database.Database, cache *redis.Client, logger *slog.Logger) (http.Handler, error) {
+	verifier, err := auth.NewZitadelVerifier(ctx, zitadelConfig(cfg))
 	if err != nil {
 		return nil, err
 	}
 
-	resolver, err := newResolver(ctx, cfg, db, cache, logger)
+	storage, err := objectstorage.Open(ctx, cfg.Storage)
+	if err != nil {
+		return nil, err
+	}
+	issuerCheck, err := auth.NewIssuerCheck(ctx, zitadelConfig(cfg))
+	if err != nil {
+		return nil, err
+	}
+	resolver, err := newResolver(ctx, cfg, db, cache, storage, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -122,14 +135,18 @@ func newHandler(ctx context.Context, cfg config.Config, db *database.Database, c
 			Resolvers:  resolver,
 			Directives: graph.Directives(),
 		}),
-		Verifier:   verifier,
-		Terms:      resolver.TermsService,
-		UserAdded:  zitadelevents.UserAdded(cfg.Zitadel.WebhookSigningKey, resolver.Management, logger),
+		Verifier: verifier,
+		Terms:    resolver.TermsService,
+		Routes: map[string]http.Handler{
+			"POST /zitadel-events/user-added":         zitadelevents.UserAdded(cfg.Zitadel.WebhookSigningKey, resolver.Management, logger),
+			"POST /beatrice-callbacks/gen-upload-url": ttscallbacks.GenUploadURL(issuerCheck, storage, logger),
+			"POST /beatrice-callbacks/status":         ttscallbacks.Status(cache, logger),
+		},
 		Extensions: []graphql.HandlerExtension{graph.NewLoaderExtension(db.Client, resolver.ChapterService)},
 	}), nil
 }
 
-func newResolver(ctx context.Context, cfg config.Config, db *database.Database, cache *redis.Client, logger *slog.Logger) (*graph.Resolver, error) {
+func newResolver(ctx context.Context, cfg config.Config, db *database.Database, cache *redis.Client, storage *objectstorage.Client, logger *slog.Logger) (*graph.Resolver, error) {
 	management, err := zitadel.NewManagement(ctx, cfg.Zitadel)
 	if err != nil {
 		return nil, err
@@ -149,10 +166,6 @@ func newResolver(ctx context.Context, cfg config.Config, db *database.Database, 
 	}
 	go licenseService.KeepCanonicalSynced(ctx)
 
-	storage, err := objectstorage.Open(ctx, cfg.Storage)
-	if err != nil {
-		return nil, err
-	}
 	llmService := llm.NewService(genqlient.NewClient(cfg.Beatrice.URL, &http.Client{Timeout: cfg.Beatrice.Timeout, Transport: otelhttp.NewTransport(http.DefaultTransport)}), cache, cfg.Beatrice.ExplanationTTL, logger)
 	statsService := stats.NewService(db, db.Client, logger)
 	go statsService.KeepSnapshotted(ctx, cfg.Stats.SnapshotSchedule)
