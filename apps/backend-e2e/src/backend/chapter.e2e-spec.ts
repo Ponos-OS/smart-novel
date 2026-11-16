@@ -449,6 +449,38 @@ describe('Chapter (e2e)', () => {
   it('should leave content and narrationStatus unchanged after a title-only update', async () => {
     const authorizationHeader =
       await AuthorizationFixture.getWriterAuthorizationHeader();
+    // A save of the content, in an earlier test, starts a narration of the chapter; its status changes by itself until it ends, which this test is not about.
+    const settled = async () => {
+      for (let attempt = 0; attempt < 120; attempt++) {
+        const { data } = await axios.post(
+          '/graphql',
+          {
+            query: `#graphql
+              query NarrationStatus($novelId: ID!, $chapterId: ID!) {
+                novel(id: $novelId) {
+                  chapter(id: $chapterId) {
+                    narrationStatus
+                  }
+                }
+              }
+            `,
+            variables: {
+              novelId: NOVEL_ID,
+              chapterId: CHAPTER_FIVE_ID,
+            },
+          },
+          { headers: { Authorization: authorizationHeader } },
+        );
+
+        if (
+          data.data.novel.chapter.narrationStatus !== 'PROCESSING'
+        ) {
+          return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    };
+    await settled();
     const beforeRes = await axios.post(
       '/graphql',
       {
@@ -518,7 +550,7 @@ describe('Chapter (e2e)', () => {
       content,
       narrationStatus,
     });
-  });
+  }, 90_000);
 
   it('should reject a second content save that reuses a now-stale expectedContentUpdatedAt, keeping only the first save', async () => {
     const authorizationHeader =

@@ -12,25 +12,20 @@ vi.mock('../../generated/graphql', async () => ({
 }));
 
 const license = {
-  id: 'CC-BY-NC-4.0',
-  name: 'Creative Commons Attribution-NonCommercial 4.0 International',
-  shortName: 'CC BY-NC 4.0',
+  id: '9b1d3c52-8b0e-4a39-9c4d-2f6a7e1b5d08',
+  canonicalID: 'CC-BY-NC-4.0',
+  name: 'CC BY-NC 4.0',
   version: '4.0',
-  category: 'creative_commons',
-  officialUrl:
+  officialURL:
     'https://creativecommons.org/licenses/by-nc/4.0/legalcode',
-  summary:
-    'Share and adapt for non-commercial purposes, with credit.',
-  permissions: ['share', 'adapt'],
-  limitations: ['no commercial use'],
-  conditions: ['attribution'],
-  body: 'Attribution-NonCommercial 4.0 International, the full legal text.',
+  text: 'Attribution-NonCommercial 4.0 International, the full legal text.',
 };
+const found = { data: { licenses: { edges: [{ node: license }] } } };
 
 describe(CanonicalLicenseDialog.name, () => {
-  it('shows the license: what it permits, limits and requires, its link and its full text', () => {
+  it('shows the license: its name and version, its link and its full text', () => {
     // Arrange
-    query.value = { data: { canonicalLicense: license } };
+    query.value = found;
 
     // Act
     render(
@@ -44,19 +39,12 @@ describe(CanonicalLicenseDialog.name, () => {
     expect(
       screen.getByRole('dialog', { name: license.name }),
     ).toBeInTheDocument();
-    expect(screen.getByText(license.summary)).toBeInTheDocument();
     expect(
-      screen.getByRole('region', { name: 'Permissions' }),
-    ).toHaveTextContent('adapt');
-    expect(
-      screen.getByRole('region', { name: 'Limitations' }),
-    ).toHaveTextContent('no commercial use');
-    expect(
-      screen.getByRole('region', { name: 'Conditions' }),
-    ).toHaveTextContent('attribution');
+      screen.getByText(/CC BY-NC 4.0, version 4.0/),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /official license text/ }),
-    ).toHaveAttribute('href', license.officialUrl);
+    ).toHaveAttribute('href', license.officialURL);
     expect(
       screen.getByRole('region', { name: 'Full text' }),
     ).toHaveTextContent('the full legal text');
@@ -110,7 +98,7 @@ describe(CanonicalLicenseDialog.name, () => {
     // Arrange
     const user = userEvent.setup();
     const onClose = vi.fn();
-    query.value = { data: { canonicalLicense: license } };
+    query.value = found;
     render(
       <CanonicalLicenseDialog
         licenseId="CC-BY-NC-4.0"

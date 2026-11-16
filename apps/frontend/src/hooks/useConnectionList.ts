@@ -4,10 +4,11 @@ import {
   useInfiniteQuery,
 } from '@tanstack/react-query';
 
+import { nodesOf } from '../lib/connection';
 import { useResetOnInvalidCursor } from './useResetOnInvalidCursor';
 
 interface Connection<TNode> {
-  edges: { node: TNode }[];
+  edges?: ReadonlyArray<{ node?: TNode | null } | null> | null;
   pageInfo: { hasNextPage: boolean; endCursor?: string | null };
 }
 
@@ -49,7 +50,7 @@ export function useConnectionList<TNode>({
 
   return {
     nodes: (query.data?.pages ?? []).flatMap((page) =>
-      page.edges.map(({ node }) => node),
+      nodesOf<TNode>(page),
     ),
     isLoading: query.isLoading,
     isError: query.isError,

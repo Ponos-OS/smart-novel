@@ -6,7 +6,7 @@ import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import {
-  type NovelOrderByInput,
+  type NovelOrder,
   NovelOrderField,
   NovelState,
   OrderDirection,
@@ -28,18 +28,17 @@ import { WriterPicker } from './WriterPicker';
 
 type SortChoice = 'name' | 'oldest' | 'newest';
 
-const SORT_ORDER: Record<SortChoice, NovelOrderByInput | undefined> =
-  {
-    name: undefined,
-    oldest: {
-      field: NovelOrderField.FirstChapterCreatedAt,
-      direction: OrderDirection.Asc,
-    },
-    newest: {
-      field: NovelOrderField.FirstChapterCreatedAt,
-      direction: OrderDirection.Desc,
-    },
-  };
+const SORT_ORDER: Record<SortChoice, NovelOrder | undefined> = {
+  name: undefined,
+  oldest: {
+    field: NovelOrderField.FirstChapterCreatedAt,
+    direction: OrderDirection.Asc,
+  },
+  newest: {
+    field: NovelOrderField.FirstChapterCreatedAt,
+    direction: OrderDirection.Desc,
+  },
+};
 
 const ARIA_SORT = {
   name: 'none',

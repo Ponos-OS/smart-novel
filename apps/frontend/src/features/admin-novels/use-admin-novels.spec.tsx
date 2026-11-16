@@ -32,7 +32,7 @@ const page = (
   nodes: ReturnType<typeof node>[],
   endCursor: string | null,
 ) => ({
-  novelsConnection: {
+  novels: {
     edges: nodes.map((n) => ({ node: n })),
     pageInfo: { endCursor, hasNextPage: endCursor !== null },
   },
@@ -111,7 +111,9 @@ describe(useAdminNovels.name, () => {
       expect(result.current.novels).toHaveLength(2),
     );
     expect(fetchPage).toHaveBeenNthCalledWith(1, {
-      filters: { state: NovelState.Ongoing },
+      where: { state: NovelState.Ongoing },
+      chapterCount: undefined,
+      ownerIDs: undefined,
       orderBy,
       first: 20,
       after: undefined,
@@ -119,7 +121,7 @@ describe(useAdminNovels.name, () => {
     expect(fetchPage).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        after: firstPage.novelsConnection.pageInfo.endCursor,
+        after: firstPage.novels.pageInfo.endCursor,
       }),
     );
     expect(result.current.hasMore).toBeFalse();
@@ -140,7 +142,7 @@ describe(useAdminNovels.name, () => {
     await waitFor(() => expect(fetchPage).toHaveBeenCalledTimes(2));
     expect(fetchPage).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        filters: { state: NovelState.Finished },
+        where: { state: NovelState.Finished },
         after: undefined,
       }),
     );

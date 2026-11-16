@@ -2,6 +2,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 
 import { useSearchWritersQuery } from '../../generated/graphql';
 import { useResetOnInvalidCursor } from '../../hooks/useResetOnInvalidCursor';
+import { nodesOf } from '../../lib/connection';
 import { type PickedWriter } from './novel-filters';
 
 const SUGGESTIONS_PAGE_SIZE = 10;
@@ -21,9 +22,9 @@ export function useWriterSuggestions(
         first: SUGGESTIONS_PAGE_SIZE,
         after: pageParam,
       })(),
-    getNextPageParam: ({ writersConnection }) =>
-      writersConnection.pageInfo.hasNextPage
-        ? writersConnection.pageInfo.endCursor
+    getNextPageParam: ({ writers }) =>
+      writers.pageInfo.hasNextPage
+        ? writers.pageInfo.endCursor
         : undefined,
   });
 
@@ -31,9 +32,7 @@ export function useWriterSuggestions(
 
   return {
     writers: (query.data?.pages ?? []).flatMap((page) =>
-      page.writersConnection.edges.map(
-        ({ node }): PickedWriter => node,
-      ),
+      nodesOf<PickedWriter>(page.writers),
     ),
     isLoading: query.isLoading,
     isError: query.isError,

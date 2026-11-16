@@ -1,10 +1,9 @@
-import {
-  type NovelFiltersInput,
-  NovelState,
-} from '../../generated/graphql';
+import type { NovelFilters } from '../../lib/novel-filters';
+
+import { NovelState } from '../../generated/graphql';
 
 export interface PickedWriter {
-  userId: string;
+  userID: string;
   penName: string;
   name?: string | null;
   email?: string | null;
@@ -49,10 +48,10 @@ function parseCount(text: string): number | undefined | null {
  * What the form asks for, as the filters of the query, plus what is wrong with it. A range the server would refuse (a maximum below the minimum, an end before the start) is left out of the query and reported, so the list keeps showing the last good result instead of an error.
  */
 export function buildNovelFilters(form: NovelFilterForm): {
-  filters: NovelFiltersInput | undefined;
+  filters: NovelFilters | undefined;
   problems: NovelFilterProblems;
 } {
-  const filters: NovelFiltersInput = {};
+  const filters: NovelFilters = {};
   const problems: NovelFilterProblems = {};
   const min = parseCount(form.minChapters);
   const max = parseCount(form.maxChapters);
@@ -81,7 +80,7 @@ export function buildNovelFilters(form: NovelFilterForm): {
   }
 
   if (form.writers.length > 0) {
-    filters.ownerIds = form.writers.map(({ userId }) => userId);
+    filters.ownerIds = form.writers.map(({ userID }) => userID);
   }
 
   return {

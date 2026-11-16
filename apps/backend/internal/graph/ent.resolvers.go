@@ -7,9 +7,11 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"entgo.io/contrib/entgql"
 	"github.com/Ponos-OS/smart-novel/apps/backend/ent"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/apperr"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/pagination"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/stats"
@@ -36,12 +38,25 @@ func (r *novelResolver) Chapters(ctx context.Context, obj *ent.Novel, after *ent
 
 // Node is the resolver for the node field.
 func (r *queryResolver) Node(ctx context.Context, id uuid.UUID) (ent.Noder, error) {
-	return nil, nil
+	viewer, err := auth.Require(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.NodeService.Get(ctx, viewer, id)
 }
 
 // Nodes is the resolver for the nodes field.
 func (r *queryResolver) Nodes(ctx context.Context, ids []uuid.UUID) ([]ent.Noder, error) {
-	return make([]ent.Noder, len(ids)), nil
+	viewer, err := auth.Require(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(ids) > nodesSize {
+		return nil, apperr.BadRequest(fmt.Sprintf("ids must hold at most %d IDs", nodesSize))
+	}
+
+	return r.NodeService.Nodes(ctx, viewer, ids)
 }
 
 // StatsSnapshots is the resolver for the statsSnapshots field.

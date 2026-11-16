@@ -109,7 +109,7 @@ export function LicensesTab() {
                   {SCOPE_LABELS[license.scope]}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-300">
-                  {license.canonicalId ?? 'Custom'}
+                  {license.canonicalID ?? 'Custom'}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-300">
                   {new Date(license.updatedAt).toLocaleDateString(

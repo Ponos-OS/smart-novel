@@ -5,20 +5,22 @@ query GetNovel($id: ID!) {
     writer {
       penName
     }
-    tags
+    tags {
+      name
+    }
     state
-    coverUrl
+    coverURL
     description
     allowedActions
     license {
       id
       name
       sourceType
-      canonicalId
-      officialUrl
+      canonicalID
+      officialURL
       text
     }
-    chaptersConnection(
+    chapters(
       first: 100
       orderBy: { field: CHAPTER_NUMBER, direction: ASC }
     ) {
@@ -30,7 +32,7 @@ query GetNovel($id: ID!) {
           chapterNumber
           createdAt
           narrationStatus
-          narrationUrl
+          narrationURL
         }
       }
       pageInfo {
@@ -54,14 +56,14 @@ query GetChapter($novelId: ID!, $chapterId: ID!) {
   novel(id: $novelId) {
     chapter(id: $chapterId) {
       id
-      novelId
+      novelID
       title
       content
       createdAt
       updatedAt
       contentUpdatedAt
       narrationStatus
-      narrationUrl
+      narrationURL
       next {
         id
       }
@@ -73,7 +75,7 @@ query GetChapter($novelId: ID!, $chapterId: ID!) {
 }
 
 mutation CreateChapter($novelId: ID!, $input: CreateChapterInput!) {
-  createChapter(novelId: $novelId, input: $input) {
+  createChapter(novelID: $novelId, input: $input) {
     id
   }
 }
@@ -81,7 +83,7 @@ mutation CreateChapter($novelId: ID!, $input: CreateChapterInput!) {
 mutation UpdateContent(
   $id: ID!
   $content: String!
-  $expectedContentUpdatedAt: String!
+  $expectedContentUpdatedAt: Time!
 ) {
   updateContent(
     id: $id
@@ -96,7 +98,7 @@ mutation UpdateContent(
 mutation UpdateChapter(
   $id: ID!
   $input: UpdateChapterInput!
-  $expectedUpdatedAt: String!
+  $expectedUpdatedAt: Time!
 ) {
   updateChapter(
     id: $id
@@ -111,9 +113,9 @@ mutation UpdateChapter(
 mutation UpdateChapterAndContent(
   $id: ID!
   $content: String!
-  $expectedContentUpdatedAt: String!
+  $expectedContentUpdatedAt: Time!
   $input: UpdateChapterInput!
-  $expectedUpdatedAt: String!
+  $expectedUpdatedAt: Time!
 ) {
   updateContent(
     id: $id
@@ -136,13 +138,13 @@ mutation UpdateChapterAndContent(
 mutation DeleteChapter($id: ID!) {
   deleteChapter(id: $id) {
     id
-    novelId
+    novelID
   }
 }
 
 mutation GenerateChapterAudio($id: ID!) {
   generateChapterAudio(id: $id) {
     status
-    narrationUrl
+    narrationURL
   }
 }

@@ -2,8 +2,8 @@ import { useCallback, useMemo, useState } from 'react';
 
 import {
   type DraftLicenseMutation,
+  type LicenseAssistantDraftInput,
   LicenseAssistantMessageRole,
-  type LicenseDraftInput,
   useDraftLicenseMutation,
 } from '../../generated/graphql';
 import {
@@ -33,15 +33,14 @@ export interface AssistantAnswerDetails {
  */
 export function useLicenseAssistant(
   initialConversation: Conversation = [],
-  initialDraft: LicenseDraftInput | null = null,
+  initialDraft: LicenseAssistantDraftInput | null = null,
 ) {
   const mutation = useDraftLicenseMutation();
   const [conversation, setConversation] = useState<Conversation>(
     initialConversation,
   );
-  const [draft, setDraft] = useState<LicenseDraftInput | null>(
-    initialDraft,
-  );
+  const [draft, setDraft] =
+    useState<LicenseAssistantDraftInput | null>(initialDraft);
   const [details, setDetails] =
     useState<AssistantAnswerDetails | null>(null);
   const [pendingMessage, setPendingMessage] = useState<string | null>(
@@ -84,7 +83,10 @@ export function useLicenseAssistant(
           onSuccess: ({ draftLicense: answer }) => {
             setConversation(answer.conversation);
             // A reply that came without a draft (the assistant could not produce one) must not wipe the one the author has.
-            setDraft((current) => answer.draft ?? current);
+            setDraft(
+              (current: LicenseAssistantDraftInput | null) =>
+                answer.draft ?? current,
+            );
             setDetails({
               disclaimers: answer.disclaimers,
               recommendations: answer.recommendations,

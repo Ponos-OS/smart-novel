@@ -1,5 +1,14 @@
-query SearchNovels($filters: NovelFiltersInput) {
-  novelsConnection(first: 50, filters: $filters) {
+query SearchNovels(
+  $where: NovelWhereInput
+  $chapterCount: ChapterCountRangeInput
+  $ownerIDs: [String!]
+) {
+  novels(
+    first: 50
+    where: $where
+    chapterCount: $chapterCount
+    ownerIDs: $ownerIDs
+  ) {
     edges {
       cursor
       node {
@@ -8,9 +17,11 @@ query SearchNovels($filters: NovelFiltersInput) {
         writer {
           penName
         }
-        tags
+        tags {
+          name
+        }
         state
-        coverUrl
+        coverURL
         description
         lastChapterPublishedAt
       }
@@ -24,11 +35,11 @@ query SearchNovels($filters: NovelFiltersInput) {
   }
 }
 
-query FilterTags($search: String, $first: Int!, $after: String) {
-  tagsConnection(
+query FilterTags($search: String, $first: Int!, $after: Cursor) {
+  tags(
     first: $first
     after: $after
-    filters: { search: $search }
+    where: { nameContainsFold: $search }
   ) {
     edges {
       node {

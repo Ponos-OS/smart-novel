@@ -1,9 +1,17 @@
 query GetNovels(
   $first: Int
-  $after: String
-  $filters: NovelFiltersInput
+  $after: Cursor
+  $where: NovelWhereInput
+  $chapterCount: ChapterCountRangeInput
+  $ownerIDs: [String!]
 ) {
-  novelsConnection(first: $first, after: $after, filters: $filters) {
+  novels(
+    first: $first
+    after: $after
+    where: $where
+    chapterCount: $chapterCount
+    ownerIDs: $ownerIDs
+  ) {
     edges {
       cursor
       node {
@@ -12,9 +20,11 @@ query GetNovels(
         writer {
           penName
         }
-        tags
+        tags {
+          name
+        }
         state
-        coverUrl
+        coverURL
         description
         lastChapterPublishedAt
       }

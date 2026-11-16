@@ -24,8 +24,8 @@ const ccBy = {
   scope: LicenseScope.Shared,
   isDefault: true,
   sourceType: LicenseSourceType.Canonical,
-  canonicalId: 'CC-BY-4.0',
-  ownerId: 'system',
+  canonicalID: 'CC-BY-4.0',
+  ownerID: 'system',
   updatedAt: '2026-10-30T09:15:00.000Z',
 };
 const noResale = {
@@ -34,8 +34,8 @@ const noResale = {
   scope: LicenseScope.Shared,
   isDefault: false,
   sourceType: LicenseSourceType.Custom,
-  canonicalId: null,
-  ownerId: 'system',
+  canonicalID: null,
+  ownerID: 'system',
   updatedAt: '2026-10-31T08:00:00.000Z',
 };
 const writersOwn = {
@@ -44,8 +44,8 @@ const writersOwn = {
   scope: LicenseScope.Personal,
   isDefault: false,
   sourceType: LicenseSourceType.Custom,
-  canonicalId: null,
-  ownerId: '230104087265432001',
+  canonicalID: null,
+  ownerID: '230104087265432001',
   updatedAt: '2026-11-01T10:00:00.000Z',
 };
 const writersDraft = {
@@ -58,7 +58,7 @@ const writersDraft = {
 const page = (nodes: object[], hasNextPage = false) => ({
   pages: [
     {
-      licensesConnection: {
+      licenses: {
         edges: nodes.map((node) => ({ node })),
         pageInfo: {
           endCursor: hasNextPage ? 'cursor-1' : null,

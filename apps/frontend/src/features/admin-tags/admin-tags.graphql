@@ -2,12 +2,12 @@ query AdminTags(
   $search: String
   $statuses: [TagStatus!]
   $first: Int!
-  $after: String
+  $after: Cursor
 ) {
-  tagsConnection(
+  tags(
     first: $first
     after: $after
-    filters: { search: $search, statuses: $statuses }
+    where: { nameContainsFold: $search, statusIn: $statuses }
   ) {
     edges {
       node {
@@ -15,7 +15,7 @@ query AdminTags(
         name
         description
         status
-        requesterUserId
+        requesterUserID
         approximateNovelCount
       }
     }

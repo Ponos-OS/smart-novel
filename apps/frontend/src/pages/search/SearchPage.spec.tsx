@@ -147,7 +147,12 @@ describe('SearchPage', () => {
 
     expect(search.useSearchNovelsQuery).toHaveBeenLastCalledWith(
       {
-        filters: { tags: { in: ['Fantasy'], nin: ['Mystery'] } },
+        where: {
+          hasTagsWith: [{ nameIn: ['Fantasy'] }],
+          not: { hasTagsWith: [{ nameIn: ['Mystery'] }] },
+        },
+        chapterCount: undefined,
+        ownerIDs: undefined,
       },
       { enabled: true },
     );
@@ -157,7 +162,7 @@ describe('SearchPage', () => {
     renderPage();
 
     expect(search.useSearchNovelsQuery).toHaveBeenLastCalledWith(
-      { filters: undefined },
+      {},
       { enabled: false },
     );
   });
@@ -168,9 +173,9 @@ describe('SearchPage', () => {
         node: {
           id: '93fec4bf-2f66-4e4a-9572-7aa4871f1458',
           name: 'The Lighthouse Keeper',
-          tags: ['fantasy'],
+          tags: [{ name: 'fantasy' }],
           state: 'ONGOING',
-          coverUrl: null,
+          coverURL: null,
           description: 'A keeper guards a light.',
           lastChapterPublishedAt: null,
           writer: { penName: 'Mira_Vale' },
@@ -188,7 +193,7 @@ describe('SearchPage', () => {
 
     it('lists the novels found with their count', async () => {
       search.useSearchNovelsQuery.mockReturnValue({
-        data: { novelsConnection: { edges } },
+        data: { novels: { edges } },
         isLoading: false,
         error: null,
       });
@@ -208,7 +213,7 @@ describe('SearchPage', () => {
 
     it('says so when no novel matches', async () => {
       search.useSearchNovelsQuery.mockReturnValue({
-        data: { novelsConnection: { edges: [] } },
+        data: { novels: { edges: [] } },
         isLoading: false,
         error: null,
       });

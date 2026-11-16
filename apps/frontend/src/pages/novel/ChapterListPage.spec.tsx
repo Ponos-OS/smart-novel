@@ -34,10 +34,10 @@ function renderPage(
         id: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
         name: 'CC BY 4.0',
         sourceType: LicenseSourceType.Canonical,
-        canonicalId: 'CC-BY-4.0',
+        canonicalID: 'CC-BY-4.0',
         text: 'Attribution 4.0 International',
       },
-      chaptersConnection: { edges: [], totalCount: 0 },
+      chapters: { edges: [], totalCount: 0 },
       ...novelOverrides,
     } as never,
     canEditContent,
@@ -105,7 +105,7 @@ describe('ChapterListPage read buttons', () => {
   const withChapters = {
     firstChapter: { id: firstChapterId },
     lastPublishedChapter: { id: latestChapterId },
-    chaptersConnection: {
+    chapters: {
       edges: [
         {
           node: {

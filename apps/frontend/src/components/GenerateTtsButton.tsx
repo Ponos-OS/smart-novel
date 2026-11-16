@@ -32,7 +32,7 @@ export function GenerateTtsButton({
   novelId,
   chapterId,
   narrationStatus,
-  narrationUrl: initialNarrationUrl,
+  narrationUrl: narrationUrlProp,
 }: GenerateTtsButtonProps) {
   const queryClient = useQueryClient();
   const [showRegenerateConfirm, setShowRegenerateConfirm] =
@@ -41,10 +41,11 @@ export function GenerateTtsButton({
     narrationStatus === NarrationStatus.Processing,
   );
   const [narrationUrl, setNarrationUrl] = useState(
-    initialNarrationUrl ?? null,
+    narrationUrlProp ?? null,
   );
   const [stage, setStage] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const generateAudioMutation = useGenerateChapterAudioMutation();
   const hasNarrationUrl = !!narrationUrl;
 
@@ -67,7 +68,7 @@ export function GenerateTtsButton({
             chapter: {
               ...old.novel.chapter,
               narrationStatus: status,
-              ...(url !== undefined && { narrationUrl: url }),
+              ...(url !== undefined && { narrationURL: url }),
             },
           },
         };
@@ -76,19 +77,48 @@ export function GenerateTtsButton({
     [chapterId, novelId, queryClient],
   );
 
+  // An event sent while the connection was down, or before it was up, is lost. The chapter has the outcome, so it is read again each time the connection is up, and what it says ends the wait. Adjusted while rendering, as React advises for state that follows a prop.
+  const [seen, setSeen] = useState({
+    status: narrationStatus,
+    url: narrationUrlProp,
+  });
+
+  if (
+    seen.status !== narrationStatus ||
+    seen.url !== narrationUrlProp
+  ) {
+    setSeen({ status: narrationStatus, url: narrationUrlProp });
+
+    if (narrationStatus === NarrationStatus.Ready) {
+      setIsProcessing(false);
+      setFailed(false);
+      setNarrationUrl(narrationUrlProp ?? null);
+    } else if (narrationStatus === NarrationStatus.Failed) {
+      setIsProcessing(false);
+      setFailed(true);
+    }
+  }
+
   useGraphQLSubscription<ChapterNarrationUpdatedSubscription>({
     query: ChapterNarrationUpdatedDocument.toString(),
     variables: { chapterId },
     enabled: isProcessing,
+    onConnected: () => {
+      setIsReconnecting(false);
+      void queryClient.invalidateQueries({
+        queryKey: useGetChapterQuery.getKey({ novelId, chapterId }),
+      });
+    },
+    onDisconnected: () => setIsReconnecting(true),
     onData: (data) => {
       const event = data.chapterNarrationUpdated;
       setStage(event.stage ?? null);
 
       if (event.status === NarrationStatus.Ready) {
         setIsProcessing(false);
-        setNarrationUrl(event.narrationUrl ?? narrationUrl);
+        setNarrationUrl(event.narrationURL ?? narrationUrl);
         setFailed(false);
-        patchChapterCache(event.status, event.narrationUrl);
+        patchChapterCache(event.status, event.narrationURL);
       } else if (event.status === NarrationStatus.Failed) {
         setIsProcessing(false);
         setFailed(true);
@@ -122,9 +152,13 @@ export function GenerateTtsButton({
     generate();
   };
 
-  const stageLabel = stage
-    ? `${STAGE_LABELS[stage] ?? stage}...`
-    : 'Starting...';
+  let stageLabel = 'Starting...';
+
+  if (isReconnecting) {
+    stageLabel = 'Reconnecting...';
+  } else if (stage) {
+    stageLabel = `${STAGE_LABELS[stage] ?? stage}...`;
+  }
 
   return (
     <>

@@ -15,7 +15,7 @@ export function useLicenses(search: string) {
           first: PAGE_SIZE,
           after,
         })()
-      ).licensesConnection,
+      ).licenses,
   });
 
   return { licenses: nodes, ...list };

@@ -24,7 +24,7 @@ export function useAdminTags(
           first: PAGE_SIZE,
           after,
         })()
-      ).tagsConnection,
+      ).tags,
   });
 
   return { tags: nodes, ...list };

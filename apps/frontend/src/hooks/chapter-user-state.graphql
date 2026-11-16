@@ -1,5 +1,5 @@
 mutation MarkChaptersRead($chapterIds: [ID!]!) {
-  markChaptersRead(chapterIds: $chapterIds) {
+  markChaptersRead(chapterIDs: $chapterIds) {
     markedCount
   }
 }

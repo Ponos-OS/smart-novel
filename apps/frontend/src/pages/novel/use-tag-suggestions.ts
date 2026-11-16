@@ -2,6 +2,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 
 import { useSearchTagsQuery } from '../../generated/graphql';
 import { useResetOnInvalidCursor } from '../../hooks/useResetOnInvalidCursor';
+import { nodesOf } from '../../lib/connection';
 
 const SUGGESTIONS_PAGE_SIZE = 10;
 
@@ -17,17 +18,15 @@ export function useTagSuggestions(search: string, enabled: boolean) {
         first: SUGGESTIONS_PAGE_SIZE,
         after: pageParam,
       })(),
-    getNextPageParam: ({ tagsConnection }) =>
-      tagsConnection.pageInfo.hasNextPage
-        ? tagsConnection.pageInfo.endCursor
-        : undefined,
+    getNextPageParam: ({ tags }) =>
+      tags.pageInfo.hasNextPage ? tags.pageInfo.endCursor : undefined,
   });
 
   useResetOnInvalidCursor(queryKey, query.error);
 
   return {
     names: (query.data?.pages ?? []).flatMap((page) =>
-      page.tagsConnection.edges.map(({ node }) => node.name),
+      nodesOf(page.tags).map(({ name }) => name),
     ),
     isLoading: query.isLoading,
     isError: query.isError,

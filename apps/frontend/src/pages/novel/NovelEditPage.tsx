@@ -17,6 +17,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { showApiError } from '../../utils/notification';
 import { NovelCoverUpload } from './NovelCoverUpload';
 import { NovelForm, NovelFormValues } from './NovelForm';
+import { useStoreLicense } from './use-store-license';
 
 export function NovelEditPage() {
   const { novelId } = useParams<{ novelId: string }>();
@@ -24,6 +25,7 @@ export function NovelEditPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const updateNovelMutation = useUpdateNovelMutation();
+  const storeLicense = useStoreLicense();
   const deleteNovelMutation = useDeleteNovelMutation();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -34,13 +36,32 @@ export function NovelEditPage() {
   );
   const novel = data?.novel;
 
-  const handleSubmit = (input: NovelFormValues) => {
+  const handleSubmit = async ({
+    licenseDraft,
+    licenseId,
+    ...values
+  }: NovelFormValues) => {
     if (!novel) {
       return;
     }
 
+    let storedLicenseId = licenseId;
+
+    try {
+      if (licenseDraft) {
+        storedLicenseId = await storeLicense.store(licenseDraft);
+      }
+    } catch {
+      showApiError();
+
+      return;
+    }
+
     updateNovelMutation.mutate(
-      { id: novel.id, input },
+      {
+        id: novel.id,
+        input: { ...values, licenseID: storedLicenseId },
+      },
       {
         onSuccess: async () => {
           await queryClient.invalidateQueries({
@@ -120,7 +141,7 @@ export function NovelEditPage() {
         <NovelCoverUpload
           novelId={novel.id}
           novelName={novel.name}
-          coverUrl={novel.coverUrl}
+          coverUrl={novel.coverURL}
         />
       </div>
       <div className="rounded-xl border border-gray-700/70 bg-gray-800 p-6">
@@ -129,11 +150,13 @@ export function NovelEditPage() {
             name: novel.name,
             description: novel.description,
             state: novel.state,
-            tags: novel.tags,
+            tags: (novel.tags ?? []).map(({ name }) => name),
           }}
           license={novel.license}
           submitLabel="Save"
-          isSubmitting={updateNovelMutation.isPending}
+          isSubmitting={
+            updateNovelMutation.isPending || storeLicense.isPending
+          }
           onSubmit={handleSubmit}
           onCancel={() => navigate(`/novel/${novel.id}`)}
         />

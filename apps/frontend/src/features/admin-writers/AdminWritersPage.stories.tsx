@@ -67,7 +67,7 @@ const sara = {
 const page = (nodes: object[], hasNextPage = false) => ({
   pages: [
     {
-      writersConnection: {
+      writers: {
         edges: nodes.map((node) => ({ node })),
         pageInfo: {
           endCursor: hasNextPage ? 'cursor-1' : null,

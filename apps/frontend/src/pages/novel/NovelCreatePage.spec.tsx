@@ -2,7 +2,12 @@ import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 
 import { useCanCreateNovel } from '../../hooks/useCanCreateNovel';
@@ -10,11 +15,12 @@ import { showApiError } from '../../utils/notification';
 import { NovelCreatePage } from './NovelCreatePage';
 
 const createNovelMutate = vi.fn();
+const storeLicense = vi.hoisted(() => vi.fn());
 const defaultLicense = {
   id: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
   name: 'CC BY 4.0',
   sourceType: 'CANONICAL',
-  canonicalId: 'CC-BY-4.0',
+  canonicalID: 'CC-BY-4.0',
   text: 'Attribution 4.0 International',
 };
 
@@ -37,10 +43,6 @@ vi.mock('../../generated/graphql', async () => {
   return {
     ...actual,
     useDefaultLicenseQuery: () => ({ data: { defaultLicense } }),
-    useCanonicalLicensesQuery: () => ({
-      data: { canonicalLicenses: [] },
-    }),
-    useCanonicalLicenseQuery: () => ({ data: undefined }),
     useSelectableLicensesQuery: () => ({ data: undefined }),
     useCreateNovelMutation: () => ({
       mutate: createNovelMutate,
@@ -48,6 +50,10 @@ vi.mock('../../generated/graphql', async () => {
     }),
   };
 });
+
+vi.mock('./use-store-license', () => ({
+  useStoreLicense: () => ({ store: storeLicense, isPending: false }),
+}));
 
 vi.mock('../../hooks/useCanCreateNovel', () => ({
   useCanCreateNovel: vi.fn(),
@@ -142,8 +148,10 @@ describe('NovelCreatePage', () => {
     expect(await screen.findByText('Novel page')).toBeTruthy();
   });
 
-  it('preselects the default license and sends a draft only after the text is edited', () => {
+  it('preselects the default license and stores a license of the writer only after the text is edited', async () => {
     // Arrange
+    const storedId = 'b2d9c4aa-18f3-4f0e-9c57-3a6d1e8b7f42';
+    storeLicense.mockResolvedValue(storedId);
     renderPage();
     fillRequiredFields();
 
@@ -161,16 +169,15 @@ describe('NovelCreatePage', () => {
 
     // Assert
     expect(screen.getByText('CC BY 4.0')).toBeTruthy();
+    await waitFor(() => expect(createNovelMutate).toHaveBeenCalled());
+    expect(storeLicense).toHaveBeenCalledExactlyOnceWith({
+      name: 'CC BY 4.0 without resale',
+      text: 'Attribution 4.0 International, no resale.',
+      sourceType: 'FORKED',
+      canonicalID: 'CC-BY-4.0',
+    });
     expect(createNovelMutate).toHaveBeenCalledExactlyOnceWith(
-      {
-        input: expect.objectContaining({
-          licenseDraft: {
-            title: 'CC BY 4.0 without resale',
-            text: 'Attribution 4.0 International, no resale.',
-            source: { type: 'FORKED', canonicalId: 'CC-BY-4.0' },
-          },
-        }),
-      },
+      { input: expect.objectContaining({ licenseID: storedId }) },
       expect.anything(),
     );
   });

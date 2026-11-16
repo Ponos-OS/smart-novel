@@ -1,5 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 
+import type { NodeOf } from '../../lib/connection';
+
 import { Button } from '../../components/Button';
 import {
   type AdminWritersQuery,
@@ -10,8 +12,7 @@ import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 import { showApiError, showSuccess } from '../../utils/notification';
 import { ADMIN_WRITERS_KEY } from './use-admin-writers';
 
-export type AdminWriter =
-  AdminWritersQuery['writersConnection']['edges'][number]['node'];
+export type AdminWriter = NodeOf<AdminWritersQuery['writers']>;
 
 interface WriterRowProps {
   request: AdminWriter;

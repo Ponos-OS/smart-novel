@@ -1,8 +1,8 @@
-query SearchTags($search: String, $first: Int!, $after: String) {
-  tagsConnection(
+query SearchTags($search: String, $first: Int!, $after: Cursor) {
+  tags(
     first: $first
     after: $after
-    filters: { search: $search }
+    where: { nameContainsFold: $search }
   ) {
     edges {
       node {

@@ -12,12 +12,12 @@ const mutation = vi.hoisted(() => ({
 }));
 
 const ccBySa = {
-  id: 'CC-BY-SA-4.0',
-  name: 'Creative Commons Attribution-ShareAlike 4.0 International',
-  shortName: 'CC BY-SA 4.0',
-  officialUrl:
+  id: '4d2e6a70-1c83-4f95-b0a2-7e9c3d5f8b14',
+  canonicalID: 'CC-BY-SA-4.0',
+  name: 'CC BY-SA 4.0',
+  officialURL:
     'https://creativecommons.org/licenses/by-sa/4.0/legalcode',
-  body: 'Attribution-ShareAlike 4.0 International',
+  text: 'Attribution-ShareAlike 4.0 International',
 };
 
 vi.mock('../../utils/notification', () => ({
@@ -29,19 +29,27 @@ vi.mock('../../generated/graphql', async () => ({
   useCreateLicenseMutation: () => mutation,
   useCanonicalLicensesQuery: () => ({
     data: {
-      canonicalLicenses: [
-        { id: 'CC-BY-4.0', shortName: 'CC BY 4.0' },
-        { id: 'CC-BY-SA-4.0', shortName: 'CC BY-SA 4.0' },
-      ],
+      licenses: {
+        edges: [
+          {
+            node: {
+              id: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
+              canonicalID: 'CC-BY-4.0',
+              name: 'CC BY 4.0',
+            },
+          },
+          { node: ccBySa },
+        ],
+      },
     },
   }),
   useCanonicalLicenseQuery: (
-    { id }: { id: string },
+    { canonicalID }: { canonicalID: string },
     { enabled }: { enabled: boolean },
   ) => ({
     data:
-      enabled && id === ccBySa.id
-        ? { canonicalLicense: ccBySa }
+      enabled && canonicalID === ccBySa.canonicalID
+        ? { licenses: { edges: [{ node: ccBySa }] } }
         : undefined,
   }),
 }));
@@ -104,9 +112,9 @@ describe('CreateLicenseDialog', () => {
     expect(mutation.mutate).toHaveBeenCalledWith(
       {
         input: {
-          title: 'Read it, do not copy it',
+          name: 'Read it, do not copy it',
           text: 'You may read this novel.',
-          source: { type: LicenseSourceType.Custom },
+          sourceType: LicenseSourceType.Custom,
         },
       },
       expect.anything(),
@@ -127,23 +135,21 @@ describe('CreateLicenseDialog', () => {
     await user.click(submit());
 
     expect(screen.getByLabelText('License text')).toHaveValue(
-      ccBySa.body,
+      ccBySa.text,
     );
     expect(
       screen.getByRole('link', { name: /official license text/ }),
-    ).toHaveAttribute('href', ccBySa.officialUrl);
+    ).toHaveAttribute('href', ccBySa.officialURL);
     expect(
       screen.queryByLabelText('Name of your modified license'),
     ).not.toBeInTheDocument();
     expect(mutation.mutate).toHaveBeenCalledWith(
       {
         input: {
-          title: 'CC BY-SA 4.0',
-          text: ccBySa.body,
-          source: {
-            type: LicenseSourceType.Canonical,
-            canonicalId: ccBySa.id,
-          },
+          name: 'CC BY-SA 4.0',
+          text: ccBySa.text,
+          sourceType: LicenseSourceType.Canonical,
+          canonicalID: ccBySa.canonicalID,
         },
       },
       expect.anything(),
@@ -158,7 +164,7 @@ describe('CreateLicenseDialog', () => {
     );
 
     fireEvent.change(screen.getByLabelText('License text'), {
-      target: { value: `${ccBySa.body} Small authors may sell it.` },
+      target: { value: `${ccBySa.text} Small authors may sell it.` },
     });
 
     expect(submit()).toBeDisabled();
@@ -170,12 +176,10 @@ describe('CreateLicenseDialog', () => {
     expect(mutation.mutate).toHaveBeenCalledWith(
       {
         input: {
-          title: 'SA, except small authors',
-          text: `${ccBySa.body} Small authors may sell it.`,
-          source: {
-            type: LicenseSourceType.Forked,
-            canonicalId: ccBySa.id,
-          },
+          name: 'SA, except small authors',
+          text: `${ccBySa.text} Small authors may sell it.`,
+          sourceType: LicenseSourceType.Forked,
+          canonicalID: ccBySa.canonicalID,
         },
       },
       expect.anything(),

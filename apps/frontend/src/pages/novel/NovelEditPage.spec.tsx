@@ -48,10 +48,6 @@ vi.mock('../../generated/graphql', async () => {
   return {
     ...actual,
     useGetNovelQuery,
-    useCanonicalLicensesQuery: () => ({
-      data: { canonicalLicenses: [] },
-    }),
-    useCanonicalLicenseQuery: () => ({ data: undefined }),
     useSelectableLicensesQuery: () => ({ data: undefined }),
     useUpdateNovelMutation: () => ({
       mutate: updateNovelMutate,
@@ -76,7 +72,7 @@ const ccBy = {
   id: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
   name: 'CC BY 4.0',
   sourceType: LicenseSourceType.Canonical,
-  canonicalId: 'CC-BY-4.0',
+  canonicalID: 'CC-BY-4.0',
   text: 'Attribution 4.0 International',
 };
 
@@ -88,7 +84,7 @@ function novel(allowedActions: NovelAction[]) {
       writer: { penName: 'Jane_Doe' },
       description: 'A lighthouse keeper finds a door in the fog.',
       state: NovelState.Ongoing,
-      tags: ['fantasy', 'adventure'],
+      tags: [{ name: 'fantasy' }, { name: 'adventure' }],
       allowedActions,
       license: ccBy,
     },

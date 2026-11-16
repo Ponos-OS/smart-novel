@@ -20,7 +20,7 @@ export function useFilterTags(search: string) {
           first: PAGE_SIZE,
           after,
         })()
-      ).tagsConnection,
+      ).tags,
   });
 
   return { tags: nodes, ...list };

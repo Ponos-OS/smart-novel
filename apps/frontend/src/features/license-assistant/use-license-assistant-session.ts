@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import {
   type CreateLicenseDraftInput,
   type FinalizeLicenseDraftMutation,
+  type LicenseAssistantDraftInput,
   type LicenseAssistantMessageInput,
   type LicenseDraftFieldsFragment,
-  type LicenseDraftInput,
   useCreateLicenseDraftMutation,
   useDiscardLicenseDraftMutation,
   useFinalizeLicenseDraftMutation,
@@ -25,7 +25,7 @@ export type FinalizedLicense =
 /** @description A session picked up again: the draft as the backend has it, and the conversation that was kept. */
 export interface InitialSession {
   draftId: string;
-  draft: LicenseDraftInput;
+  draft: LicenseAssistantDraftInput;
   conversation: LicenseAssistantMessageInput[];
 }
 
@@ -37,11 +37,12 @@ interface Options {
 
 export function toDraftInput(
   draft: LicenseDraftFieldsFragment,
-): LicenseDraftInput {
+): LicenseAssistantDraftInput {
   return {
-    title: draft.title,
+    name: draft.name,
     text: draft.text,
-    source: draft.source,
+    sourceType: draft.sourceType,
+    canonicalID: draft.canonicalID,
   };
 }
 

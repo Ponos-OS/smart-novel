@@ -24,13 +24,13 @@ vi.mock('../../generated/graphql', async () => {
         novel: {
           chapter: {
             id: 'e0e19c33-2e56-4f5f-9b7c-9c17e7dbd230',
-            novelId: '93fec4bf-2f66-4e4a-9572-7aa4871f1458',
+            novelID: '93fec4bf-2f66-4e4a-9572-7aa4871f1458',
             title: 'A Chapter',
             content: 'Chapter body text.',
             updatedAt: '2026-01-01T00:00:00.000Z',
             contentUpdatedAt: '2026-01-01T00:00:00.000Z',
             narrationStatus: null,
-            narrationUrl: null,
+            narrationURL: null,
           },
         },
       },

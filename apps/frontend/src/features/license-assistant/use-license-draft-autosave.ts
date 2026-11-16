@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
-  type LicenseDraftInput,
+  type LicenseAssistantDraftInput,
   useSaveLicenseDraftMutation,
 } from '../../generated/graphql';
 import { getAutosaveIntervalMs } from './autosave-interval';
@@ -16,19 +16,19 @@ interface Options {
   /** @description The draft on the backend; nothing is saved without one. */
   draftId: string | null;
   /** @description The draft as the author has it now. */
-  draft: LicenseDraftInput | null;
+  draft: LicenseAssistantDraftInput | null;
   /** @description What the backend has when the hook starts, e.g. a draft that was just loaded. */
-  initialSaved?: LicenseDraftInput | null;
+  initialSaved?: LicenseAssistantDraftInput | null;
   intervalMs?: number;
 }
 
-function snapshot(draft: LicenseDraftInput | null): string {
+function snapshot(draft: LicenseAssistantDraftInput | null): string {
   return JSON.stringify(
     draft && {
-      title: draft.title,
+      name: draft.name,
       text: draft.text,
-      type: draft.source.type,
-      canonicalId: draft.source.canonicalId ?? null,
+      sourceType: draft.sourceType,
+      canonicalID: draft.canonicalID ?? null,
     },
   );
 }
@@ -75,9 +75,10 @@ export function useLicenseDraftAutosave({
         .mutateAsync({
           input: {
             id,
-            title: current.title,
+            name: current.name,
             text: current.text,
-            source: current.source,
+            sourceType: current.sourceType,
+            canonicalID: current.canonicalID,
           },
         })
         .then(
@@ -115,11 +116,14 @@ export function useLicenseDraftAutosave({
   }, [draftId, intervalMs, save]);
 
   /** @description Tell the hook what the backend has, e.g. right after loading or creating the draft. */
-  const markSaved = useCallback((saved: LicenseDraftInput | null) => {
-    latest.current.savedSnapshot = snapshot(saved);
-    setSavedSnapshot(snapshot(saved));
-    setPhase('idle');
-  }, []);
+  const markSaved = useCallback(
+    (saved: LicenseAssistantDraftInput | null) => {
+      latest.current.savedSnapshot = snapshot(saved);
+      setSavedSnapshot(snapshot(saved));
+      setPhase('idle');
+    },
+    [],
+  );
 
   const isDirty = snapshot(draft) !== savedSnapshot;
   let status: DraftSyncStatus = 'saved';

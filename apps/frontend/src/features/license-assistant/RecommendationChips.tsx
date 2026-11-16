@@ -1,5 +1,6 @@
 import { Button } from '../../components/Button';
 import { useCanonicalLicensesQuery } from '../../generated/graphql';
+import { nodesOf } from '../../lib/connection';
 import { useMessages } from './i18n';
 
 interface RecommendationChipsProps {
@@ -26,8 +27,9 @@ export function RecommendationChips({
   }
 
   const nameOf = (id: string) =>
-    data?.canonicalLicenses.find((license) => license.id === id)
-      ?.shortName ?? id;
+    nodesOf(data?.licenses ?? {}).find(
+      (license) => license.canonicalID === id,
+    )?.name ?? id;
 
   return (
     <section aria-label={t('recommendations.title')} className="mt-4">

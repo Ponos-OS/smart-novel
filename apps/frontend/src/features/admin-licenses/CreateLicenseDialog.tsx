@@ -3,13 +3,14 @@ import { useState } from 'react';
 import { Dialog } from '../../components/Dialog';
 import { DialogFormFooter } from '../../components/DialogFormFooter';
 import {
-  type LicenseDraftInput,
+  type LicenseInput,
   LicenseSourceType,
   useCanonicalLicenseQuery,
   useCanonicalLicensesQuery,
   useCreateLicenseMutation,
 } from '../../generated/graphql';
 import { LICENSE_INPUT_NAME_MAX_LENGTH } from '../../generated/limits';
+import { nodesOf } from '../../lib/connection';
 import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 import { showApiError, showSuccess } from '../../utils/notification';
 import { LICENSE_DISCLAIMER } from '../novel-license/license-notice';
@@ -21,10 +22,10 @@ interface CreateLicenseDialogProps {
 }
 
 interface CanonicalBase {
-  id: string;
-  shortName: string;
-  body: string;
-  officialUrl: string;
+  canonicalID?: string | null;
+  name: string;
+  text: string;
+  officialURL?: string | null;
 }
 
 const INPUT_CLASSES =
@@ -48,37 +49,29 @@ function buildLicense(
   base: CanonicalBase | undefined,
   title: string,
   text: string,
-): LicenseDraftInput | undefined {
+): LicenseInput | undefined {
   const name = title.trim();
 
   if (!base) {
     return name && text.trim()
-      ? {
-          title: name,
-          text,
-          source: { type: LicenseSourceType.Custom },
-        }
+      ? { name, text, sourceType: LicenseSourceType.Custom }
       : undefined;
   }
-  if (text === base.body) {
+  if (text === base.text) {
     return {
-      title: base.shortName,
+      name: base.name,
       text,
-      source: {
-        type: LicenseSourceType.Canonical,
-        canonicalId: base.id,
-      },
+      sourceType: LicenseSourceType.Canonical,
+      canonicalID: base.canonicalID,
     };
   }
 
   return name && text.trim()
     ? {
-        title: name,
+        name,
         text,
-        source: {
-          type: LicenseSourceType.Forked,
-          canonicalId: base.id,
-        },
+        sourceType: LicenseSourceType.Forked,
+        canonicalID: base.canonicalID,
       }
     : undefined;
 }
@@ -93,16 +86,18 @@ export function CreateLicenseDialog({
   const [refusal, setRefusal] = useState<string | null>(null);
   const { data: listData } = useCanonicalLicensesQuery();
   const { data: detailData } = useCanonicalLicenseQuery(
-    { id: pickedId },
+    { canonicalID: pickedId },
     { enabled: !!pickedId },
   );
   const createLicense = useCreateLicenseMutation();
-  const canonical = detailData?.canonicalLicense;
+  const canonical = nodesOf(detailData?.licenses ?? {})[0];
   const base =
-    pickedId && canonical?.id === pickedId ? canonical : undefined;
+    pickedId && canonical?.canonicalID === pickedId
+      ? canonical
+      : undefined;
   const isLoadingBase = !!pickedId && !base;
-  const text = editedText ?? base?.body ?? '';
-  const isModified = !!base && text !== base.body;
+  const text = editedText ?? base?.text ?? '';
+  const isModified = !!base && text !== base.text;
   const license = isLoadingBase
     ? undefined
     : buildLicense(base, title, text);
@@ -167,9 +162,12 @@ export function CreateLicenseDialog({
             className={INPUT_CLASSES}
           >
             <option value="">Write your own</option>
-            {listData?.canonicalLicenses.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.shortName}
+            {nodesOf(listData?.licenses ?? {}).map((option) => (
+              <option
+                key={option.id}
+                value={option.canonicalID ?? ''}
+              >
+                {option.name}
               </option>
             ))}
           </select>
@@ -181,7 +179,7 @@ export function CreateLicenseDialog({
         ) : (
           <>
             {base && (
-              <OfficialLicenseLink officialUrl={base.officialUrl} />
+              <OfficialLicenseLink officialUrl={base.officialURL} />
             )}
             {(!base || isModified) && (
               <label className="block">

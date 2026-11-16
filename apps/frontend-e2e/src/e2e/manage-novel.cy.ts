@@ -113,8 +113,7 @@ describe('Manage a novel (e2e)', () => {
         cy.contains('button', 'Delete').click();
       });
       cy.wait('@getNovelAfterDelete').then(({ response }) => {
-        const chapters =
-          response?.body.data.novel.chaptersConnection.edges;
+        const chapters = response?.body.data.novel.chapters.edges;
 
         expect(chapters).to.have.length(1);
         expect(chapters[0].node.title).to.eq(secondChapterTitle);

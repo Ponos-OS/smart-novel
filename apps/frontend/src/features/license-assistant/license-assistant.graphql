@@ -2,12 +2,10 @@ mutation DraftLicense($input: DraftLicenseInput!) {
   draftLicense(input: $input) {
     assistantMessage
     draft {
-      title
+      name
       text
-      source {
-        type
-        canonicalId
-      }
+      sourceType
+      canonicalID
     }
     draftChanged
     recommendations
@@ -21,32 +19,38 @@ mutation DraftLicense($input: DraftLicenseInput!) {
 }
 
 query CanonicalLicenses {
-  canonicalLicenses {
-    id
-    name
-    shortName
-    version
-    category
-    officialUrl
-    summary
-    permissions
-    limitations
-    conditions
+  licenses(
+    first: 100
+    scope: SHARED
+    where: { sourceType: CANONICAL }
+  ) {
+    edges {
+      node {
+        id
+        name
+        canonicalID
+        version
+        officialURL
+      }
+    }
   }
 }
 
-query CanonicalLicense($id: ID!) {
-  canonicalLicense(id: $id) {
-    id
-    name
-    shortName
-    version
-    category
-    officialUrl
-    summary
-    permissions
-    limitations
-    conditions
-    body
+query CanonicalLicense($canonicalID: String!) {
+  licenses(
+    first: 1
+    scope: SHARED
+    where: { sourceType: CANONICAL, canonicalID: $canonicalID }
+  ) {
+    edges {
+      node {
+        id
+        name
+        canonicalID
+        version
+        officialURL
+        text
+      }
+    }
   }
 }

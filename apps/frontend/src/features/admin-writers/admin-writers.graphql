@@ -1,13 +1,9 @@
 query AdminWriters(
   $status: WriterStatus
   $first: Int!
-  $after: String
+  $after: Cursor
 ) {
-  writersConnection(
-    first: $first
-    after: $after
-    filters: { status: $status }
-  ) {
+  writers(first: $first, after: $after, where: { status: $status }) {
     edges {
       node {
         id

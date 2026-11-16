@@ -1,21 +1,21 @@
-mutation CreateNovelCoverUploadUrl(
+mutation CreateNovelCoverUploadURL(
   $novelId: ID!
   $contentType: String!
   $contentLength: Int!
 ) {
-  createNovelCoverUploadUrl(
-    novelId: $novelId
+  createNovelCoverUploadURL(
+    novelID: $novelId
     contentType: $contentType
     contentLength: $contentLength
   ) {
-    uploadUrl
+    uploadURL
     objectKey
   }
 }
 
 mutation SetNovelCover($novelId: ID!, $objectKey: String!) {
-  setNovelCover(novelId: $novelId, objectKey: $objectKey) {
+  setNovelCover(novelID: $novelId, objectKey: $objectKey) {
     id
-    coverUrl
+    coverURL
   }
 }

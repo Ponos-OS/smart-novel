@@ -26,8 +26,8 @@ const ccBy = {
   scope: LicenseScope.Shared,
   isDefault: true,
   sourceType: LicenseSourceType.Canonical,
-  canonicalId: 'CC-BY-4.0',
-  officialUrl:
+  canonicalID: 'CC-BY-4.0',
+  officialURL:
     'https://creativecommons.org/licenses/by/4.0/legalcode',
   text: 'Attribution 4.0 International',
   updatedAt: '2026-10-30T09:15:00.000Z',
@@ -38,8 +38,8 @@ const mine = {
   scope: LicenseScope.Personal,
   isDefault: false,
   sourceType: LicenseSourceType.Custom,
-  canonicalId: null,
-  officialUrl: null,
+  canonicalID: null,
+  officialURL: null,
   text: 'You may read this novel. You may not copy it.',
   updatedAt: '2026-11-01T10:00:00.000Z',
 };

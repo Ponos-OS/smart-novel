@@ -2,6 +2,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Pencil, Trash2 } from 'lucide-react';
 import { type KeyboardEvent, useState } from 'react';
 
+import type { NodeOf } from '../../lib/connection';
+
 import { Button } from '../../components/Button';
 import { Tooltip } from '../../components/Tooltip';
 import {
@@ -15,8 +17,7 @@ import { GraphqlRequestError } from '../../lib/graphql-fetcher';
 import { showApiError } from '../../utils/notification';
 import { ADMIN_TAGS_KEY } from './use-admin-tags';
 
-export type AdminTag =
-  AdminTagsQuery['tagsConnection']['edges'][number]['node'];
+export type AdminTag = NodeOf<AdminTagsQuery['tags']>;
 
 interface TagRowProps {
   tag: AdminTag;
@@ -208,9 +209,9 @@ export function TagRow({ tag, onDelete }: TagRowProps) {
         </span>
       </td>
       <td className="px-4 py-3 align-top text-sm text-gray-400">
-        {tag.requesterUserId ? (
-          <code title={tag.requesterUserId} className="text-xs">
-            {tag.requesterUserId}
+        {tag.requesterUserID ? (
+          <code title={tag.requesterUserID} className="text-xs">
+            {tag.requesterUserID}
           </code>
         ) : (
           '-'

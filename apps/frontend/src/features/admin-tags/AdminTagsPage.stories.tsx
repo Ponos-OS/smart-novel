@@ -20,7 +20,7 @@ const fantasy = {
   name: 'fantasy',
   description: 'Worlds with magic, mythical creatures and quests.',
   status: TagStatus.Approved,
-  requesterUserId: null,
+  requesterUserID: null,
   approximateNovelCount: 1203,
 };
 const mystery = {
@@ -28,7 +28,7 @@ const mystery = {
   name: 'mystery',
   description: '',
   status: TagStatus.Approved,
-  requesterUserId: null,
+  requesterUserID: null,
   approximateNovelCount: 87,
 };
 const sliceOfLife = {
@@ -36,14 +36,14 @@ const sliceOfLife = {
   name: 'slice of life',
   description: '',
   status: TagStatus.Pending,
-  requesterUserId: '300311094522198754',
+  requesterUserID: '300311094522198754',
   approximateNovelCount: 1,
 };
 
 const page = (nodes: object[], hasNextPage = false) => ({
   pages: [
     {
-      tagsConnection: {
+      tags: {
         edges: nodes.map((node) => ({ node })),
         pageInfo: {
           endCursor: hasNextPage ? 'cursor-1' : null,

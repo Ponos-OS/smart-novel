@@ -58,10 +58,7 @@ export const enMessages = {
     'I would like to use {name} for my novel.',
   'dialog.close': 'Close',
   'license.loading': 'Loading the license...',
-  'license.summary': '{shortName}, version {version}, {category}',
-  'license.permissions': 'Permissions',
-  'license.limitations': 'Limitations',
-  'license.conditions': 'Conditions',
+  'license.summary': '{name}, version {version}',
   'license.fullText': 'Full text',
   'license.officialLink':
     'Read the official license text (opens in a new tab)',

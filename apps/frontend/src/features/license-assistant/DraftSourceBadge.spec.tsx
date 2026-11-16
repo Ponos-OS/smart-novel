@@ -11,14 +11,19 @@ vi.mock('../../generated/graphql', async () => ({
 }));
 
 const registry = {
-  canonicalLicenses: [
-    {
-      id: 'CC-BY-NC-4.0',
-      shortName: 'CC BY-NC 4.0',
-      officialUrl:
-        'https://creativecommons.org/licenses/by-nc/4.0/legalcode',
-    },
-  ],
+  licenses: {
+    edges: [
+      {
+        node: {
+          id: '9b1d3c52-8b0e-4a39-9c4d-2f6a7e1b5d08',
+          canonicalID: 'CC-BY-NC-4.0',
+          name: 'CC BY-NC 4.0',
+          officialURL:
+            'https://creativecommons.org/licenses/by-nc/4.0/legalcode',
+        },
+      },
+    ],
+  },
 };
 
 describe(DraftSourceBadge.name, () => {
@@ -26,7 +31,7 @@ describe(DraftSourceBadge.name, () => {
     hooks.list = registry;
   });
 
-  it('names the canonical license by its short name and links its official text', () => {
+  it('names the canonical license by its name and links its official text', () => {
     // Act
     render(
       <DraftSourceBadge

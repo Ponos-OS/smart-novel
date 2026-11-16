@@ -125,7 +125,7 @@ vi.mock('../../utils/notification', () => ({
 
 const baseChapter = {
   id: '4dd92f16-4743-47b9-960c-6529678e9bc5',
-  novelId: 'c1d31ec2-f478-4648-b90b-d1e53de2a829',
+  novelID: 'c1d31ec2-f478-4648-b90b-d1e53de2a829',
   title: 'A Chapter',
   content: 'Chapter body text.',
   updatedAt: '2026-01-01T00:00:00.000Z',
@@ -357,7 +357,7 @@ describe('ChapterContentEditor', () => {
       queryKey: [
         'GetChapter',
         {
-          novelId: baseChapter.novelId,
+          novelId: baseChapter.novelID,
           chapterId: baseChapter.id,
         },
       ],

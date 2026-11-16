@@ -14,6 +14,7 @@ import {
 } from './messages';
 import {
   answer,
+  canonicalLicenseAnswer,
   defaultHandlers,
   draftRow,
   type Handlers,
@@ -55,29 +56,13 @@ describe('license assistant in another language', () => {
     handlers = defaultHandlers();
     handlers.LicenseDrafts = () => ({
       data: {
-        licenseDraftsConnection: {
-          edges: [{ node: draftRow({ title: 'Read only' }) }],
+        licenses: {
+          edges: [{ node: draftRow({ name: 'Read only' }) }],
         },
       },
     });
-    handlers.CanonicalLicense = () => ({
-      data: {
-        canonicalLicense: {
-          id: 'CC-BY-4.0',
-          name: 'Creative Commons Attribution 4.0 International',
-          shortName: 'CC BY 4.0',
-          version: '4.0',
-          category: 'creative_commons',
-          officialUrl:
-            'https://creativecommons.org/licenses/by/4.0/legalcode',
-          summary: 'Share and adapt with credit.',
-          permissions: ['share'],
-          limitations: ['no warranty'],
-          conditions: ['attribution'],
-          body: 'Full legal text.',
-        },
-      },
-    });
+    handlers.CanonicalLicense = () =>
+      canonicalLicenseAnswer('Full legal text.');
     handlers.DraftLicense = () => ({
       data: {
         draftLicense: answer({ recommendations: ['CC-BY-4.0'] }),

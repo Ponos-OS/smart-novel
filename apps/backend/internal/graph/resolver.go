@@ -8,6 +8,7 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/license"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/llm"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/narration"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/node"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/novel"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/zitadel"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platformterms"
@@ -27,6 +28,7 @@ type Resolver struct {
 	StatsService     *stats.Service
 	LLMService       *llm.Service
 	NarrationService *narration.Service
+	NodeService      *node.Service
 	WriterService    *writer.Service
 	TermsService     *platformterms.Service
 	// Management is the ZITADEL management client; the webhook of new users uses it too.

@@ -17,13 +17,13 @@ import { AdminNovelsPage } from './AdminNovelsPage';
 import { ADMIN_NOVELS_KEY } from './use-admin-novels';
 
 const mina = {
-  userId: '364554362883670018',
+  userID: '364554362883670018',
   penName: 'Mina_Ardalan',
   name: 'Mina Ardalan',
   email: 'mina.ardalan@example.com',
 };
 const omid = {
-  userId: '364554362732740610',
+  userID: '364554362732740610',
   penName: 'Omid_Rahimi',
   name: 'Omid Rahimi',
   email: 'omid.rahimi@example.com',
@@ -50,13 +50,13 @@ const noName = {
   ...lantern,
   id: '5b2c0f3e-0a53-4d3c-9d2c-9a3d1f7f4a10',
   name: 'Echoes in the Dark',
-  writer: { userId: '364554362111111111', penName: 'Echo_Writer' },
+  writer: { userID: '364554362111111111', penName: 'Echo_Writer' },
 };
 
 const novelsPage = (nodes: object[], hasNextPage = false) => ({
   pages: [
     {
-      novelsConnection: {
+      novels: {
         edges: nodes.map((node) => ({ node })),
         pageInfo: {
           endCursor: hasNextPage ? 'cursor-1' : null,
@@ -71,7 +71,7 @@ const novelsPage = (nodes: object[], hasNextPage = false) => ({
 const writersPage = (nodes: object[]) => ({
   pages: [
     {
-      writersConnection: {
+      writers: {
         edges: nodes.map((node) => ({ node })),
         pageInfo: { endCursor: null, hasNextPage: false },
       },
@@ -90,7 +90,7 @@ function primeContentStatsCards(client: QueryClient) {
   });
   for (const last of [30, 90]) {
     client.setQueryData(['StatsSnapshots', { last }], {
-      statsSnapshotsConnection: { edges: [] },
+      statsSnapshots: { edges: [] },
     });
   }
 }

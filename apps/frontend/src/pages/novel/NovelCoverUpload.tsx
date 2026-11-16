@@ -123,16 +123,16 @@ export function NovelCoverUpload({
     setUploadError(null);
 
     try {
-      const { createNovelCoverUploadUrl } =
+      const { createNovelCoverUploadURL } =
         await createUploadUrlMutation.mutateAsync({
           novelId,
           contentType: file.type,
           contentLength: file.size,
         });
-      await putToBucket(createNovelCoverUploadUrl.uploadUrl, file);
+      await putToBucket(createNovelCoverUploadURL.uploadURL, file);
       await setNovelCoverMutation.mutateAsync({
         novelId,
-        objectKey: createNovelCoverUploadUrl.objectKey,
+        objectKey: createNovelCoverUploadURL.objectKey,
       });
       await Promise.all([
         queryClient.invalidateQueries({

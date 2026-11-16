@@ -1,7 +1,7 @@
 subscription ChapterNarrationUpdated($chapterId: ID!) {
-  chapterNarrationUpdated(chapterId: $chapterId) {
+  chapterNarrationUpdated(chapterID: $chapterId) {
     status
-    narrationUrl
+    narrationURL
     stage
     error
   }

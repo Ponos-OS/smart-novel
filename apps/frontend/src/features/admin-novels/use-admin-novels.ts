@@ -1,19 +1,23 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 
 import {
-  type NovelFiltersInput,
-  type NovelOrderByInput,
+  type NovelOrder,
   useAdminNovelsQuery,
 } from '../../generated/graphql';
 import { useResetOnInvalidCursor } from '../../hooks/useResetOnInvalidCursor';
+import { nodesOf } from '../../lib/connection';
+import {
+  type NovelFilters,
+  novelQuery,
+} from '../../lib/novel-filters';
 
 const PAGE_SIZE = 20;
 
 export const ADMIN_NOVELS_KEY = 'AdminNovelsInfinite';
 
 export function useAdminNovels(
-  filters: NovelFiltersInput | undefined,
-  orderBy: NovelOrderByInput | undefined,
+  filters: NovelFilters | undefined,
+  orderBy: NovelOrder | undefined,
   enabled: boolean,
 ) {
   const queryKey = [ADMIN_NOVELS_KEY, filters, orderBy];
@@ -23,14 +27,14 @@ export function useAdminNovels(
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam }) =>
       useAdminNovelsQuery.fetcher({
-        filters,
+        ...novelQuery(filters),
         orderBy,
         first: PAGE_SIZE,
         after: pageParam,
       })(),
-    getNextPageParam: ({ novelsConnection }) =>
-      novelsConnection.pageInfo.hasNextPage
-        ? novelsConnection.pageInfo.endCursor
+    getNextPageParam: ({ novels }) =>
+      novels.pageInfo.hasNextPage
+        ? novels.pageInfo.endCursor
         : undefined,
   });
 
@@ -38,7 +42,7 @@ export function useAdminNovels(
 
   return {
     novels: (query.data?.pages ?? []).flatMap((page) =>
-      page.novelsConnection.edges.map(({ node }) => node),
+      nodesOf(page.novels),
     ),
     isLoading: query.isLoading,
     isError: query.isError,

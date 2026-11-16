@@ -22,8 +22,8 @@ export const wsClient = createClient({
   url: getWsUrl(),
   // Lazy connection: only connects when the first subscription is created
   lazy: true,
-  // Auto-reconnect on connection loss
-  retryAttempts: 5,
+  // Reconnect on connection loss for as long as somebody listens: a narration that is still running must not be left on a spinner because the network was down for a while. graphql-ws waits longer between tries by itself.
+  retryAttempts: Infinity,
   // `connectionParams` is evaluated on every connection attempt, so the W3C `traceparent`/`baggage` headers are injected from the currently-active OTel context. The server-side `graphql-ws` plugin reads them out of `connectionParams` and continues the trace.
   connectionParams: () => {
     const carrier: Record<string, string> = {};

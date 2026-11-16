@@ -5,6 +5,7 @@ import {
   WriterStatus,
 } from '../../generated/graphql';
 import { useResetOnInvalidCursor } from '../../hooks/useResetOnInvalidCursor';
+import { nodesOf } from '../../lib/connection';
 
 const PAGE_SIZE = 20;
 
@@ -25,9 +26,9 @@ export function useAdminWriters(
         first: PAGE_SIZE,
         after: pageParam,
       })(),
-    getNextPageParam: ({ writersConnection }) =>
-      writersConnection.pageInfo.hasNextPage
-        ? writersConnection.pageInfo.endCursor
+    getNextPageParam: ({ writers }) =>
+      writers.pageInfo.hasNextPage
+        ? writers.pageInfo.endCursor
         : undefined,
   });
 
@@ -35,7 +36,7 @@ export function useAdminWriters(
 
   return {
     requests: (query.data?.pages ?? []).flatMap((page) =>
-      page.writersConnection.edges.map(({ node }) => node),
+      nodesOf(page.writers),
     ),
     isLoading: query.isLoading,
     isError: query.isError,

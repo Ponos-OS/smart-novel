@@ -1,13 +1,17 @@
 query AdminNovels(
-  $filters: NovelFiltersInput
-  $orderBy: NovelOrderByInput
+  $where: NovelWhereInput
+  $chapterCount: ChapterCountRangeInput
+  $ownerIDs: [String!]
+  $orderBy: NovelOrder
   $first: Int!
-  $after: String
+  $after: Cursor
 ) {
-  novelsConnection(
+  novels(
     first: $first
     after: $after
-    filters: $filters
+    where: $where
+    chapterCount: $chapterCount
+    ownerIDs: $ownerIDs
     orderBy: $orderBy
   ) {
     edges {
@@ -22,7 +26,7 @@ query AdminNovels(
           name
         }
         writer {
-          userId
+          userID
           penName
           name
           email
@@ -36,15 +40,16 @@ query AdminNovels(
   }
 }
 
-query SearchWriters($search: String, $first: Int!, $after: String) {
-  writersConnection(
+query SearchWriters($search: String, $first: Int!, $after: Cursor) {
+  writers(
     first: $first
     after: $after
-    filters: { status: APPROVED, search: $search }
+    where: { status: APPROVED }
+    search: $search
   ) {
     edges {
       node {
-        userId
+        userID
         penName
         name
         email
@@ -65,7 +70,7 @@ query ContentStats {
 }
 
 query StatsSnapshots($last: Int!) {
-  statsSnapshotsConnection(last: $last) {
+  statsSnapshots(last: $last) {
     edges {
       node {
         id

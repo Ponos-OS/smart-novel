@@ -7,28 +7,26 @@ import {
 import { act, renderHook } from '@testing-library/react';
 
 import {
-  type LicenseDraftInput,
+  type LicenseAssistantDraftInput,
   LicenseSourceType,
 } from '../../generated/graphql';
 import { useLicenseDraftAutosave } from './use-license-draft-autosave';
 
 const draftId = '5c1f4d0e-3b6a-4a57-9d3e-0b7a8f2c9e41';
-const saved: LicenseDraftInput = {
-  title: 'CC BY 4.0 without resale',
+const saved: LicenseAssistantDraftInput = {
+  name: 'CC BY 4.0 without resale',
   text: 'You may share and adapt this novel.',
-  source: {
-    type: LicenseSourceType.Forked,
-    canonicalId: 'CC-BY-4.0',
-  },
+  sourceType: LicenseSourceType.Forked,
+  canonicalID: 'CC-BY-4.0',
 };
-const edited: LicenseDraftInput = {
+const edited: LicenseAssistantDraftInput = {
   ...saved,
   text: 'You may share and adapt this novel. You may not sell it.',
 };
 const INTERVAL = 5000;
 
 type Props = {
-  draft: LicenseDraftInput | null;
+  draft: LicenseAssistantDraftInput | null;
   draftId?: string | null;
 };
 
@@ -129,9 +127,10 @@ describe(useLicenseDraftAutosave.name, () => {
     expect(sentInputs()).toEqual([
       {
         id: draftId,
-        title: edited.title,
+        name: edited.name,
         text: edited.text,
-        source: edited.source,
+        sourceType: edited.sourceType,
+        canonicalID: edited.canonicalID,
       },
     ]);
     expect(result.current.status).toBe('saved');
@@ -183,7 +182,7 @@ describe(useLicenseDraftAutosave.name, () => {
     const { result, rerender } = renderAutosave({ draft: saved });
     rerender({ draft: edited });
     await tick();
-    const newer = { ...edited, title: 'No resale, no remixes' };
+    const newer = { ...edited, name: 'No resale, no remixes' };
 
     // Act
     rerender({ draft: newer });
@@ -200,8 +199,8 @@ describe(useLicenseDraftAutosave.name, () => {
 
     // Assert
     expect(duringFlight).toBe(1);
-    expect(sentInputs().map(({ title }) => title)).toEqual([
-      edited.title,
+    expect(sentInputs().map(({ name }) => name)).toEqual([
+      edited.name,
       'No resale, no remixes',
     ]);
     expect(result.current.status).toBe('saved');

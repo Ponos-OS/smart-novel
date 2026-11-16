@@ -14,6 +14,10 @@ interface UseGraphQLSubscriptionOptions<TData> {
   onData: (data: TData) => void;
   /** Called when the subscription encounters an error */
   onError?: (error: unknown) => void;
+  /** Called every time the connection is up, the first time and after each reconnect; an event sent while it was down is lost, so read again whatever the events change. */
+  onConnected?: () => void;
+  /** Called when the connection drops while subscribed; it is retried by itself. */
+  onDisconnected?: () => void;
 }
 
 /**
@@ -40,15 +44,21 @@ export function useGraphQLSubscription<TData>({
   enabled,
   onData,
   onError,
+  onConnected,
+  onDisconnected,
 }: UseGraphQLSubscriptionOptions<TData>) {
   // Use refs for callbacks to avoid re-subscribing when they change
   const onDataRef = useRef(onData);
   const onErrorRef = useRef(onError);
+  const onConnectedRef = useRef(onConnected);
+  const onDisconnectedRef = useRef(onDisconnected);
 
   useEffect(() => {
     onDataRef.current = onData;
     onErrorRef.current = onError;
-  }, [onData, onError]);
+    onConnectedRef.current = onConnected;
+    onDisconnectedRef.current = onDisconnected;
+  }, [onData, onError, onConnected, onDisconnected]);
 
   // Serialize variables to use as a stable dependency
   const variablesKey = JSON.stringify(variables);
@@ -60,6 +70,12 @@ export function useGraphQLSubscription<TData>({
 
     const parsedVariables = JSON.parse(variablesKey);
 
+    const stopConnected = wsClient.on('connected', () =>
+      onConnectedRef.current?.(),
+    );
+    const stopClosed = wsClient.on('closed', () =>
+      onDisconnectedRef.current?.(),
+    );
     const unsubscribe = wsClient.subscribe<TData>(
       {
         query,
@@ -85,6 +101,8 @@ export function useGraphQLSubscription<TData>({
     );
 
     return () => {
+      stopConnected();
+      stopClosed();
       unsubscribe();
     };
   }, [query, variablesKey, enabled]);

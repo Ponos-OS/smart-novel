@@ -5,7 +5,7 @@ import { Dialog } from '../../components/Dialog';
 import { type LicenseSummary } from '../../features/novel-license/license-notice';
 import { LicenseField } from '../../features/novel-license/LicenseField';
 import {
-  type LicenseDraftInput,
+  type LicenseAssistantDraftInput,
   NovelState,
 } from '../../generated/graphql';
 import { RequestTagDialog } from './RequestTagDialog';
@@ -22,8 +22,9 @@ export interface NovelFormValues {
   description: string;
   state: NovelState;
   tags: string[];
-  licenseDraft?: LicenseDraftInput;
-  /** @description A license the author finalized with the assistant; exclusive with `licenseDraft`. */
+  /** @description A text the author wrote or changed, to store as a license of their own; exclusive with `licenseId`. */
+  licenseDraft?: LicenseAssistantDraftInput;
+  /** @description A license that is stored already, picked or finalized with the assistant. */
   licenseId?: string;
 }
 
@@ -63,7 +64,7 @@ export function NovelForm({
   const [tags, setTags] = useState(initialValues.tags);
 
   const [licenseDraft, setLicenseDraft] = useState<
-    LicenseDraftInput | undefined
+    LicenseAssistantDraftInput | undefined
   >();
   const [pickedLicenseId, setPickedLicenseId] = useState<string>();
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
@@ -81,7 +82,7 @@ export function NovelForm({
     !isSubmitting &&
     (!!assistantLicense ||
       !licenseDraft ||
-      licenseDraft.title.length > 0) &&
+      licenseDraft.name.length > 0) &&
     name.trim().length > 0;
 
   const handleSubmit = () => {

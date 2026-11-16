@@ -1,13 +1,14 @@
 import { Switch } from 'radix-ui';
 
+import type { NodeOf } from '../../lib/connection';
+
 import {
   type AdminLicensesQuery,
   LicenseScope,
   LicenseSourceType,
 } from '../../generated/graphql';
 
-export type AdminLicense =
-  AdminLicensesQuery['licensesConnection']['edges'][number]['node'];
+export type AdminLicense = NodeOf<AdminLicensesQuery['licenses']>;
 
 interface LicenseRowProps {
   license: AdminLicense;
@@ -44,9 +45,9 @@ export function LicenseRow({
     <tr className="border-t border-gray-700 align-top">
       <td className="px-4 py-3 text-white">
         {license.name || 'Untitled draft'}
-        {license.canonicalId && (
+        {license.canonicalID && (
           <span className="block text-xs text-gray-400">
-            {license.canonicalId}
+            {license.canonicalID}
           </span>
         )}
       </td>
@@ -66,9 +67,9 @@ export function LicenseRow({
         {SOURCE_LABELS[license.sourceType]}
       </td>
       <td className="px-4 py-3 text-sm text-gray-300">
-        {license.ownerId === SYSTEM_OWNER
+        {license.ownerID === SYSTEM_OWNER
           ? 'Platform'
-          : license.ownerId}
+          : license.ownerID}
       </td>
       <td className="px-4 py-3 text-sm text-gray-300">
         {new Date(license.updatedAt).toLocaleDateString('en-US')}

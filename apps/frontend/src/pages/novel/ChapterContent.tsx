@@ -8,13 +8,13 @@ import { ChapterContentEditor } from './ChapterContentEditor';
 type ChapterContentData = Pick<
   Chapter,
   | 'id'
-  | 'novelId'
+  | 'novelID'
   | 'title'
   | 'content'
   | 'updatedAt'
   | 'contentUpdatedAt'
   | 'narrationStatus'
-  | 'narrationUrl'
+  | 'narrationURL'
 >;
 
 interface ChapterContentProps {
@@ -77,7 +77,7 @@ export function ChapterContent({
       </div>
 
       {/* Audio Narration Section */}
-      {chapter.narrationUrl && (
+      {chapter.narrationURL && (
         <div className="rounded-lg border p-4 border-blue-800 bg-blue-900/20">
           <div className="mb-2 flex items-center gap-2">
             <svg
@@ -101,7 +101,7 @@ export function ChapterContent({
             ref={audioRef}
             controls
             className="w-full"
-            src={chapter.narrationUrl}
+            src={chapter.narrationURL}
             preload="metadata"
           >
             Your browser does not support the audio element.

@@ -1,13 +1,14 @@
 import { Link } from 'react-router-dom';
 
+import type { NodeOf } from '../../lib/connection';
+
 import { Button } from '../../components/Button';
 import {
   type AdminNovelsQuery,
   NovelState,
 } from '../../generated/graphql';
 
-export type AdminNovel =
-  AdminNovelsQuery['novelsConnection']['edges'][number]['node'];
+export type AdminNovel = NodeOf<AdminNovelsQuery['novels']>;
 
 interface NovelRowProps {
   novel: AdminNovel;
@@ -43,7 +44,7 @@ export function NovelRow({ novel, onDelete }: NovelRowProps) {
           </p>
         )}
         {writer && details.length === 0 && (
-          <p className="text-sm text-gray-500">{writer.userId}</p>
+          <p className="text-sm text-gray-500">{writer.userID}</p>
         )}
       </td>
       <td className="px-4 py-3 align-top text-sm text-gray-300">

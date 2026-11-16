@@ -15,12 +15,10 @@ const summaryTurn = {
     'Summary of the earlier conversation:\nThe author writes web novels.',
 };
 const draft = {
-  title: 'CC BY 4.0 without resale',
+  name: 'CC BY 4.0 without resale',
   text: '# CC BY 4.0 without resale',
-  source: {
-    type: LicenseSourceType.Forked,
-    canonicalId: 'CC-BY-4.0',
-  },
+  sourceType: LicenseSourceType.Forked,
+  canonicalID: 'CC-BY-4.0',
 };
 
 function answer(overrides: Record<string, unknown> = {}) {

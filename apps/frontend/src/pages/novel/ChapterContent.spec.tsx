@@ -62,12 +62,13 @@ vi.mock('../../components/MarkdownRenderer', () => ({
 
 const baseChapter = {
   id: '4dd92f16-4743-47b9-960c-6529678e9bc5',
-  novelId: 'c1d31ec2-f478-4648-b90b-d1e53de2a829',
+  novelID: 'c1d31ec2-f478-4648-b90b-d1e53de2a829',
   title: 'A Chapter',
   content: 'Chapter body text.',
   updatedAt: '2026-01-01T00:00:00.000Z',
+  contentUpdatedAt: '2026-01-01T00:00:00.000Z',
   narrationStatus: null,
-  narrationUrl: null,
+  narrationURL: null,
 };
 
 describe('ChapterContent', () => {
@@ -147,10 +148,10 @@ describe('ChapterContent', () => {
 
   it('shows the audio player only when the chapter has a narration', () => {
     // Arrange
-    const narrationUrl =
+    const narrationURL =
       'http://storage.localhost/narrations/4dd92f16-4743-47b9-960c-6529678e9bc5.mp3';
     const withNarration = renderChapterContent({
-      chapter: { ...baseChapter, narrationUrl },
+      chapter: { ...baseChapter, narrationURL },
       hasPrevious: false,
       hasNext: false,
     });
@@ -160,7 +161,7 @@ describe('ChapterContent', () => {
 
     // Assert
     expect(screen.getByText('Audio Narration')).toBeTruthy();
-    expect(audio?.getAttribute('src')).toBe(narrationUrl);
+    expect(audio?.getAttribute('src')).toBe(narrationURL);
     expect(audio?.hasAttribute('controls')).toBe(true);
   });
 
@@ -191,7 +192,7 @@ describe('ChapterContent', () => {
     const { container, unmount } = renderChapterContent({
       chapter: {
         ...baseChapter,
-        narrationUrl:
+        narrationURL:
           'http://storage.localhost/narrations/4dd92f16-4743-47b9-960c-6529678e9bc5.mp3',
       },
       hasPrevious: false,

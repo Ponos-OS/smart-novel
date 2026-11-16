@@ -23,6 +23,7 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/license"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/llm"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/narration"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/node"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/novel"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/database"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/logging"
@@ -187,6 +188,7 @@ func newResolver(ctx context.Context, cfg config.Config, db *database.Database, 
 		LLMService:       llmService,
 		WriterService:    writer.NewService(db.Client, management),
 		Management:       management,
+		NodeService:      node.NewService(db.Client),
 		TermsService:     platformterms.NewService(db.Client, terms, cache, logger),
 	}, nil
 }

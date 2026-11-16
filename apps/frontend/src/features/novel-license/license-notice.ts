@@ -4,8 +4,8 @@ export interface LicenseSummary {
   id: string;
   name: string;
   sourceType: LicenseSourceType;
-  canonicalId?: string | null;
-  officialUrl?: string | null;
+  canonicalID?: string | null;
+  officialURL?: string | null;
   text: string;
 }
 
@@ -15,14 +15,14 @@ export const LICENSE_DISCLAIMER =
 export function getLicenseNotice({
   name,
   sourceType,
-  canonicalId,
+  canonicalID,
 }: LicenseSummary): string {
   if (sourceType === LicenseSourceType.Canonical) {
-    return `Canonical license ${canonicalId ?? name}`;
+    return `Canonical license ${canonicalID ?? name}`;
   }
 
   if (sourceType === LicenseSourceType.Forked) {
-    return `Modified from ${canonicalId} - not the same as the canonical license`;
+    return `Modified from ${canonicalID} - not the same as the canonical license`;
   }
 
   return 'Custom license - review with a lawyer.';

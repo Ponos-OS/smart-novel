@@ -1,4 +1,4 @@
-import type { LicenseDraftInput } from '../../generated/graphql';
+import type { LicenseAssistantDraftInput } from '../../generated/graphql';
 import type { AssistantAnswerDetails } from './use-license-assistant';
 import type { DraftSyncStatus } from './use-license-draft-autosave';
 
@@ -13,7 +13,7 @@ interface DraftPaneProps {
   onPrefill: (message: string) => void;
   onViewLicense: (licenseId: string) => void;
   onFinalize: () => void;
-  draft: LicenseDraftInput | null;
+  draft: LicenseAssistantDraftInput | null;
   details: AssistantAnswerDetails | null;
   isPending: boolean;
   isFinalizing: boolean;
@@ -57,9 +57,14 @@ export function DraftPane({
       </p>
       {draft && hasText ? (
         <>
-          <DraftSourceBadge source={draft.source} />
+          <DraftSourceBadge
+            source={{
+              type: draft.sourceType,
+              canonicalId: draft.canonicalID,
+            }}
+          />
           <h3 className="mb-2 text-base font-semibold text-white">
-            {draft.title}
+            {draft.name}
           </h3>
           <DraftBody text={draft.text} />
         </>
@@ -86,7 +91,7 @@ export function DraftPane({
         <DisclaimerList disclaimers={details.disclaimers} />
       )}
       <FinalizeButton
-        canFinalize={hasText && !!draft?.title.trim()}
+        canFinalize={hasText && !!draft?.name.trim()}
         isFinalizing={isFinalizing}
         isReadyToFinalize={!!details?.isReadyToFinalize}
         onFinalize={onFinalize}

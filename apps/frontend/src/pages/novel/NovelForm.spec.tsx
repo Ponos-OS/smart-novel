@@ -58,13 +58,9 @@ vi.mock(
 
 vi.mock('../../generated/graphql', async () => ({
   ...(await vi.importActual('../../generated/graphql')),
-  useCanonicalLicensesQuery: () => ({
-    data: { canonicalLicenses: [] },
-  }),
-  useCanonicalLicenseQuery: () => ({ data: undefined }),
   useSelectableLicensesQuery: ({ scope }: { scope: string }) => ({
     data: {
-      licensesConnection: {
+      licenses: {
         edges:
           scope === 'SHARED'
             ? [
@@ -73,8 +69,8 @@ vi.mock('../../generated/graphql', async () => ({
                     id: 'e7a1c9d2-5b34-4f68-8c01-6d2f4a9b3e17',
                     name: 'Read it, do not copy it',
                     sourceType: 'CUSTOM',
-                    canonicalId: null,
-                    officialUrl: null,
+                    canonicalID: null,
+                    officialURL: null,
                     text: 'You may read this novel. You may not copy it.',
                   },
                 },
@@ -231,7 +227,7 @@ describe('NovelForm license', () => {
     id: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
     name: 'CC BY 4.0',
     sourceType: LicenseSourceType.Canonical,
-    canonicalId: 'CC-BY-4.0',
+    canonicalID: 'CC-BY-4.0',
     text: 'Attribution 4.0 International',
   };
 
@@ -315,7 +311,7 @@ describe('NovelForm license', () => {
 
       expect(onSubmit.mock.calls[0][0].licenseId).toBeUndefined();
       expect(onSubmit.mock.calls[0][0].licenseDraft).toMatchObject({
-        title: 'Share it freely',
+        name: 'Share it freely',
       });
     });
   });

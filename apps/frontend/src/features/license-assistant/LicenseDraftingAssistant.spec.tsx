@@ -14,6 +14,7 @@ import { LicenseDraftingAssistant } from './LicenseDraftingAssistant';
 import {
   answer,
   answeredDraft,
+  canonicalLicenseAnswer,
   defaultHandlers,
   draftId,
   draftRow,
@@ -120,7 +121,7 @@ describe(LicenseDraftingAssistant.name, () => {
       // Assert
       await screen.findByRole('region', { name: 'Draft license' });
       expect(calls('CreateLicenseDraft')).toEqual([
-        { input: { licenseId: baseLicense.id } },
+        { input: { licenseID: baseLicense.id } },
       ]);
     });
 
@@ -167,14 +168,14 @@ describe(LicenseDraftingAssistant.name, () => {
 
   describe('unfinished drafts', () => {
     const unfinished = draftRow({
-      title: 'Read it, do not copy it',
+      name: 'Read it, do not copy it',
       text: 'You may read this novel. You may not copy it.',
     });
 
     beforeEach(() => {
       handlers.LicenseDrafts = () => ({
         data: {
-          licenseDraftsConnection: { edges: [{ node: unfinished }] },
+          licenses: { edges: [{ node: unfinished }] },
         },
       });
     });
@@ -215,7 +216,7 @@ describe(LicenseDraftingAssistant.name, () => {
         name: 'Discard Read it, do not copy it',
       });
       handlers.LicenseDrafts = () => ({
-        data: { licenseDraftsConnection: { edges: [] } },
+        data: { licenses: { edges: [] } },
       });
 
       // Act
@@ -304,7 +305,7 @@ describe(LicenseDraftingAssistant.name, () => {
       // Assert
       expect(
         await screen.findByRole('heading', {
-          name: answeredDraft.title,
+          name: answeredDraft.name,
         }),
       ).toBeInTheDocument();
       expect(
@@ -326,9 +327,10 @@ describe(LicenseDraftingAssistant.name, () => {
       );
       expect(calls('SaveLicenseDraft')[0].input).toEqual({
         id: draftId,
-        title: answeredDraft.title,
+        name: answeredDraft.name,
         text: answeredDraft.text,
-        source: answeredDraft.source,
+        sourceType: answeredDraft.sourceType,
+        canonicalID: answeredDraft.canonicalID,
       });
       await waitFor(() =>
         expect(screen.getByText('All changes saved')).toBeVisible(),
@@ -406,7 +408,7 @@ describe(LicenseDraftingAssistant.name, () => {
         name: 'CC BY 4.0 without resale',
         text: answeredDraft.text,
         sourceType: 'FORKED',
-        canonicalId: 'CC-BY-4.0',
+        canonicalID: 'CC-BY-4.0',
       };
 
       beforeEach(() => {
@@ -533,24 +535,10 @@ describe(LicenseDraftingAssistant.name, () => {
             draftLicense: answer({ recommendations: ['CC-BY-4.0'] }),
           },
         });
-        handlers.CanonicalLicense = () => ({
-          data: {
-            canonicalLicense: {
-              id: 'CC-BY-4.0',
-              name: 'Creative Commons Attribution 4.0 International',
-              shortName: 'CC BY 4.0',
-              version: '4.0',
-              category: 'creative_commons',
-              officialUrl:
-                'https://creativecommons.org/licenses/by/4.0/legalcode',
-              summary: 'Share and adapt with credit.',
-              permissions: [],
-              limitations: [],
-              conditions: [],
-              body: 'Attribution 4.0 International, the full legal text.',
-            },
-          },
-        });
+        handlers.CanonicalLicense = () =>
+          canonicalLicenseAnswer(
+            'Attribution 4.0 International, the full legal text.',
+          );
       });
 
       it('puts a sentence into the composer, after what the author wrote, and moves focus there', async () => {
@@ -630,7 +618,7 @@ describe(LicenseDraftingAssistant.name, () => {
         screen.getByText('I forbade resale in section 3.'),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('heading', { name: answeredDraft.title }),
+        screen.getByRole('heading', { name: answeredDraft.name }),
       ).toBeInTheDocument();
       expect(calls('CreateLicenseDraft')).toEqual([]);
     });

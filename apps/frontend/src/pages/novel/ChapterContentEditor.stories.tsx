@@ -17,7 +17,7 @@ import { ChapterContentEditor } from './ChapterContentEditor';
 
 const sampleChapter = {
   id: '4dd92f16-4743-47b9-960c-6529678e9bc5',
-  novelId: 'c1d31ec2-f478-4648-b90b-d1e53de2a829',
+  novelID: 'c1d31ec2-f478-4648-b90b-d1e53de2a829',
   title: 'The Long Road Home',
   content:
     '## A New Beginning\n\nThe path ahead was **uncertain**, but she walked on regardless.\n\n- Pack light\n- Trust no one\n- Keep moving',

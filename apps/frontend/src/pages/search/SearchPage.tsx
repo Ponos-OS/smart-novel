@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { NovelCard } from '../../components/NovelCard';
-import {
-  NovelFiltersInput,
-  useSearchNovelsQuery,
-} from '../../generated/graphql';
+import { useSearchNovelsQuery } from '../../generated/graphql';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { nodesOf } from '../../lib/connection';
+import {
+  type NovelFilters,
+  novelQuery,
+} from '../../lib/novel-filters';
 import { showApiError } from '../../utils/notification';
 import { TagFilter } from './TagFilter';
 import { useFilterTags } from './use-filter-tags';
@@ -30,9 +32,9 @@ export function SearchPage() {
     getInitialIncludeTags(searchParams),
   );
   const [excludeTags, setExcludeTags] = useState<string[]>([]);
-  const [filters, setFilters] = useState<
-    NovelFiltersInput | undefined
-  >(undefined);
+  const [filters, setFilters] = useState<NovelFilters | undefined>(
+    undefined,
+  );
   const [searchTriggered, setSearchTriggered] = useState(false);
 
   const [tagSearch, setTagSearch] = useState('');
@@ -53,10 +55,12 @@ export function SearchPage() {
     data: searchData,
     isLoading: searchLoading,
     error: searchError,
-  } = useSearchNovelsQuery({ filters }, { enabled: searchTriggered });
+  } = useSearchNovelsQuery(novelQuery(filters), {
+    enabled: searchTriggered,
+  });
 
   const handleSearch = () => {
-    const newFilters: NovelFiltersInput = {
+    const newFilters: NovelFilters = {
       tags: {
         ...(includeTags.length > 0 && {
           in: includeTags,
@@ -86,9 +90,7 @@ export function SearchPage() {
     );
   };
 
-  const novels =
-    searchData?.novelsConnection?.edges.map((edge) => edge.node) ??
-    [];
+  const novels = searchData ? nodesOf(searchData.novels) : [];
 
   // Transform tags from lowercase to capitalized for display
   const listedTags = tags.tags.map(

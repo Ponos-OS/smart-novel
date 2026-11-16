@@ -7,6 +7,7 @@ import {
   useDeleteChapterMutation,
   useGetNovelQuery,
 } from '../../generated/graphql';
+import { nodesOf } from '../../lib/connection';
 import { ChapterList } from './ChapterList';
 import { useNovelOutletContext } from './NovelLayout';
 
@@ -52,18 +53,16 @@ export function ChapterListPage() {
     }
   };
 
-  const chapters = novel.chaptersConnection.edges.map(
-    (edge) => edge.node,
-  );
+  const chapters = nodesOf(novel.chapters);
   const hasChapters = chapters.length > 0;
-  const totalChapters = novel.chaptersConnection.totalCount;
+  const totalChapters = novel.chapters.totalCount;
 
   const chaptersInfo = chapters.map((ch) => ({
     id: ch.id,
     title: ch.title ?? null,
     createdAt: ch.createdAt,
     narrationStatus: ch.narrationStatus,
-    narrationUrl: ch.narrationUrl,
+    narrationUrl: ch.narrationURL,
   }));
 
   return (
@@ -71,10 +70,10 @@ export function ChapterListPage() {
       {/* Novel Header */}
       <div className="mb-8 flex flex-col gap-6 md:flex-row">
         {/* Cover Image */}
-        {novel.coverUrl && (
+        {novel.coverURL && (
           <div className="flex-shrink-0">
             <img
-              src={novel.coverUrl}
+              src={novel.coverURL}
               alt={novel.name}
               className="h-64 w-48 rounded-lg object-cover shadow-lg"
             />
@@ -104,7 +103,7 @@ export function ChapterListPage() {
           )}
           <p className="mb-4 text-gray-300">{novel.description}</p>
           <div className="mb-4 flex flex-wrap gap-2">
-            {novel.tags.map((cat) => (
+            {(novel.tags ?? []).map(({ name: cat }) => (
               <span
                 key={cat}
                 className="rounded-full px-3 py-1 text-sm font-medium bg-blue-900 text-blue-200"

@@ -44,7 +44,7 @@ const fantasy = {
   name: 'fantasy',
   description: 'Worlds with magic, mythical creatures and quests.',
   status: TagStatus.Approved,
-  requesterUserId: null,
+  requesterUserID: null,
   approximateNovelCount: 1203,
 };
 const sliceOfLife = {
@@ -52,7 +52,7 @@ const sliceOfLife = {
   name: 'slice of life',
   description: '',
   status: TagStatus.Pending,
-  requesterUserId: '300311094522198754',
+  requesterUserID: '300311094522198754',
   approximateNovelCount: 1,
 };
 
@@ -65,6 +65,7 @@ function mockTags(
     tags: [fantasy, sliceOfLife],
     isLoading: false,
     isError: false,
+    isFetching: false,
     hasMore: false,
     isLoadingMore: false,
     loadMore,

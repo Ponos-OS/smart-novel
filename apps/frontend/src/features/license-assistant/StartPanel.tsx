@@ -6,6 +6,7 @@ import {
   type LicenseDraftFieldsFragment,
   useLicenseDraftsQuery,
 } from '../../generated/graphql';
+import { nodesOf } from '../../lib/connection';
 import { useMessages } from './i18n';
 
 interface StartPanelProps {
@@ -31,8 +32,7 @@ export function StartPanel({
 }: StartPanelProps) {
   const t = useMessages();
   const { data } = useLicenseDraftsQuery();
-  const drafts =
-    data?.licenseDraftsConnection.edges.map(({ node }) => node) ?? [];
+  const drafts = nodesOf(data?.licenses ?? {});
 
   return (
     <section
@@ -53,7 +53,7 @@ export function StartPanel({
             variant="solid"
             color="blue"
             disabled={isCreating}
-            onClick={() => onCreate({ licenseId: baseLicense.id })}
+            onClick={() => onCreate({ licenseID: baseLicense.id })}
           >
             {t('start.customize', { name: baseLicense.name })}
           </Button>
@@ -85,9 +85,7 @@ export function StartPanel({
                 className="flex items-center justify-between gap-3 py-2 text-sm text-gray-200"
               >
                 <span>
-                  <strong>
-                    {draft.title || t('start.untitled')}
-                  </strong>
+                  <strong>{draft.name || t('start.untitled')}</strong>
                   <span className="block text-xs text-gray-400">
                     {t('start.saved', {
                       date: new Date(
@@ -104,7 +102,7 @@ export function StartPanel({
                     onClick={() => onResume(draft)}
                   >
                     {t('start.continue', {
-                      title: draft.title || t('start.untitled'),
+                      title: draft.name || t('start.untitled'),
                     })}
                   </Button>
                   <Button
@@ -114,7 +112,7 @@ export function StartPanel({
                     onClick={() => onDiscard(draft.id)}
                   >
                     {t('start.discard', {
-                      title: draft.title || t('start.untitled'),
+                      title: draft.name || t('start.untitled'),
                     })}
                   </Button>
                 </span>

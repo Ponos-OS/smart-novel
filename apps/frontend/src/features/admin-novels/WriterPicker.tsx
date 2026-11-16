@@ -26,7 +26,7 @@ function WriterDetails({ writer }: { writer: PickedWriter }) {
 
 /**
  * @description
- * Finds writers by pen name and lets the admin pick several. Every suggestion shows the pen name, the real name and the email, so the admin sees whom they pick; only the `userId`s of the picks reach the query.
+ * Finds writers by pen name and lets the admin pick several. Every suggestion shows the pen name, the real name and the email, so the admin sees whom they pick; only the `userID`s of the picks reach the query.
  */
 export function WriterPicker({ value, onChange }: WriterPickerProps) {
   const id = useId();
@@ -44,7 +44,7 @@ export function WriterPicker({ value, onChange }: WriterPickerProps) {
   const search = useDebouncedValue(text.trim(), SEARCH_DEBOUNCE_MS);
   const suggestions = useWriterSuggestions(search, isOpen);
   const options = suggestions.writers.filter(
-    ({ userId }) => !value.some((picked) => picked.userId === userId),
+    ({ userID }) => !value.some((picked) => picked.userID === userID),
   );
   const isSettled = search === text.trim();
   const activeOption = options[activeIndex];
@@ -55,7 +55,7 @@ export function WriterPicker({ value, onChange }: WriterPickerProps) {
   };
 
   const remove = (userId: string) => {
-    onChange(value.filter((writer) => writer.userId !== userId));
+    onChange(value.filter((writer) => writer.userID !== userId));
   };
 
   return (
@@ -67,14 +67,14 @@ export function WriterPicker({ value, onChange }: WriterPickerProps) {
         >
           {value.map((writer) => (
             <li
-              key={writer.userId}
+              key={writer.userID}
               className="flex items-center gap-1 rounded-full bg-blue-900 py-1 pl-3 pr-1 text-sm text-blue-200"
             >
               <span>{writer.penName}</span>
               <button
                 type="button"
                 aria-label={`Remove ${writer.penName}`}
-                onClick={() => remove(writer.userId)}
+                onClick={() => remove(writer.userID)}
                 className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full text-blue-200 transition-colors hover:bg-blue-800"
               >
                 <X aria-hidden="true" className="h-3.5 w-3.5" />
@@ -108,7 +108,7 @@ export function WriterPicker({ value, onChange }: WriterPickerProps) {
             onSelect: select,
             onRemoveLast: () => {
               if (value.length > 0) {
-                remove(value[value.length - 1].userId);
+                remove(value[value.length - 1].userID);
               }
             },
           })
@@ -126,7 +126,7 @@ export function WriterPicker({ value, onChange }: WriterPickerProps) {
           >
             {options.map((writer, index) => (
               <li
-                key={writer.userId}
+                key={writer.userID}
                 id={`${id}-option-${index}`}
                 role="option"
                 aria-selected={index === activeIndex}

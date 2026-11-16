@@ -12,8 +12,8 @@ const novel = {
   writer: { penName: 'Jane_Doe' },
   description: 'A young hero leaves home.',
   state: 'ONGOING',
-  tags: ['fantasy'],
-  coverUrl: null,
+  tags: [{ name: 'fantasy' }],
+  coverURL: null,
 };
 const novelsQuery = vi.hoisted(() => vi.fn());
 
@@ -45,7 +45,7 @@ describe('HomePage', () => {
   beforeEach(() => {
     novelsQuery.mockReturnValue({
       data: {
-        novelsConnection: {
+        novels: {
           edges: [],
           pageInfo: { hasNextPage: false, hasPreviousPage: false },
         },
@@ -80,7 +80,7 @@ describe('HomePage', () => {
     });
     novelsQuery.mockReturnValue({
       data: {
-        novelsConnection: {
+        novels: {
           edges: [{ cursor: endOfFirstPage, node: novel }],
           pageInfo: { hasNextPage: false, hasPreviousPage: false },
         },
@@ -149,7 +149,7 @@ describe('HomePage', () => {
             }
           : {
               data: {
-                novelsConnection: {
+                novels: {
                   edges: [{ cursor: endOfFirstPage, node: novel }],
                   pageInfo: {
                     hasNextPage: true,

@@ -7,12 +7,12 @@ import {
 } from './novel-filters';
 
 const mina = {
-  userId: '364554362883670018',
+  userID: '364554362883670018',
   penName: 'Mina_Ardalan',
   name: 'Mina Ardalan',
   email: 'mina.ardalan@example.com',
 };
-const omid = { userId: '364554362732740610', penName: 'Omid_Rahimi' };
+const omid = { userID: '364554362732740610', penName: 'Omid_Rahimi' };
 
 const form = (
   changes: Partial<NovelFilterForm>,
@@ -51,7 +51,7 @@ describe(buildNovelFilters.name, () => {
           to: '2026-06-30T23:59:59.999Z',
         },
         state: NovelState.Finished,
-        ownerIds: [mina.userId, omid.userId],
+        ownerIds: [mina.userID, omid.userID],
       },
       problems: {},
     });

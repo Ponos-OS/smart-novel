@@ -11,7 +11,6 @@ import {
   LicenseScope,
   LicenseSourceType,
   NovelState,
-  useCanonicalLicensesQuery,
   useSelectableLicensesQuery,
 } from '../../generated/graphql';
 import { NovelForm } from './NovelForm';
@@ -27,7 +26,7 @@ function SeededQueryDecorator(Story: ComponentType) {
   client.setQueryData(['SearchTagsInfinite', ''], {
     pages: [
       {
-        tagsConnection: {
+        tags: {
           edges: ['adventure', 'fantasy', 'mystery'].map((name) => ({
             node: { id: `id-${name}`, name },
           })),
@@ -38,24 +37,21 @@ function SeededQueryDecorator(Story: ComponentType) {
     pageParams: [undefined],
   });
 
-  client.setQueryData(useCanonicalLicensesQuery.getKey(), {
-    canonicalLicenses: [],
-  });
   client.setQueryData(
     useSelectableLicensesQuery.getKey({
       scope: LicenseScope.Shared,
       first: 100,
     }),
     {
-      licensesConnection: {
+      licenses: {
         edges: [
           {
             node: {
               id: 'e7a1c9d2-5b34-4f68-8c01-6d2f4a9b3e17',
               name: 'Read it, do not copy it',
               sourceType: LicenseSourceType.Custom,
-              canonicalId: null,
-              officialUrl: null,
+              canonicalID: null,
+              officialURL: null,
               text: 'You may read this novel. You may not copy it.',
             },
           },
@@ -68,7 +64,7 @@ function SeededQueryDecorator(Story: ComponentType) {
       scope: LicenseScope.Personal,
       first: 100,
     }),
-    { licensesConnection: { edges: [] } },
+    { licenses: { edges: [] } },
   );
 
   return (
@@ -126,7 +122,7 @@ export const PickingASharedLicense: Story = {
       id: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
       name: 'CC BY 4.0',
       sourceType: LicenseSourceType.Canonical,
-      canonicalId: 'CC-BY-4.0',
+      canonicalID: 'CC-BY-4.0',
       text: 'Attribution 4.0 International',
     },
   },

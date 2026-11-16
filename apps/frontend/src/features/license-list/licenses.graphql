@@ -1,9 +1,5 @@
-query Licenses($search: String, $first: Int!, $after: String) {
-  licensesConnection(
-    first: $first
-    after: $after
-    filters: { search: $search }
-  ) {
+query Licenses($search: String, $first: Int!, $after: Cursor) {
+  licenses(first: $first, after: $after, search: $search) {
     edges {
       node {
         id
@@ -11,8 +7,8 @@ query Licenses($search: String, $first: Int!, $after: String) {
         scope
         isDefault
         sourceType
-        canonicalId
-        officialUrl
+        canonicalID
+        officialURL
         text
         updatedAt
       }

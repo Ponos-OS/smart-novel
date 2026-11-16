@@ -1,12 +1,10 @@
-fragment LicenseDraftFields on LicenseDraft {
+fragment LicenseDraftFields on License {
   id
-  title
+  name
   text
   updatedAt
-  source {
-    type
-    canonicalId
-  }
+  sourceType
+  canonicalID
 }
 
 mutation CreateLicenseDraft($input: CreateLicenseDraftInput!) {
@@ -27,7 +25,7 @@ mutation FinalizeLicenseDraft($id: ID!) {
     name
     text
     sourceType
-    canonicalId
+    canonicalID
   }
 }
 
@@ -42,7 +40,7 @@ query LicenseDraft($id: ID!) {
 }
 
 query LicenseDrafts {
-  licenseDraftsConnection(first: 20) {
+  licenses(first: 20, scope: DRAFT) {
     edges {
       node {
         ...LicenseDraftFields

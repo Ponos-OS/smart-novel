@@ -13,7 +13,7 @@ import { NovelCoverUpload } from './NovelCoverUpload';
 
 const novelId = '78981754-46c4-4521-9216-b9b27dafeab2';
 const objectKey = `covers/${novelId}/5c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f.png`;
-const uploadUrl = `http://s3.localhost:8080/smart-novel/${objectKey}?X-Amz-Signature=abc`;
+const uploadURL = `http://s3.localhost:8080/smart-novel/${objectKey}?X-Amz-Signature=abc`;
 const createUploadUrl = vi.fn();
 const setNovelCover = vi.fn();
 const fetchMock = vi.fn();
@@ -67,7 +67,7 @@ function png(name = 'lantern.png', size = 204800) {
 describe('NovelCoverUpload', () => {
   beforeEach(() => {
     createUploadUrl.mockReset().mockResolvedValue({
-      createNovelCoverUploadUrl: { uploadUrl, objectKey },
+      createNovelCoverUploadURL: { uploadURL, objectKey },
     });
     setNovelCover.mockReset().mockResolvedValue({
       setNovelCover: { id: novelId },
@@ -180,7 +180,7 @@ describe('NovelCoverUpload', () => {
       contentType: 'image/png',
       contentLength: 204800,
     });
-    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(uploadUrl, {
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(uploadURL, {
       method: 'PUT',
       headers: { 'Content-Type': 'image/png' },
       body: file,

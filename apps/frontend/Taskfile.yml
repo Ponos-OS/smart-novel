@@ -14,12 +14,12 @@ tasks:
       - go run ./tools/gensdl -schema apps/backend/api -out apps/frontend/src/generated/limits.ts
 
   generate:
-    desc: Typed React Query hooks from the GraphQL schema, and the limits
-    deps: [":backend-nest:gen-graphql-schema", limits]
+    desc: Typed React Query hooks from the GraphQL schema of the Go backend (run `task backend:generate` first, it writes api/ent.graphql), and the limits
+    deps: [limits]
     sources:
       - codegen.ts
       - src/**/*.graphql
-      - ../backend-nest/schema.gql
+      - ../backend/api/*.graphql
     generates:
       - src/generated/graphql.ts
     cmds:

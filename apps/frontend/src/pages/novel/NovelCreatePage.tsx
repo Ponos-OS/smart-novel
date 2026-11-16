@@ -10,20 +10,38 @@ import {
 import { useCanCreateNovel } from '../../hooks/useCanCreateNovel';
 import { showApiError } from '../../utils/notification';
 import { NovelForm, NovelFormValues } from './NovelForm';
+import { useStoreLicense } from './use-store-license';
 
 export function NovelCreatePage() {
   const { canCreate, loading } = useCanCreateNovel();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const createNovelMutation = useCreateNovelMutation();
+  const storeLicense = useStoreLicense();
   const { data: licenseData } = useDefaultLicenseQuery(
     {},
     { enabled: canCreate },
   );
 
-  const handleSubmit = (input: NovelFormValues) => {
+  const handleSubmit = async ({
+    licenseDraft,
+    licenseId,
+    ...novel
+  }: NovelFormValues) => {
+    let storedLicenseId = licenseId;
+
+    try {
+      if (licenseDraft) {
+        storedLicenseId = await storeLicense.store(licenseDraft);
+      }
+    } catch {
+      showApiError();
+
+      return;
+    }
+
     createNovelMutation.mutate(
-      { input },
+      { input: { ...novel, licenseID: storedLicenseId } },
       {
         onSuccess: async (data) => {
           await Promise.all([
@@ -62,7 +80,9 @@ export function NovelCreatePage() {
         <NovelForm
           license={licenseData?.defaultLicense}
           submitLabel="Create novel"
-          isSubmitting={createNovelMutation.isPending}
+          isSubmitting={
+            createNovelMutation.isPending || storeLicense.isPending
+          }
           onSubmit={handleSubmit}
           onCancel={() => navigate('/')}
         />

@@ -7,12 +7,14 @@ type NovelCardData = Pick<
   Novel,
   | 'id'
   | 'name'
-  | 'tags'
   | 'state'
-  | 'coverUrl'
+  | 'coverURL'
   | 'description'
   | 'lastChapterPublishedAt'
-> & { writer?: { penName: string } | null };
+> & {
+  writer?: { penName: string } | null;
+  tags?: ReadonlyArray<{ name: string }> | null;
+};
 
 interface NovelCardProps {
   novel: NovelCardData;
@@ -62,9 +64,9 @@ export function NovelCard({ novel }: NovelCardProps) {
     >
       {/* A cover with the shadow of a spine on its left edge */}
       <div className="relative h-40 w-28 shrink-0 overflow-hidden rounded-l-sm rounded-r-md shadow-lg shadow-black/40 ring-1 ring-white/10 after:absolute after:inset-y-0 after:left-0 after:w-2.5 after:bg-linear-to-r after:from-black/40 after:to-transparent">
-        {novel.coverUrl ? (
+        {novel.coverURL ? (
           <img
-            src={novel.coverUrl}
+            src={novel.coverURL}
             alt={novel.name}
             className="h-full w-full object-cover"
           />
@@ -90,7 +92,7 @@ export function NovelCard({ novel }: NovelCardProps) {
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="flex flex-wrap gap-1.5">
-            {novel.tags.map((cat) => (
+            {(novel.tags ?? []).map(({ name: cat }) => (
               <button
                 key={cat}
                 onClick={(e) => handleTagClick(e, cat)}

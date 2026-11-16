@@ -24,7 +24,7 @@ export function useAdminLicenses(
           first: PAGE_SIZE,
           after,
         })()
-      ).licensesConnection,
+      ).licenses,
   });
 
   return { licenses: nodes, ...list };

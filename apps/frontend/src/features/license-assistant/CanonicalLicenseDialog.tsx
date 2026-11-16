@@ -1,5 +1,6 @@
 import { Dialog } from '../../components/Dialog';
 import { useCanonicalLicenseQuery } from '../../generated/graphql';
+import { nodesOf } from '../../lib/connection';
 import { OfficialLicenseLink } from '../novel-license/OfficialLicenseLink';
 import { DraftBody } from './DraftBody';
 import { useMessages } from './i18n';
@@ -15,8 +16,10 @@ export function CanonicalLicenseDialog({
   onClose,
 }: CanonicalLicenseDialogProps) {
   const t = useMessages();
-  const { data, error } = useCanonicalLicenseQuery({ id: licenseId });
-  const license = data?.canonicalLicense;
+  const { data, error } = useCanonicalLicenseQuery({
+    canonicalID: licenseId,
+  });
+  const license = nodesOf(data?.licenses ?? {})[0];
 
   return (
     <Dialog
@@ -39,59 +42,22 @@ export function CanonicalLicenseDialog({
           <p>
             <strong>
               {t('license.summary', {
-                shortName: license.shortName,
-                version: license.version,
-                category: license.category,
+                name: license.name,
+                version: license.version ?? '',
               })}
             </strong>
           </p>
-          <p>{license.summary}</p>
-          <TermList
-            title={t('license.permissions')}
-            items={license.permissions}
-          />
-          <TermList
-            title={t('license.limitations')}
-            items={license.limitations}
-          />
-          <TermList
-            title={t('license.conditions')}
-            items={license.conditions}
-          />
           <p>
             <OfficialLicenseLink
-              officialUrl={license.officialUrl}
+              officialUrl={license.officialURL}
               label={t('license.officialLink')}
             />
           </p>
           <section aria-label={t('license.fullText')}>
-            <DraftBody text={license.body} />
+            <DraftBody text={license.text} />
           </section>
         </div>
       )}
     </Dialog>
-  );
-}
-
-function TermList({
-  title,
-  items,
-}: {
-  title: string;
-  items: string[];
-}) {
-  if (items.length === 0) {
-    return null;
-  }
-
-  return (
-    <section aria-label={title}>
-      <h3 className="font-bold text-white">{title}</h3>
-      <ul className="list-disc pl-5">
-        {items.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
-    </section>
   );
 }

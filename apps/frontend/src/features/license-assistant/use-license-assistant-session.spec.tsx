@@ -6,10 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 
-import {
-  LicenseAssistantMessageRole,
-  LicenseSourceType,
-} from '../../generated/graphql';
+import { LicenseAssistantMessageRole } from '../../generated/graphql';
 import {
   answeredDraft,
   defaultHandlers,
@@ -43,10 +40,7 @@ const initial: InitialSession = {
     },
   ],
 };
-const createInput = {
-  title: 'My license',
-  source: { type: LicenseSourceType.Custom },
-};
+const createInput = { canonicalID: 'CC-BY-4.0' };
 
 describe(useLicenseAssistantSession.name, () => {
   const fetchMock = vi.fn();
@@ -118,9 +112,10 @@ describe(useLicenseAssistantSession.name, () => {
         { input: createInput },
       ]);
       expect(result.current.assistant.draft).toEqual({
-        title: '',
+        name: '',
         text: '',
-        source: { type: 'CUSTOM', canonicalId: null },
+        sourceType: 'CUSTOM',
+        canonicalID: null,
       });
     });
 
@@ -257,9 +252,10 @@ describe(useLicenseAssistantSession.name, () => {
         {
           input: {
             id: draftId,
-            title: answeredDraft.title,
+            name: answeredDraft.name,
             text: 'You may share this novel.',
-            source: answeredDraft.source,
+            sourceType: answeredDraft.sourceType,
+            canonicalID: answeredDraft.canonicalID,
           },
         },
       ]);
@@ -299,7 +295,7 @@ describe(useLicenseAssistantSession.name, () => {
   describe('finalizing', () => {
     const finalized = {
       id: 'b0a1d2c3-4e5f-4a6b-8c7d-9e0f1a2b3c4d',
-      title: answeredDraft.title,
+      name: answeredDraft.name,
       text: answeredDraft.text,
     };
 

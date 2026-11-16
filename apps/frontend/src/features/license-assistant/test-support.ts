@@ -1,5 +1,7 @@
 import type { Mock } from 'vitest';
 
+import { LicenseSourceType } from '../../generated/graphql';
+
 export const userId = '230104087265432001';
 export const storageKey = `license-assistant:v1:${userId}`;
 export const draftId = '5c1f4d0e-3b6a-4a57-9d3e-0b7a8f2c9e41';
@@ -7,18 +9,20 @@ export const draftId = '5c1f4d0e-3b6a-4a57-9d3e-0b7a8f2c9e41';
 export function draftRow(overrides: Record<string, unknown> = {}) {
   return {
     id: draftId,
-    title: '',
+    name: '',
     text: '',
     updatedAt: '2026-10-29T09:30:00.000Z',
-    source: { type: 'CUSTOM', canonicalId: null },
+    sourceType: LicenseSourceType.Custom,
+    canonicalID: null,
     ...overrides,
   };
 }
 
 export const answeredDraft = {
-  title: 'CC BY 4.0 without resale',
+  name: 'CC BY 4.0 without resale',
   text: 'You may share and adapt this novel. You may not sell it.',
-  source: { type: 'FORKED', canonicalId: 'CC-BY-4.0' },
+  sourceType: LicenseSourceType.Forked,
+  canonicalID: 'CC-BY-4.0',
 };
 
 export function answer(overrides: Record<string, unknown> = {}) {
@@ -40,6 +44,31 @@ export function answer(overrides: Record<string, unknown> = {}) {
   };
 }
 
+/** @description What the backend answers when one canonical license is asked for. */
+export function canonicalLicenseAnswer(
+  text = 'Attribution 4.0 International, the full legal text.',
+) {
+  return {
+    data: {
+      licenses: {
+        edges: [
+          {
+            node: {
+              id: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
+              name: 'CC BY 4.0',
+              canonicalID: 'CC-BY-4.0',
+              version: '4.0',
+              officialURL:
+                'https://creativecommons.org/licenses/by/4.0/legalcode',
+              text,
+            },
+          },
+        ],
+      },
+    },
+  };
+}
+
 export interface Variables {
   id?: string;
   input?: Record<string, unknown>;
@@ -54,7 +83,7 @@ export type Handlers = Record<
 export function defaultHandlers(): Handlers {
   return {
     LicenseDrafts: () => ({
-      data: { licenseDraftsConnection: { edges: [] } },
+      data: { licenses: { edges: [] } },
     }),
     CreateLicenseDraft: () => ({
       data: { createLicenseDraft: draftRow() },
@@ -65,21 +94,20 @@ export function defaultHandlers(): Handlers {
     DraftLicense: () => ({ data: { draftLicense: answer() } }),
     CanonicalLicenses: () => ({
       data: {
-        canonicalLicenses: [
-          {
-            id: 'CC-BY-4.0',
-            name: 'Creative Commons Attribution 4.0 International',
-            shortName: 'CC BY 4.0',
-            version: '4.0',
-            category: 'creative_commons',
-            officialUrl:
-              'https://creativecommons.org/licenses/by/4.0/legalcode',
-            summary: 'Share and adapt with credit.',
-            permissions: [],
-            limitations: [],
-            conditions: [],
-          },
-        ],
+        licenses: {
+          edges: [
+            {
+              node: {
+                id: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
+                name: 'CC BY 4.0',
+                canonicalID: 'CC-BY-4.0',
+                version: '4.0',
+                officialURL:
+                  'https://creativecommons.org/licenses/by/4.0/legalcode',
+              },
+            },
+          ],
+        },
       },
     }),
   };

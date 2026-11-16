@@ -13,10 +13,24 @@ vi.mock('../../generated/graphql', async () => ({
 describe(RecommendationChips.name, () => {
   beforeEach(() => {
     hooks.list = {
-      canonicalLicenses: [
-        { id: 'CC-BY-NC-4.0', shortName: 'CC BY-NC 4.0' },
-        { id: 'CC-BY-NC-SA-4.0', shortName: 'CC BY-NC-SA 4.0' },
-      ],
+      licenses: {
+        edges: [
+          {
+            node: {
+              id: '9b1d3c52-8b0e-4a39-9c4d-2f6a7e1b5d08',
+              canonicalID: 'CC-BY-NC-4.0',
+              name: 'CC BY-NC 4.0',
+            },
+          },
+          {
+            node: {
+              id: '4d2e6a70-1c83-4f95-b0a2-7e9c3d5f8b14',
+              canonicalID: 'CC-BY-NC-SA-4.0',
+              name: 'CC BY-NC-SA 4.0',
+            },
+          },
+        ],
+      },
     };
   });
 
@@ -34,7 +48,7 @@ describe(RecommendationChips.name, () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('offers, for every suggested license, to use it and to read it, by its short name', () => {
+  it('offers, for every suggested license, to use it and to read it, by its name', () => {
     // Act
     render(
       <RecommendationChips

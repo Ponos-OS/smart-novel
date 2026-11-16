@@ -34,7 +34,7 @@ const stats = {
 };
 
 const snapshots = (nodes: object[]) => ({
-  statsSnapshotsConnection: {
+  statsSnapshots: {
     edges: nodes.map((node) => ({ node })),
   },
 });

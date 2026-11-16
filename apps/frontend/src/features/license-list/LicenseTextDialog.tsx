@@ -24,7 +24,7 @@ export function LicenseTextDialog({
         <p className="text-sm text-gray-300">
           {getLicenseNotice(license)}
         </p>
-        <OfficialLicenseLink officialUrl={license.officialUrl} />
+        <OfficialLicenseLink officialUrl={license.officialURL} />
         <pre className="max-h-96 overflow-y-auto whitespace-pre-wrap text-sm text-gray-200">
           {license.text || 'This draft has no text yet.'}
         </pre>

@@ -19,13 +19,13 @@ import { showApiError, showSuccess } from '../../utils/notification';
 type ChapterContentEditorData = Pick<
   Chapter,
   | 'id'
-  | 'novelId'
+  | 'novelID'
   | 'title'
   | 'content'
   | 'updatedAt'
   | 'contentUpdatedAt'
   | 'narrationStatus'
-  | 'narrationUrl'
+  | 'narrationURL'
 >;
 
 interface ChapterContentEditorProps {
@@ -130,7 +130,7 @@ export function ChapterContentEditor({
     patch: Partial<Pick<Chapter, 'title' | 'content' | 'updatedAt'>>,
   ) => {
     const queryKey = useGetChapterQuery.getKey({
-      novelId: chapter.novelId,
+      novelId: chapter.novelID,
       chapterId: chapter.id,
     });
 
@@ -176,7 +176,7 @@ export function ChapterContentEditor({
   const handleReloadLatest = () => {
     queryClient.invalidateQueries({
       queryKey: useGetChapterQuery.getKey({
-        novelId: chapter.novelId,
+        novelId: chapter.novelID,
         chapterId: chapter.id,
       }),
     });
@@ -299,10 +299,10 @@ export function ChapterContentEditor({
 
           {canManageTts && (
             <GenerateTtsButton
-              novelId={chapter.novelId}
+              novelId={chapter.novelID}
               chapterId={chapter.id}
               narrationStatus={chapter.narrationStatus}
-              narrationUrl={chapter.narrationUrl}
+              narrationUrl={chapter.narrationURL}
             />
           )}
 

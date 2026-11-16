@@ -76,7 +76,7 @@ export function AdminLicensesPage() {
     }
 
     setDefaultLicense.mutate(
-      { input: { licenseId: settingDefault.id } },
+      { licenseID: settingDefault.id },
       {
         onSuccess: () => {
           showSuccess('The default license was changed.');

@@ -1,13 +1,13 @@
 import {
-  type LicenseDraftInput,
   LicenseSourceType,
   useCanonicalLicensesQuery,
 } from '../../generated/graphql';
+import { nodesOf } from '../../lib/connection';
 import { OfficialLicenseLink } from '../novel-license/OfficialLicenseLink';
 import { useMessages } from './i18n';
 
 interface DraftSourceBadgeProps {
-  source: LicenseDraftInput['source'];
+  source: { type: LicenseSourceType; canonicalId?: string | null };
 }
 
 /**
@@ -19,10 +19,10 @@ export function DraftSourceBadge({ source }: DraftSourceBadgeProps) {
     {},
     { enabled: !!source.canonicalId },
   );
-  const base = data?.canonicalLicenses.find(
-    (canonical) => canonical.id === source.canonicalId,
+  const base = nodesOf(data?.licenses ?? {}).find(
+    (canonical) => canonical.canonicalID === source.canonicalId,
   );
-  const name = base?.shortName ?? source.canonicalId ?? '';
+  const name = base?.name ?? source.canonicalId ?? '';
   let sentence = t('source.custom');
 
   if (source.type === LicenseSourceType.Canonical) {
@@ -37,7 +37,7 @@ export function DraftSourceBadge({ source }: DraftSourceBadgeProps) {
       {source.type !== LicenseSourceType.Custom && (
         <p className="mt-1">
           <OfficialLicenseLink
-            officialUrl={base?.officialUrl}
+            officialUrl={base?.officialURL}
             label={t('license.officialLink')}
           />
         </p>

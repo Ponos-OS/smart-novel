@@ -9,6 +9,7 @@ import { a11yViolations } from '../../test-utils/axe';
 import { LicenseDraftingAssistant } from './LicenseDraftingAssistant';
 import {
   answer,
+  canonicalLicenseAnswer,
   defaultHandlers,
   draftRow,
   type Handlers,
@@ -50,11 +51,11 @@ describe('license assistant accessibility', () => {
     handlers = defaultHandlers();
     handlers.LicenseDrafts = () => ({
       data: {
-        licenseDraftsConnection: {
+        licenses: {
           edges: [
             {
               node: draftRow({
-                title: 'Read it, do not copy it',
+                name: 'Read it, do not copy it',
                 text: 'You may read this novel.',
               }),
             },
@@ -90,9 +91,10 @@ describe('license assistant accessibility', () => {
       data: {
         draftLicense: answer({
           draft: {
-            title: 'CC BY 4.0 without resale',
+            name: 'CC BY 4.0 without resale',
             text: '# CC BY 4.0 without resale\n\n## Section 3\n\nYou may not sell it.',
-            source: { type: 'FORKED', canonicalId: 'CC-BY-4.0' },
+            sourceType: 'FORKED',
+            canonicalID: 'CC-BY-4.0',
           },
           recommendations: ['CC-BY-4.0'],
         }),
@@ -117,24 +119,10 @@ describe('license assistant accessibility', () => {
   it('has nothing wrong with the license dialog open or an error announced', async () => {
     // Arrange
     const user = userEvent.setup();
-    handlers.CanonicalLicense = () => ({
-      data: {
-        canonicalLicense: {
-          id: 'CC-BY-4.0',
-          name: 'Creative Commons Attribution 4.0 International',
-          shortName: 'CC BY 4.0',
-          version: '4.0',
-          category: 'creative_commons',
-          officialUrl:
-            'https://creativecommons.org/licenses/by/4.0/legalcode',
-          summary: 'Share and adapt with credit.',
-          permissions: ['share'],
-          limitations: ['no warranty'],
-          conditions: ['attribution'],
-          body: 'Attribution 4.0\n\nThe full legal text.',
-        },
-      },
-    });
+    handlers.CanonicalLicense = () =>
+      canonicalLicenseAnswer(
+        'Attribution 4.0\n\nThe full legal text.',
+      );
     handlers.DraftLicense = () => ({
       data: {
         draftLicense: answer({ recommendations: ['CC-BY-4.0'] }),

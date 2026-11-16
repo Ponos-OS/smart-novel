@@ -36,6 +36,7 @@ func namesStatus(where *ent.TagWhereInput) bool {
 const (
 	defaultPage  = 20
 	maxPage      = 100
+	nodesSize    = 100
 	chaptersPage = 100
 	statsDefault = 30
 	logKeyTag    = "tag"

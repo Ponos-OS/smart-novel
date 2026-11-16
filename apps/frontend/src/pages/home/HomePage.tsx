@@ -6,6 +6,7 @@ import { NovelCard } from '../../components/NovelCard';
 import { Pagination } from '../../components/Pagination';
 import { useGetNovelsQuery } from '../../generated/graphql';
 import { useCanCreateNovel } from '../../hooks/useCanCreateNovel';
+import { nodesOf } from '../../lib/connection';
 import { isInvalidCursorError } from '../../lib/graphql-fetcher';
 
 const PAGE_SIZE = 20;
@@ -33,9 +34,9 @@ export function HomePage() {
     setCurrentPage(1);
   }
 
-  const novelsData = data?.novelsConnection;
+  const novelsData = data?.novels;
   const pageInfo = novelsData?.pageInfo;
-  const novels = novelsData?.edges.map((edge) => edge.node) ?? [];
+  const novels = novelsData ? nodesOf(novelsData) : [];
 
   const handleNext = () => {
     if (!pageInfo?.hasNextPage) {

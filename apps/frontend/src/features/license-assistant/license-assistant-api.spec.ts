@@ -47,9 +47,10 @@ describe('license assistant operations over HTTP', () => {
       conversation: conversation.slice(0, 1),
       message: 'Forbid resale.',
       draft: {
-        title: 'CC BY 4.0',
+        name: 'CC BY 4.0',
         text: '# CC BY 4.0',
-        source: { type: 'CANONICAL', canonicalId: 'CC-BY-4.0' },
+        sourceType: 'CANONICAL',
+        canonicalID: 'CC-BY-4.0',
       },
     };
 
@@ -97,22 +98,24 @@ describe('license assistant operations over HTTP', () => {
     });
   });
 
-  it('asks for a canonical license by its id', async () => {
+  it('asks for a canonical license by its canonical id', async () => {
     // Arrange
     fetchMock.mockResolvedValue({
       json: async () => ({
-        data: { canonicalLicense: { id: 'CC-BY-4.0' } },
+        data: { licenses: { edges: [] } },
       }),
     });
 
     // Act
-    await useCanonicalLicenseQuery.fetcher({ id: 'CC-BY-4.0' })();
+    await useCanonicalLicenseQuery.fetcher({
+      canonicalID: 'CC-BY-4.0',
+    })();
 
     // Assert
     expect(
       JSON.parse(fetchMock.mock.calls[0][1].body).variables,
     ).toEqual({
-      id: 'CC-BY-4.0',
+      canonicalID: 'CC-BY-4.0',
     });
   });
 });

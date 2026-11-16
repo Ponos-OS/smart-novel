@@ -45,13 +45,13 @@ vi.mock('../../generated/graphql', async () => ({
 }));
 
 const mina = {
-  userId: '364554362883670018',
+  userID: '364554362883670018',
   penName: 'Mina_Ardalan',
   name: 'Mina Ardalan',
   email: 'mina.ardalan@example.com',
 };
 const omid = {
-  userId: '364554362732740610',
+  userID: '364554362732740610',
   penName: 'Omid_Rahimi',
   name: 'Omid Rahimi',
   email: 'omid.rahimi@example.com',
@@ -72,7 +72,7 @@ const salt = {
   firstChapterCreatedAt: null,
   estimatedChapterCount: 1,
   license: { id: '8e9a1b6d', name: 'CC0 1.0' },
-  writer: { userId: omid.userId, penName: omid.penName },
+  writer: { userID: omid.userID, penName: omid.penName },
 };
 
 function mockNovels(
@@ -197,7 +197,7 @@ describe('AdminNovelsPage', () => {
       const row = rowOf('The Salt Road');
 
       expect(within(row).getByText('Omid_Rahimi')).toBeVisible();
-      expect(within(row).getByText(omid.userId)).toBeVisible();
+      expect(within(row).getByText(omid.userID)).toBeVisible();
       expect(
         within(row).getByText('-', { selector: 'td' }),
       ).toBeVisible();
@@ -340,7 +340,7 @@ describe('AdminNovelsPage', () => {
       );
 
       expect(lastCall()[0]).toStrictEqual({
-        ownerIds: [mina.userId, omid.userId],
+        ownerIds: [mina.userID, omid.userID],
       });
       expect(
         within(
@@ -353,7 +353,7 @@ describe('AdminNovelsPage', () => {
       );
 
       expect(lastCall()[0]).toStrictEqual({
-        ownerIds: [omid.userId],
+        ownerIds: [omid.userID],
       });
     });
 

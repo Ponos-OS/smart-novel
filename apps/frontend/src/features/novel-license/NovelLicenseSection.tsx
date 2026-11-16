@@ -27,7 +27,7 @@ export function NovelLicenseSection({
         {getLicenseNotice(license)}
       </p>
       <p className="mt-1">
-        <OfficialLicenseLink officialUrl={license.officialUrl} />
+        <OfficialLicenseLink officialUrl={license.officialURL} />
       </p>
       <details className="mt-3">
         <summary className="cursor-pointer text-sm font-medium text-blue-400">

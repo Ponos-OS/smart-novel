@@ -8,25 +8,28 @@ vi.mock('../../generated/graphql', async () => ({
   ...(await vi.importActual('../../generated/graphql')),
   useCanonicalLicensesQuery: () => ({
     data: {
-      canonicalLicenses: [
-        {
-          id: 'CC-BY-4.0',
-          shortName: 'CC BY 4.0',
-          officialUrl:
-            'https://creativecommons.org/licenses/by/4.0/legalcode',
-        },
-      ],
+      licenses: {
+        edges: [
+          {
+            node: {
+              id: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
+              canonicalID: 'CC-BY-4.0',
+              name: 'CC BY 4.0',
+              officialURL:
+                'https://creativecommons.org/licenses/by/4.0/legalcode',
+            },
+          },
+        ],
+      },
     },
   }),
 }));
 
 const draft = {
-  title: 'CC BY 4.0 without resale',
+  name: 'CC BY 4.0 without resale',
   text: 'You may share and adapt this novel. You may not sell it.',
-  source: {
-    type: LicenseSourceType.Forked,
-    canonicalId: 'CC-BY-4.0',
-  },
+  sourceType: LicenseSourceType.Forked,
+  canonicalID: 'CC-BY-4.0',
 };
 const handlers = {
   onPrefill: vi.fn(),
@@ -182,7 +185,7 @@ describe(DraftPane.name, () => {
     rerender(
       <DraftPane
         {...handlers}
-        draft={{ ...draft, source: { ...draft.source } }}
+        draft={{ ...draft }}
         details={{ ...details, draftChanged: false }}
         isPending={false}
       />,
@@ -266,7 +269,7 @@ describe(DraftPane.name, () => {
     render(
       <DraftPane
         {...handlers}
-        draft={{ ...draft, title: '', text: '' }}
+        draft={{ ...draft, name: '', text: '' }}
         details={null}
         isPending={false}
       />,
@@ -303,7 +306,7 @@ describe(DraftPane.name, () => {
     });
 
     it.each([
-      ['a draft with no name', { ...draft, title: '  ' }],
+      ['a draft with no name', { ...draft, name: '  ' }],
       ['no draft', null],
     ])('cannot be asked for with %s', (_, noDraft) => {
       // Act

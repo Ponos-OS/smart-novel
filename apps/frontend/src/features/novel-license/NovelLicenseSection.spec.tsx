@@ -8,7 +8,7 @@ describe(NovelLicenseSection.name, () => {
     id: '3f7b0c1e-6d52-4b8a-9a41-5c2e8d7f1a06',
     name: 'CC BY 4.0',
     sourceType: LicenseSourceType.Canonical,
-    canonicalId: 'CC-BY-4.0',
+    canonicalID: 'CC-BY-4.0',
     text: 'Attribution 4.0 International',
   };
 
@@ -46,7 +46,7 @@ describe(NovelLicenseSection.name, () => {
       <NovelLicenseSection
         license={{
           ...license,
-          officialUrl:
+          officialURL:
             'https://creativecommons.org/licenses/by/4.0/legalcode',
         }}
       />,

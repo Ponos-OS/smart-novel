@@ -2,12 +2,13 @@ query AdminLicenses(
   $scope: LicenseScope
   $search: String
   $first: Int!
-  $after: String
+  $after: Cursor
 ) {
-  licensesConnection(
+  licenses(
     first: $first
     after: $after
-    filters: { scope: $scope, search: $search }
+    scope: $scope
+    search: $search
   ) {
     edges {
       node {
@@ -16,8 +17,8 @@ query AdminLicenses(
         scope
         isDefault
         sourceType
-        canonicalId
-        ownerId
+        canonicalID
+        ownerID
         updatedAt
       }
     }
@@ -28,18 +29,18 @@ query AdminLicenses(
   }
 }
 
-mutation SetDefaultLicense($input: SetDefaultLicenseInput!) {
-  setDefaultLicense(input: $input) {
+mutation SetDefaultLicense($licenseID: ID!) {
+  setDefaultLicense(licenseID: $licenseID) {
     id
     name
     sourceType
-    canonicalId
-    officialUrl
+    canonicalID
+    officialURL
     text
   }
 }
 
-mutation CreateLicense($input: LicenseDraftInput!) {
+mutation CreateLicense($input: LicenseInput!) {
   createLicense(input: $input) {
     id
     name

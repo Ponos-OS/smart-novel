@@ -18,10 +18,12 @@ let subscriptionOnData:
       chapterNarrationUpdated: {
         status: NarrationStatus;
         stage?: string | null;
-        narrationUrl?: string | null;
+        narrationURL?: string | null;
       };
     }) => void)
   | null = null;
+let subscriptionOnConnected: (() => void) | undefined;
+let subscriptionOnDisconnected: (() => void) | undefined;
 
 vi.mock('../generated/graphql', async () => {
   const actual = await vi.importActual<
@@ -49,13 +51,21 @@ vi.mock('../hooks/useGraphQLSubscription', () => ({
   useGraphQLSubscription: ({
     enabled,
     onData,
+    onConnected,
+    onDisconnected,
   }: {
     enabled: boolean;
     onData: typeof subscriptionOnData;
+    onConnected?: () => void;
+    onDisconnected?: () => void;
   }) => {
     subscriptionOnData = enabled ? onData : null;
+    subscriptionOnConnected = enabled ? onConnected : undefined;
+    subscriptionOnDisconnected = enabled ? onDisconnected : undefined;
   },
 }));
+
+const queryClient = new QueryClient();
 
 function renderButton(
   props: Partial<{
@@ -65,8 +75,6 @@ function renderButton(
     narrationUrl: string | null;
   }> = {},
 ) {
-  const queryClient = new QueryClient();
-
   return render(
     <QueryClientProvider client={queryClient}>
       <GenerateTtsButton
@@ -82,6 +90,9 @@ describe('GenerateTtsButton', () => {
   beforeEach(() => {
     mutate.mockReset();
     subscriptionOnData = null;
+    subscriptionOnConnected = undefined;
+    subscriptionOnDisconnected = undefined;
+    vi.restoreAllMocks();
   });
 
   it('calls generateChapterAudio directly when there is no existing narration', () => {
@@ -268,7 +279,7 @@ describe('GenerateTtsButton', () => {
       subscriptionOnData?.({
         chapterNarrationUpdated: {
           status: NarrationStatus.Ready,
-          narrationUrl:
+          narrationURL:
             'https://storage.example.com/narrations/job-1.mp3',
         },
       });
@@ -280,4 +291,81 @@ describe('GenerateTtsButton', () => {
     ).toBeTruthy();
     expect(screen.queryByText('Audio generation failed.')).toBeNull();
   });
+
+  it('reads the chapter again each time the connection is up, since an event sent before or while it was down is lost', () => {
+    // Arrange
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    renderButton({ narrationUrl: null });
+    fireEvent.click(
+      screen.getByRole('button', { name: '🔊 Generate Audio' }),
+    );
+
+    // Act
+    act(() => subscriptionOnConnected?.());
+
+    // Assert
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: [
+        'GetChapter',
+        {
+          novelId: 'c1d31ec2-f478-4648-b90b-d1e53de2a829',
+          chapterId: '4dd92f16-4743-47b9-960c-6529678e9bc5',
+        },
+      ],
+    });
+  });
+
+  it('says it is reconnecting while the connection is down, and goes back to the stage once it is up', () => {
+    // Arrange
+    renderButton({ narrationUrl: null });
+    fireEvent.click(
+      screen.getByRole('button', { name: '🔊 Generate Audio' }),
+    );
+
+    // Act
+    act(() => subscriptionOnDisconnected?.());
+    const whileDown = screen.queryByText('Reconnecting...');
+    act(() => subscriptionOnConnected?.());
+
+    // Assert
+    expect(whileDown).toBeTruthy();
+    expect(screen.queryByText('Reconnecting...')).toBeNull();
+    expect(screen.getByText('Starting...')).toBeTruthy();
+  });
+
+  it.each([
+    [
+      'READY',
+      NarrationStatus.Ready,
+      'https://storage.example.com/narrations/job-1.mp3',
+      '🔄 Regenerate Audio',
+    ],
+    ['FAILED', NarrationStatus.Failed, null, '🔊 Generate Audio'],
+  ])(
+    'stops waiting when the chapter read again says %s, the event having been lost',
+    (_name, status, narrationUrl, buttonName) => {
+      // Arrange
+      const view = renderButton({ narrationUrl: null });
+      fireEvent.click(
+        screen.getByRole('button', { name: '🔊 Generate Audio' }),
+      );
+
+      // Act
+      view.rerender(
+        <QueryClientProvider client={queryClient}>
+          <GenerateTtsButton
+            novelId="c1d31ec2-f478-4648-b90b-d1e53de2a829"
+            chapterId="4dd92f16-4743-47b9-960c-6529678e9bc5"
+            narrationStatus={status}
+            narrationUrl={narrationUrl}
+          />
+        </QueryClientProvider>,
+      );
+
+      // Assert
+      expect(
+        screen.getByRole('button', { name: buttonName }),
+      ).toBeTruthy();
+    },
+  );
 });

@@ -18,7 +18,7 @@ import { TagPicker } from './TagPicker';
 const page = (names: string[], hasNextPage = false) => ({
   pages: [
     {
-      tagsConnection: {
+      tags: {
         edges: names.map((name) => ({
           node: { id: `id-${name}`, name },
         })),

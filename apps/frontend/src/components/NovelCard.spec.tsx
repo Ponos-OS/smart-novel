@@ -14,9 +14,9 @@ const now = new Date('2026-11-02T12:00:00.000Z');
 const baseNovel = {
   id: novelId,
   name: 'The Lighthouse Keeper',
-  tags: ['Fantasy', 'Mystery'],
+  tags: [{ name: 'Fantasy' }, { name: 'Mystery' }],
   state: 'ONGOING',
-  coverUrl: null,
+  coverURL: null,
   description: 'A keeper guards a light that no ship has seen.',
   lastChapterPublishedAt: null,
   writer: { penName: 'Mira Vale' },
@@ -92,7 +92,7 @@ describe(NovelCard.name, () => {
 
   it('shows the cover when there is one', () => {
     renderCard({
-      coverUrl: 'https://cdn.example.com/covers/lighthouse.webp',
+      coverURL: 'https://cdn.example.com/covers/lighthouse.webp',
     });
 
     expect(
@@ -104,7 +104,7 @@ describe(NovelCard.name, () => {
   });
 
   it('falls back to a placeholder without a cover', () => {
-    const { container } = renderCard({ coverUrl: null });
+    const { container } = renderCard({ coverURL: null });
 
     expect(container.querySelector('img')).toBeNull();
     expect(
@@ -155,7 +155,9 @@ describe(NovelCard.name, () => {
   );
 
   it('searches the tag of a clicked chip instead of opening the novel', async () => {
-    const { user } = renderCard({ tags: ['Sci-Fi & Fantasy'] });
+    const { user } = renderCard({
+      tags: [{ name: 'Sci-Fi & Fantasy' }],
+    });
 
     await user.click(
       screen.getByRole('button', { name: 'Sci-Fi & Fantasy' }),
