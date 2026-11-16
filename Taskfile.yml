@@ -7,10 +7,6 @@ includes:
     taskfile: apps/backend
     dir: apps/backend
     optional: true
-  backend-nest:
-    taskfile: apps/backend-nest
-    dir: apps/backend-nest
-    optional: true
   backend-e2e:
     taskfile: apps/backend-e2e
     dir: apps/backend-e2e
@@ -27,13 +23,12 @@ includes:
 tasks:
   generate:
     desc: Regenerate everything that is git-ignored
-    deps: [backend:generate, backend-nest:generate, frontend:generate]
+    deps: [backend:generate, frontend:generate]
 
   lint:
     desc: Lint and fix every project, then look for copy-pasted code
     cmds:
       - task: backend:lint
-      - task: backend-nest:lint
       - task: backend-e2e:lint
       - task: frontend:lint
       - task: frontend-e2e:lint
@@ -43,7 +38,6 @@ tasks:
     desc: Lint every project without fixing
     cmds:
       - task: backend:lint:check
-      - task: backend-nest:lint:check
       - task: backend-e2e:lint:check
       - task: frontend:lint:check
       - task: frontend-e2e:lint:check
@@ -53,7 +47,6 @@ tasks:
     desc: Unit tests of every project
     cmds:
       - task: backend:test
-      - task: backend-nest:test
       - task: frontend:test
 
   format:
@@ -61,18 +54,13 @@ tasks:
     cmds:
       - npx prettier . -w -u
       - task: backend:format
-      - task: backend-nest:prisma:format
 
   clean:
     desc: Remove every generated or local-only file
     cmds:
       - >-
         rm -rf apps/frontend-e2e/cypress apps/frontend/src/generated
-        apps/frontend/storybook-static apps/backend-nest/schema.gql
-        apps/backend-nest/src/shared/beatrice/graphql-env.d.ts
-        apps/backend-nest/src/shared/beatrice/schema.graphql
-        apps/backend-nest/src/shared/fithara/openapi.json
-        apps/backend-nest/src/shared/fithara/schema.d.ts
+        apps/frontend/storybook-static
         dist coverage Diffs.txt local-setup/client local-setup/logs
         local-setup/pats local-setup/user-ids .task
       - git clean -fdXq apps/backend

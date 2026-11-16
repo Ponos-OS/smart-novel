@@ -1,2 +1,0 @@
-export const WRITERS_PAGE_SIZE_DEFAULT = 20;
-export const WRITERS_PAGE_SIZE_MAX = 100;

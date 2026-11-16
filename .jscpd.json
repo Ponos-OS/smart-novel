@@ -1,5 +1,5 @@
 {
-  "path": ["apps/backend-nest/src", "apps/frontend/src"],
+  "path": ["apps/frontend/src"],
   "format": ["typescript", "tsx", "javascript"],
   "ignore": [
     "**/generated/**",

@@ -78,9 +78,9 @@ it('should refuse a cursor issued without the search', async () => {
 
 The pieces, if you want to read them:
 
-- [the codec](../apps/backend-nest/src/modules/cursor/cursor-codec.service.ts)
-- [the audience hash](../apps/backend-nest/src/shared/utils/cursor-audience.util.ts)
-- [its use in the writers list](../apps/backend-nest/src/modules/writer/writer.service.ts)
+- [the codec](https://github.com/Ponos-OS/smart-novel/blob/9d3ca84/apps/backend-nest/src/modules/cursor/cursor-codec.service.ts)
+- [the audience hash](https://github.com/Ponos-OS/smart-novel/blob/9d3ca84/apps/backend-nest/src/shared/utils/cursor-audience.util.ts)
+- [its use in the writers list](https://github.com/Ponos-OS/smart-novel/blob/9d3ca84/apps/backend-nest/src/modules/writer/writer.service.ts)
 
 ### What it cost
 

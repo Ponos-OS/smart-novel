@@ -17,12 +17,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
-    "paths": {
-      "@smart-novel/shared": [
-        "apps/backend-nest/src/legacy-shared/index.ts"
-      ]
-    }
+    "ignoreDeprecations": "6.0"
   },
   "exclude": ["node_modules", "tmp"]
 }

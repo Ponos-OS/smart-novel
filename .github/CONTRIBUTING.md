@@ -9,7 +9,7 @@ enable_devtools = true
 Beatrice talks to an OpenAI-compatible LLM and an OpenAI-compatible speech endpoint; Fithara (the license assistant) talks to the same kind of LLM endpoint with its own model, one that the `llmcapa` model catalog knows.
 
 - `npm run start:dev` sends the requests to the real provider you set in `.env`. Every call costs money.
-- `nx e2e backend-e2e` and `nx e2e frontend-e2e` deploy WireMock (`infra/terraform/local/1-app/mocks/openai`) and point Beatrice and Fithara at it, whatever `.env` says, so the tests are free, fast and deterministic. To change an answer, edit the stub there.
+- `task backend-e2e:run` and `task frontend-e2e:run` deploy WireMock (`infra/terraform/local/1-app/mocks/openai`) and point Beatrice and Fithara at it, whatever `.env` says, so the tests are free, fast and deterministic. To change an answer, edit the stub there.
 
 ```bash
 BEATRICE_LLM_BASE_URL=https://api.openai.com/v1
@@ -45,7 +45,7 @@ npm run start:dev
 
 The schema lives in `apps/backend/ent/schema`. Two paths build the same tables:
 
-- The local stack and the e2e tests set `DEV_SYNC_DATABASE_SCHEMA=true`, and the backend brings the tables up to date at startup (`client.Schema.Create`, the equivalent of `prisma db push`). It keeps no history.
+- The local stack and the e2e tests set `DEV_SYNC_DATABASE_SCHEMA=true`, and the backend brings the tables up to date at startup (`client.Schema.Create`). It keeps no history.
 - Production applies the versioned SQL files in `apps/backend/ent/migrate/migrations` with [Atlas](https://atlasgo.io), in the `migrate` target of `apps/backend/Dockerfile` (the `backend-migrate` Job). `DEV_SYNC_DATABASE_SCHEMA` is never set there.
 
 So every schema change needs its migration, or production drifts from what dev and the tests run on. A feature gets exactly one migration, written at its very last step, never one per step: while the feature is being built, change `ent/schema` and let the startup path apply it. Do not create a migration file during the feature. At the end:
@@ -76,14 +76,7 @@ All contributors (including AI-assisted tools) should follow the project's codin
 - Avoid unnecessary abstractions.
 - Use descriptive variable, function, and class names.
 - Follow linting, formatting, and test conventions.
-- Use `retryAsync` instead of `try ... catch ...` block when it make sense:
-  ```ts
-  import { retryAsync } from 'nestjs-backend-common';
-  const [error, someVar] = await retryAsync(() => someFunc(), {
-    retry: 123,
-  });
-  ```
-- Do **NOT** wrap normal control‑flow or repository/service logic in `try/catch` blocks. Only use `try/catch` when you are genuinely handling a known error case or adding meaningful recovery logic. Logging‐and‑rethrowing is `NOT` considered meaningful handling; let errors bubble up and rely on global exception filters/middleware instead.
+- Go error handling: return errors, do not log and return them. Wrap with `fmt.Errorf("doing x: %w", err)` only when the wrapper adds what the caller cannot know; compare with `errors.Is`/`errors.As`, never by message. A domain package returns an `apperr` error for what a client may read; everything else reaches the client as a generic internal error. Do not `recover` or ignore an error (`_ =`) except where a comment says why it is harmless.
 - Do **NOT** add a barrel `index.ts` in the "frontend" app, for a Vite-powered SPA you should **NOT** because:
   - Tree-shaking happens still for the production builds, but it **hurts dev server startup and HMR performance** because Vite eagerly transforms every module the barrel re-exports, even if you only need one.
   - When you do `import { getInitials } from '../../utils'`, Vite (and Rollup under the hood) has to parse the entire barrel to figure out what's exported.
@@ -93,10 +86,10 @@ All contributors (including AI-assisted tools) should follow the project's codin
 - Every root field of the Go GraphQL schema needs an authenticated viewer by default (`auth.Guard`). Mark a field `@public` to open it, or `@hasRole(role: writer)` to ask for a role. Ownership rules (who may change a novel or a chapter) are the rules of `auth.Can(viewer, action, resource)` in `apps/backend/internal/auth/authz.go`; the service that has the owner's user ID calls it. Authentication failures answer with the codes `UNAUTHENTICATED` and `FORBIDDEN`.
 - Where code lives in a domain package of `apps/backend/internal` (`novel`, `chapter`, `tag`): `service.go` is the use cases (authorization with `auth.DenyUnlessCan`, business rules, transaction boundaries, mapping database errors to `apperr`); `repository.go` is an unexported `repository` struct that is the only place that builds ent queries or raw SQL, decides nothing and returns the database's own errors. No interface: add one only when a second implementation or a test double needs it. Inside `entx.WithTx` make it from the transaction's client, `newRepository(tx.Client())`. Raw SQL goes only in a repository, with a comment saying why ent cannot do it. Two things query ent outside a repository, on purpose: entgql's `Paginate` in the resolvers of the list fields, and the dataloaders in `internal/graph/loaders.go`; `novel/filter.go` and `novel/page.go` are list-query builders for those resolvers. A package that only reads the planner's estimates (`stats`) has no repository.
 - Lists, filters, ordering and cursors come from ent (`entgql.RelayConnection`, `QueryField`, the `*WhereInput` and `*Order` types); a hand-written operation in `apps/backend/api` is only for what ent cannot express. Before adding a `QueryField`, an edge or a field, read `api/ent.graphql` after `task backend:generate` and `entgql.Skip` whatever a visitor must not see (the writer's email, the requester of a tag). A resolver bounds `first`/`last` with `internal/pagination.Bound`, relies on the schema directives for its input (`@isString`, `@maxLength`, `@maxSize` in `api/validation.graphql`; cross-field rules are a Go method on the input type), and calls the service; the service checks `auth.Can` (through `auth.DenyUnlessCan`) on the row it loaded. Lookups a list repeats per row go through `internal/graph/loaders.go`.
+- Adding to the GraphQL API: a field on an entity is an ent field (`ent/schema`, with `entgql.Skip` for what a visitor must not see); then `task backend:generate`, run the resolver stubs gqlgen wrote in `apps/backend/internal/graph`, and call a service that does the work. An operation that is not entity CRUD is declared in `apps/backend/api/*.graphql` with the input directives (`@isString`, `@maxLength`, `@maxSize`), and a root field needs `@public` or `@hasRole` to differ from the default. Then the e2e test in `apps/backend-e2e`, the frontend `.graphql` document next to its feature (`apps/frontend/src/**/*.graphql`) and `task frontend:generate`.
 - Demo data (`task backend:devdata`, `cmd/devdata`, the data in `apps/backend/data`) fills the example novel and the seeded writers for the local stack and the e2e tests, never production; the `backend-init` Job runs it. Text input is cleaned and checked by the schema directives: `@isString` (one line for names and titles, `multiline: true` for descriptions and chapters, `allowEmpty: true` when blank is fine), then `@maxLength` and `@maxSize`. Put the directives on every new hand-written input or argument.
-- When you add a new resolver in the "backend" app, you **MUST** add it to the `apps/backend-nest/gen-graphql-schema.ts`.
-- Use Nx targets instead of raw commands whenever it is possible.
-- A side-effect call from within a mutation that already committed its primary write (e.g. triggering Beatrice's `generateAudio` after `updateContent` persists) must not let the side effect's failure fail the whole mutation — wrap it (`retryAsync` with `{ retry: 0 }`, or try/catch) and log-and-continue.
+- Use Task targets (`task --list`) instead of raw commands whenever it is possible.
+- A side-effect call from within a mutation that already committed its primary write (e.g. triggering Beatrice's `generateAudio` after `updateContent` persists) must not let the side effect's failure fail the whole mutation — log the error and continue.
 - Do **NOT** model viewer‑specific state via root queries or parent aggregations when it conceptually belongs to a child entity. In GraphQL, viewer-specific data must respect graph locality and viewer context: state like “read”, “liked”, or “bookmarked” belongs on the entity it applies to (e.g. Chapter.isRead as a viewer-specific field), not as a root query or a Novel‑level shortcut, unless explicitly documented as a temporary or performance‑driven exception.
 
   ✅ Good (local, viewer-aware)
@@ -129,25 +122,28 @@ To run tests:
 
 ```bash
 # starts storybook
-nx storybook frontend
-# Run all e2e tests
-nx e2e frontend-e2e
-# Run all e2e tests
-nx e2e backend-e2e
+task frontend:storybook
+# Unit tests of the backend and the frontend
+task test
+# Run all frontend e2e tests
+task frontend-e2e:run
+# Run all backend e2e tests
+task backend-e2e:run
 ```
 
 - If you change/add something make sure to write/update and then run the unit/e2e tests.
-- Use vitest.
+- Frontend and e2e tests use vitest; Go tests use the standard `testing` package (below).
 - Use `it` instead of `test`.
 - Use `it.each` whenever it make sense.
 - Use jest-extended APIs whenever appropriate.
 - Use AAA (Arrange, Act, Assert) style of writing test.
   - Use new line as an indicator of each step!
 - Add fixtures only when it makes my tests more readable (but in general prefer to write them inside the test body).
-- Try to mock using vitest instead of `@nestjs/testing`.
+- Mock with vitest (`vi.fn`, `vi.mock`).
 - Use `uut` (unit under test) **only** when you instantiate an object whose **methods** you will exercise in the test. For example: `uut = MyService(...)` followed by `uut.do_something()`.
 - When testing a **function** (or a constructor where you just assert on the returned value), name the variable after what it represents — e.g. `result`, `settings`, `payload`, etc. Do **not** call it `uut` in that case.
 - Always ask what we should and what we should **NOT** mock.
+- Go tests (`apps/backend`): `*_test.go` next to the file under test and named after it (`service.go` and `service_test.go`), in the package `<name>_test`. Table tests with `t.Run(name, ...)` for the same behavior over several inputs, one test per behavior otherwise; Arrange, Act and Assert separated by blank lines, early returns, `t.Fatalf` for a failed precondition and `t.Errorf` for the assertion. Nothing in a test needs Docker: what needs a real PostgreSQL, Redis or ZITADEL is covered by `backend-e2e`. Do not add code to production files only so a test can reach it.
 - For e2e tests make sure to keep the GraphQL queries/mutations written in the same test file.
 - Mocked values should resemble actual domain data (read the code to understand what would the actual domain data would look like):
   - Use realistic data (IDs, hashes, slugs, emails, URLs, etc.):
@@ -160,7 +156,7 @@ nx e2e backend-e2e
     const html = '<html> ... trimmed ... </html>'; // ✅ DO (GOOD)
     const html = 'dummy'; // ❌ DO NOT (BAD)
     ```
-- See `apps/backend-nest/src/**/*.spec.ts` for examples for backend and `apps/frontend/src/**/*.spec.ts` for examples for frontend.
+- See `apps/backend/internal/**/*_test.go` for examples for backend and `apps/frontend/src/**/*.spec.ts` for examples for frontend.
 - See `apps/backend-e2e/src/**/*.e2e-spec.ts` for examples for backend e2e tests and `apps/frontend-e2e/src/e2e/**/*.cy.ts` for examples for frontend e2e tests.
 - If you need to upgrading 3rd party libs: `.github/docs/update-npm.md`.
 - Storybook and Cypress e2e are not interchangeable — pick the tier by what's actually at risk, not by which is cheaper to write:
@@ -176,4 +172,4 @@ npm run start:dev
 npx cypress open --project apps/frontend-e2e
 ```
 
-`nx e2e backend-e2e` and `nx e2e frontend-e2e` start their own cluster with the production images (`infra/scripts/start-dev.sh e2e`) and tear it down afterwards. They cannot run next to `npm run start:dev` (both use host port 8080), so run `npm run stop:dev` first.
+`task backend-e2e:run` and `task frontend-e2e:run` start their own cluster with the production images (`infra/scripts/start-dev.sh e2e`) and tear it down afterwards. They cannot run next to `npm run start:dev` (both use host port 8080), so run `npm run stop:dev` first.

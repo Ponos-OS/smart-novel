@@ -233,7 +233,7 @@ export default [
     },
   },
   {
-    files: ['**/prisma/**/*.ts', '**/prisma/**/*.js', '**/*.js'],
+    files: ['**/*.js'],
     rules: {
       'no-console': 'off',
     },

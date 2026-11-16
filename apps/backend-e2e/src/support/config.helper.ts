@@ -1,4 +1,3 @@
-import { urlBuilder } from 'nestjs-backend-common';
 import { execSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
@@ -15,16 +14,11 @@ const zitadelEnvDir = resolve(
   workspaceRoot,
   'infra/terraform/local/2-zitadel-config',
 );
-const apiUrl = urlBuilder(zitadelIssuer, 'api');
+const apiUrl = new URL('/api', zitadelIssuer).href;
 /**
  * @description URLs for making actual HTTP requests to ZITADEL through the ingress
  */
-const tokenEndpoint = urlBuilder(
-  zitadelIssuer,
-  'oauth',
-  'v2',
-  'token',
-);
+const tokenEndpoint = new URL('/oauth/v2/token', zitadelIssuer).href;
 
 interface ZitadelOutputs {
   project_id: { value: string };

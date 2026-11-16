@@ -33,7 +33,7 @@ run "with_seed_volume_mounts_the_covers_into_the_init_job" {
   command = plan
 
   variables {
-    seed_volume = { host_path = "/workspace/apps/backend-nest/data" }
+    seed_volume = { host_path = "/workspace/apps/backend/data" }
   }
 
   assert {

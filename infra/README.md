@@ -17,7 +17,7 @@ infra/
     │   ├── wiremock/   Generic WireMock: serves the mapping files of one directory under its own name, one instance per mocked API. Deployed only by the e2e mode
     │   ├── beatrice/   Beatrice, the audio generation service
     │   ├── fithara/    Fithara, the license drafting assistant
-    │   ├── backend/    NestJS API
+    │   ├── backend/    Go API
     │   ├── frontend/   Vite SPA
     │   ├── job/        A one-shot Job
     │   ├── devtools/   RedisInsight, pgAdmin; off by default
@@ -107,7 +107,7 @@ curl -sSI https://auth.<domain>/debug/healthz
 
 Postgres, Redis and RustFS are deployed in the cluster under the Service names `postgres`, `redis` and `s3`, which the application settings in `.env` already use. Setting `database_url`, `redis_url` or `object_storage_endpoint` on `module "app"` skips the matching component. Data is throwaway unless `persistent_volumes` is `true`.
 
-RustFS is reachable through the ingress on `s3.localhost:8080` (S3 API, the host of `OBJECT_STORAGE_PUBLIC_URL`) and `s3-console.localhost:8080` (console). The seed covers in `apps/backend-nest/data` are uploaded only when `object_storage_seed_volume` is set (a host path or a claim); without it only the bucket, its policy and its CORS rule are created. The CORS rule lets the browser `PUT` cover images straight to the bucket with a presigned URL; its origins are the ones in `CORS_ALLOWED_ORIGINS`. An external storage (`object_storage_endpoint`, e.g. R2 on Hetzner) is not touched by that Job, so allow `PUT` from the frontend origin there yourself, and set `OBJECT_STORAGE_PUBLIC_URL` to the host browsers reach it on.
+RustFS is reachable through the ingress on `s3.localhost:8080` (S3 API, the host of `OBJECT_STORAGE_PUBLIC_URL`) and `s3-console.localhost:8080` (console). The seed covers in `apps/backend/data` are uploaded only when `object_storage_seed_volume` is set (a host path or a claim); without it only the bucket, its policy and its CORS rule are created. The CORS rule lets the browser `PUT` cover images straight to the bucket with a presigned URL; its origins are the ones in `CORS_ALLOWED_ORIGINS`. An external storage (`object_storage_endpoint`, e.g. R2 on Hetzner) is not touched by that Job, so allow `PUT` from the frontend origin there yourself, and set `OBJECT_STORAGE_PUBLIC_URL` to the host browsers reach it on.
 
 ## Ingress and ZITADEL
 
@@ -161,7 +161,7 @@ Each tool is deployed only when the service it inspects runs in the cluster (an 
 
 ## End-to-End Tests
 
-`nx e2e backend-e2e` and `nx e2e frontend-e2e` run `infra/scripts/start-dev.sh e2e`, which builds the production backend and frontend images (the init Job still uses the development image and the mounted sources), applies `local/1-app` with `mode = e2e`, `enable_devtools = false` and `mock_ai_providers = true`, and tears everything down with `stop-dev.sh` afterwards. Redis is exposed on `localhost:6379` because the backend suites subscribe to it directly. `backend-e2e` reads the project ID, the user IDs and the integration-test bot's key and client from `terraform output -json` of `local/2-zitadel-config`, so nothing is copied out of the cluster or written to the host.
+`task backend-e2e:run` and `task frontend-e2e:run` run `infra/scripts/start-dev.sh e2e`, which builds the production backend and frontend images (the init Job still uses the development image and the mounted sources), applies `local/1-app` with `mode = e2e`, `enable_devtools = false` and `mock_ai_providers = true`, and tears everything down with `stop-dev.sh` afterwards. Redis is exposed on `localhost:6379` because the backend suites subscribe to it directly. `backend-e2e` reads the project ID, the user IDs and the integration-test bot's key and client from `terraform output -json` of `local/2-zitadel-config`, so nothing is copied out of the cluster or written to the host.
 
 The dev and e2e environments both use the cluster name `smart-novel` and host port 8080, so they cannot run together: `start-dev.sh e2e` exits with code 3 and an instruction to run `npm run stop:dev` first when the cluster exists, and the callers then skip their teardown instead of destroying the environment that is running.
 

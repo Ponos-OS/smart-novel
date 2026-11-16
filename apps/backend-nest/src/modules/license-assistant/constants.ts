@@ -1,1 +1,0 @@
-export const MAX_REQUESTS_PER_USER_PER_HOUR = 30;

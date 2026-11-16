@@ -12,10 +12,10 @@ func TestCacheKey(t *testing.T) {
 	cases := map[string]struct {
 		word, sentence, want string
 	}{
-		"the key the NestJS backend made": {"scrutinize", sentence, "explain:scrutinize:44983f115f931a846573b791066de4184e2f8374876d29c55abdb318512a7ee9"},
-		"a word in capitals":              {"  Scrutinize ", sentence, "explain:scrutinize:44983f115f931a846573b791066de4184e2f8374876d29c55abdb318512a7ee9"},
-		"a sentence with other spacing":   {"scrutinize", "  The detective   scrutinized the crime\nscene for clues. ", "explain:scrutinize:44983f115f931a846573b791066de4184e2f8374876d29c55abdb318512a7ee9"},
-		"a sentence in capitals":          {"scrutinize", "THE DETECTIVE SCRUTINIZED THE CRIME SCENE FOR CLUES.", "explain:scrutinize:44983f115f931a846573b791066de4184e2f8374876d29c55abdb318512a7ee9"},
+		"a key made before the Go rewrite": {"scrutinize", sentence, "explain:scrutinize:44983f115f931a846573b791066de4184e2f8374876d29c55abdb318512a7ee9"},
+		"a word in capitals":               {"  Scrutinize ", sentence, "explain:scrutinize:44983f115f931a846573b791066de4184e2f8374876d29c55abdb318512a7ee9"},
+		"a sentence with other spacing":    {"scrutinize", "  The detective   scrutinized the crime\nscene for clues. ", "explain:scrutinize:44983f115f931a846573b791066de4184e2f8374876d29c55abdb318512a7ee9"},
+		"a sentence in capitals":           {"scrutinize", "THE DETECTIVE SCRUTINIZED THE CRIME SCENE FOR CLUES.", "explain:scrutinize:44983f115f931a846573b791066de4184e2f8374876d29c55abdb318512a7ee9"},
 	}
 	for name, test := range cases {
 		t.Run(name, func(t *testing.T) {

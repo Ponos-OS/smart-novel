@@ -1,11 +1,11 @@
 <h1><img src="../apps/frontend/public/logo.png" width="40" height="40" alt="smart-novel logo" />Smart Novel</h1>
 
-A modern monorepo project for managing and reading novels with AI-powered word explanations. Built with Nx, NestJS, GraphQL, and React.
+A modern monorepo project for managing and reading novels with AI-powered word explanations. Built with Go (ent, gqlgen), GraphQL, React and Task.
 
 | Service                                                                                           | Replicas | vCPU |    RAM |  Disk | Notes                                                                       |
 | ------------------------------------------------------------------------------------------------- | -------: | ---: | -----: | ----: | --------------------------------------------------------------------------- |
 | Frontend (SPA)                                                                                    |        1 |  0.1 |  64 MB |     - | [Nginx](https://github.com/Ponos-OS/infra/blob/main/.github/docs/nginx.md). |
-| Backend ([NestJS + Prisma](https://github.com/Ponos-OS/infra/blob/main/.github/docs/nodejs.md))   |        1 |    1 |   1 GB |     - |                                                                             |
+| Backend (Go + ent + gqlgen)                                                                       |        1 |    1 |   1 GB |     - |                                                                             |
 | Beatrice ([FastAPI](https://github.com/Ponos-OS/infra/blob/main/.github/docs/python.md))          |        1 |  0.5 | 512 MB |     - | LLM + TTS service, port 3000. Also runs the RabbitMQ audio worker.          |
 | [Redis](docs/redis.md)                                                                            |        1 | 0.25 | 256 MB |     - | Cache only, no persistence.                                                 |
 | [Postgres](https://github.com/Ponos-OS/infra/blob/main/.github/docs/postgres.md)                  |        1 |    1 |   2 GB | 20 GB | Daily backup, its own CronJob.                                              |
@@ -32,31 +32,12 @@ And if you wonder how the whole thing comes together please look at the [`infra`
 ```
 smart-novel/
 ├── apps/
-│   ├── backend/                  # NestJS GraphQL API
+│   ├── backend/                  # Go GraphQL API (ent, entgql, gqlgen)
+│   │   ├── api/                  # GraphQL schema that extends the one ent generates
+│   │   ├── cmd/                  # server, devdata and migrategen entry points
 │   │   ├── data/                 # Novel seed data (markdown + JSON)
-│   │   ├── prisma/               # Prisma schema, migrations & seeders
-│   │   └── src/
-│   │       ├── app/
-│   │       ├── assets/
-│   │       ├── modules/
-│   │       │   ├── auth/         # Zitadel OIDC auth & RBAC guards
-│   │       │   ├── background-runner/
-│   │       │   ├── cursor/
-│   │       │   ├── fithara/
-│   │       │   ├── license/
-│   │       │   ├── license-assistant/
-│   │       │   ├── llm/          # LLM word explanation
-│   │       │   ├── novel/        # Novel & chapter CRUD, narration (TTS)
-│   │       │   ├── object-storage/ # RustFS S3 file uploads
-│   │       │   ├── platform-terms/
-│   │       │   ├── prisma/       # Prisma service
-│   │       │   ├── redis/        # Redis caching service
-│   │       │   ├── stats/
-│   │       │   ├── tag/
-│   │       │   ├── tts-callbacks/
-│   │       │   ├── writer/
-│   │       │   └── zitadel-events/
-│   │       └── shared/
+│   │   ├── ent/                  # ent schema and the Atlas migrations
+│   │   └── internal/             # Domain packages (novel, chapter, tag, license, narration, ...)
 │   ├── backend-e2e/              # Backend E2E tests (Vitest)
 │   ├── frontend/                 # React SPA
 │   │   ├── public/
@@ -73,9 +54,10 @@ smart-novel/
 │   │       ├── test-utils/
 │   │       └── utils/            # Utilities (token-bucket, notifications)
 │   └── frontend-e2e/             # Frontend E2E tests (Cypress)
+├── docs/
 ├── infra/                        # Terraform modules and scripts for the local kind cluster (see infra/README.md)
-├── tools/                        # Go tools (gensdl turns the limits of the GraphQL schema into frontend constants)
 ├── scripts/                      # Repo maintenance scripts
+├── tools/                        # Go tools (gensdl turns the limits of the GraphQL schema into frontend constants)
 ├── .env.example                  # Environment variables template
 ├── Taskfile.yml                  # Task entry points; every app has its own Taskfile.yml
 ├── go.work                       # Go workspace (apps/backend, tools)

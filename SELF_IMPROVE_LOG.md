@@ -228,3 +228,9 @@
 - Every earlier step ran on a tree where the git-ignored files already existed; `task clean` first showed two bugs at once: `go generate ./...` loads every package for gqlgen, so the clients it imports must exist before it runs, and `gensdl` assumed `src/generated/` existed. A generator must work from nothing, and the check for that is a clean checkout, which the earlier steps skipped.
 - The failed first generation also rewrote `go.mod`, `go.sum` and `go.work.sum` (gqlgen tidied away what it could not see used). After a failed generate, look at `git status` before trusting the tree.
 - My wait on the test run matched the pattern `FAIL` against test names ("should NOT allow ...") and fired early; wait on the final summary line only.
+
+### Step 11
+
+- A removal step needs a list of what is left to find, not only the deletion: `git grep` for the old names found the Nx and Prisma wording in six docs, four `.tftest.hcl` fixtures and a debug configuration that no compiler or test would have flagged.
+- A pre-existing red check (two `terraform test` runs in `modules/app`) is only known to be old after running it on the previous commit; I stashed to do that, and the stash round trip is worth a `git stash list` afterwards to see that only the user's three stashes remain.
+- My first draft of the Go rules in `CONTRIBUTING.md` named a retry helper in `internal/platform` that does not exist, and the step text named `testify`, which the code does not use. Check each sentence of a rule against the code before writing it.
