@@ -155,6 +155,7 @@ linters:
             - github.com/vikstrous/dataloadgen
             - github.com/oapi-codegen/runtime
             - github.com/testcontainers/testcontainers-go
+            - go.uber.org/fx
         test:
           list-mode: original
           files: ["$test"]
@@ -171,6 +172,7 @@ linters:
             - github.com/go-jose/go-jose
             - github.com/Khan/genqlient
             - github.com/coder/websocket
+            - go.uber.org/fx
     dupl:
       threshold: 150
     errchkjson:

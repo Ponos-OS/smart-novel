@@ -41,6 +41,10 @@ task dev:start
 - An external service instead of an in-cluster one: set the matching `*_url` input of `module "app"`.
 - Personal overrides: `infra/terraform/local/1-app/terraform.tfvars`.
 
+## Dependency Injection (Fx)
+
+The backend is wired with [Fx](https://github.com/uber-go/fx) in `apps/backend/cmd/server/main.go`; there is no global state to reach for. Each package exposes `var Module = fx.Module(...)` with its constructors (an adapter when a constructor takes an interface or a config value). Whatever runs for the life of the process (a listener, a loop) is started and stopped in a lifecycle hook (`background.Keep` for a loop), never with a bare `go` in a constructor. An endpoint other services call is contributed with `route.Provide` and a GraphQL extension with `server.AsExtension`, so the server does not import its contributors. `TestOptionsWireEveryDependency` fails when a dependency is missing.
+
 ## Database Migration Guide (ent and Atlas)
 
 The schema lives in `apps/backend/ent/schema`. Two paths build the same tables:

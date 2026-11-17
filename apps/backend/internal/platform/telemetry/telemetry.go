@@ -8,7 +8,6 @@ import (
 	"net/url"
 
 	"go.opentelemetry.io/contrib/bridges/otelslog"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
@@ -16,14 +15,38 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.40.0"
+	"go.opentelemetry.io/otel/trace"
+	tracenoop "go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/config"
 )
 
 // Telemetry owns the OpenTelemetry providers; the zero value is what a disabled SDK looks like.
 type Telemetry struct {
-	logHandler slog.Handler
-	shutdowns  []func(context.Context) error
+	logHandler     slog.Handler
+	tracerProvider trace.TracerProvider
+	shutdowns      []func(context.Context) error
+}
+
+// TracerProvider is the one that ships spans to the collector, or one that records nothing when the SDK is disabled.
+func (t *Telemetry) TracerProvider() trace.TracerProvider {
+	if t.tracerProvider == nil {
+		return tracenoop.NewTracerProvider()
+	}
+
+	return t.tracerProvider
+}
+
+// Propagator reads and writes the trace headers, or does nothing when the SDK is disabled.
+func (t *Telemetry) Propagator() propagation.TextMapPropagator {
+	if t.tracerProvider == nil {
+		return propagation.NewCompositeTextMapPropagator()
+	}
+
+	return propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	)
 }
 
 // LogHandler ships records to the collector, or is nil when logs stay on stdout.
@@ -56,13 +79,6 @@ func Start(ctx context.Context, cfg config.Config) (*Telemetry, error) {
 	if err != nil {
 		return nil, fmt.Errorf("telemetry resource: %w", err)
 	}
-
-	otel.SetTextMapPropagator(
-		propagation.NewCompositeTextMapPropagator(
-			propagation.TraceContext{},
-			propagation.Baggage{},
-		),
-	)
 
 	if err := t.startTraces(ctx, cfg, res); err != nil {
 		return nil, err
@@ -107,7 +123,7 @@ func (t *Telemetry) startTraces(
 			sdktrace.WithExportTimeout(cfg.OTel.ExportTimeout),
 		),
 	)
-	otel.SetTracerProvider(provider)
+	t.tracerProvider = provider
 	t.shutdowns = append(t.shutdowns, provider.Shutdown)
 
 	return nil

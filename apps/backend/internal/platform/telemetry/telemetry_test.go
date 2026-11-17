@@ -9,8 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"go.opentelemetry.io/otel"
-
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/config"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/telemetry"
 )
@@ -79,7 +77,9 @@ func TestStartShipsSpansAndLogsToTheCollector(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	_, span := otel.Tracer("test").Start(context.Background(), "request")
+	_, span := started.TracerProvider().
+		Tracer("test").
+		Start(context.Background(), "request")
 	span.End()
 	handler := started.LogHandler()
 	if handler == nil {

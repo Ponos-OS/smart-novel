@@ -1,9 +1,6 @@
 package server
 
 import (
-	"context"
-	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -17,6 +14,7 @@ import (
 	coderws "github.com/coder/websocket"
 	"github.com/rs/cors"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
@@ -26,7 +24,6 @@ import (
 
 const (
 	graphqlPath      = "/graphql"
-	shutdownTimeout  = 15 * time.Second
 	readHeaderTimout = 10 * time.Second
 	websocketPing    = 10 * time.Second
 )
@@ -38,7 +35,9 @@ type Options struct {
 	Verifier       auth.Verifier
 	Extensions     []graphql.HandlerExtension
 	TracerProvider trace.TracerProvider
-	Terms          platformterms.Acceptances
+	// Propagator reads an incoming traceparent; none means requests start their own trace.
+	Propagator propagation.TextMapPropagator
+	Terms      platformterms.Acceptances
 	// Routes are the endpoints other services call, by "METHOD /path". Each checks its own caller, so none needs a viewer.
 	Routes map[string]http.Handler
 }
@@ -74,6 +73,7 @@ func New(options Options) http.Handler {
 		),
 		"http",
 		otelhttp.WithTracerProvider(tracerProvider(options.TracerProvider)),
+		otelhttp.WithPropagators(propagator(options.Propagator)),
 		otelhttp.WithSpanNameFormatter(formatSpanName),
 	)
 
@@ -143,48 +143,4 @@ func graphqlHandler(options Options) http.Handler {
 	}
 
 	return srv
-}
-
-// Serve blocks until ctx is cancelled, then stops accepting requests and lets the running ones finish.
-func Serve(
-	ctx context.Context,
-	logger *slog.Logger,
-	port int,
-	root http.Handler,
-) error {
-	srv := &http.Server{
-		Addr:              fmt.Sprintf(":%d", port),
-		Handler:           root,
-		ReadHeaderTimeout: readHeaderTimout,
-	}
-	failed := make(chan error, 1)
-	go func() {
-		logger.InfoContext(
-			ctx,
-			"server listening",
-			slog.String(logKeyAddr, srv.Addr),
-		)
-		failed <- srv.ListenAndServe()
-	}()
-
-	select {
-	case err := <-failed:
-		return err
-	case <-ctx.Done():
-	}
-
-	logger.InfoContext(ctx, "server shutting down")
-	stopCtx, cancel := context.WithTimeout(
-		context.WithoutCancel(ctx),
-		shutdownTimeout,
-	)
-	defer cancel()
-	if err := srv.Shutdown(
-		stopCtx,
-	); err != nil &&
-		!errors.Is(err, http.ErrServerClosed) {
-		return fmt.Errorf("graceful shutdown: %w", err)
-	}
-
-	return nil
 }

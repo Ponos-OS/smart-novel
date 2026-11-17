@@ -7,8 +7,9 @@ import (
 	"runtime/debug"
 	"time"
 
-	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
+	tracenoop "go.opentelemetry.io/otel/trace/noop"
 )
 
 func tracerProvider(provider trace.TracerProvider) trace.TracerProvider {
@@ -16,7 +17,15 @@ func tracerProvider(provider trace.TracerProvider) trace.TracerProvider {
 		return provider
 	}
 
-	return otel.GetTracerProvider()
+	return tracenoop.NewTracerProvider()
+}
+
+func propagator(p propagation.TextMapPropagator) propagation.TextMapPropagator {
+	if p != nil {
+		return p
+	}
+
+	return propagation.NewCompositeTextMapPropagator()
 }
 
 // traceIDHeader exposes the active trace ID as x-trace-id, separate from the traceparent header services use between themselves.
