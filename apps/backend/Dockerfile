@@ -28,7 +28,10 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 COPY apps/backend ./apps/backend
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    task -t apps/backend/Taskfile.yml -d apps/backend codegen build
+    task -t apps/backend/Taskfile.yml -d apps/backend codegen
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    task -t apps/backend/Taskfile.yml -d apps/backend build
 
 # ---- migrate ------------------------------------------------------------
 # The Job that applies ent/migrate/migrations to DATABASE_URL before a release; the production image carries neither Atlas nor the migrations.
