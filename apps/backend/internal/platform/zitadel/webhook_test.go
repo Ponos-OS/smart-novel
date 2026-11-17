@@ -1,4 +1,4 @@
-package zitadelevents
+package zitadel
 
 import (
 	"crypto/hmac"

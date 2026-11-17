@@ -1,4 +1,4 @@
-package auth
+package zitadel
 
 import (
 	"context"
@@ -18,7 +18,9 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/client/rs"
 	"github.com/zitadel/zitadel-go/v3/pkg/authorization"
 	"github.com/zitadel/zitadel-go/v3/pkg/authorization/oauth"
-	"github.com/zitadel/zitadel-go/v3/pkg/zitadel"
+	zitadelapi "github.com/zitadel/zitadel-go/v3/pkg/zitadel"
+
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 )
 
 const (
@@ -40,8 +42,8 @@ var (
 	errTokenInactive = errors.New("token is not active")
 )
 
-// ZitadelConfig says where the identity provider is and how the backend introspects tokens with it.
-type ZitadelConfig struct {
+// Config says where the identity provider is and how the backend introspects tokens with it.
+type Config struct {
 	// IssuerURL is the public URL tokens carry as their issuer, e.g. http://auth.localhost:8080 or https://smart-novel.com
 	IssuerURL string
 	// InternalURL, when set, is where the backend actually reaches ZITADEL (an ingress inside the cluster); requests still carry the issuer's host.
@@ -51,16 +53,16 @@ type ZitadelConfig struct {
 	ClientSecret string
 }
 
-// ZitadelVerifier checks access tokens by introspecting them at ZITADEL, with the result cached for a short time.
-type ZitadelVerifier struct {
+// Verifier checks access tokens by introspecting them at ZITADEL, with the result cached for a short time.
+type Verifier struct {
 	authorizer *authorization.Authorizer[*oauth.IntrospectionContext]
 }
 
-// NewZitadelVerifier discovers the introspection endpoint of the issuer and prepares the verifier.
-func NewZitadelVerifier(
+// NewVerifier discovers the introspection endpoint of the issuer and prepares the verifier.
+func NewVerifier(
 	ctx context.Context,
-	cfg ZitadelConfig,
-) (*ZitadelVerifier, error) {
+	cfg Config,
+) (*Verifier, error) {
 	issuer, err := url.Parse(cfg.IssuerURL)
 	if err != nil || issuer.Host == "" {
 		return nil, fmt.Errorf("issuer URL %q %w", cfg.IssuerURL, errBadURL)
@@ -73,8 +75,8 @@ func NewZitadelVerifier(
 	if err != nil {
 		return nil, err
 	}
-	instance := zitadel.New(issuer.Hostname(), options...)
-	initialize := func(ctx context.Context, instance *zitadel.Zitadel) (authorization.Verifier[*oauth.IntrospectionContext], error) {
+	instance := zitadelapi.New(issuer.Hostname(), options...)
+	initialize := func(ctx context.Context, instance *zitadelapi.Zitadel) (authorization.Verifier[*oauth.IntrospectionContext], error) {
 		server, serverErr := rs.NewResourceServerClientCredentials(
 			ctx,
 			instance.Origin(),
@@ -101,30 +103,30 @@ func NewZitadelVerifier(
 		return nil, err
 	}
 
-	return &ZitadelVerifier{authorizer: authorizer}, nil
+	return &Verifier{authorizer: authorizer}, nil
 }
 
-// Verify implements Verifier.
-func (v *ZitadelVerifier) Verify(
+// Verify implements auth.Verifier.
+func (v *Verifier) Verify(
 	ctx context.Context,
 	accessToken string,
-) (Viewer, error) {
+) (auth.Viewer, error) {
 	introspected, err := v.authorizer.CheckAuthorization(
 		ctx,
 		"Bearer "+accessToken,
 	)
 	if err != nil {
-		return Viewer{}, err
+		return auth.Viewer{}, err
 	}
 	if !introspected.IsAuthorized() {
-		return Viewer{}, errTokenInactive
+		return auth.Viewer{}, errTokenInactive
 	}
 
 	return viewerOf(introspected), nil
 }
 
-func viewerOf(introspected *oauth.IntrospectionContext) Viewer {
-	return Viewer{
+func viewerOf(introspected *oauth.IntrospectionContext) auth.Viewer {
+	return auth.Viewer{
 		Subject:           introspected.Subject,
 		Name:              introspected.Name,
 		PreferredUsername: introspected.PreferredUsername,
@@ -163,14 +165,14 @@ func rolesOf(claims map[string]any) []string {
 	return roles
 }
 
-func instanceOptions(issuer *url.URL) ([]zitadel.Option, error) {
+func instanceOptions(issuer *url.URL) ([]zitadelapi.Option, error) {
 	port := issuer.Port()
 	if issuer.Scheme == "http" {
 		if port == "" {
 			port = "80"
 		}
 
-		return []zitadel.Option{zitadel.WithInsecure(port)}, nil
+		return []zitadelapi.Option{zitadelapi.WithInsecure(port)}, nil
 	}
 	if port == "" {
 		return nil, nil
@@ -185,7 +187,7 @@ func instanceOptions(issuer *url.URL) ([]zitadel.Option, error) {
 		return nil, fmt.Errorf("issuer port %q %w", port, errBadPort)
 	}
 
-	return []zitadel.Option{zitadel.WithPort(uint16(number))}, nil
+	return []zitadelapi.Option{zitadelapi.WithPort(uint16(number))}, nil
 }
 
 // httpClient reaches the issuer's address through internalURL when one is given. The request URL, and so the Host header, stays the issuer's, because ZITADEL picks its instance by host.

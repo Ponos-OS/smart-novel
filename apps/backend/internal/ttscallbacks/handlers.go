@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/objectstorage"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/zitadel"
 )
 
 const (
@@ -44,7 +44,7 @@ func AudioKey(jobID string) string {
 
 // GenUploadURL answers Beatrice's genUploadUrl callback with a short-lived URL it PUTs the audio to once. The call carries the bearer token of the request that started the job, which must be one ZITADEL issued, expired or not.
 func GenUploadURL(
-	check *auth.IssuerCheck,
+	check *zitadel.IssuerCheck,
 	storage *objectstorage.Client,
 	logger *slog.Logger,
 ) http.Handler {

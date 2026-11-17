@@ -1,4 +1,4 @@
-package auth_test
+package zitadel_test
 
 import (
 	"crypto/rand"
@@ -13,7 +13,7 @@ import (
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
 
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/zitadel"
 )
 
 // identityProvider serves the two documents a check needs and signs tokens with its key.
@@ -77,9 +77,9 @@ func TestIssuerCheckAcceptsATokenOfTheIssuerWhetherOrNotItExpired(
 	t *testing.T,
 ) {
 	issuer, sign := identityProvider(t)
-	uut, err := auth.NewIssuerCheck(
+	uut, err := zitadel.NewIssuerCheck(
 		t.Context(),
-		auth.ZitadelConfig{IssuerURL: issuer},
+		zitadel.Config{IssuerURL: issuer},
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -98,9 +98,9 @@ func TestIssuerCheckAcceptsATokenOfTheIssuerWhetherOrNotItExpired(
 func TestIssuerCheckRefusesWhatTheIssuerDidNotSign(t *testing.T) {
 	issuer, sign := identityProvider(t)
 	_, otherSign := identityProvider(t)
-	uut, err := auth.NewIssuerCheck(
+	uut, err := zitadel.NewIssuerCheck(
 		t.Context(),
-		auth.ZitadelConfig{IssuerURL: issuer},
+		zitadel.Config{IssuerURL: issuer},
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -153,9 +153,9 @@ func flipped(part string) string {
 }
 
 func TestNewIssuerCheckFailsWhenTheIssuerCannotBeReached(t *testing.T) {
-	_, err := auth.NewIssuerCheck(
+	_, err := zitadel.NewIssuerCheck(
 		t.Context(),
-		auth.ZitadelConfig{IssuerURL: "http://127.0.0.1:1"},
+		zitadel.Config{IssuerURL: "http://127.0.0.1:1"},
 	)
 
 	if err == nil {

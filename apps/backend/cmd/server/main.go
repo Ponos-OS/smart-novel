@@ -7,7 +7,6 @@ import (
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/beatrice"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/chapter"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/config"
@@ -30,7 +29,6 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/tag"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/ttscallbacks"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/writer"
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/zitadelevents"
 )
 
 const (
@@ -59,7 +57,6 @@ func options() fx.Option {
 		redis.Module,
 		objectstorage.Module,
 		zitadel.Module,
-		auth.Module,
 		beatrice.Module,
 		fithara.Module,
 
@@ -74,7 +71,6 @@ func options() fx.Option {
 		writer.Module,
 		platformterms.Module,
 		ttscallbacks.Module,
-		zitadelevents.Module,
 
 		graph.Module,
 		server.Module,

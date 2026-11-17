@@ -1,4 +1,4 @@
-package auth_test
+package zitadel_test
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
+	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/zitadel"
 )
 
 const (
@@ -94,11 +94,11 @@ func newVerifier(
 	t *testing.T,
 	fake *fakeZitadel,
 	secret string,
-) *auth.ZitadelVerifier {
+) *zitadel.Verifier {
 	t.Helper()
-	verifier, err := auth.NewZitadelVerifier(
+	verifier, err := zitadel.NewVerifier(
 		context.Background(),
-		auth.ZitadelConfig{
+		zitadel.Config{
 			IssuerURL:    issuer,
 			InternalURL:  fake.URL,
 			ClientID:     clientID,
@@ -106,13 +106,13 @@ func newVerifier(
 		},
 	)
 	if err != nil {
-		t.Fatalf("NewZitadelVerifier: %v", err)
+		t.Fatalf("NewVerifier: %v", err)
 	}
 
 	return verifier
 }
 
-func TestZitadelVerifierMapsTheIntrospectedClaims(t *testing.T) {
+func TestVerifierMapsTheIntrospectedClaims(t *testing.T) {
 	fake := newFakeZitadel(t)
 	verifier := newVerifier(t, fake, clientSecret)
 
@@ -132,7 +132,7 @@ func TestZitadelVerifierMapsTheIntrospectedClaims(t *testing.T) {
 	}
 }
 
-func TestZitadelVerifierReachesTheInstanceByItsIssuerHost(t *testing.T) {
+func TestVerifierReachesTheInstanceByItsIssuerHost(t *testing.T) {
 	fake := newFakeZitadel(t)
 
 	newVerifier(t, fake, clientSecret)
@@ -145,7 +145,7 @@ func TestZitadelVerifierReachesTheInstanceByItsIssuerHost(t *testing.T) {
 	}
 }
 
-func TestZitadelVerifierRejectsATokenThatIsNotActive(t *testing.T) {
+func TestVerifierRejectsATokenThatIsNotActive(t *testing.T) {
 	fake := newFakeZitadel(t)
 	verifier := newVerifier(t, fake, clientSecret)
 
@@ -159,7 +159,7 @@ func TestZitadelVerifierRejectsATokenThatIsNotActive(t *testing.T) {
 	}
 }
 
-func TestZitadelVerifierRejectsWrongClientCredentials(t *testing.T) {
+func TestVerifierRejectsWrongClientCredentials(t *testing.T) {
 	fake := newFakeZitadel(t)
 	verifier := newVerifier(t, fake, "not-the-secret")
 
@@ -170,7 +170,7 @@ func TestZitadelVerifierRejectsWrongClientCredentials(t *testing.T) {
 	}
 }
 
-func TestZitadelVerifierIntrospectsATokenOnlyOncePerCachePeriod(t *testing.T) {
+func TestVerifierIntrospectsATokenOnlyOncePerCachePeriod(t *testing.T) {
 	fake := newFakeZitadel(t)
 	verifier := newVerifier(t, fake, clientSecret)
 
@@ -188,11 +188,11 @@ func TestZitadelVerifierIntrospectsATokenOnlyOncePerCachePeriod(t *testing.T) {
 	}
 }
 
-func TestNewZitadelVerifierFailsWhenTheInstanceCannotBeReached(t *testing.T) {
+func TestNewVerifierFailsWhenTheInstanceCannotBeReached(t *testing.T) {
 	fake := newFakeZitadel(t)
 	fake.Close()
 
-	_, err := auth.NewZitadelVerifier(context.Background(), auth.ZitadelConfig{
+	_, err := zitadel.NewVerifier(context.Background(), zitadel.Config{
 		IssuerURL:    issuer,
 		InternalURL:  fake.URL,
 		ClientID:     clientID,

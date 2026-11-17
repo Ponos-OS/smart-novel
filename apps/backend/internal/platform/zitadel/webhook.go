@@ -1,5 +1,4 @@
-// Package zitadelevents receives the calls ZITADEL makes to the backend when something happens to a user (Actions v2).
-package zitadelevents
+package zitadel
 
 import (
 	"crypto/hmac"
@@ -15,7 +14,6 @@ import (
 	"time"
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/auth"
-	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/zitadel"
 )
 
 const (
@@ -37,7 +35,7 @@ var (
 // UserAdded answers ZITADEL's call on user.human.added: the event's aggregateID is the new user. Everyone starts as a user; one that already holds a role (the seeded ones) is left alone. The call is signed with signingKey.
 func UserAdded(
 	signingKey string,
-	management *zitadel.Management,
+	management *Management,
 	logger *slog.Logger,
 ) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

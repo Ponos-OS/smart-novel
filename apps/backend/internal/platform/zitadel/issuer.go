@@ -1,4 +1,4 @@
-package auth
+package zitadel
 
 import (
 	"context"
@@ -24,7 +24,7 @@ type IssuerCheck struct {
 // other request. The key set it keeps looks the keys up again when ZITADEL rotates one.
 func NewIssuerCheck(
 	ctx context.Context,
-	cfg ZitadelConfig,
+	cfg Config,
 ) (*IssuerCheck, error) {
 	issuer, err := url.Parse(cfg.IssuerURL)
 	if err != nil || issuer.Host == "" {

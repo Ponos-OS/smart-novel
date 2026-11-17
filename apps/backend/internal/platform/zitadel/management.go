@@ -1,4 +1,4 @@
-// Package zitadel is the backend's client of the ZITADEL management API, used to give a user the project role an admin approved.
+// Package zitadel is everything the backend does with ZITADEL: introspecting access tokens, checking who issued one, granting project roles, and receiving its user events (Actions v2).
 package zitadel
 
 import (
