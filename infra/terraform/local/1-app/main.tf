@@ -65,7 +65,7 @@ locals {
     {
       name                    = "backend-init"
       image                   = local.devdata_image
-      command                 = local.hot_reload ? ["task", "devdata"] : ["devdata"]
+      command                 = local.hot_reload ? ["task", "seed"] : ["devdata"]
       use_backend_environment = true
       environment             = merge(local.devdata_job_environment, local.hot_reload ? { DATA_PATH = "/app/apps/backend/data" } : {})
       volumes                 = local.backend_volumes

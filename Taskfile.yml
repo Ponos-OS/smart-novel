@@ -7,17 +7,9 @@ includes:
     taskfile: apps/backend
     dir: apps/backend
     optional: true
-  backend-e2e:
-    taskfile: apps/backend-e2e
-    dir: apps/backend-e2e
-    optional: true
   frontend:
     taskfile: apps/frontend
     dir: apps/frontend
-    optional: true
-  frontend-e2e:
-    taskfile: apps/frontend-e2e
-    dir: apps/frontend-e2e
     optional: true
   infra:
     taskfile: infra
@@ -33,18 +25,18 @@ tasks:
     desc: Lint and fix every project, then look for copy-pasted code
     cmds:
       - task: backend:lint
-      - task: backend-e2e:lint
+      - task: backend:lint:e2e
       - task: frontend:lint
-      - task: frontend-e2e:lint
+      - task: frontend:lint:e2e
       - pnpm exec jscpd
 
   lint:check:
     desc: Lint every project without fixing
     cmds:
       - task: backend:lint:check
-      - task: backend-e2e:lint:check
+      - task: backend:lint:check:e2e
       - task: frontend:lint:check
-      - task: frontend-e2e:lint:check
+      - task: frontend:lint:check:e2e
       - pnpm exec jscpd
 
   test:
@@ -91,7 +83,7 @@ tasks:
     cmds:
       - sh infra/scripts/stop-dev.sh
 
-  dev:force-stop:
+  dev:stop:force:
     desc: Stop the local stack when dev:stop cannot
     cmds:
       - sh infra/scripts/force-stop-dev.sh

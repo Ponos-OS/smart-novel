@@ -240,7 +240,7 @@ run "pre_deploy_jobs_are_created_from_their_specs" {
       {
         name                    = "backend-init"
         image                   = "smart-novel-backend:dev"
-        command                 = ["/bin/sh", "-c", "task devdata"]
+        command                 = ["/bin/sh", "-c", "task seed"]
         use_backend_environment = true
         volumes                 = [{ name = "data", mount_path = "/data", host_path = "/workspace/apps/backend/data" }]
       },
@@ -298,7 +298,7 @@ run "without_workloads_only_the_infrastructure_remains" {
       {
         name    = "backend-init"
         image   = "smart-novel-backend:dev"
-        command = ["/bin/sh", "-c", "task devdata"]
+        command = ["/bin/sh", "-c", "task seed"]
       },
     ]
   }

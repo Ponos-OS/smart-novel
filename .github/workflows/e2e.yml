@@ -76,7 +76,7 @@ jobs:
         env:
           SKIP_IMAGE_BUILD: "1"
           IMAGE_TAG: ${{ inputs.version }}
-        run: task backend-e2e:run
+        run: task backend:test:e2e
 
       - name: Upload backend logs
         if: always()
@@ -145,7 +145,7 @@ jobs:
         env:
           SKIP_IMAGE_BUILD: "1"
           IMAGE_TAG: ${{ inputs.version }}
-        run: task frontend-e2e:run
+        run: task frontend:test:e2e
 
       - name: Upload Cypress videos
         if: always()

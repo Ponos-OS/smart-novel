@@ -1,6 +1,8 @@
 version: "3"
 
 vars:
+  # `pnpm exec` finds no workspace package in apps/*, so the root binaries are called directly.
+  BIN: "{{.ROOT_DIR}}/node_modules/.bin"
   GOLANGCI_LINT: github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
   AIR: github.com/air-verse/air@v1.67.4
 
@@ -8,11 +10,11 @@ tasks:
   generate:
     desc: Everything generated for the Go backend (ent, gqlgen and the Fithara client)
     cmds:
-      - task: fithara:openapi
-      - task: beatrice:schema
-      - task: codegen
+      - task: download:fithara-spec
+      - task: download:beatrice-spec
+      - task: generate:code
 
-  fithara:openapi:
+  download:fithara-spec:
     desc: Download Fithara's openapi.json (pinned by FITHARA_VERSION) unless that version is already there
     status:
       - grep -q '"version":.*"{{.FITHARA_VERSION}}"' internal/fithara/openapi.json
@@ -22,7 +24,7 @@ tasks:
     cmds:
       - curl --fail --silent --show-error --location https://ponos-os.github.io/fithara/v{{.FITHARA_VERSION}}/openapi.json --output internal/fithara/openapi.json
 
-  beatrice:schema:
+  download:beatrice-spec:
     desc: Download Beatrice's schema.graphql (pinned by BEATRICE_VERSION) unless that version is already there
     status:
       - test "$(cat internal/beatrice/schema.version 2>/dev/null)" = "{{.BEATRICE_VERSION}}"
@@ -33,7 +35,7 @@ tasks:
       - curl --fail --silent --show-error --location https://ponos-os.github.io/smart-novel-beatrice/v{{.BEATRICE_VERSION}}/schema.graphql --output internal/beatrice/schema.graphql
       - echo "{{.BEATRICE_VERSION}}" > internal/beatrice/schema.version
 
-  codegen:
+  generate:code:
     desc: ent, entgql and gqlgen only; the part that also runs in the Go-less-host containers
     cmds:
       - go generate ./internal/...
@@ -45,7 +47,7 @@ tasks:
       - CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/server ./cmd/server
       - CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/devdata ./cmd/devdata
 
-  devdata:
+  seed:
     desc: "Fill the database with demo data (default license, example novel, writers of SEEDED_WRITERS); development and e2e only"
     cmds:
       - go run ./cmd/devdata
@@ -54,11 +56,6 @@ tasks:
     desc: Run with reload on change
     cmds:
       - go run {{.AIR}} -c .air.toml
-
-  start:
-    desc: Run the binary built by build
-    cmds:
-      - ./bin/server
 
   test:
     deps: [generate]
@@ -75,14 +72,30 @@ tasks:
     deps: [generate]
     cmds:
       - go run {{.GOLANGCI_LINT}} run --fix ./...
-      - pnpm exec eslint api --fix
+      - "{{.BIN}}/eslint api --fix"
 
   lint:check:
     deps: [generate]
     cmds:
       - go run {{.GOLANGCI_LINT}} run ./...
-      - pnpm exec eslint api
+      - "{{.BIN}}/eslint api"
 
   format:
     cmds:
       - go run {{.GOLANGCI_LINT}} fmt ./...
+
+  test:e2e:
+    desc: Start the e2e stack, run the specs, tear the stack down
+    dir: "{{.ROOT_DIR}}/apps/backend-e2e"
+    cmds:
+      - "{{.BIN}}/vitest run --config vitest.config.ts {{.CLI_ARGS}}"
+
+  lint:e2e:
+    dir: "{{.ROOT_DIR}}/apps/backend-e2e"
+    cmds:
+      - "{{.BIN}}/eslint . --fix"
+
+  lint:check:e2e:
+    dir: "{{.ROOT_DIR}}/apps/backend-e2e"
+    cmds:
+      - "{{.BIN}}/eslint ."

@@ -1,7 +1,11 @@
 version: "3"
 
+vars:
+  # `pnpm exec` finds no workspace package in apps/*, so the root binaries are called directly.
+  BIN: "{{.ROOT_DIR}}/node_modules/.bin"
+
 tasks:
-  limits:
+  generate:limits:
     desc: The limits of the validation directives of the Go schema, as constants (needs Go, so it runs on the host)
     dir: "{{.ROOT_DIR}}"
     sources:
@@ -13,9 +17,8 @@ tasks:
     cmds:
       - go run ./tools/gensdl -schema apps/backend/api -out apps/frontend/src/generated/limits.ts
 
-  generate:
-    desc: Typed React Query hooks from the GraphQL schema of the Go backend (run `task backend:generate` first, it writes api/ent.graphql), and the limits
-    deps: [limits]
+  generate:graphql-hooks:
+    desc: Typed React Query hooks from the GraphQL schema of the Go backend (run `task backend:generate` first, it writes api/ent.graphql)
     sources:
       - codegen.ts
       - src/**/*.graphql
@@ -23,47 +26,71 @@ tasks:
     generates:
       - src/generated/graphql.ts
     cmds:
-      - pnpm exec graphql-codegen --config codegen.ts
+      - "{{.BIN}}/graphql-codegen --config codegen.ts"
 
-  codegen:
-    desc: Alias of generate
-    cmds:
-      - task: generate
+  generate:
+    desc: Everything generated for the frontend (GraphQL hooks and the limits)
+    deps: [generate:limits, generate:graphql-hooks]
 
   serve:
     desc: Vite dev server
     cmds:
-      - pnpm exec vite --host=0.0.0.0 {{.CLI_ARGS}}
+      - "{{.BIN}}/vite --host=0.0.0.0 {{.CLI_ARGS}}"
 
   build:
     desc: Production build into dist/apps/frontend
-    deps: [generate]
+    deps: [generate, typecheck]
     cmds:
-      - pnpm exec vite build
+      - "{{.BIN}}/vite build"
 
   typecheck:
     deps: [generate]
+    desc: "Type checks the frontend code, it is needed since just building the project will not catch `const probe: number = 'Hi';`"
     cmds:
-      - pnpm exec tsc --noEmit -p tsconfig.app.json
+      - "{{.BIN}}/tsc --noEmit -p tsconfig.app.json"
 
   test:
     deps: [generate]
     cmds:
-      - pnpm exec vitest run --config vitest.config.ts {{.CLI_ARGS}}
+      - "{{.BIN}}/vitest run --config vitest.config.ts {{.CLI_ARGS}}"
 
   lint:
     cmds:
-      - pnpm exec eslint . --fix
+      - task: typecheck
+      - "{{.BIN}}/eslint . --fix"
 
   lint:check:
     cmds:
-      - pnpm exec eslint .
+      - task: typecheck
+      - "{{.BIN}}/eslint ."
 
   storybook:
     cmds:
-      - pnpm exec storybook dev -p 6006 {{.CLI_ARGS}}
+      - "{{.BIN}}/storybook dev -p 6006 {{.CLI_ARGS}}"
 
-  storybook:build:
+  build:storybook:
     deps: [generate]
     cmds:
-      - pnpm exec storybook build
+      - "{{.BIN}}/storybook build"
+
+  test:e2e:
+    desc: Start the e2e stack, run Cypress, tear the stack down
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - node apps/frontend-e2e/src/support/run-frontend-e2e.mjs apps/frontend-e2e
+
+  open:e2e:
+    desc: Cypress UI against a running `task dev:start`
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - "{{.BIN}}/cypress open --project apps/frontend-e2e"
+
+  lint:e2e:
+    dir: "{{.ROOT_DIR}}/apps/frontend-e2e"
+    cmds:
+      - "{{.BIN}}/eslint . --fix"
+
+  lint:check:e2e:
+    dir: "{{.ROOT_DIR}}/apps/frontend-e2e"
+    cmds:
+      - "{{.BIN}}/eslint ."

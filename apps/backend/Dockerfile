@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 COPY apps/backend ./apps/backend
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    task -t apps/backend/Taskfile.yml -d apps/backend codegen
+    task -t apps/backend/Taskfile.yml -d apps/backend generate:code
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     task -t apps/backend/Taskfile.yml -d apps/backend build
@@ -54,7 +54,7 @@ EXPOSE $PORT
 CMD ["server"]
 
 # ---- devdata ---------------------------------------------------------------
-# The Job that fills the database of the e2e stack; the development stack runs `task devdata` from the mounted sources instead. Not for production.
+# The Job that fills the database of the e2e stack; the development stack runs `task seed` from the mounted sources instead. Not for production.
 FROM alpine:3.23 AS devdata
 RUN adduser -D -u 10001 app
 ENV DATA_PATH=/data
