@@ -1,5 +1,5 @@
 name: Next version
-description: The version semantic-release will give the next release, or the current one when no release is due. The job must have checked out the full history and run npm ci.
+description: The version semantic-release will give the next release, or the current one when no release is due. The job must have checked out the full history and run pnpm install.
 
 outputs:
   version:
@@ -17,7 +17,7 @@ runs:
       shell: bash
       run: |
         # semantic-release checks push permission even in a dry run, which a pull request's read-only token does not have. The local checkout as repositoryUrl keeps it off the network; it has all the tags because the job fetched the full history.
-        log="$(npx semantic-release --dry-run --no-ci --repository-url "file://$GITHUB_WORKSPACE" 2>&1)" || { echo "$log"; exit 1; }
+        log="$(pnpm exec semantic-release --dry-run --no-ci --repository-url "file://$GITHUB_WORKSPACE" 2>&1)" || { echo "$log"; exit 1; }
         version="$(printf '%s\n' "$log" | sed -n 's/.*[Tt]he next release version is \([0-9][^ ]*\).*/\1/p' | tail -n 1)"
         released=true
         if [ -z "$version" ]; then

@@ -75,13 +75,13 @@ tasks:
     deps: [generate]
     cmds:
       - go run {{.GOLANGCI_LINT}} run --fix ./...
-      - npx eslint api --fix
+      - pnpm exec eslint api --fix
 
   lint:check:
     deps: [generate]
     cmds:
       - go run {{.GOLANGCI_LINT}} run ./...
-      - npx eslint api
+      - pnpm exec eslint api
 
   format:
     cmds:

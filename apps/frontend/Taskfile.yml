@@ -23,7 +23,7 @@ tasks:
     generates:
       - src/generated/graphql.ts
     cmds:
-      - npx graphql-codegen --config codegen.ts
+      - pnpm exec graphql-codegen --config codegen.ts
 
   codegen:
     desc: Alias of generate
@@ -33,37 +33,37 @@ tasks:
   serve:
     desc: Vite dev server
     cmds:
-      - npx vite --host=0.0.0.0 {{.CLI_ARGS}}
+      - pnpm exec vite --host=0.0.0.0 {{.CLI_ARGS}}
 
   build:
     desc: Production build into dist/apps/frontend
     deps: [generate]
     cmds:
-      - npx vite build
+      - pnpm exec vite build
 
   typecheck:
     deps: [generate]
     cmds:
-      - npx tsc --noEmit -p tsconfig.app.json
+      - pnpm exec tsc --noEmit -p tsconfig.app.json
 
   test:
     deps: [generate]
     cmds:
-      - npx vitest run --config vitest.config.ts {{.CLI_ARGS}}
+      - pnpm exec vitest run --config vitest.config.ts {{.CLI_ARGS}}
 
   lint:
     cmds:
-      - npx eslint . --fix
+      - pnpm exec eslint . --fix
 
   lint:check:
     cmds:
-      - npx eslint .
+      - pnpm exec eslint .
 
   storybook:
     cmds:
-      - npx storybook dev -p 6006 {{.CLI_ARGS}}
+      - pnpm exec storybook dev -p 6006 {{.CLI_ARGS}}
 
   storybook:build:
     deps: [generate]
     cmds:
-      - npx storybook build
+      - pnpm exec storybook build

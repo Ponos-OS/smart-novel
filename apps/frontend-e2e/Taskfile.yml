@@ -11,12 +11,12 @@ tasks:
     desc: Cypress UI against a running `task dev:start`
     dir: "{{.ROOT_DIR}}"
     cmds:
-      - npx cypress open --project apps/frontend-e2e
+      - pnpm exec cypress open --project apps/frontend-e2e
 
   lint:
     cmds:
-      - npx eslint . --fix
+      - pnpm exec eslint . --fix
 
   lint:check:
     cmds:
-      - npx eslint .
+      - pnpm exec eslint .

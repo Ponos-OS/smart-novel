@@ -16,7 +16,7 @@
     "fullstack",
     "typescript",
     "javascript",
-    "npm",
+    "pnpm",
     "nodejs",
     "vite",
     "reactjs",
@@ -41,12 +41,12 @@
       "version": ">=24.13"
     },
     "packageManager": {
-      "name": "npm",
+      "name": "pnpm",
       "onFail": "error",
-      "version": ">=11.6.2"
+      "version": ">=11.20.0"
     }
   },
-  "packageManager": "npm@11.10.1",
+  "packageManager": "pnpm@11.20.0",
   "engines": {
     "node": "v24.13.0"
   },

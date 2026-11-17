@@ -4,12 +4,12 @@ tasks:
   run:
     desc: Start the e2e stack, run the specs, tear the stack down
     cmds:
-      - npx vitest run --config vitest.config.ts {{.CLI_ARGS}}
+      - pnpm exec vitest run --config vitest.config.ts {{.CLI_ARGS}}
 
   lint:
     cmds:
-      - npx eslint . --fix
+      - pnpm exec eslint . --fix
 
   lint:check:
     cmds:
-      - npx eslint .
+      - pnpm exec eslint .

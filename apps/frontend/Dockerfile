@@ -3,7 +3,7 @@
 FROM node:24.13-alpine AS base
 RUN apk add --no-cache curl \
   && sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin v3.54.0
-RUN npm install -g npm@11.6.2
+RUN npm install -g pnpm@11.20.0
 WORKDIR /app
 ARG FRONTEND_PORT=4200
 ENV FRONTEND_PORT=$FRONTEND_PORT
@@ -26,20 +26,20 @@ ENV VITE_SERVICE_NAME=$VITE_SERVICE_NAME
 ARG VITE_SERVICE_VERSION
 ENV VITE_SERVICE_VERSION=$VITE_SERVICE_VERSION
 EXPOSE $FRONTEND_PORT
-COPY package*.json Taskfile.yml tsconfig*.json eslint.config.mjs ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml Taskfile.yml tsconfig*.json eslint.config.mjs ./
 
 FROM base AS development
 ENV NODE_ENV=development
 ENV CHOKIDAR_USEPOLLING=1
 ENV WATCHPACK_POLLING=true
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 CMD ["task", "frontend:serve"]
 
 FROM base AS builder
 COPY tsconfig.base.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
 COPY apps/frontend ./apps/frontend
-RUN npx vite build --config apps/frontend/vite.config.mts
+RUN pnpm exec vite build --config apps/frontend/vite.config.mts
 
 FROM nginx:alpine AS production
 COPY --from=builder /app/dist/apps/frontend /usr/share/nginx/html

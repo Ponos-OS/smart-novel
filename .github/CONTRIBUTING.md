@@ -27,7 +27,7 @@ FITHARA_LLM_API_KEY=sk-...
 `BEATRICE_DEFAULT_VOICE` must be one of `BEATRICE_TTS_VOICES`. Without `BEATRICE_LLM_BASE_URL` and `BEATRICE_TTS_BASE_URL`, `task dev:start` skips Beatrice and RabbitMQ.
 
 ```bash
-npm ci
+pnpm install --frozen-lockfile
 task dev:start
 ```
 
@@ -174,7 +174,7 @@ task backend-e2e:run
 
 ```bash
 task dev:start
-npx cypress open --project apps/frontend-e2e
+pnpm exec cypress open --project apps/frontend-e2e
 ```
 
 `task backend-e2e:run` and `task frontend-e2e:run` start their own cluster with the production images (`infra/scripts/start-dev.sh e2e`) and tear it down afterwards. They cannot run next to `task dev:start` (both use host port 8080), so run `task dev:stop` first.

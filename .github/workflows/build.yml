@@ -11,7 +11,8 @@ on:
       - "infra/**"
       - "local-setup/**"
       - "package.json"
-      - "package-lock.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
       - "tsconfig.base.json"
       - ".env.example"
       - "sonar-project.properties"
@@ -28,7 +29,8 @@ on:
       - "infra/**"
       - "local-setup/**"
       - "package.json"
-      - "package-lock.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
       - "tsconfig.base.json"
       - ".env.example"
       - "sonar-project.properties"
@@ -64,14 +66,19 @@ jobs:
         with:
           go-version-file: go.work
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.3.0
+        with:
+          version: 11.20.0
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24.13.0
-          cache: npm
+          cache: pnpm
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Next version
         id: version
@@ -141,14 +148,19 @@ jobs:
         with:
           go-version-file: go.work
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.3.0
+        with:
+          version: 11.20.0
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24.13.0
-          cache: npm
+          cache: pnpm
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Seed .env from .env.example
         run: cp .env.example .env
@@ -176,14 +188,19 @@ jobs:
         with:
           go-version-file: go.work
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.3.0
+        with:
+          version: 11.20.0
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24.13.0
-          cache: npm
+          cache: pnpm
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Seed .env from .env.example
         run: cp .env.example .env
@@ -216,14 +233,19 @@ jobs:
         with:
           go-version-file: go.work
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.3.0
+        with:
+          version: 11.20.0
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24.13.0
-          cache: npm
+          cache: pnpm
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Seed .env from .env.example
         run: cp .env.example .env

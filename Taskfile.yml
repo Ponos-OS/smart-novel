@@ -36,7 +36,7 @@ tasks:
       - task: backend-e2e:lint
       - task: frontend:lint
       - task: frontend-e2e:lint
-      - npx jscpd
+      - pnpm exec jscpd
 
   lint:check:
     desc: Lint every project without fixing
@@ -45,7 +45,7 @@ tasks:
       - task: backend-e2e:lint:check
       - task: frontend:lint:check
       - task: frontend-e2e:lint:check
-      - npx jscpd
+      - pnpm exec jscpd
 
   test:
     desc: Unit tests of every project
@@ -56,7 +56,7 @@ tasks:
   format:
     desc: Format the repository
     cmds:
-      - npx prettier . -w -u
+      - pnpm exec prettier . -w -u
       - task: backend:format
 
   clean:
@@ -72,12 +72,12 @@ tasks:
   format:check:
     desc: Check the formatting of the repository
     cmds:
-      - npx prettier . --check -u
+      - pnpm exec prettier . --check -u
 
   init:
     desc: Install the dependencies and seed .env from .env.example
     cmds:
-      - npm ci
+      - pnpm install --frozen-lockfile
       - cmd: cp --update=none .env.example .env
         ignore_error: true
 
