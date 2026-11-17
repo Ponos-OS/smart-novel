@@ -24,7 +24,11 @@ type Client struct {
 
 // Open makes the client and asks Redis once. It does not fail because Redis does not answer: the cache is only a shortcut and the database
 // answers without it, so that is logged and the client connects when Redis is back.
-func Open(ctx context.Context, cfg config.Redis, logger *slog.Logger) (*Client, error) {
+func Open(
+	ctx context.Context,
+	cfg config.Redis,
+	logger *slog.Logger,
+) (*Client, error) {
 	options, err := goredis.ParseURL(cfg.URL)
 	if err != nil {
 		return nil, fmt.Errorf("reading REDIS_URL: %w", err)
@@ -34,7 +38,11 @@ func Open(ctx context.Context, cfg config.Redis, logger *slog.Logger) (*Client, 
 	}
 	client := &Client{client: goredis.NewClient(options), logger: logger}
 	if pingErr := client.client.Ping(ctx).Err(); pingErr != nil {
-		logger.WarnContext(ctx, "Redis does not answer, the database answers instead", slog.Any(logKeyError, pingErr))
+		logger.WarnContext(
+			ctx,
+			"Redis does not answer, the database answers instead",
+			slog.Any(logKeyError, pingErr),
+		)
 	} else {
 		logger.InfoContext(ctx, "Redis connected")
 	}
@@ -45,7 +53,11 @@ func Open(ctx context.Context, cfg config.Redis, logger *slog.Logger) (*Client, 
 // Close disconnects; call it when the program ends.
 func (c *Client) Close(ctx context.Context) {
 	if err := c.client.Close(); err != nil {
-		c.logger.ErrorContext(ctx, "closing the Redis client", slog.Any(logKeyError, err))
+		c.logger.ErrorContext(
+			ctx,
+			"closing the Redis client",
+			slog.Any(logKeyError, err),
+		)
 
 		return
 	}
@@ -53,7 +65,10 @@ func (c *Client) Close(ctx context.Context) {
 }
 
 // Get reads a key; found is false when it is not there.
-func (c *Client) Get(ctx context.Context, key string) (value string, found bool, err error) {
+func (c *Client) Get(
+	ctx context.Context,
+	key string,
+) (value string, found bool, err error) {
 	value, err = c.client.Get(ctx, key).Result()
 	if errors.Is(err, goredis.Nil) {
 		return "", false, nil
@@ -63,7 +78,11 @@ func (c *Client) Get(ctx context.Context, key string) (value string, found bool,
 }
 
 // Set writes a key that Redis forgets after ttl; a ttl of zero keeps it.
-func (c *Client) Set(ctx context.Context, key, value string, ttl time.Duration) error {
+func (c *Client) Set(
+	ctx context.Context,
+	key, value string,
+	ttl time.Duration,
+) error {
 	return c.client.Set(ctx, key, value, ttl).Err()
 }
 
@@ -73,7 +92,11 @@ func (c *Client) Publish(ctx context.Context, channel, message string) error {
 }
 
 // Subscribe calls handle for every message of the channel until ctx ends. It returns once Redis has confirmed the subscription, so a message published afterwards is not missed; go-redis subscribes again by itself when the connection drops.
-func (c *Client) Subscribe(ctx context.Context, channel string, handle func(ctx context.Context, message string)) error {
+func (c *Client) Subscribe(
+	ctx context.Context,
+	channel string,
+	handle func(ctx context.Context, message string),
+) error {
 	subscription := c.client.Subscribe(ctx, channel)
 	if _, err := subscription.Receive(ctx); err != nil {
 		_ = subscription.Close() //nolint:errcheck // the subscription failed already, that is the error to report
@@ -100,7 +123,11 @@ func (c *Client) Subscribe(ctx context.Context, channel string, handle func(ctx 
 }
 
 // TryLock takes the lock on key for at most ttl unless somebody holds it, and returns the token to give back to Unlock. acquired is false when the lock is held.
-func (c *Client) TryLock(ctx context.Context, key string, ttl time.Duration) (token string, acquired bool, err error) {
+func (c *Client) TryLock(
+	ctx context.Context,
+	key string,
+	ttl time.Duration,
+) (token string, acquired bool, err error) {
 	token = uuid.NewString()
 	acquired, err = c.client.SetNX(ctx, key, token, ttl).Result()
 
@@ -120,7 +147,11 @@ func (c *Client) Unlock(ctx context.Context, key, token string) error {
 }
 
 // SetIfAbsent writes a key unless it is there, and reports whether it did.
-func (c *Client) SetIfAbsent(ctx context.Context, key, value string, ttl time.Duration) (bool, error) {
+func (c *Client) SetIfAbsent(
+	ctx context.Context,
+	key, value string,
+	ttl time.Duration,
+) (bool, error) {
 	return c.client.SetNX(ctx, key, value, ttl).Result()
 }
 
@@ -134,8 +165,14 @@ redis.call("SET", KEYS[1], ARGV[1], "PX", ARGV[2])
 return 1`)
 
 // RaiseTo keeps the greatest number a key was given, for ttl after the last raise, and reports whether value is greater than what was there.
-func (c *Client) RaiseTo(ctx context.Context, key string, value int, ttl time.Duration) (bool, error) {
-	raised, err := raiseScript.Run(ctx, c.client, []string{key}, value, ttl.Milliseconds()).Int()
+func (c *Client) RaiseTo(
+	ctx context.Context,
+	key string,
+	value int,
+	ttl time.Duration,
+) (bool, error) {
+	raised, err := raiseScript.Run(ctx, c.client, []string{key}, value, ttl.Milliseconds()).
+		Int()
 
 	return raised == 1, err
 }
@@ -149,8 +186,12 @@ end
 return 0`)
 
 // Swap replaces the value of a key that still holds old, and reports whether it did; the expiry is kept.
-func (c *Client) Swap(ctx context.Context, key, oldValue, newValue string) (bool, error) {
-	swapped, err := swapScript.Run(ctx, c.client, []string{key}, oldValue, newValue).Int()
+func (c *Client) Swap(
+	ctx context.Context,
+	key, oldValue, newValue string,
+) (bool, error) {
+	swapped, err := swapScript.Run(ctx, c.client, []string{key}, oldValue, newValue).
+		Int()
 
 	return swapped == 1, err
 }

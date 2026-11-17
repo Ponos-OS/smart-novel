@@ -17,7 +17,10 @@ type fakeVerifier struct {
 	tokens []string
 }
 
-func (f *fakeVerifier) Verify(_ context.Context, token string) (auth.Viewer, error) {
+func (f *fakeVerifier) Verify(
+	_ context.Context,
+	token string,
+) (auth.Viewer, error) {
 	f.tokens = append(f.tokens, token)
 
 	return f.viewer, f.err
@@ -33,20 +36,72 @@ func TestMiddleware(t *testing.T) {
 		wantViewer bool
 		wantError  string
 	}{
-		{"no header", "", &fakeVerifier{viewer: writer}, nil, false, "Missing Bearer token in Authorization header"},
-		{"not a bearer token", "Basic dXNlcjpwYXNz", &fakeVerifier{viewer: writer}, nil, false, "Missing Bearer token in Authorization header"},
-		{"empty bearer token", "Bearer  ", &fakeVerifier{viewer: writer}, nil, false, "Missing Bearer token in Authorization header"},
-		{"valid token", "Bearer eyJhbGciOiJSUzI1NiJ9.e30.sig", &fakeVerifier{viewer: writer}, []string{"eyJhbGciOiJSUzI1NiJ9.e30.sig"}, true, ""},
-		{"lowercase scheme", "bearer eyJhbGciOiJSUzI1NiJ9.e30.sig", &fakeVerifier{viewer: writer}, []string{"eyJhbGciOiJSUzI1NiJ9.e30.sig"}, true, ""},
-		{"rejected token", "Bearer eyJhbGciOiJSUzI1NiJ9.e30.sig", &fakeVerifier{err: errors.New("token expired")}, []string{"eyJhbGciOiJSUzI1NiJ9.e30.sig"}, false, "Invalid or expired token"},
+		{
+			"no header",
+			"",
+			&fakeVerifier{viewer: writer},
+			nil,
+			false,
+			"Missing Bearer token in Authorization header",
+		},
+		{
+			"not a bearer token",
+			"Basic dXNlcjpwYXNz",
+			&fakeVerifier{viewer: writer},
+			nil,
+			false,
+			"Missing Bearer token in Authorization header",
+		},
+		{
+			"empty bearer token",
+			"Bearer  ",
+			&fakeVerifier{viewer: writer},
+			nil,
+			false,
+			"Missing Bearer token in Authorization header",
+		},
+		{
+			"valid token",
+			"Bearer eyJhbGciOiJSUzI1NiJ9.e30.sig",
+			&fakeVerifier{viewer: writer},
+			[]string{"eyJhbGciOiJSUzI1NiJ9.e30.sig"},
+			true,
+			"",
+		},
+		{
+			"lowercase scheme",
+			"bearer eyJhbGciOiJSUzI1NiJ9.e30.sig",
+			&fakeVerifier{viewer: writer},
+			[]string{"eyJhbGciOiJSUzI1NiJ9.e30.sig"},
+			true,
+			"",
+		},
+		{
+			"rejected token",
+			"Bearer eyJhbGciOiJSUzI1NiJ9.e30.sig",
+			&fakeVerifier{err: errors.New("token expired")},
+			[]string{"eyJhbGciOiJSUzI1NiJ9.e30.sig"},
+			false,
+			"Invalid or expired token",
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			var seen context.Context
-			handler := auth.Middleware(c.verifier, slog.New(slog.DiscardHandler))(
-				http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) { seen = r.Context() }),
+			handler := auth.Middleware(
+				c.verifier,
+				slog.New(slog.DiscardHandler),
+			)(
+				http.HandlerFunc(
+					func(_ http.ResponseWriter, r *http.Request) { seen = r.Context() },
+				),
 			)
-			request := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/graphql", nil)
+			request := httptest.NewRequestWithContext(
+				t.Context(),
+				http.MethodPost,
+				"/graphql",
+				nil,
+			)
 			if c.header != "" {
 				request.Header.Set("Authorization", c.header)
 			}
@@ -55,10 +110,18 @@ func TestMiddleware(t *testing.T) {
 
 			_, hasViewer := auth.ViewerFrom(seen)
 			_, err := auth.Require(seen)
-			if hasViewer != c.wantViewer || len(c.verifier.tokens) != len(c.wantTokens) {
-				t.Errorf("viewer = %v, verified %v, want viewer %v and tokens %v", hasViewer, c.verifier.tokens, c.wantViewer, c.wantTokens)
+			if hasViewer != c.wantViewer ||
+				len(c.verifier.tokens) != len(c.wantTokens) {
+				t.Errorf(
+					"viewer = %v, verified %v, want viewer %v and tokens %v",
+					hasViewer,
+					c.verifier.tokens,
+					c.wantViewer,
+					c.wantTokens,
+				)
 			}
-			if (err == nil) != c.wantViewer || (err != nil && err.Error() != c.wantError) {
+			if (err == nil) != c.wantViewer ||
+				(err != nil && err.Error() != c.wantError) {
 				t.Errorf("Require error = %v, want %q", err, c.wantError)
 			}
 		})

@@ -53,6 +53,8 @@ func (ChapterContent) Indexes() []ent.Index {
 
 func (ChapterContent) Annotations() []schema.Annotation {
 	return []schema.Annotation{
-		entgql.Skip(entgql.SkipAll), // No separate ChapterContent type so our Chapter.content and Chapter.contentUpdatedAt can have their custom field resolver
+		entgql.Skip(
+			entgql.SkipAll,
+		), // No separate ChapterContent type so our Chapter.content and Chapter.contentUpdatedAt can have their custom field resolver
 	}
 }

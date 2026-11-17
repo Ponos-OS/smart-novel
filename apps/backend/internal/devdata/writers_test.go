@@ -28,7 +28,11 @@ func TestParseWritersRefuses(t *testing.T) {
 		{"unset", "  ", "is not set"},
 		{"not JSON", "writer", "not a valid JSON array"},
 		{"empty", "[]", "non-empty JSON array"},
-		{"a missing field", `[{"userId":"1","name":"A","email":"a@x.io"}]`, "SEEDED_WRITERS[0].penName"},
+		{
+			"a missing field",
+			`[{"userId":"1","name":"A","email":"a@x.io"}]`,
+			"SEEDED_WRITERS[0].penName",
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

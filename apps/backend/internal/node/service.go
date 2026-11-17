@@ -21,7 +21,11 @@ func NewService(client *ent.Client) *Service {
 }
 
 // Get returns the entity with the ID, or nil.
-func (s *Service) Get(ctx context.Context, viewer auth.Viewer, id uuid.UUID) (ent.Noder, error) {
+func (s *Service) Get(
+	ctx context.Context,
+	viewer auth.Viewer,
+	id uuid.UUID,
+) (ent.Noder, error) {
 	nodes, err := s.Nodes(ctx, viewer, []uuid.UUID{id})
 	if err != nil {
 		return nil, err
@@ -31,7 +35,11 @@ func (s *Service) Get(ctx context.Context, viewer auth.Viewer, id uuid.UUID) (en
 }
 
 // Nodes returns the entities of the IDs in the order of the IDs, nil for each one that is unknown or hidden from the viewer.
-func (s *Service) Nodes(ctx context.Context, viewer auth.Viewer, ids []uuid.UUID) ([]ent.Noder, error) {
+func (s *Service) Nodes(
+	ctx context.Context,
+	viewer auth.Viewer,
+	ids []uuid.UUID,
+) ([]ent.Noder, error) {
 	nodes := make([]ent.Noder, len(ids))
 	tables, err := s.repo.tablesOf(ctx, ids)
 	if err != nil {
@@ -55,7 +63,8 @@ func (s *Service) Nodes(ctx context.Context, viewer auth.Viewer, ids []uuid.UUID
 func canSee(viewer auth.Viewer, node ent.Noder) bool {
 	switch node := node.(type) {
 	case *ent.License:
-		return !node.IsDraft || viewer.IsAdmin() || node.OwnerID == viewer.Subject
+		return !node.IsDraft || viewer.IsAdmin() ||
+			node.OwnerID == viewer.Subject
 	case *ent.Tag:
 		return node.Status == tag.StatusAPPROVED || viewer.IsAdmin()
 	case *ent.Writer:

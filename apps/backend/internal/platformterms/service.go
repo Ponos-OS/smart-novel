@@ -26,22 +26,36 @@ type Service struct {
 	logger *slog.Logger
 }
 
-func NewService(client *ent.Client, terms model.PlatformTerms, cache *redis.Client, logger *slog.Logger) *Service {
-	return &Service{terms: terms, repo: newRepository(client), cache: cache, logger: logger}
+func NewService(
+	client *ent.Client,
+	terms model.PlatformTerms,
+	cache *redis.Client,
+	logger *slog.Logger,
+) *Service {
+	return &Service{
+		terms:  terms,
+		repo:   newRepository(client),
+		cache:  cache,
+		logger: logger,
+	}
 }
 
 func (s *Service) Current() model.PlatformTerms {
 	return s.terms
 }
 
-func (s *Service) Status(ctx context.Context, userID string) (model.PlatformTermsStatus, error) {
+func (s *Service) Status(
+	ctx context.Context,
+	userID string,
+) (model.PlatformTermsStatus, error) {
 	acceptances, err := s.repo.acceptances(ctx, userID)
 	if err != nil {
 		return model.PlatformTermsStatus{}, err
 	}
 	status := model.PlatformTermsStatus{RequiredVersion: s.terms.Version}
 	for _, acceptance := range acceptances {
-		if status.AcceptedVersion == nil || acceptance.TermsVersion > *status.AcceptedVersion {
+		if status.AcceptedVersion == nil ||
+			acceptance.TermsVersion > *status.AcceptedVersion {
 			version := acceptance.TermsVersion
 			status.AcceptedVersion = &version
 		}
@@ -56,10 +70,18 @@ func (s *Service) Status(ctx context.Context, userID string) (model.PlatformTerm
 }
 
 // HasAcceptedCurrent is what the guard of the writer mutations asks. A Redis that fails is logged and the database answers.
-func (s *Service) HasAcceptedCurrent(ctx context.Context, userID string) (bool, error) {
+func (s *Service) HasAcceptedCurrent(
+	ctx context.Context,
+	userID string,
+) (bool, error) {
 	key := s.cacheKey(userID)
 	if _, found, err := s.cache.Get(ctx, key); err != nil {
-		s.logger.WarnContext(ctx, "reading the acceptance of the platform terms from Redis", slog.String(logKeyKey, key), slog.Any(logKeyError, err))
+		s.logger.WarnContext(
+			ctx,
+			"reading the acceptance of the platform terms from Redis",
+			slog.String(logKeyKey, key),
+			slog.Any(logKeyError, err),
+		)
 	} else if found {
 		return true, nil
 	}
@@ -78,15 +100,30 @@ func (s *Service) cacheKey(userID string) string {
 
 func (s *Service) remember(ctx context.Context, key string) {
 	if err := s.cache.Set(ctx, key, "1", acceptedTTL); err != nil {
-		s.logger.WarnContext(ctx, "caching the acceptance of the platform terms in Redis", slog.String(logKeyKey, key), slog.Any(logKeyError, err))
+		s.logger.WarnContext(
+			ctx,
+			"caching the acceptance of the platform terms in Redis",
+			slog.String(logKeyKey, key),
+			slog.Any(logKeyError, err),
+		)
 	}
 }
 
 // Accept records the acceptance of the current version; any other version is refused, and accepting twice changes nothing.
-func (s *Service) Accept(ctx context.Context, userID string, version int) (model.PlatformTermsStatus, error) {
+func (s *Service) Accept(
+	ctx context.Context,
+	userID string,
+	version int,
+) (model.PlatformTermsStatus, error) {
 	if version != s.terms.Version {
-		return model.PlatformTermsStatus{}, apperr.WithCode(apperr.CodePlatformTermsVersionMismatch,
-			fmt.Sprintf("The platform terms are at version %d, not %d. Reload them before accepting.", s.terms.Version, version))
+		return model.PlatformTermsStatus{}, apperr.WithCode(
+			apperr.CodePlatformTermsVersionMismatch,
+			fmt.Sprintf(
+				"The platform terms are at version %d, not %d. Reload them before accepting.",
+				s.terms.Version,
+				version,
+			),
+		)
 	}
 	if err := s.repo.accept(ctx, userID, version); err != nil {
 		return model.PlatformTermsStatus{}, err
@@ -98,5 +135,8 @@ func (s *Service) Accept(ctx context.Context, userID string, version int) (model
 
 // NotAccepted is the error for a writer who has not accepted the current terms.
 func NotAccepted() error {
-	return apperr.WithCode(apperr.CodePlatformTermsNotAccepted, "You must accept the current platform terms first")
+	return apperr.WithCode(
+		apperr.CodePlatformTermsNotAccepted,
+		"You must accept the current platform terms first",
+	)
 }

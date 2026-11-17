@@ -100,5 +100,8 @@ func (c *Checker) Err() error {
 }
 
 func (c *Checker) add(field, rule string, params map[string]any) {
-	c.violations = append(c.violations, Violation{Field: field, Rule: rule, Params: params})
+	c.violations = append(
+		c.violations,
+		Violation{Field: field, Rule: rule, Params: params},
+	)
 }

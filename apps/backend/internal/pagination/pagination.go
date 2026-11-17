@@ -13,7 +13,10 @@ type Size struct {
 
 // Bound returns first and last with the defaults applied. Without either, the page would be every row, so first is set to the default;
 // an oversized or empty page is refused instead of silently cut.
-func Bound(first, last *int, size Size) (boundedFirst, boundedLast *int, err error) {
+func Bound(
+	first, last *int,
+	size Size,
+) (boundedFirst, boundedLast *int, err error) {
 	var check validation.Checker
 	if first != nil {
 		check.AtLeast("first", *first, 1)

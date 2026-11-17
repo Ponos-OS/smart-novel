@@ -26,11 +26,16 @@ type notice struct {
 const subscriberBuffer = 16
 
 // Subscribe returns the events of the narration of a chapter, as this replica hears them, until ctx ends.
-func (s *Service) Subscribe(ctx context.Context, chapterID uuid.UUID) <-chan *model.ChapterNarrationEvent {
+func (s *Service) Subscribe(
+	ctx context.Context,
+	chapterID uuid.UUID,
+) <-chan *model.ChapterNarrationEvent {
 	events := make(chan *model.ChapterNarrationEvent, subscriberBuffer)
 	s.mutex.Lock()
 	if s.subscribers[chapterID] == nil {
-		s.subscribers[chapterID] = make(map[chan *model.ChapterNarrationEvent]struct{})
+		s.subscribers[chapterID] = make(
+			map[chan *model.ChapterNarrationEvent]struct{},
+		)
 	}
 	s.subscribers[chapterID][events] = struct{}{}
 	s.mutex.Unlock()
@@ -50,59 +55,115 @@ func (s *Service) Subscribe(ctx context.Context, chapterID uuid.UUID) <-chan *mo
 }
 
 // deliver hands an event to the subscribers of this replica.
-func (s *Service) deliver(ctx context.Context, chapterID uuid.UUID, event *model.ChapterNarrationEvent) {
+func (s *Service) deliver(
+	ctx context.Context,
+	chapterID uuid.UUID,
+	event *model.ChapterNarrationEvent,
+) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	for events := range s.subscribers[chapterID] {
 		select {
 		case events <- event:
 		default:
-			s.logger.WarnContext(ctx, "a subscriber is too slow, it misses an update", slog.String(logKeyChapterID, chapterID.String()))
+			s.logger.WarnContext(
+				ctx,
+				"a subscriber is too slow, it misses an update",
+				slog.String(logKeyChapterID, chapterID.String()),
+			)
 		}
 	}
 }
 
 // report tells the subscribers of the chapter what an update of Beatrice means. A job that ended well is reported only once its audio address is kept, and a failure only once the chapter is marked, so a subscriber never hears what the chapter does not have. The error is for what could not be kept.
-func (s *Service) report(ctx context.Context, chapterID uuid.UUID, update ttscallbacks.Update) error {
+func (s *Service) report(
+	ctx context.Context,
+	chapterID uuid.UUID,
+	update ttscallbacks.Update,
+) error {
 	switch update.Status {
 	case statusCompleted:
 		url, kept, err := s.keepAudio(ctx, chapterID, update.JobID)
 		if err != nil || !kept {
 			return err
 		}
-		s.announce(ctx, chapterID, &model.ChapterNarrationEvent{Status: entchapter.NarrationStatusREADY, NarrationURL: &url})
+		s.announce(
+			ctx,
+			chapterID,
+			&model.ChapterNarrationEvent{
+				Status:       entchapter.NarrationStatusREADY,
+				NarrationURL: &url,
+			},
+		)
 	case statusFailed:
-		s.logger.ErrorContext(ctx, "Beatrice could not narrate a chapter", slog.String(logKeyChapterID, chapterID.String()), slog.String(logKeyJobID, update.JobID), slog.String(logKeyFailure, failure(update)))
+		s.logger.ErrorContext(
+			ctx,
+			"Beatrice could not narrate a chapter",
+			slog.String(logKeyChapterID, chapterID.String()),
+			slog.String(logKeyJobID, update.JobID),
+			slog.String(logKeyFailure, failure(update)),
+		)
 		started, err := s.startedFor(ctx, chapterID, update.JobID)
 		if err != nil || !started {
 			return err
 		}
-		if err = s.repo.setStatus(ctx, chapterID, entchapter.NarrationStatusFAILED); err != nil {
+		if err = s.repo.setStatus(
+			ctx,
+			chapterID,
+			entchapter.NarrationStatusFAILED,
+		); err != nil {
 			return fmt.Errorf("marking a chapter as not narrated: %w", err)
 		}
-		s.announce(ctx, chapterID, &model.ChapterNarrationEvent{Status: entchapter.NarrationStatusFAILED, Error: errorOf(update)})
+		s.announce(
+			ctx,
+			chapterID,
+			&model.ChapterNarrationEvent{
+				Status: entchapter.NarrationStatusFAILED,
+				Error:  errorOf(update),
+			},
+		)
 	default:
-		s.announce(ctx, chapterID, &model.ChapterNarrationEvent{Status: entchapter.NarrationStatusPROCESSING, Stage: &update.Status})
+		s.announce(
+			ctx,
+			chapterID,
+			&model.ChapterNarrationEvent{
+				Status: entchapter.NarrationStatusPROCESSING,
+				Stage:  &update.Status,
+			},
+		)
 	}
 
 	return nil
 }
 
 // announce tells every replica, which hand the event to the subscribers they hold. Redis keeps nothing for who is not subscribed at that moment, and the update is handled already (its audio address kept, its lock released), so a failure is logged and nothing more. Only the audio address is stored, so a subscriber that missed an event can read that back from the chapter, not a stage or a failure.
-func (s *Service) announce(ctx context.Context, chapterID uuid.UUID, event *model.ChapterNarrationEvent) {
+func (s *Service) announce(
+	ctx context.Context,
+	chapterID uuid.UUID,
+	event *model.ChapterNarrationEvent,
+) {
 	message, err := json.Marshal(notice{ChapterID: chapterID, Event: *event})
 	if err == nil {
 		err = s.cache.Publish(ctx, eventsChannel, string(message))
 	}
 	if err != nil {
-		s.logger.WarnContext(ctx, "announcing a narration event", slog.String(logKeyChapterID, chapterID.String()), slog.Any(logKeyError, err))
+		s.logger.WarnContext(
+			ctx,
+			"announcing a narration event",
+			slog.String(logKeyChapterID, chapterID.String()),
+			slog.Any(logKeyError, err),
+		)
 	}
 }
 
 func (s *Service) hear(ctx context.Context, message string) {
 	var heard notice
 	if err := json.Unmarshal([]byte(message), &heard); err != nil {
-		s.logger.WarnContext(ctx, "a narration event is not valid", slog.Any(logKeyError, err))
+		s.logger.WarnContext(
+			ctx,
+			"a narration event is not valid",
+			slog.Any(logKeyError, err),
+		)
 
 		return
 	}

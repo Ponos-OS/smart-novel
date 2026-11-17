@@ -26,7 +26,9 @@ type License struct {
 func (License) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		uuidID{},
-		timestamps{inAPI: true}, // Adds the timestamps fields to the GraphQL API for License, orderable by both
+		timestamps{
+			inAPI: true,
+		}, // Adds the timestamps fields to the GraphQL API for License, orderable by both
 	}
 }
 
@@ -70,7 +72,10 @@ func (License) Fields() []ent.Field {
 }
 
 func (License) Edges() []ent.Edge {
-	return []ent.Edge{edge.To("novels", Novel.Type).Annotations(entsql.OnDelete(entsql.Restrict), entgql.Skip(entgql.SkipAll))}
+	return []ent.Edge{
+		edge.To("novels", Novel.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict), entgql.Skip(entgql.SkipAll)),
+	}
 }
 
 func (License) Indexes() []ent.Index {

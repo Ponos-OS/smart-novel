@@ -15,10 +15,12 @@ import (
 // forceResolver is gqlgen's own `@goField(forceResolver: true)` directive: gqlgen calls a resolver we write (internal/graph) for the field, instead of reading
 // the struct field or calling ent's generated method. That is the only place to fill in defaults, sanitize or compute at the boundary for a generated field.
 // The argument name is gqlgen's, not ours: it must stay `forceResolver`.
-var forceResolver = entgql.Directives(entgql.NewDirective("goField", &ast.Argument{
-	Name:  "forceResolver",
-	Value: &ast.Value{Raw: "true", Kind: ast.BooleanValue},
-}))
+var forceResolver = entgql.Directives(
+	entgql.NewDirective("goField", &ast.Argument{
+		Name:  "forceResolver",
+		Value: &ast.Value{Raw: "true", Kind: ast.BooleanValue},
+	}),
+)
 
 type Novel struct {
 	ent.Schema

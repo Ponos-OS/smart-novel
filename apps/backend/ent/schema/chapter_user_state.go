@@ -66,6 +66,8 @@ func (ChapterUserState) Indexes() []ent.Index {
 
 func (ChapterUserState) Annotations() []schema.Annotation {
 	return []schema.Annotation{
-		entgql.Skip(entgql.SkipAll), // Instead of exposing this I Have ChapterViewerState in mt GraphQL API
+		entgql.Skip(
+			entgql.SkipAll,
+		), // Instead of exposing this I Have ChapterViewerState in mt GraphQL API
 	}
 }

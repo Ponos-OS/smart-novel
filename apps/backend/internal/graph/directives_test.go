@@ -16,10 +16,15 @@ func returning(value any) graphql.Resolver {
 	return func(context.Context) (any, error) { return value, nil }
 }
 
-func isString(t *testing.T, value any, multiline, allowEmpty bool) (any, error) {
+func isString(
+	t *testing.T,
+	value any,
+	multiline, allowEmpty bool,
+) (any, error) {
 	t.Helper()
 
-	return graph.Directives().IsString(t.Context(), nil, returning(value), multiline, allowEmpty, nil)
+	return graph.Directives().
+		IsString(t.Context(), nil, returning(value), multiline, allowEmpty, nil)
 }
 
 func TestIsStringCleans(t *testing.T) {
@@ -29,8 +34,18 @@ func TestIsStringCleans(t *testing.T) {
 		value     string
 		want      string
 	}{
-		{"a name is one line", false, "  The   Dry\n Sea\u200b ", "The Dry Sea"},
-		{"a chapter keeps its line breaks", true, "\r\n# The Dry Sea\r\n\r\nText.\n", "# The Dry Sea\n\nText."},
+		{
+			"a name is one line",
+			false,
+			"  The   Dry\n Sea\u200b ",
+			"The Dry Sea",
+		},
+		{
+			"a chapter keeps its line breaks",
+			true,
+			"\r\n# The Dry Sea\r\n\r\nText.\n",
+			"# The Dry Sea\n\nText.",
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -59,10 +74,17 @@ func TestIsStringOnAnOptionalValue(t *testing.T) {
 }
 
 func TestIsStringOnAList(t *testing.T) {
-	list, err := isString(t, []string{"  slice \t of life ", "epic"}, false, false)
+	list, err := isString(
+		t,
+		[]string{"  slice \t of life ", "epic"},
+		false,
+		false,
+	)
 	_, blankItemErr := isString(t, []string{"epic", " "}, false, false)
 
-	if got, ok := list.([]string); err != nil || !ok || len(got) != 2 || got[0] != "slice of life" || got[1] != "epic" {
+	if got, ok := list.([]string); err != nil || !ok || len(got) != 2 ||
+		got[0] != "slice of life" ||
+		got[1] != "epic" {
 		t.Errorf("list = %v, err = %v", list, err)
 	}
 	if blankItemErr == nil {
@@ -75,10 +97,19 @@ func TestIsStringKeepsAbsentAndEmptyListsApart(t *testing.T) {
 	empty, emptyErr := isString(t, []string{}, false, false)
 
 	if got, ok := absent.([]string); absentErr != nil || !ok || got != nil {
-		t.Errorf("absent = %#v, err = %v, want nil, since nil keeps the tags of a novel", absent, absentErr)
+		t.Errorf(
+			"absent = %#v, err = %v, want nil, since nil keeps the tags of a novel",
+			absent,
+			absentErr,
+		)
 	}
-	if got, ok := empty.([]string); emptyErr != nil || !ok || got == nil || len(got) != 0 {
-		t.Errorf("empty = %#v, err = %v, want empty, since empty removes the tags", empty, emptyErr)
+	if got, ok := empty.([]string); emptyErr != nil || !ok || got == nil ||
+		len(got) != 0 {
+		t.Errorf(
+			"empty = %#v, err = %v, want empty, since empty removes the tags",
+			empty,
+			emptyErr,
+		)
 	}
 }
 
@@ -89,7 +120,8 @@ func TestIsStringRefusesNUL(t *testing.T) {
 			_, err := isString(t, value, false, true)
 
 			var coded interface{ Code() string }
-			if !errors.As(err, &coded) || coded.Code() != apperr.CodeBadRequest {
+			if !errors.As(err, &coded) ||
+				coded.Code() != apperr.CodeBadRequest {
 				t.Errorf("err = %v, want a bad request", err)
 			}
 		})
@@ -133,7 +165,8 @@ func TestMaxLengthDirective(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			_, err := graph.Directives().MaxLength(t.Context(), nil, returning(c.value), 5, nil)
+			_, err := graph.Directives().
+				MaxLength(t.Context(), nil, returning(c.value), 5, nil)
 
 			if (err != nil) != c.invalid {
 				t.Errorf("err = %v, want invalid = %v", err, c.invalid)
@@ -155,7 +188,8 @@ func TestMaxSizeDirective(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			_, err := graph.Directives().MaxSize(t.Context(), nil, returning(c.value), 2)
+			_, err := graph.Directives().
+				MaxSize(t.Context(), nil, returning(c.value), 2)
 
 			if (err != nil) != c.invalid {
 				t.Errorf("err = %v, want invalid = %v", err, c.invalid)
@@ -176,7 +210,8 @@ func TestMinLengthDirective(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			_, err := graph.Directives().MinLength(t.Context(), nil, returning(c.value), 3, nil)
+			_, err := graph.Directives().
+				MinLength(t.Context(), nil, returning(c.value), 3, nil)
 
 			if (err != nil) != c.invalid {
 				t.Errorf("err = %v, want invalid = %v", err, c.invalid)
@@ -199,7 +234,8 @@ func TestPatternDirective(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			_, err := graph.Directives().Pattern(t.Context(), nil, returning(c.value), "^[A-Za-z_-]+$", nil)
+			_, err := graph.Directives().
+				Pattern(t.Context(), nil, returning(c.value), "^[A-Za-z_-]+$", nil)
 
 			if (err != nil) != c.invalid {
 				t.Errorf("err = %v, want invalid = %v", err, c.invalid)
@@ -209,7 +245,8 @@ func TestPatternDirective(t *testing.T) {
 }
 
 func TestPatternDirectiveRefusesAnExpressionItCannotCompile(t *testing.T) {
-	_, err := graph.Directives().Pattern(t.Context(), nil, returning("Mina"), "^(Mina", nil)
+	_, err := graph.Directives().
+		Pattern(t.Context(), nil, returning("Mina"), "^(Mina", nil)
 
 	if err == nil {
 		t.Error("err = nil, want the invalid expression reported")
@@ -224,19 +261,44 @@ func TestValidationDirectivesAnswerWithTheMessageTheSchemaGives(t *testing.T) {
 		run  func() error
 	}{
 		{"isString", func() error {
-			_, err := directives.IsString(t.Context(), nil, returning(" "), false, false, &message)
+			_, err := directives.IsString(
+				t.Context(),
+				nil,
+				returning(" "),
+				false,
+				false,
+				&message,
+			)
 			return err
 		}},
 		{"minLength", func() error {
-			_, err := directives.MinLength(t.Context(), nil, returning("ab"), 3, &message)
+			_, err := directives.MinLength(
+				t.Context(),
+				nil,
+				returning("ab"),
+				3,
+				&message,
+			)
 			return err
 		}},
 		{"maxLength", func() error {
-			_, err := directives.MaxLength(t.Context(), nil, returning("abcd"), 3, &message)
+			_, err := directives.MaxLength(
+				t.Context(),
+				nil,
+				returning("abcd"),
+				3,
+				&message,
+			)
 			return err
 		}},
 		{"pattern", func() error {
-			_, err := directives.Pattern(t.Context(), nil, returning("a1"), "^[a-z]+$", &message)
+			_, err := directives.Pattern(
+				t.Context(),
+				nil,
+				returning("a1"),
+				"^[a-z]+$",
+				&message,
+			)
 			return err
 		}},
 	}
@@ -245,7 +307,9 @@ func TestValidationDirectivesAnswerWithTheMessageTheSchemaGives(t *testing.T) {
 			err := c.run()
 
 			var coded interface{ Code() string }
-			if err == nil || err.Error() != message || !errors.As(err, &coded) || coded.Code() != apperr.CodeBadRequest {
+			if err == nil || err.Error() != message ||
+				!errors.As(err, &coded) ||
+				coded.Code() != apperr.CodeBadRequest {
 				t.Errorf("err = %v, want a BAD_REQUEST saying %q", err, message)
 			}
 		})
@@ -253,7 +317,8 @@ func TestValidationDirectivesAnswerWithTheMessageTheSchemaGives(t *testing.T) {
 }
 
 func TestOnlyTheseMutationsSkipTheTermsOfServiceCheck(t *testing.T) {
-	schema := graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}, Directives: graph.Directives()}).Schema()
+	schema := graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}, Directives: graph.Directives()}).
+		Schema()
 	var skipping []string
 
 	for _, field := range schema.Mutation.Fields {
@@ -263,8 +328,18 @@ func TestOnlyTheseMutationsSkipTheTermsOfServiceCheck(t *testing.T) {
 	}
 
 	slices.Sort(skipping)
-	want := []string{"acceptPlatformTerms", "deleteReadHistory", "explain", "markChaptersRead", "requestWriterAccess"}
+	want := []string{
+		"acceptPlatformTerms",
+		"deleteReadHistory",
+		"explain",
+		"markChaptersRead",
+		"requestWriterAccess",
+	}
 	if !slices.Equal(skipping, want) {
-		t.Errorf("mutations that skip the terms check = %v, want %v: every other mutation needs the terms accepted", skipping, want)
+		t.Errorf(
+			"mutations that skip the terms check = %v, want %v: every other mutation needs the terms accepted",
+			skipping,
+			want,
+		)
 	}
 }

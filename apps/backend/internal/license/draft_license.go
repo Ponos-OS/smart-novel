@@ -13,8 +13,14 @@ import (
 )
 
 // Assist sends one message to Fithara.
-func (s *Service) Assist(ctx context.Context, request model.DraftLicenseInput) (*model.LicenseAssistantTurn, error) {
-	response, err := s.fitharaClient.DraftV1DraftPostWithResponse(ctx, toFitharaRequest(request))
+func (s *Service) Assist(
+	ctx context.Context,
+	request model.DraftLicenseInput,
+) (*model.LicenseAssistantTurn, error) {
+	response, err := s.fitharaClient.DraftV1DraftPostWithResponse(
+		ctx,
+		toFitharaRequest(request),
+	)
 	if err != nil {
 		return nil, s.assistantUnavailable(ctx, err)
 	}
@@ -27,29 +33,54 @@ func (s *Service) Assist(ctx context.Context, request model.DraftLicenseInput) (
 
 // assistantError turns what Fithara refused with into the error of the client; its own failures (the model down, a bad model answer) are all
 // unavailable for the caller.
-func (s *Service) assistantError(ctx context.Context, response *fithara.DraftV1DraftPostResponse) error {
+func (s *Service) assistantError(
+	ctx context.Context,
+	response *fithara.DraftV1DraftPostResponse,
+) error {
 	refusal := response.JSON400
 	if refusal == nil {
 		refusal = response.JSON429
 	}
 	if refusal == nil {
-		return s.assistantUnavailable(ctx, fmt.Errorf("%w: %d", errUnexpectedStatus, response.StatusCode()))
+		return s.assistantUnavailable(
+			ctx,
+			fmt.Errorf("%w: %d", errUnexpectedStatus, response.StatusCode()),
+		)
 	}
-	s.logger.WarnContext(ctx, "Fithara refused the request", slog.String(logKeyFitharaCode, string(refusal.Error.Code)), slog.String(logKeyRequestID, requestID(refusal)))
+	s.logger.WarnContext(
+		ctx,
+		"Fithara refused the request",
+		slog.String(logKeyFitharaCode, string(refusal.Error.Code)),
+		slog.String(logKeyRequestID, requestID(refusal)),
+	)
 
 	switch refusal.Error.Code {
 	case fithara.INVALIDREQUEST:
-		return apperr.WithCode(apperr.CodeLicenseAssistantInvalidRequest, refusal.Error.Message)
+		return apperr.WithCode(
+			apperr.CodeLicenseAssistantInvalidRequest,
+			refusal.Error.Message,
+		)
 	case fithara.RATELIMITED:
-		return apperr.WithCode(apperr.CodeLicenseAssistantRateLimited, refusal.Error.Message)
+		return apperr.WithCode(
+			apperr.CodeLicenseAssistantRateLimited,
+			refusal.Error.Message,
+		)
 	case fithara.UNKNOWNLICENSE:
-		return apperr.WithCode(apperr.CodeCanonicalLicenseNotFound, refusal.Error.Message)
+		return apperr.WithCode(
+			apperr.CodeCanonicalLicenseNotFound,
+			refusal.Error.Message,
+		)
 	case fithara.LICENSEINACTIVE:
-		return apperr.WithCode(apperr.CodeCanonicalLicenseRetired, refusal.Error.Message)
+		return apperr.WithCode(
+			apperr.CodeCanonicalLicenseRetired,
+			refusal.Error.Message,
+		)
 	case fithara.INTERNAL, fithara.LLMINVALIDOUTPUT, fithara.LLMUNAVAILABLE:
 	}
 
-	return apperr.Unavailable("The license assistant is not available right now. Try again later.")
+	return apperr.Unavailable(
+		"The license assistant is not available right now. Try again later.",
+	)
 }
 
 func requestID(refusal *fithara.ErrorResponse) string {
@@ -61,29 +92,59 @@ func requestID(refusal *fithara.ErrorResponse) string {
 }
 
 func toFitharaRequest(request model.DraftLicenseInput) fithara.DraftRequest {
-	conversation := make([]fithara.ConversationTurn, 0, len(request.Conversation))
+	conversation := make(
+		[]fithara.ConversationTurn,
+		0,
+		len(request.Conversation),
+	)
 	for _, message := range request.Conversation {
-		conversation = append(conversation, fithara.ConversationTurn{Role: toFitharaRole(message.Role), Content: message.Content})
+		conversation = append(
+			conversation,
+			fithara.ConversationTurn{
+				Role:    toFitharaRole(message.Role),
+				Content: message.Content,
+			},
+		)
 	}
-	out := fithara.DraftRequest{Message: request.Message, Conversation: &conversation}
+	out := fithara.DraftRequest{
+		Message:      request.Message,
+		Conversation: &conversation,
+	}
 	if request.Draft != nil {
 		out.Draft = &fithara.Draft{
-			Title:  request.Draft.Name,
-			Text:   request.Draft.Text,
-			Source: fithara.DraftSource{Type: toFitharaSourceType(request.Draft.SourceType), CanonicalId: request.Draft.CanonicalID},
+			Title: request.Draft.Name,
+			Text:  request.Draft.Text,
+			Source: fithara.DraftSource{
+				Type:        toFitharaSourceType(request.Draft.SourceType),
+				CanonicalId: request.Draft.CanonicalID,
+			},
 		}
 	}
 	if request.Preferences != nil && request.Preferences.Category != nil {
-		out.Preferences = &fithara.Preferences{Category: request.Preferences.Category}
+		out.Preferences = &fithara.Preferences{
+			Category: request.Preferences.Category,
+		}
 	}
 
 	return out
 }
 
-func toAssistantTurn(response *fithara.DraftResponse) *model.LicenseAssistantTurn {
-	conversation := make([]*model.LicenseAssistantMessage, 0, len(response.Conversation))
+func toAssistantTurn(
+	response *fithara.DraftResponse,
+) *model.LicenseAssistantTurn {
+	conversation := make(
+		[]*model.LicenseAssistantMessage,
+		0,
+		len(response.Conversation),
+	)
 	for _, turn := range response.Conversation {
-		conversation = append(conversation, &model.LicenseAssistantMessage{Role: toAssistantRole(turn.Role), Content: turn.Content})
+		conversation = append(
+			conversation,
+			&model.LicenseAssistantMessage{
+				Role:    toAssistantRole(turn.Role),
+				Content: turn.Content,
+			},
+		)
 	}
 	turn := &model.LicenseAssistantTurn{
 		AssistantMessage:  response.AssistantMessage,
@@ -105,7 +166,9 @@ func toAssistantTurn(response *fithara.DraftResponse) *model.LicenseAssistantTur
 	return turn
 }
 
-func toFitharaRole(role model.LicenseAssistantMessageRole) fithara.ConversationTurnRole {
+func toFitharaRole(
+	role model.LicenseAssistantMessageRole,
+) fithara.ConversationTurnRole {
 	if role == model.LicenseAssistantMessageRoleUser {
 		return fithara.User
 	}
@@ -113,7 +176,9 @@ func toFitharaRole(role model.LicenseAssistantMessageRole) fithara.ConversationT
 	return fithara.Assistant
 }
 
-func toAssistantRole(role fithara.ConversationTurnRole) model.LicenseAssistantMessageRole {
+func toAssistantRole(
+	role fithara.ConversationTurnRole,
+) model.LicenseAssistantMessageRole {
 	if role == fithara.User {
 		return model.LicenseAssistantMessageRoleUser
 	}
@@ -121,7 +186,9 @@ func toAssistantRole(role fithara.ConversationTurnRole) model.LicenseAssistantMe
 	return model.LicenseAssistantMessageRoleAssistant
 }
 
-func toFitharaSourceType(sourceType entlicense.SourceType) fithara.DraftSourceType {
+func toFitharaSourceType(
+	sourceType entlicense.SourceType,
+) fithara.DraftSourceType {
 	switch sourceType {
 	case entlicense.SourceTypeCANONICAL:
 		return fithara.Canonical

@@ -25,8 +25,16 @@ type Service struct {
 	logger    *slog.Logger
 }
 
-func NewService(estimator RowEstimator, client *ent.Client, logger *slog.Logger) *Service {
-	return &Service{estimator: estimator, repo: newRepository(client), logger: logger}
+func NewService(
+	estimator RowEstimator,
+	client *ent.Client,
+	logger *slog.Logger,
+) *Service {
+	return &Service{
+		estimator: estimator,
+		repo:      newRepository(client),
+		logger:    logger,
+	}
 }
 
 // LiveTotals is cheap enough for every page view. A figure that cannot be read is 0 and logged.
@@ -40,7 +48,12 @@ func (s *Service) LiveTotals(ctx context.Context) model.ContentStats {
 func (s *Service) estimateOrZero(ctx context.Context, table string) int {
 	estimate, err := s.estimator.EstimateRows(ctx, "SELECT 1 FROM "+table)
 	if err != nil {
-		s.logger.WarnContext(ctx, "estimating a table", slog.String(logKeyTable, table), slog.Any(logKeyError, err))
+		s.logger.WarnContext(
+			ctx,
+			"estimating a table",
+			slog.String(logKeyTable, table),
+			slog.Any(logKeyError, err),
+		)
 
 		return 0
 	}

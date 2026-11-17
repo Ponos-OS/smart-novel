@@ -35,29 +35,67 @@ type loaders struct {
 
 func newLoaders(client *ent.Client, chapters *chapter.Service) *loaders {
 	return &loaders{
-		writers: dataloadgen.NewLoader(func(ctx context.Context, ids []uuid.UUID) ([]*ent.Writer, []error) {
-			found, err := client.Writer.Query().Where(writer.IDIn(ids...)).All(ctx)
+		writers: dataloadgen.NewLoader(
+			func(ctx context.Context, ids []uuid.UUID) ([]*ent.Writer, []error) {
+				found, err := client.Writer.Query().
+					Where(writer.IDIn(ids...)).
+					All(ctx)
 
-			return arrange(ids, found, err, func(w *ent.Writer) uuid.UUID { return w.ID })
-		}, dataloadgen.WithWait(loadWait)),
-		contents: dataloadgen.NewLoader(func(ctx context.Context, ids []uuid.UUID) ([]*ent.ChapterContent, []error) {
-			found, err := client.ChapterContent.Query().Where(chaptercontent.IDIn(ids...)).All(ctx)
+				return arrange(
+					ids,
+					found,
+					err,
+					func(w *ent.Writer) uuid.UUID { return w.ID },
+				)
+			},
+			dataloadgen.WithWait(loadWait),
+		),
+		contents: dataloadgen.NewLoader(
+			func(ctx context.Context, ids []uuid.UUID) ([]*ent.ChapterContent, []error) {
+				found, err := client.ChapterContent.Query().
+					Where(chaptercontent.IDIn(ids...)).
+					All(ctx)
 
-			return arrange(ids, found, err, func(c *ent.ChapterContent) uuid.UUID { return c.ID })
-		}, dataloadgen.WithWait(loadWait)),
-		licenses: dataloadgen.NewLoader(func(ctx context.Context, ids []uuid.UUID) ([]*ent.License, []error) {
-			found, err := client.License.Query().Where(entlicense.IDIn(ids...), entlicense.IsDraft(false)).All(ctx)
+				return arrange(
+					ids,
+					found,
+					err,
+					func(c *ent.ChapterContent) uuid.UUID { return c.ID },
+				)
+			},
+			dataloadgen.WithWait(loadWait),
+		),
+		licenses: dataloadgen.NewLoader(
+			func(ctx context.Context, ids []uuid.UUID) ([]*ent.License, []error) {
+				found, err := client.License.Query().
+					Where(entlicense.IDIn(ids...), entlicense.IsDraft(false)).
+					All(ctx)
 
-			return arrange(ids, found, err, func(l *ent.License) uuid.UUID { return l.ID })
-		}, dataloadgen.WithWait(loadWait)),
-		readAt: dataloadgen.NewLoader(func(ctx context.Context, keys []readKey) ([]*time.Time, []error) {
-			return readTimes(ctx, chapters, keys)
-		}, dataloadgen.WithWait(loadWait)),
+				return arrange(
+					ids,
+					found,
+					err,
+					func(l *ent.License) uuid.UUID { return l.ID },
+				)
+			},
+			dataloadgen.WithWait(loadWait),
+		),
+		readAt: dataloadgen.NewLoader(
+			func(ctx context.Context, keys []readKey) ([]*time.Time, []error) {
+				return readTimes(ctx, chapters, keys)
+			},
+			dataloadgen.WithWait(loadWait),
+		),
 	}
 }
 
 // arrange puts the rows in the order of the keys the loader asked for, as it requires; a key without a row gets a not found error.
-func arrange[T any](ids []uuid.UUID, rows []T, err error, idOf func(T) uuid.UUID) ([]T, []error) {
+func arrange[T any](
+	ids []uuid.UUID,
+	rows []T,
+	err error,
+	idOf func(T) uuid.UUID,
+) ([]T, []error) {
 	values := make([]T, len(ids))
 	errs := make([]error, len(ids))
 	if err != nil {
@@ -85,7 +123,11 @@ func arrange[T any](ids []uuid.UUID, rows []T, err error, idOf func(T) uuid.UUID
 }
 
 // readTimes finds when each user first read each chapter; a chapter they did not read has a nil time.
-func readTimes(ctx context.Context, chapters *chapter.Service, keys []readKey) ([]*time.Time, []error) {
+func readTimes(
+	ctx context.Context,
+	chapters *chapter.Service,
+	keys []readKey,
+) ([]*time.Time, []error) {
 	chaptersByUser := make(map[string][]uuid.UUID)
 	for _, key := range keys {
 		chaptersByUser[key.User] = append(chaptersByUser[key.User], key.Chapter)
@@ -130,7 +172,10 @@ type LoaderExtension struct {
 	chapters *chapter.Service
 }
 
-func NewLoaderExtension(client *ent.Client, chapters *chapter.Service) LoaderExtension {
+func NewLoaderExtension(
+	client *ent.Client,
+	chapters *chapter.Service,
+) LoaderExtension {
 	return LoaderExtension{client: client, chapters: chapters}
 }
 
@@ -138,6 +183,11 @@ func (LoaderExtension) ExtensionName() string { return "Loaders" }
 
 func (LoaderExtension) Validate(graphql.ExecutableSchema) error { return nil }
 
-func (e LoaderExtension) InterceptOperation(ctx context.Context, next graphql.OperationHandler) graphql.ResponseHandler {
-	return next(context.WithValue(ctx, loadersKey{}, newLoaders(e.client, e.chapters)))
+func (e LoaderExtension) InterceptOperation(
+	ctx context.Context,
+	next graphql.OperationHandler,
+) graphql.ResponseHandler {
+	return next(
+		context.WithValue(ctx, loadersKey{}, newLoaders(e.client, e.chapters)),
+	)
 }

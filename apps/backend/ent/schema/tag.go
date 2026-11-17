@@ -55,7 +55,9 @@ func (Tag) Edges() []ent.Edge {
 }
 
 func (Tag) Indexes() []ent.Index {
-	return []ent.Index{index.Fields("status", "name").StorageKey("IDX_tags_status_name")}
+	return []ent.Index{
+		index.Fields("status", "name").StorageKey("IDX_tags_status_name"),
+	}
 }
 
 func (Tag) Annotations() []schema.Annotation {

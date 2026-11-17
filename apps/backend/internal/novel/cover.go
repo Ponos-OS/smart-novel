@@ -29,16 +29,38 @@ const (
 )
 
 // coverExtensions maps the allowed content types to the extension their key ends with.
-var coverExtensions = map[string]string{"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
+var coverExtensions = map[string]string{
+	"image/jpeg": "jpg",
+	"image/png":  "png",
+	"image/webp": "webp",
+}
 
 // CreateCoverUpload signs the upload of a cover. The key is ours, never the client's, so an upload can only land under this novel's prefix.
-func (s *Service) CreateCoverUpload(ctx context.Context, viewer auth.Viewer, novelID uuid.UUID, contentType string, contentLength int) (model.NovelCoverUpload, error) {
-	if _, err := authorizedNovel(ctx, s.repo, viewer, auth.Update, novelID, false); err != nil {
+func (s *Service) CreateCoverUpload(
+	ctx context.Context,
+	viewer auth.Viewer,
+	novelID uuid.UUID,
+	contentType string,
+	contentLength int,
+) (model.NovelCoverUpload, error) {
+	if _, err := authorizedNovel(
+		ctx,
+		s.repo,
+		viewer,
+		auth.Update,
+		novelID,
+		false,
+	); err != nil {
 		return model.NovelCoverUpload{}, err
 	}
 	extension, ok := coverExtensions[contentType]
 	if !ok {
-		return model.NovelCoverUpload{}, apperr.BadRequest("A cover must be one of: " + strings.Join(allowedCoverTypes(), ", "))
+		return model.NovelCoverUpload{}, apperr.BadRequest(
+			"A cover must be one of: " + strings.Join(
+				allowedCoverTypes(),
+				", ",
+			),
+		)
 	}
 	var check validation.Checker
 	check.AtLeast("contentLength", contentLength, 1)
@@ -46,8 +68,20 @@ func (s *Service) CreateCoverUpload(ctx context.Context, viewer auth.Viewer, nov
 	if err := check.Err(); err != nil {
 		return model.NovelCoverUpload{}, err
 	}
-	key := fmt.Sprintf("%s/%s/%s.%s", coverKeyPrefix, novelID, uuid.New(), extension)
-	url, err := s.storage.PresignPublicUpload(ctx, key, contentType, int64(contentLength), coverUploadTTL)
+	key := fmt.Sprintf(
+		"%s/%s/%s.%s",
+		coverKeyPrefix,
+		novelID,
+		uuid.New(),
+		extension,
+	)
+	url, err := s.storage.PresignPublicUpload(
+		ctx,
+		key,
+		contentType,
+		int64(contentLength),
+		coverUploadTTL,
+	)
 	if err != nil {
 		return model.NovelCoverUpload{}, err
 	}
@@ -56,8 +90,20 @@ func (s *Service) CreateCoverUpload(ctx context.Context, viewer auth.Viewer, nov
 }
 
 // SetCover makes an uploaded object the cover of the novel and removes the previous cover from the bucket.
-func (s *Service) SetCover(ctx context.Context, viewer auth.Viewer, novelID uuid.UUID, objectKey string) (*ent.Novel, error) {
-	if _, err := authorizedNovel(ctx, s.repo, viewer, auth.Update, novelID, false); err != nil {
+func (s *Service) SetCover(
+	ctx context.Context,
+	viewer auth.Viewer,
+	novelID uuid.UUID,
+	objectKey string,
+) (*ent.Novel, error) {
+	if _, err := authorizedNovel(
+		ctx,
+		s.repo,
+		viewer,
+		auth.Update,
+		novelID,
+		false,
+	); err != nil {
 		return nil, err
 	}
 	if err := s.checkUploadedCover(ctx, novelID, objectKey); err != nil {
@@ -67,7 +113,14 @@ func (s *Service) SetCover(ctx context.Context, viewer auth.Viewer, novelID uuid
 	var previous *string
 	err := entx.WithTx(ctx, s.client, func(tx *ent.Tx) error {
 		repo := newRepository(tx.Client())
-		locked, lockErr := authorizedNovel(ctx, repo, viewer, auth.Update, novelID, true)
+		locked, lockErr := authorizedNovel(
+			ctx,
+			repo,
+			viewer,
+			auth.Update,
+			novelID,
+			true,
+		)
 		if lockErr != nil {
 			return lockErr
 		}
@@ -86,9 +139,15 @@ func (s *Service) SetCover(ctx context.Context, viewer auth.Viewer, novelID uuid
 }
 
 // checkUploadedCover accepts only a key this novel's upload URL made, with a file in the bucket that is an allowed type and size.
-func (s *Service) checkUploadedCover(ctx context.Context, novelID uuid.UUID, objectKey string) error {
+func (s *Service) checkUploadedCover(
+	ctx context.Context,
+	novelID uuid.UUID,
+	objectKey string,
+) error {
 	if !isCoverKeyOf(novelID, objectKey) {
-		return apperr.BadRequest("The object key is not an upload URL key of this novel")
+		return apperr.BadRequest(
+			"The object key is not an upload URL key of this novel",
+		)
 	}
 	object, found, err := s.storage.Head(ctx, objectKey)
 	if err != nil {
@@ -97,8 +156,12 @@ func (s *Service) checkUploadedCover(ctx context.Context, novelID uuid.UUID, obj
 	if !found {
 		return apperr.BadRequest("Nothing was uploaded to this key")
 	}
-	if _, allowed := coverExtensions[object.ContentType]; !allowed || object.ContentLength < 1 || object.ContentLength > CoverMaxBytes {
-		return apperr.BadRequest("The uploaded file is not an allowed cover type or is too large")
+	if _, allowed := coverExtensions[object.ContentType]; !allowed ||
+		object.ContentLength < 1 ||
+		object.ContentLength > CoverMaxBytes {
+		return apperr.BadRequest(
+			"The uploaded file is not an allowed cover type or is too large",
+		)
 	}
 
 	return nil
@@ -112,13 +175,21 @@ func (s *Service) removeObject(ctx context.Context, url string) {
 		return
 	}
 	if err := s.storage.Delete(ctx, key); err != nil {
-		s.logger.WarnContext(ctx, "removing an object that is not used any more", slog.String(logKeyURL, url), slog.Any(logKeyError, err))
+		s.logger.WarnContext(
+			ctx,
+			"removing an object that is not used any more",
+			slog.String(logKeyURL, url),
+			slog.Any(logKeyError, err),
+		)
 	}
 }
 
 // isCoverKeyOf accepts only the keys CreateCoverUpload makes for this novel: covers/<novel>/<uuid>.<extension>.
 func isCoverKeyOf(novelID uuid.UUID, key string) bool {
-	name, found := strings.CutPrefix(key, fmt.Sprintf("%s/%s/", coverKeyPrefix, novelID))
+	name, found := strings.CutPrefix(
+		key,
+		fmt.Sprintf("%s/%s/", coverKeyPrefix, novelID),
+	)
 	if !found {
 		return false
 	}
@@ -128,7 +199,8 @@ func isCoverKeyOf(novelID uuid.UUID, key string) bool {
 	}
 	parsed, err := uuid.Parse(id)
 
-	return err == nil && parsed.String() == id && slices.Contains(coverExtensionList(), extension)
+	return err == nil && parsed.String() == id &&
+		slices.Contains(coverExtensionList(), extension)
 }
 
 func coverExtensionList() []string {

@@ -12,7 +12,10 @@ import (
 )
 
 // Predicates are the conditions of a novel list that ent's where input cannot express: the exact number of chapters and the writers by their identity provider ID.
-func Predicates(chapterCount *model.ChapterCountRangeInput, ownerUserIDs []string) ([]predicate.Novel, error) {
+func Predicates(
+	chapterCount *model.ChapterCountRangeInput,
+	ownerUserIDs []string,
+) ([]predicate.Novel, error) {
 	var check validation.Checker
 	if chapterCount != nil {
 		chapterCount.Check(&check)
@@ -29,7 +32,10 @@ func Predicates(chapterCount *model.ChapterCountRangeInput, ownerUserIDs []strin
 		predicates = append(predicates, chaptersCount("<=", *chapterCount.Max))
 	}
 	if len(ownerUserIDs) > 0 {
-		predicates = append(predicates, novel.HasWriterWith(writer.UserIDIn(ownerUserIDs...)))
+		predicates = append(
+			predicates,
+			novel.HasWriterWith(writer.UserIDIn(ownerUserIDs...)),
+		)
 	}
 
 	return predicates, nil
@@ -39,7 +45,8 @@ func chaptersCount(operator string, count int) predicate.Novel {
 	return func(selector *sql.Selector) {
 		selector.Where(sql.P(func(builder *sql.Builder) {
 			builder.WriteString("(SELECT COUNT(*) FROM ").Ident(chapter.Table).
-				WriteString(" WHERE ").Ident(chapter.Table).WriteByte('.').Ident(chapter.FieldNovelID).
+				WriteString(" WHERE ").
+				Ident(chapter.Table).WriteByte('.').Ident(chapter.FieldNovelID).
 				WriteString(" = ").WriteString(selector.C(novel.FieldID)).
 				WriteString(") " + operator + " ").Arg(count)
 		}))

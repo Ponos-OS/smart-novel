@@ -12,12 +12,22 @@ const (
 )
 
 // Go runs work in the background. It keeps what the context of the request carries (the trace, the viewer) but not its cancellation, and a panic is logged and does not stop the program.
-func Go(ctx context.Context, logger *slog.Logger, name string, work func(ctx context.Context)) {
+func Go(
+	ctx context.Context,
+	logger *slog.Logger,
+	name string,
+	work func(ctx context.Context),
+) {
 	detached := context.WithoutCancel(ctx)
 	go func() {
 		defer func() {
 			if recovered := recover(); recovered != nil {
-				logger.ErrorContext(detached, "background work panicked", slog.String(logKeyWork, name), slog.Any(logKeyPanic, recovered))
+				logger.ErrorContext(
+					detached,
+					"background work panicked",
+					slog.String(logKeyWork, name),
+					slog.Any(logKeyPanic, recovered),
+				)
 			}
 		}()
 		work(detached)

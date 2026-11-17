@@ -21,7 +21,9 @@ func TestTextHashIgnoresWhatNormalizingRemoves(t *testing.T) {
 	unix := "Attribution 4.0 International\nCreative Commons"
 
 	if license.TextHash(windows) != license.TextHash(unix) {
-		t.Error("the hash of the same text differs by line endings or trailing spaces")
+		t.Error(
+			"the hash of the same text differs by line endings or trailing spaces",
+		)
 	}
 	if license.TextHash(unix) == license.TextHash(unix+" more") {
 		t.Error("different texts share a hash")

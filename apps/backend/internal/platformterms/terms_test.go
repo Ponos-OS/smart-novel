@@ -10,7 +10,8 @@ import (
 func TestCurrentReadsTheTermsThatShipWithTheBuild(t *testing.T) {
 	terms, err := platformterms.Current()
 
-	if err != nil || terms.Version < 1 || !strings.HasPrefix(terms.Markdown, "# Platform License") {
+	if err != nil || terms.Version < 1 ||
+		!strings.HasPrefix(terms.Markdown, "# Platform License") {
 		t.Errorf("terms = %+v, err = %v", terms, err)
 	}
 }
@@ -22,13 +23,33 @@ func TestParse(t *testing.T) {
 		version int
 		invalid bool
 	}{
-		{"a version and a text", "---\nversion: 3\n---\n\n# Terms\n\nText.\n", 3, false},
-		{"windows line endings", "---\r\nversion: 2\r\n---\r\n# Terms\r\n", 2, false},
+		{
+			"a version and a text",
+			"---\nversion: 3\n---\n\n# Terms\n\nText.\n",
+			3,
+			false,
+		},
+		{
+			"windows line endings",
+			"---\r\nversion: 2\r\n---\r\n# Terms\r\n",
+			2,
+			false,
+		},
 		{"no frontmatter", "# Terms\n", 0, true},
-		{"frontmatter that is never closed", "---\nversion: 1\n# Terms\n", 0, true},
+		{
+			"frontmatter that is never closed",
+			"---\nversion: 1\n# Terms\n",
+			0,
+			true,
+		},
 		{"no version", "---\ntitle: Terms\n---\n# Terms\n", 0, true},
 		{"version zero", "---\nversion: 0\n---\n# Terms\n", 0, true},
-		{"version that is not a number", "---\nversion: first\n---\n# Terms\n", 0, true},
+		{
+			"version that is not a number",
+			"---\nversion: first\n---\n# Terms\n",
+			0,
+			true,
+		},
 		{"no text", "---\nversion: 1\n---\n\n", 0, true},
 	}
 	for _, c := range cases {

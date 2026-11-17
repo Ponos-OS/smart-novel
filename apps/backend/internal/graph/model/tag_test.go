@@ -17,8 +17,16 @@ func TestUpdateRequireChange(t *testing.T) {
 		invalid bool
 	}{
 		{"a name", model.UpdateTagInput{Name: &name}, false},
-		{"a description", model.UpdateTagInput{Description: &description}, false},
-		{"both", model.UpdateTagInput{Name: &name, Description: &description}, false},
+		{
+			"a description",
+			model.UpdateTagInput{Description: &description},
+			false,
+		},
+		{
+			"both",
+			model.UpdateTagInput{Name: &name, Description: &description},
+			false,
+		},
 		{"nothing", model.UpdateTagInput{}, true},
 	}
 	for _, c := range cases {
@@ -26,7 +34,8 @@ func TestUpdateRequireChange(t *testing.T) {
 			err := c.update.RequireChange()
 
 			var bad *apperr.Error
-			if c.invalid && (!errors.As(err, &bad) || bad.Code() != apperr.CodeBadRequest) {
+			if c.invalid &&
+				(!errors.As(err, &bad) || bad.Code() != apperr.CodeBadRequest) {
 				t.Errorf("err = %v, want a bad request", err)
 			}
 			if !c.invalid && err != nil {

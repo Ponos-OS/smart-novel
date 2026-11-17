@@ -24,8 +24,16 @@ func TestCheckerReportsEveryViolation(t *testing.T) {
 	}
 	want := []validation.Violation{
 		{Field: "note", Rule: validation.RuleBlank},
-		{Field: "description", Rule: validation.RuleTooLong, Params: map[string]any{"max": 10}},
-		{Field: "penName", Rule: validation.RuleTooShort, Params: map[string]any{"min": 3}},
+		{
+			Field:  "description",
+			Rule:   validation.RuleTooLong,
+			Params: map[string]any{"max": 10},
+		},
+		{
+			Field:  "penName",
+			Rule:   validation.RuleTooShort,
+			Params: map[string]any{"min": 3},
+		},
 	}
 	if !reflect.DeepEqual(invalid.Violations, want) {
 		t.Errorf("violations = %+v, want %+v", invalid.Violations, want)
@@ -52,12 +60,19 @@ func TestCheckerWithNothingWrongHasNoError(t *testing.T) {
 }
 
 func TestErrorIsABadRequestWithItsViolations(t *testing.T) {
-	err := &validation.Error{Violations: []validation.Violation{{Field: "note", Rule: validation.RuleBlank}}}
+	err := &validation.Error{
+		Violations: []validation.Violation{
+			{Field: "note", Rule: validation.RuleBlank},
+		},
+	}
 
 	if err.Code() != apperr.CodeBadRequest || err.Error() != "Invalid input" {
 		t.Errorf("code = %q, message = %q", err.Code(), err.Error())
 	}
-	if got := err.Extensions()["violations"]; !reflect.DeepEqual(got, err.Violations) {
+	if got := err.Extensions()["violations"]; !reflect.DeepEqual(
+		got,
+		err.Violations,
+	) {
 		t.Errorf("extensions = %v", err.Extensions())
 	}
 }
@@ -76,8 +91,16 @@ func TestCheckerComparesNumbers(t *testing.T) {
 		t.Fatalf("err = %v, want a validation error", err)
 	}
 	want := []validation.Violation{
-		{Field: "first", Rule: validation.RuleTooSmall, Params: map[string]any{"min": 1}},
-		{Field: "last", Rule: validation.RuleTooLarge, Params: map[string]any{"max": 100}},
+		{
+			Field:  "first",
+			Rule:   validation.RuleTooSmall,
+			Params: map[string]any{"min": 1},
+		},
+		{
+			Field:  "last",
+			Rule:   validation.RuleTooLarge,
+			Params: map[string]any{"max": 100},
+		},
 	}
 	if !reflect.DeepEqual(invalid.Violations, want) {
 		t.Errorf("violations = %+v, want %+v", invalid.Violations, want)

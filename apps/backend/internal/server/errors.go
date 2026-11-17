@@ -57,7 +57,11 @@ func errorPresenter(logger *slog.Logger) graphql.ErrorPresenterFunc {
 		}
 
 		if presented.Err.Error() == introspectionDisabled {
-			logger.WarnContext(ctx, introspectionDisabled, slog.String(logKeyPath, presented.Path.String()))
+			logger.WarnContext(
+				ctx,
+				introspectionDisabled,
+				slog.String(logKeyPath, presented.Path.String()),
+			)
 			presented.Extensions = map[string]any{extensionCode: codeValidation}
 
 			return presented

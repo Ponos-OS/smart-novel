@@ -18,7 +18,9 @@ func maxLengthInSDL(t *testing.T, path, typeName, fieldName string) int {
 	if err != nil {
 		t.Fatal(err)
 	}
-	document, parseErr := parser.ParseSchema(&ast.Source{Name: path, Input: string(raw)})
+	document, parseErr := parser.ParseSchema(
+		&ast.Source{Name: path, Input: string(raw)},
+	)
 	if parseErr != nil {
 		t.Fatal(parseErr)
 	}
@@ -30,7 +32,13 @@ func maxLengthInSDL(t *testing.T, path, typeName, fieldName string) int {
 	if field == nil {
 		t.Fatalf("%s.%s is not in %s", typeName, fieldName, path)
 	}
-	value, err := strconv.Atoi(field.Directives.ForName("maxLength").Arguments.ForName("max").Value.Raw)
+	value, err := strconv.Atoi(
+		field.Directives.ForName(
+			"maxLength",
+		).Arguments.ForName(
+			"max",
+		).Value.Raw,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +79,12 @@ func TestTagLimitsMatchTheAPI(t *testing.T) {
 			stored := entMaxLength(t, Tag{}.Fields(), c.field)
 
 			if api != stored {
-				t.Errorf("@maxLength is %d in %s but the ent field allows %d", api, path, stored)
+				t.Errorf(
+					"@maxLength is %d in %s but the ent field allows %d",
+					api,
+					path,
+					stored,
+				)
 			}
 		})
 	}

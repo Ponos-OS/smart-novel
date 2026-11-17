@@ -70,8 +70,14 @@ func recoverPanics(logger *slog.Logger, next http.Handler) http.Handler {
 	})
 }
 
-func respondToPanic(logger *slog.Logger, w http.ResponseWriter, r *http.Request, recovered any) {
-	if err, ok := recovered.(error); ok && errors.Is(err, http.ErrAbortHandler) {
+func respondToPanic(
+	logger *slog.Logger,
+	w http.ResponseWriter,
+	r *http.Request,
+	recovered any,
+) {
+	if err, ok := recovered.(error); ok &&
+		errors.Is(err, http.ErrAbortHandler) {
 		panic(recovered)
 	}
 	logger.ErrorContext(r.Context(), "panic in request",

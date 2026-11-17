@@ -59,9 +59,15 @@ func LoadChapters(dir string) ([]Chapter, error) {
 		}
 		number, err := strconv.Atoi(match[1])
 		if err != nil {
-			return nil, fmt.Errorf("chapter number of %s: %w", entry.Name(), err)
+			return nil, fmt.Errorf(
+				"chapter number of %s: %w",
+				entry.Name(),
+				err,
+			)
 		}
-		text, err := os.ReadFile(filepath.Join(dir, entry.Name())) //nolint:gosec // devdata reads the data directory its operator mounted
+		text, err := os.ReadFile( //nolint:gosec // devdata reads the data directory its operator mounted
+			filepath.Join(dir, entry.Name()),
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -72,7 +78,10 @@ func LoadChapters(dir string) ([]Chapter, error) {
 		chapter.Number = number
 		chapters = append(chapters, chapter)
 	}
-	sort.Slice(chapters, func(i, j int) bool { return chapters[i].Number < chapters[j].Number })
+	sort.Slice(
+		chapters,
+		func(i, j int) bool { return chapters[i].Number < chapters[j].Number },
+	)
 
 	return chapters, nil
 }
@@ -104,7 +113,11 @@ func ParseChapter(text []byte) (Chapter, error) {
 		return Chapter{}, fmt.Errorf("front matter id: %w", err)
 	}
 
-	return Chapter{ID: id, Title: meta.Title, Content: strings.TrimSpace(string(body))}, nil
+	return Chapter{
+		ID:      id,
+		Title:   meta.Title,
+		Content: strings.TrimSpace(string(body)),
+	}, nil
 }
 
 // UniqueTags is every tag the novels use, lowercased, once, in order.

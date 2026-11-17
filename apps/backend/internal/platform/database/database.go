@@ -31,10 +31,16 @@ func Open(ctx context.Context, url string) (*Database, error) {
 		return nil, fmt.Errorf("opening database: %w", err)
 	}
 	if err := db.PingContext(ctx); err != nil {
-		return nil, fmt.Errorf("reaching database: %w", errors.Join(err, db.Close()))
+		return nil, fmt.Errorf(
+			"reaching database: %w",
+			errors.Join(err, db.Close()),
+		)
 	}
 
-	return &Database{Client: ent.NewClient(ent.Driver(entsql.OpenDB(dialect.Postgres, db))), db: db}, nil
+	return &Database{
+		Client: ent.NewClient(ent.Driver(entsql.OpenDB(dialect.Postgres, db))),
+		db:     db,
+	}, nil
 }
 
 func (d *Database) Close() error {
@@ -42,13 +48,19 @@ func (d *Database) Close() error {
 }
 
 // Exec runs raw SQL, for tests and for tools that apply migration files.
-func (d *Database) Exec(ctx context.Context, statements string) (sql.Result, error) {
+func (d *Database) Exec(
+	ctx context.Context,
+	statements string,
+) (sql.Result, error) {
 	return d.db.ExecContext(ctx, statements)
 }
 
 // SyncSchema brings the tables up to date with the ent schema, the way dev and e2e do. Production applies the versioned migrations instead.
 func (d *Database) SyncSchema(ctx context.Context) error {
-	if _, err := d.db.ExecContext(ctx, `CREATE EXTENSION IF NOT EXISTS citext`); err != nil {
+	if _, err := d.db.ExecContext(
+		ctx,
+		`CREATE EXTENSION IF NOT EXISTS citext`,
+	); err != nil {
 		return fmt.Errorf("creating the citext extension: %w", err)
 	}
 	if err := d.Client.Schema.Create(ctx); err != nil {
@@ -59,9 +71,14 @@ func (d *Database) SyncSchema(ctx context.Context) error {
 }
 
 // EstimateRows returns the planner's row estimate for query instead of running it. EXPLAIN only plans, so its cost stays flat however many rows match, while counting visits every one. The price is accuracy: the estimate is as fresh as the table statistics (ANALYZE), and the planner never goes below 1.
-func (d *Database) EstimateRows(ctx context.Context, query string, args ...any) (int, error) {
+func (d *Database) EstimateRows(
+	ctx context.Context,
+	query string,
+	args ...any,
+) (int, error) {
 	var plan []byte
-	if err := d.db.QueryRowContext(ctx, "EXPLAIN (FORMAT JSON) "+query, args...).Scan(&plan); err != nil {
+	if err := d.db.QueryRowContext(ctx, "EXPLAIN (FORMAT JSON) "+query, args...).
+		Scan(&plan); err != nil {
 		return 0, fmt.Errorf("explaining the query: %w", err)
 	}
 

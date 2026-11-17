@@ -28,14 +28,28 @@ func TestPredicatesRefuses(t *testing.T) {
 		ownerIDs     []string
 		field        string
 	}{
-		{"a maximum below the minimum", &model.ChapterCountRangeInput{Min: intPtr(5), Max: intPtr(1)}, nil, "chapterCount.max"},
-		{"a negative minimum", &model.ChapterCountRangeInput{Min: intPtr(-1)}, nil, "chapterCount.min"},
+		{
+			"a maximum below the minimum",
+			&model.ChapterCountRangeInput{Min: intPtr(5), Max: intPtr(1)},
+			nil,
+			"chapterCount.max",
+		},
+		{
+			"a negative minimum",
+			&model.ChapterCountRangeInput{Min: intPtr(-1)},
+			nil,
+			"chapterCount.min",
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			_, err := novel.Predicates(c.chapterCount, c.ownerIDs)
 
-			if got := violations(t, err); len(got) != 1 || got[0].Field != c.field {
+			if got := violations(
+				t,
+				err,
+			); len(got) != 1 ||
+				got[0].Field != c.field {
 				t.Errorf("violations = %+v, want one on %s", got, c.field)
 			}
 		})
@@ -52,15 +66,30 @@ func TestPredicatesCountsWhatWasAskedFor(t *testing.T) {
 		{"nothing asked", nil, nil, 0},
 		{"an empty list of owners is no filter", nil, []string{}, 0},
 		{"a minimum", &model.ChapterCountRangeInput{Min: intPtr(2)}, nil, 1},
-		{"a range", &model.ChapterCountRangeInput{Min: intPtr(1), Max: intPtr(2)}, nil, 2},
-		{"owners and a maximum", &model.ChapterCountRangeInput{Max: intPtr(0)}, []string{"316784561234"}, 2},
+		{
+			"a range",
+			&model.ChapterCountRangeInput{Min: intPtr(1), Max: intPtr(2)},
+			nil,
+			2,
+		},
+		{
+			"owners and a maximum",
+			&model.ChapterCountRangeInput{Max: intPtr(0)},
+			[]string{"316784561234"},
+			2,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			predicates, err := novel.Predicates(c.chapterCount, c.ownerIDs)
 
 			if err != nil || len(predicates) != c.want {
-				t.Errorf("predicates = %d, err = %v, want %d", len(predicates), err, c.want)
+				t.Errorf(
+					"predicates = %d, err = %v, want %d",
+					len(predicates),
+					err,
+					c.want,
+				)
 			}
 		})
 	}

@@ -18,8 +18,10 @@ import (
 var source string
 
 var (
-	errNoVersion = errors.New("platform terms start with a frontmatter holding a positive integer \"version\"")
-	errNoText    = errors.New("platform terms have no text")
+	errNoVersion = errors.New(
+		"platform terms start with a frontmatter holding a positive integer \"version\"",
+	)
+	errNoText = errors.New("platform terms have no text")
 )
 
 // Current reads the terms that ship with this build; it fails when the file is malformed, so a bad edit stops the backend from starting.

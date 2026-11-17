@@ -57,7 +57,10 @@ type ZitadelVerifier struct {
 }
 
 // NewZitadelVerifier discovers the introspection endpoint of the issuer and prepares the verifier.
-func NewZitadelVerifier(ctx context.Context, cfg ZitadelConfig) (*ZitadelVerifier, error) {
+func NewZitadelVerifier(
+	ctx context.Context,
+	cfg ZitadelConfig,
+) (*ZitadelVerifier, error) {
 	issuer, err := url.Parse(cfg.IssuerURL)
 	if err != nil || issuer.Host == "" {
 		return nil, fmt.Errorf("issuer URL %q %w", cfg.IssuerURL, errBadURL)
@@ -72,12 +75,26 @@ func NewZitadelVerifier(ctx context.Context, cfg ZitadelConfig) (*ZitadelVerifie
 	}
 	instance := zitadel.New(issuer.Hostname(), options...)
 	initialize := func(ctx context.Context, instance *zitadel.Zitadel) (authorization.Verifier[*oauth.IntrospectionContext], error) {
-		server, serverErr := rs.NewResourceServerClientCredentials(ctx, instance.Origin(), cfg.ClientID, cfg.ClientSecret, rs.WithClient(client))
+		server, serverErr := rs.NewResourceServerClientCredentials(
+			ctx,
+			instance.Origin(),
+			cfg.ClientID,
+			cfg.ClientSecret,
+			rs.WithClient(client),
+		)
 		if serverErr != nil {
-			return nil, fmt.Errorf("reaching the introspection endpoint of %s: %w", instance.Origin(), serverErr)
+			return nil, fmt.Errorf(
+				"reaching the introspection endpoint of %s: %w",
+				instance.Origin(),
+				serverErr,
+			)
 		}
 
-		return oauth.NewIntrospectionVerificationWithCache[*oauth.IntrospectionContext](server, newTokenCache(), cacheTTL), nil
+		return oauth.NewIntrospectionVerificationWithCache[*oauth.IntrospectionContext](
+			server,
+			newTokenCache(),
+			cacheTTL,
+		), nil
 	}
 	authorizer, err := authorization.New(ctx, instance, initialize)
 	if err != nil {
@@ -88,8 +105,14 @@ func NewZitadelVerifier(ctx context.Context, cfg ZitadelConfig) (*ZitadelVerifie
 }
 
 // Verify implements Verifier.
-func (v *ZitadelVerifier) Verify(ctx context.Context, accessToken string) (Viewer, error) {
-	introspected, err := v.authorizer.CheckAuthorization(ctx, "Bearer "+accessToken)
+func (v *ZitadelVerifier) Verify(
+	ctx context.Context,
+	accessToken string,
+) (Viewer, error) {
+	introspected, err := v.authorizer.CheckAuthorization(
+		ctx,
+		"Bearer "+accessToken,
+	)
 	if err != nil {
 		return Viewer{}, err
 	}
@@ -153,7 +176,11 @@ func instanceOptions(issuer *url.URL) ([]zitadel.Option, error) {
 		return nil, nil
 	}
 
-	number, err := strconv.ParseUint(port, 10, 16) // Validates port ain't exceeding 65535
+	number, err := strconv.ParseUint(
+		port,
+		10,
+		16,
+	) // Validates port ain't exceeding 65535
 	if err != nil {
 		return nil, fmt.Errorf("issuer port %q %w", port, errBadPort)
 	}
@@ -171,7 +198,10 @@ func httpClient(issuer *url.URL, internalURL string) (*http.Client, error) {
 		return nil, fmt.Errorf("internal URL %q %w", internalURL, errBadURL)
 	}
 	from, to := hostPort(issuer), hostPort(internal)
-	transport := &http.Transport{Proxy: http.ProxyFromEnvironment, ForceAttemptHTTP2: true}
+	transport := &http.Transport{
+		Proxy:             http.ProxyFromEnvironment,
+		ForceAttemptHTTP2: true,
+	}
 	dialer := &net.Dialer{Timeout: dialTimeout}
 
 	// A local-cluster workaround. In production it does nothing
@@ -232,12 +262,17 @@ func (c *tokenCache) Get(token string) (*oauth.IntrospectionContext, bool) {
 }
 
 // Set never keeps an entry past the expiry of the token itself.
-func (c *tokenCache) Set(token string, value *oauth.IntrospectionContext, ttl time.Duration) {
+func (c *tokenCache) Set(
+	token string,
+	value *oauth.IntrospectionContext,
+	ttl time.Duration,
+) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	now := c.now()
 	expires := now.Add(ttl)
-	if tokenExpiry := value.Expiration.AsTime(); !tokenExpiry.IsZero() && tokenExpiry.Before(expires) {
+	if tokenExpiry := value.Expiration.AsTime(); !tokenExpiry.IsZero() &&
+		tokenExpiry.Before(expires) {
 		expires = tokenExpiry
 	}
 	if len(c.entries) >= cacheMaxEntries {

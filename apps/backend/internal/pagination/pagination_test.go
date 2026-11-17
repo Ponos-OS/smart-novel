@@ -32,7 +32,13 @@ func TestBound(t *testing.T) {
 				t.Fatalf("err = %v", err)
 			}
 			if !equal(first, c.wantFirst) || !equal(last, c.wantLast) {
-				t.Errorf("first, last = %v, %v, want %v, %v", deref(first), deref(last), deref(c.wantFirst), deref(c.wantLast))
+				t.Errorf(
+					"first, last = %v, %v, want %v, %v",
+					deref(first),
+					deref(last),
+					deref(c.wantFirst),
+					deref(c.wantLast),
+				)
 			}
 		})
 	}

@@ -9,9 +9,16 @@ import (
 )
 
 func TestPanicsBecomeAServerError(t *testing.T) {
-	panicking := http.HandlerFunc(func(http.ResponseWriter, *http.Request) { panic("nil map write") })
+	panicking := http.HandlerFunc(
+		func(http.ResponseWriter, *http.Request) { panic("nil map write") },
+	)
 	handler := recoverPanics(slog.New(slog.DiscardHandler), panicking)
-	request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/graphql", nil)
+	request := httptest.NewRequestWithContext(
+		t.Context(),
+		http.MethodGet,
+		"/graphql",
+		nil,
+	)
 	recorder := httptest.NewRecorder()
 
 	handler.ServeHTTP(recorder, request)

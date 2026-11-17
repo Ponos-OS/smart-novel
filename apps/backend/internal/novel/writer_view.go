@@ -14,7 +14,10 @@ func ViewWriter(owner *ent.Writer, admin bool) (*model.NovelWriter, error) {
 			return nil, nil
 		}
 
-		return &model.NovelWriter{UserID: owner.UserID, PenName: owner.PenName}, nil
+		return &model.NovelWriter{
+			UserID:  owner.UserID,
+			PenName: owner.PenName,
+		}, nil
 	}
 	applications, err := writerpkg.ViewApplications(owner.Applications)
 	if err != nil {

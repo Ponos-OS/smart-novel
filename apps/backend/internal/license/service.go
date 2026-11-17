@@ -31,8 +31,17 @@ type Service struct {
 }
 
 // NewService makes the service; fitharaClient may be nil in a program that never asks Fithara (devdata).
-func NewService(client *ent.Client, fitharaClient *fithara.ClientWithResponses, logger *slog.Logger) *Service {
-	return &Service{client: client, repo: newRepository(client), fitharaClient: fitharaClient, logger: logger}
+func NewService(
+	client *ent.Client,
+	fitharaClient *fithara.ClientWithResponses,
+	logger *slog.Logger,
+) *Service {
+	return &Service{
+		client:        client,
+		repo:          newRepository(client),
+		fitharaClient: fitharaClient,
+		logger:        logger,
+	}
 }
 
 func notFound(id uuid.UUID) error {
@@ -54,7 +63,11 @@ func (s *Service) Default(ctx context.Context) (*ent.License, error) {
 }
 
 // FindUsable is a shared license or one of the owner's; another writer's, a draft and an unknown ID are all not found.
-func (s *Service) FindUsable(ctx context.Context, id uuid.UUID, ownerID string) (*ent.License, error) {
+func (s *Service) FindUsable(
+	ctx context.Context,
+	id uuid.UUID,
+	ownerID string,
+) (*ent.License, error) {
 	found, err := s.repo.usable(ctx, id, []string{SystemOwner, ownerID})
 	if ent.IsNotFound(err) {
 		return nil, notFound(id)
@@ -64,8 +77,16 @@ func (s *Service) FindUsable(ctx context.Context, id uuid.UUID, ownerID string) 
 }
 
 // Create stores a license every writer can use. An admin only; a text that is stored already is returned as it is, and the default does not change.
-func (s *Service) Create(ctx context.Context, viewer auth.Viewer, input model.LicenseInput) (*ent.License, error) {
-	if err := auth.DenyUnlessCan(viewer, auth.Create, auth.License{}); err != nil {
+func (s *Service) Create(
+	ctx context.Context,
+	viewer auth.Viewer,
+	input model.LicenseInput,
+) (*ent.License, error) {
+	if err := auth.DenyUnlessCan(
+		viewer,
+		auth.Create,
+		auth.License{},
+	); err != nil {
 		return nil, err
 	}
 
@@ -73,7 +94,11 @@ func (s *Service) Create(ctx context.Context, viewer auth.Viewer, input model.Li
 }
 
 // GetOrCreate reuses the stored row when the normalized text is already known, so that row keeps its own name and source.
-func (s *Service) GetOrCreate(ctx context.Context, input model.LicenseInput, ownerID string) (*ent.License, error) {
+func (s *Service) GetOrCreate(
+	ctx context.Context,
+	input model.LicenseInput,
+	ownerID string,
+) (*ent.License, error) {
 	existing, data, err := s.prepare(ctx, input, ownerID)
 	if err != nil {
 		return nil, err
@@ -92,10 +117,16 @@ func (s *Service) GetOrCreate(ctx context.Context, input model.LicenseInput, own
 
 // prepare runs the checks every new license goes through, whether it comes from a novel's input or from finalizing a draft. It returns
 // the license that already has the text, or what to store.
-func (s *Service) prepare(ctx context.Context, input model.LicenseInput, ownerID string) (*ent.License, stored, error) {
+func (s *Service) prepare(
+	ctx context.Context,
+	input model.LicenseInput,
+	ownerID string,
+) (*ent.License, stored, error) {
 	name := strings.TrimSpace(input.Name)
 	if name == "" || strings.TrimSpace(input.Text) == "" {
-		return nil, stored{}, apperr.BadRequest("A license needs a name and a text")
+		return nil, stored{}, apperr.BadRequest(
+			"A license needs a name and a text",
+		)
 	}
 	hash := TextHash(input.Text)
 	existing, err := s.findByText(ctx, hash, ownerID)
@@ -108,9 +139,13 @@ func (s *Service) prepare(ctx context.Context, input model.LicenseInput, ownerID
 
 		return nil, data, err
 	case input.SourceType == entlicense.SourceTypeFORKED && input.CanonicalID == nil:
-		return nil, stored{}, apperr.BadRequest("A FORKED license needs the canonicalId it was modified from")
+		return nil, stored{}, apperr.BadRequest(
+			"A FORKED license needs the canonicalId it was modified from",
+		)
 	case input.SourceType == entlicense.SourceTypeCUSTOM && input.CanonicalID != nil:
-		return nil, stored{}, apperr.BadRequest("A CUSTOM license has no canonicalId")
+		return nil, stored{}, apperr.BadRequest(
+			"A CUSTOM license has no canonicalId",
+		)
 	}
 
 	return nil, stored{
@@ -126,7 +161,10 @@ func (s *Service) prepare(ctx context.Context, input model.LicenseInput, ownerID
 
 // findByText looks at the shared license with this text first, so an unmodified canonical text is always the canonical license, then at the
 // owner's own, so they never get a second copy of what they have. Another writer's license is never a match.
-func (s *Service) findByText(ctx context.Context, hash, ownerID string) (*ent.License, error) {
+func (s *Service) findByText(
+	ctx context.Context,
+	hash, ownerID string,
+) (*ent.License, error) {
 	owners := []string{SystemOwner}
 	if ownerID != SystemOwner {
 		owners = append(owners, ownerID)
@@ -146,16 +184,27 @@ func (s *Service) findByText(ctx context.Context, hash, ownerID string) (*ent.Li
 
 // verifyCanonical lets a text claim to be canonical only when it is Fithara's, word for word (white space aside), so a client cannot
 // dress its own text as a well-known license. The row takes its name from Fithara.
-func (s *Service) verifyCanonical(ctx context.Context, input model.LicenseInput, hash string) (stored, error) {
+func (s *Service) verifyCanonical(
+	ctx context.Context,
+	input model.LicenseInput,
+	hash string,
+) (stored, error) {
 	if input.CanonicalID == nil {
-		return stored{}, apperr.BadRequest("A CANONICAL license needs its canonicalId")
+		return stored{}, apperr.BadRequest(
+			"A CANONICAL license needs its canonicalId",
+		)
 	}
 	canonical, err := s.findCanonical(ctx, *input.CanonicalID)
 	if err != nil {
 		return stored{}, err
 	}
 	if canonical == nil || TextHash(canonical.Body) != hash {
-		return stored{}, apperr.BadRequest(fmt.Sprintf("This text is not the canonical license %s, send it as FORKED or CUSTOM", *input.CanonicalID))
+		return stored{}, apperr.BadRequest(
+			fmt.Sprintf(
+				"This text is not the canonical license %s, send it as FORKED or CUSTOM",
+				*input.CanonicalID,
+			),
+		)
 	}
 
 	return storedCanonical(canonical), nil
@@ -163,8 +212,16 @@ func (s *Service) verifyCanonical(ctx context.Context, input model.LicenseInput,
 
 // SetDefault changes the license new novels get; existing novels keep theirs. An admin only. The default belongs to everybody, so it is
 // always a shared license.
-func (s *Service) SetDefault(ctx context.Context, viewer auth.Viewer, id uuid.UUID) (*ent.License, error) {
-	if err := auth.DenyUnlessCan(viewer, auth.Update, auth.License{}); err != nil {
+func (s *Service) SetDefault(
+	ctx context.Context,
+	viewer auth.Viewer,
+	id uuid.UUID,
+) (*ent.License, error) {
+	if err := auth.DenyUnlessCan(
+		viewer,
+		auth.Update,
+		auth.License{},
+	); err != nil {
 		return nil, err
 	}
 	chosen, err := s.FindUsable(ctx, id, SystemOwner)
@@ -176,7 +233,10 @@ func (s *Service) SetDefault(ctx context.Context, viewer auth.Viewer, id uuid.UU
 }
 
 // makeDefault switches the default to the license, one switch at a time.
-func (s *Service) makeDefault(ctx context.Context, id uuid.UUID) (*ent.License, error) {
+func (s *Service) makeDefault(
+	ctx context.Context,
+	id uuid.UUID,
+) (*ent.License, error) {
 	err := entx.WithTx(ctx, s.client, func(tx *ent.Tx) error {
 		repo := newRepository(tx.Client())
 		if err := repo.lockDefault(ctx); err != nil {

@@ -18,7 +18,11 @@ const (
 	progressKeepFor = 2 * lockTTL
 )
 
-var transientStatuses = map[string]bool{"queued": true, "generating": true, "uploading": true}
+var transientStatuses = map[string]bool{
+	"queued":     true,
+	"generating": true,
+	"uploading":  true,
+}
 
 func isTerminal(status string) bool {
 	return status == statusCompleted || status == statusFailed
@@ -38,14 +42,22 @@ func endedKey(jobID string) string {
 }
 
 // isNews says whether the update is news for its job, so that one arriving out of order is dropped: Beatrice's queued and generating callbacks race each other over the network, and progress only means a bigger number is later for this job. After a terminal update every later one is dropped, whatever made it late. Any replica may be the one called, so what each job has shown lives in Redis.
-func (s *Service) isNews(ctx context.Context, update ttscallbacks.Update) (bool, error) {
+func (s *Service) isNews(
+	ctx context.Context,
+	update ttscallbacks.Update,
+) (bool, error) {
 	if isTerminal(update.Status) {
 		ended, err := json.Marshal(update)
 		if err != nil {
 			return false, fmt.Errorf("keeping how a job ended: %w", err)
 		}
 
-		return s.cache.SetIfAbsent(ctx, endedKey(update.JobID), string(ended), progressKeepFor)
+		return s.cache.SetIfAbsent(
+			ctx,
+			endedKey(update.JobID),
+			string(ended),
+			progressKeepFor,
+		)
 	}
 	_, ended, err := s.cache.Get(ctx, endedKey(update.JobID))
 	if err != nil || ended {
@@ -55,11 +67,19 @@ func (s *Service) isNews(ctx context.Context, update ttscallbacks.Update) (bool,
 		return true, nil
 	}
 
-	return s.cache.RaiseTo(ctx, progressKey(update.JobID), *update.Progress, progressKeepFor)
+	return s.cache.RaiseTo(
+		ctx,
+		progressKey(update.JobID),
+		*update.Progress,
+		progressKeepFor,
+	)
 }
 
 // endedWith is the terminal update of the job when it ended already. A job can end before the code that started it has written it down.
-func (s *Service) endedWith(ctx context.Context, jobID string) (update ttscallbacks.Update, ended bool, err error) {
+func (s *Service) endedWith(
+	ctx context.Context,
+	jobID string,
+) (update ttscallbacks.Update, ended bool, err error) {
 	stored, ended, err := s.cache.Get(ctx, endedKey(jobID))
 	if err != nil || !ended {
 		return update, false, err

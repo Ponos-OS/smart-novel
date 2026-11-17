@@ -118,31 +118,47 @@ const (
 )
 
 // Load reads and validates every setting, so a bad deployment reports all its mistakes at once.
+//
+//nolint:funlen // one setting per line
 func Load(lookup Lookup) (Config, error) {
 	r := &reader{lookup: lookup}
 
 	cfg := Config{
 		App: App{
-			ServiceName:        r.text("SERVICE_NAME", "smart-novel-backend"),
-			InternalURL:        r.required("BACKEND_INTERNAL_URL"),
-			Port:               r.port("PORT"),
-			Env:                r.oneOf("APP_ENV", []string{EnvDevelopment, EnvProduction, EnvTest}, ""),
+			ServiceName: r.text("SERVICE_NAME", "smart-novel-backend"),
+			InternalURL: r.required("BACKEND_INTERNAL_URL"),
+			Port:        r.port("PORT"),
+			Env: r.oneOf(
+				"APP_ENV",
+				[]string{EnvDevelopment, EnvProduction, EnvTest},
+				"",
+			),
 			CORSAllowedOrigins: r.list("CORS_ALLOWED_ORIGINS"),
-			LogFormat:          r.oneOf("LOG_FORMAT", []string{LogFormatText, LogFormatJSON}, LogFormatText),
-			LogLevel:           r.logLevel("LOG_LEVEL", slog.LevelInfo),
+			LogFormat: r.oneOf(
+				"LOG_FORMAT",
+				[]string{LogFormatText, LogFormatJSON},
+				LogFormatText,
+			),
+			LogLevel: r.logLevel("LOG_LEVEL", slog.LevelInfo),
 		},
 		Database: Database{
 			URL:        r.required("DATABASE_URL"),
 			SyncSchema: r.boolean("DEV_SYNC_DATABASE_SCHEMA", false),
 		},
 		Zitadel: Zitadel{
-			IssuerURL:                 r.required("ZITADEL_ISSUER_URL"),
-			InternalURL:               r.text("ZITADEL_INTERNAL_URL", ""),
-			IntrospectionClientID:     r.required("ZITADEL_INTROSPECTION_CLIENT_ID"),
-			IntrospectionClientSecret: r.required("ZITADEL_INTROSPECTION_CLIENT_SECRET"),
-			ProjectID:                 r.required("ZITADEL_PROJECT_ID"),
-			ManagementPAT:             r.required("ZITADEL_MANAGEMENT_PAT"),
-			WebhookSigningKey:         r.required("ZITADEL_WEBHOOK_SIGNING_KEY"),
+			IssuerURL:   r.required("ZITADEL_ISSUER_URL"),
+			InternalURL: r.text("ZITADEL_INTERNAL_URL", ""),
+			IntrospectionClientID: r.required(
+				"ZITADEL_INTROSPECTION_CLIENT_ID",
+			),
+			IntrospectionClientSecret: r.required(
+				"ZITADEL_INTROSPECTION_CLIENT_SECRET",
+			),
+			ProjectID:     r.required("ZITADEL_PROJECT_ID"),
+			ManagementPAT: r.required("ZITADEL_MANAGEMENT_PAT"),
+			WebhookSigningKey: r.required(
+				"ZITADEL_WEBHOOK_SIGNING_KEY",
+			),
 		},
 		Redis: Redis{
 			URL:      r.required("REDIS_URL"),
@@ -150,9 +166,12 @@ func Load(lookup Lookup) (Config, error) {
 		},
 		Storage: r.objectStorage(),
 		Beatrice: Beatrice{
-			URL:            r.required("BEATRICE_URL"),
-			DefaultVoice:   r.required("BEATRICE_DEFAULT_VOICE"),
-			Timeout:        r.duration("BEATRICE_TIMEOUT", defaultBeatriceTimeout),
+			URL:          r.required("BEATRICE_URL"),
+			DefaultVoice: r.required("BEATRICE_DEFAULT_VOICE"),
+			Timeout: r.duration(
+				"BEATRICE_TIMEOUT",
+				defaultBeatriceTimeout,
+			),
 			ExplanationTTL: r.duration("LLM_CACHE_TTL", defaultExplanationTTL),
 		},
 		Stats: Stats{
@@ -165,13 +184,22 @@ func Load(lookup Lookup) (Config, error) {
 		OTel: r.otel(),
 	}
 	if cfg.Database.SyncSchema && cfg.App.Env == EnvProduction {
-		r.fail("DEV_SYNC_DATABASE_SCHEMA", "must not be true when APP_ENV is production: production applies the versioned migrations")
+		r.fail(
+			"DEV_SYNC_DATABASE_SCHEMA",
+			"must not be true when APP_ENV is production: production applies the versioned migrations",
+		)
 	}
 	if (cfg.Storage.AccessKey == "") != (cfg.Storage.SecretKey == "") {
-		r.fail("OBJECT_STORAGE_ACCESS_KEY", "and OBJECT_STORAGE_SECRET_KEY must be set together")
+		r.fail(
+			"OBJECT_STORAGE_ACCESS_KEY",
+			"and OBJECT_STORAGE_SECRET_KEY must be set together",
+		)
 	}
 	if cfg.OTel.Enabled && cfg.OTel.Endpoint == "" {
-		r.fail("OTEL_EXPORTER_OTLP_ENDPOINT", "is required when OTEL_ENABLED is true")
+		r.fail(
+			"OTEL_EXPORTER_OTLP_ENDPOINT",
+			"is required when OTEL_ENABLED is true",
+		)
 	}
 	if err := r.err(); err != nil {
 		return Config{}, fmt.Errorf("invalid configuration: %w", err)

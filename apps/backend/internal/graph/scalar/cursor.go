@@ -22,7 +22,10 @@ func MarshalCursor(cursor entgql.Cursor[uuid.UUID]) graphql.Marshaler {
 func UnmarshalCursor(v any) (entgql.Cursor[uuid.UUID], error) {
 	var cursor entgql.Cursor[uuid.UUID]
 	if err := cursor.UnmarshalGQL(v); err != nil {
-		return cursor, apperr.WithCode(apperr.CodeInvalidCursor, InvalidCursorMessage)
+		return cursor, apperr.WithCode(
+			apperr.CodeInvalidCursor,
+			InvalidCursorMessage,
+		)
 	}
 
 	return cursor, nil

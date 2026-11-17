@@ -31,7 +31,10 @@ type Management struct {
 
 // NewManagement connects lazily with the personal access token of the backend's service user, so ZITADEL does not have to be up yet.
 // The calls go to the internal URL when there is one and carry the issuer's host as the authority, which is how ZITADEL finds its instance.
-func NewManagement(ctx context.Context, cfg config.Zitadel) (*Management, error) {
+func NewManagement(
+	ctx context.Context,
+	cfg config.Zitadel,
+) (*Management, error) {
 	issuer, err := url.Parse(cfg.IssuerURL)
 	if err != nil {
 		return nil, fmt.Errorf("reading ZITADEL_ISSUER_URL: %w", err)
@@ -64,21 +67,35 @@ func instance(target *url.URL) (*zitadelapi.Zitadel, error) {
 			port = defaultHTTPPort
 		}
 
-		return zitadelapi.New(target.Hostname(), zitadelapi.WithInsecure(port)), nil
+		return zitadelapi.New(
+			target.Hostname(),
+			zitadelapi.WithInsecure(port),
+		), nil
 	}
 	if port == "" {
 		return zitadelapi.New(target.Hostname()), nil
 	}
 	number, err := strconv.ParseUint(port, 10, 16)
 	if err != nil {
-		return nil, fmt.Errorf("reading the port %q of the ZITADEL URL: %w", port, err)
+		return nil, fmt.Errorf(
+			"reading the port %q of the ZITADEL URL: %w",
+			port,
+			err,
+		)
 	}
 
-	return zitadelapi.New(target.Hostname(), zitadelapi.WithPort(uint16(number))), nil
+	return zitadelapi.New(
+		target.Hostname(),
+		zitadelapi.WithPort(uint16(number)),
+	), nil
 }
 
 // GrantProjectRoleIfAbsent gives the user the role when they hold none on the project, and leaves one they have as it is.
-func (m *Management) GrantProjectRoleIfAbsent(ctx context.Context, userID string, role auth.Role) error {
+func (m *Management) GrantProjectRoleIfAbsent(
+	ctx context.Context,
+	userID string,
+	role auth.Role,
+) error {
 	found, err := m.authorizationsOf(ctx, userID)
 	if err != nil {
 		return err
@@ -87,7 +104,13 @@ func (m *Management) GrantProjectRoleIfAbsent(ctx context.Context, userID string
 		return nil
 	}
 	// Somebody else gave the user a role between the look and the grant: that is what this call is for.
-	if err := m.grant(ctx, userID, role); status.Code(err) != codes.AlreadyExists {
+	if err := m.grant(
+		ctx,
+		userID,
+		role,
+	); status.Code(
+		err,
+	) != codes.AlreadyExists {
 		return err
 	}
 
@@ -95,7 +118,11 @@ func (m *Management) GrantProjectRoleIfAbsent(ctx context.Context, userID string
 }
 
 // SetUserProjectRole makes role the only role the user holds on the project. Calling it again with the same arguments changes nothing.
-func (m *Management) SetUserProjectRole(ctx context.Context, userID string, role auth.Role) error {
+func (m *Management) SetUserProjectRole(
+	ctx context.Context,
+	userID string,
+	role auth.Role,
+) error {
 	found, err := m.authorizationsOf(ctx, userID)
 	if err != nil {
 		return err
@@ -108,34 +135,59 @@ func (m *Management) SetUserProjectRole(ctx context.Context, userID string, role
 	if slices.Equal(roleKeysOf(current), []string{string(role)}) {
 		return nil
 	}
-	_, err = m.api.AuthorizationServiceV2().UpdateAuthorization(ctx, &authorization.UpdateAuthorizationRequest{Id: current.GetId(), RoleKeys: []string{string(role)}})
+	_, err = m.api.AuthorizationServiceV2().
+		UpdateAuthorization(ctx, &authorization.UpdateAuthorizationRequest{Id: current.GetId(), RoleKeys: []string{string(role)}})
 
 	return wrap("changing the project role", err)
 }
 
-func (m *Management) authorizationsOf(ctx context.Context, userID string) ([]*authorization.Authorization, error) {
-	found, err := m.api.AuthorizationServiceV2().ListAuthorizations(ctx, &authorization.ListAuthorizationsRequest{
-		Filters: []*authorization.AuthorizationsSearchFilter{
-			{Filter: &authorization.AuthorizationsSearchFilter_InUserIds{InUserIds: &filter.InIDsFilter{Ids: []string{userID}}}},
-			{Filter: &authorization.AuthorizationsSearchFilter_ProjectId{ProjectId: &filter.IDFilter{Id: m.projectID}}},
-		},
-	})
+func (m *Management) authorizationsOf(
+	ctx context.Context,
+	userID string,
+) ([]*authorization.Authorization, error) {
+	found, err := m.api.AuthorizationServiceV2().
+		ListAuthorizations(ctx, &authorization.ListAuthorizationsRequest{
+			Filters: []*authorization.AuthorizationsSearchFilter{
+				{
+					Filter: &authorization.AuthorizationsSearchFilter_InUserIds{
+						InUserIds: &filter.InIDsFilter{Ids: []string{userID}},
+					},
+				},
+				{
+					Filter: &authorization.AuthorizationsSearchFilter_ProjectId{
+						ProjectId: &filter.IDFilter{Id: m.projectID},
+					},
+				},
+			},
+		})
 	if err != nil {
-		return nil, fmt.Errorf("looking for the authorizations of a user: %w", err)
+		return nil, fmt.Errorf(
+			"looking for the authorizations of a user: %w",
+			err,
+		)
 	}
 
 	return found.GetAuthorizations(), nil
 }
 
 // grant gives the user the role in the organization the user belongs to, which ZITADEL asks for when it creates an authorization.
-func (m *Management) grant(ctx context.Context, userID string, role auth.Role) error {
-	found, err := m.api.UserServiceV2().GetUserByID(ctx, &user.GetUserByIDRequest{UserId: userID})
+func (m *Management) grant(
+	ctx context.Context,
+	userID string,
+	role auth.Role,
+) error {
+	found, err := m.api.UserServiceV2().
+		GetUserByID(ctx, &user.GetUserByIDRequest{UserId: userID})
 	if err != nil {
 		return wrap("looking for the organization of the user", err)
 	}
-	_, err = m.api.AuthorizationServiceV2().CreateAuthorization(ctx, &authorization.CreateAuthorizationRequest{
-		UserId: userID, ProjectId: m.projectID, OrganizationId: found.GetUser().GetDetails().GetResourceOwner(), RoleKeys: []string{string(role)},
-	})
+	_, err = m.api.AuthorizationServiceV2().
+		CreateAuthorization(ctx, &authorization.CreateAuthorizationRequest{
+			UserId:         userID,
+			ProjectId:      m.projectID,
+			OrganizationId: found.GetUser().GetDetails().GetResourceOwner(),
+			RoleKeys:       []string{string(role)},
+		})
 
 	return wrap("granting the project role", err)
 }

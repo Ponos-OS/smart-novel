@@ -20,7 +20,11 @@ func newRepository(client *ent.Client) *repository {
 	return &repository{client: client}
 }
 
-func (r *repository) createPending(ctx context.Context, input model.RequestTagInput, requesterUserID string) (*ent.Tag, error) {
+func (r *repository) createPending(
+	ctx context.Context,
+	input model.RequestTagInput,
+	requesterUserID string,
+) (*ent.Tag, error) {
 	return r.client.Tag.Create().
 		SetName(input.Name).
 		SetDescription(input.Description).
@@ -30,7 +34,10 @@ func (r *repository) createPending(ctx context.Context, input model.RequestTagIn
 }
 
 // createApproved stores a tag with the default status, which is approved.
-func (r *repository) createApproved(ctx context.Context, input model.CreateTagInput) (*ent.Tag, error) {
+func (r *repository) createApproved(
+	ctx context.Context,
+	input model.CreateTagInput,
+) (*ent.Tag, error) {
 	return r.client.Tag.Create().
 		SetName(input.Name).
 		SetDescription(input.Description).
@@ -49,7 +56,11 @@ func (r *repository) tag(ctx context.Context, id uuid.UUID) (*ent.Tag, error) {
 	return r.client.Tag.Get(ctx, id)
 }
 
-func (r *repository) update(ctx context.Context, id uuid.UUID, changes model.UpdateTagInput) (*ent.Tag, error) {
+func (r *repository) update(
+	ctx context.Context,
+	id uuid.UUID,
+	changes model.UpdateTagInput,
+) (*ent.Tag, error) {
 	return r.client.Tag.UpdateOneID(id).
 		SetNillableName(changes.Name).
 		SetNillableDescription(changes.Description).

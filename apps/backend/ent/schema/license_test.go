@@ -20,7 +20,12 @@ func TestLicenseLimitsMatchTheAPI(t *testing.T) {
 			stored := entMaxLength(t, License{}.Fields(), c.field)
 
 			if api != stored {
-				t.Errorf("@maxLength is %d in %s but the ent field allows %d", api, path, stored)
+				t.Errorf(
+					"@maxLength is %d in %s but the ent field allows %d",
+					api,
+					path,
+					stored,
+				)
 			}
 		})
 	}

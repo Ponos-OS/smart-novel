@@ -8,9 +8,13 @@ import (
 )
 
 var (
-	ErrWritersNotSet    = errors.New("SEEDED_WRITERS is not set")
-	ErrWritersNotJSON   = errors.New("SEEDED_WRITERS is not a valid JSON array of writers")
-	ErrWritersEmpty     = errors.New("SEEDED_WRITERS must be a non-empty JSON array")
+	ErrWritersNotSet  = errors.New("SEEDED_WRITERS is not set")
+	ErrWritersNotJSON = errors.New(
+		"SEEDED_WRITERS is not a valid JSON array of writers",
+	)
+	ErrWritersEmpty = errors.New(
+		"SEEDED_WRITERS must be a non-empty JSON array",
+	)
 	ErrWriterFieldEmpty = errors.New("a seeded writer needs a non-empty string")
 )
 
@@ -37,7 +41,12 @@ func ParseWriters(raw string) ([]Writer, error) {
 	for index, writer := range writers {
 		for field, value := range map[string]string{"userId": writer.UserID, "name": writer.Name, "email": writer.Email, "penName": writer.PenName} {
 			if value == "" {
-				return nil, fmt.Errorf("%w: SEEDED_WRITERS[%d].%s", ErrWriterFieldEmpty, index, field)
+				return nil, fmt.Errorf(
+					"%w: SEEDED_WRITERS[%d].%s",
+					ErrWriterFieldEmpty,
+					index,
+					field,
+				)
 			}
 		}
 	}

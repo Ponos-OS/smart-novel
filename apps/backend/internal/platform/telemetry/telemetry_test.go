@@ -36,7 +36,10 @@ func (c *collector) count(path string) int {
 
 func settings(endpoint, logsExporter string) config.Config {
 	return config.Config{
-		App: config.App{ServiceName: "smart-novel-backend", Env: config.EnvTest},
+		App: config.App{
+			ServiceName: "smart-novel-backend",
+			Env:         config.EnvTest,
+		},
 		OTel: config.OTel{
 			Enabled:          true,
 			Endpoint:         endpoint,

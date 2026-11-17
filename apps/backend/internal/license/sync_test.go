@@ -17,16 +17,22 @@ func detail() *fithara.LicenseDetail {
 	}
 }
 
-func TestStoredCanonicalIsASharedCanonicalLicenseNamedAfterTheShortName(t *testing.T) {
+func TestStoredCanonicalIsASharedCanonicalLicenseNamedAfterTheShortName(
+	t *testing.T,
+) {
 	result := storedCanonical(detail())
 
-	if result.Name != "CC BY-NC 4.0" || result.OwnerID != SystemOwner || result.SourceType != entlicense.SourceTypeCANONICAL || *result.CanonicalID != "CC-BY-NC-4.0" {
+	if result.Name != "CC BY-NC 4.0" || result.OwnerID != SystemOwner ||
+		result.SourceType != entlicense.SourceTypeCANONICAL ||
+		*result.CanonicalID != "CC-BY-NC-4.0" {
 		t.Errorf("got %+v", result)
 	}
-	if result.Text != "# Creative Commons\n\nText" || result.TextHash != TextHash(detail().Body) {
+	if result.Text != "# Creative Commons\n\nText" ||
+		result.TextHash != TextHash(detail().Body) {
 		t.Errorf("text = %q, hash = %s", result.Text, result.TextHash)
 	}
-	if result.Metadata.OfficialURL != detail().OfficialUrl || result.Metadata.Version != "4.0" {
+	if result.Metadata.OfficialURL != detail().OfficialUrl ||
+		result.Metadata.Version != "4.0" {
 		t.Errorf("metadata = %+v", result.Metadata)
 	}
 }

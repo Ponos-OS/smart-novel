@@ -30,14 +30,21 @@ func NewService(client *ent.Client, estimator RowEstimator) *Service {
 }
 
 // Request files a tag a writer asks for; it is pending until an admin approves it. The input is already normalized.
-func (s *Service) Request(ctx context.Context, requesterUserID string, input model.RequestTagInput) (*ent.Tag, error) {
+func (s *Service) Request(
+	ctx context.Context,
+	requesterUserID string,
+	input model.RequestTagInput,
+) (*ent.Tag, error) {
 	created, err := s.repo.createPending(ctx, input, requesterUserID)
 
 	return created, alreadyExists(err, input.Name)
 }
 
 // Create stores a tag that is approved right away.
-func (s *Service) Create(ctx context.Context, input model.CreateTagInput) (*ent.Tag, error) {
+func (s *Service) Create(
+	ctx context.Context,
+	input model.CreateTagInput,
+) (*ent.Tag, error) {
 	created, err := s.repo.createApproved(ctx, input)
 
 	return created, alreadyExists(err, input.Name)
@@ -58,7 +65,11 @@ func (s *Service) Approve(ctx context.Context, id uuid.UUID) (*ent.Tag, error) {
 }
 
 // Update changes the name, the description or both; the novels that have the tag follow a rename. The changes are already normalized.
-func (s *Service) Update(ctx context.Context, id uuid.UUID, changes model.UpdateTagInput) (*ent.Tag, error) {
+func (s *Service) Update(
+	ctx context.Context,
+	id uuid.UUID,
+	changes model.UpdateTagInput,
+) (*ent.Tag, error) {
 	updated, err := s.repo.update(ctx, id, changes)
 	if ent.IsNotFound(err) {
 		return nil, apperr.NotFound(notFoundMessage)
@@ -81,8 +92,15 @@ func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 // EstimateNovelCount is the planner's estimate of how many novels have the tag, never an exact count.
-func (s *Service) EstimateNovelCount(ctx context.Context, id uuid.UUID) (int, error) {
-	return s.estimator.EstimateRows(ctx, "SELECT 1 FROM novel_tags WHERE tag_id = $1", id)
+func (s *Service) EstimateNovelCount(
+	ctx context.Context,
+	id uuid.UUID,
+) (int, error) {
+	return s.estimator.EstimateRows(
+		ctx,
+		"SELECT 1 FROM novel_tags WHERE tag_id = $1",
+		id,
+	)
 }
 
 func alreadyExists(err error, name string) error {
@@ -90,5 +108,11 @@ func alreadyExists(err error, name string) error {
 		return err
 	}
 
-	return apperr.BadRequest(fmt.Sprintf(`The tag "%s" already exists or was already requested. Search for "%s" instead.`, name, name))
+	return apperr.BadRequest(
+		fmt.Sprintf(
+			`The tag "%s" already exists or was already requested. Search for "%s" instead.`,
+			name,
+			name,
+		),
+	)
 }

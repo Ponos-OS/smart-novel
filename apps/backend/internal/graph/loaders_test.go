@@ -13,7 +13,12 @@ func TestArrangePutsRowsInTheOrderOfTheKeys(t *testing.T) {
 	first, second, missing := uuid.New(), uuid.New(), uuid.New()
 	rows := []row{{second}, {first}}
 
-	values, errs := arrange([]uuid.UUID{first, missing, second}, rows, nil, func(r row) uuid.UUID { return r.id })
+	values, errs := arrange(
+		[]uuid.UUID{first, missing, second},
+		rows,
+		nil,
+		func(r row) uuid.UUID { return r.id },
+	)
 
 	if values[0].id != first || values[2].id != second {
 		t.Errorf("values = %+v, want the rows in the order of the keys", values)
@@ -26,7 +31,12 @@ func TestArrangePutsRowsInTheOrderOfTheKeys(t *testing.T) {
 func TestArrangeFailsEveryKeyWhenTheQueryFailed(t *testing.T) {
 	failure := errors.New("connection lost")
 
-	_, errs := arrange([]uuid.UUID{uuid.New(), uuid.New()}, nil, failure, func(r row) uuid.UUID { return r.id })
+	_, errs := arrange(
+		[]uuid.UUID{uuid.New(), uuid.New()},
+		nil,
+		failure,
+		func(r row) uuid.UUID { return r.id },
+	)
 
 	if !errors.Is(errs[0], failure) || !errors.Is(errs[1], failure) {
 		t.Errorf("errs = %v, want the failure for each key", errs)

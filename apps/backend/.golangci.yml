@@ -325,10 +325,13 @@ formatters:
   enable:
     - gofumpt
     - goimports
+    - golines
   settings:
     gofumpt:
       module-path: ""
       extra-rules: false
+    golines:
+      max-len: 80
     goimports:
       local-prefixes:
         - github.com/Ponos-OS/smart-novel

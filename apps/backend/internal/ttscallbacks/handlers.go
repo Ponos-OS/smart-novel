@@ -31,7 +31,9 @@ const (
 )
 
 // jobIDPattern is a UUID, which is all Beatrice ever sends as the Idempotency-Key. Nothing else may become part of an object key.
-var jobIDPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+var jobIDPattern = regexp.MustCompile(
+	`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`,
+)
 
 var errBadStatus = errors.New("the status update is not valid")
 
@@ -41,16 +43,31 @@ func AudioKey(jobID string) string {
 }
 
 // GenUploadURL answers Beatrice's genUploadUrl callback with a short-lived URL it PUTs the audio to once. The call carries the bearer token of the request that started the job, which must be one ZITADEL issued, expired or not.
-func GenUploadURL(check *auth.IssuerCheck, storage *objectstorage.Client, logger *slog.Logger) http.Handler {
+func GenUploadURL(
+	check *auth.IssuerCheck,
+	storage *objectstorage.Client,
+	logger *slog.Logger,
+) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 		if !ok || strings.TrimSpace(token) == "" {
-			refuse(w, http.StatusUnauthorized, "Missing Bearer token in Authorization header")
+			refuse(
+				w,
+				http.StatusUnauthorized,
+				"Missing Bearer token in Authorization header",
+			)
 
 			return
 		}
-		if err := check.Verify(r.Context(), strings.TrimSpace(token)); err != nil {
-			logger.WarnContext(r.Context(), "token of a Beatrice callback rejected", slog.Any(logKeyError, err))
+		if err := check.Verify(
+			r.Context(),
+			strings.TrimSpace(token),
+		); err != nil {
+			logger.WarnContext(
+				r.Context(),
+				"token of a Beatrice callback rejected",
+				slog.Any(logKeyError, err),
+			)
 			refuse(w, http.StatusUnauthorized, "Invalid token")
 
 			return
@@ -61,16 +78,31 @@ func GenUploadURL(check *auth.IssuerCheck, storage *objectstorage.Client, logger
 
 			return
 		}
-		url, err := storage.PresignClusterUpload(r.Context(), AudioKey(jobID), audioContentType, uploadURLTTL)
+		url, err := storage.PresignClusterUpload(
+			r.Context(),
+			AudioKey(jobID),
+			audioContentType,
+			uploadURLTTL,
+		)
 		if err != nil {
-			logger.ErrorContext(r.Context(), "signing the upload URL of a narration", slog.String(logKeyJobID, jobID), slog.Any(logKeyError, err))
-			refuse(w, http.StatusInternalServerError, "Could not sign the upload URL")
+			logger.ErrorContext(
+				r.Context(),
+				"signing the upload URL of a narration",
+				slog.String(logKeyJobID, jobID),
+				slog.Any(logKeyError, err),
+			)
+			refuse(
+				w,
+				http.StatusInternalServerError,
+				"Could not sign the upload URL",
+			)
 
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		_ = json.NewEncoder(w).Encode(uploadURL{URL: url}) //nolint:errcheck,errchkjson // the status is sent; a client that has gone cannot be told anything
+		//nolint:errcheck,errchkjson // the status is sent; a client that has gone cannot be told anything
+		_ = json.NewEncoder(w).Encode(uploadURL{URL: url})
 	})
 }
 
@@ -93,7 +125,10 @@ type UpdateError struct {
 }
 
 // Status answers Beatrice's statusCallbackUrl: a valid update is handled by the replica Beatrice called, and nothing is answered but 204. Handling that fails answers 500, so Beatrice may send the update again.
-func Status(handle func(ctx context.Context, update Update) error, logger *slog.Logger) http.Handler {
+func Status(
+	handle func(ctx context.Context, update Update) error,
+	logger *slog.Logger,
+) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxBodyBytes))
 		if err != nil {
@@ -107,10 +142,24 @@ func Status(handle func(ctx context.Context, update Update) error, logger *slog.
 
 			return
 		}
-		logger.InfoContext(r.Context(), "status callback of Beatrice", slog.String(logKeyStatus, update.Status), slog.String(logKeyJobID, update.JobID))
+		logger.InfoContext(
+			r.Context(),
+			"status callback of Beatrice",
+			slog.String(logKeyStatus, update.Status),
+			slog.String(logKeyJobID, update.JobID),
+		)
 		if err = handle(r.Context(), update); err != nil {
-			logger.ErrorContext(r.Context(), "handling a status update of Beatrice", slog.String(logKeyJobID, update.JobID), slog.Any(logKeyError, err))
-			refuse(w, http.StatusInternalServerError, "Could not handle the status update")
+			logger.ErrorContext(
+				r.Context(),
+				"handling a status update of Beatrice",
+				slog.String(logKeyJobID, update.JobID),
+				slog.Any(logKeyError, err),
+			)
+			refuse(
+				w,
+				http.StatusInternalServerError,
+				"Could not handle the status update",
+			)
 
 			return
 		}
@@ -122,7 +171,10 @@ func Status(handle func(ctx context.Context, update Update) error, logger *slog.
 func ParseUpdate(body []byte) (Update, error) {
 	var update Update
 	if err := json.Unmarshal(body, &update); err != nil {
-		return Update{}, fmt.Errorf("%w: it is not JSON of the expected shape", errBadStatus)
+		return Update{}, fmt.Errorf(
+			"%w: it is not JSON of the expected shape",
+			errBadStatus,
+		)
 	}
 	for _, rule := range []struct {
 		broken  bool
@@ -162,5 +214,6 @@ type (
 func refuse(w http.ResponseWriter, status int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(problem{Message: message}) //nolint:errcheck,errchkjson // the status is sent; a client that has gone cannot be told anything
+	//nolint:errcheck,errchkjson // the status is sent; a client that has gone cannot be told anything
+	_ = json.NewEncoder(w).Encode(problem{Message: message})
 }

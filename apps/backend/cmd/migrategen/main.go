@@ -62,7 +62,9 @@ func run(name string) error {
 		return fmt.Errorf("starting the throwaway postgres: %w", runErr)
 	}
 	defer func() {
-		if stopErr := testcontainers.TerminateContainer(container); stopErr != nil {
+		if stopErr := testcontainers.TerminateContainer(
+			container,
+		); stopErr != nil {
 			log.Printf("stopping the throwaway postgres: %v", stopErr)
 		}
 	}()
@@ -80,12 +82,20 @@ func run(name string) error {
 }
 
 func writeExtensions(dir *atlas.LocalDir) error {
-	if _, err := os.Stat(filepath.Join(migrationsDir, extensionsFile)); err == nil {
+	if _, err := os.Stat(
+		filepath.Join(migrationsDir, extensionsFile),
+	); err == nil {
 		return nil
-	} else if !errors.Is(err, os.ErrNotExist) {
+	} else if !errors.Is(
+		err,
+		os.ErrNotExist,
+	) {
 		return err
 	}
-	if writeErr := dir.WriteFile(extensionsFile, []byte(extensionsSQL)); writeErr != nil {
+	if writeErr := dir.WriteFile(
+		extensionsFile,
+		[]byte(extensionsSQL),
+	); writeErr != nil {
 		return fmt.Errorf("writing %s: %w", extensionsFile, writeErr)
 	}
 	sum, err := dir.Checksum()

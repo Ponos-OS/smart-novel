@@ -50,27 +50,49 @@ func NewService(client *ent.Client, roles RoleGranter) *Service {
 
 // Request files the application of the viewer. A user has one row for life: the first request creates it, and a rejected user who asks
 // again gets a new entry in the history and the status back to PENDING. The note is already cleaned and checked, the pen name is checked by the schema.
-func (s *Service) Request(ctx context.Context, viewer auth.Viewer, note, penName string) (*ent.Writer, error) {
+func (s *Service) Request(
+	ctx context.Context,
+	viewer auth.Viewer,
+	note, penName string,
+) (*ent.Writer, error) {
 	if viewer.HasMinimumRole(auth.RoleWriter) {
 		return nil, apperr.BadRequest(alreadyWriterMessage)
 	}
-	if err := s.refusePenNameOfAnother(ctx, penName, viewer.Subject); err != nil {
+	if err := s.refusePenNameOfAnother(
+		ctx,
+		penName,
+		viewer.Subject,
+	); err != nil {
 		return nil, err
 	}
-	identity := Identity{UserID: viewer.Subject, Name: viewer.Name, Email: viewer.Email}
+	identity := Identity{
+		UserID: viewer.Subject,
+		Name:   viewer.Name,
+		Email:  viewer.Email,
+	}
 	if identity.Name == "" {
 		identity.Name = viewer.PreferredUsername
 	}
 	var applied *ent.Writer
 	err := entx.WithTx(ctx, s.client, func(tx *ent.Tx) error {
 		var err error
-		applied, err = apply(ctx, newRepository(tx.Client()), identity, note, penName)
+		applied, err = apply(
+			ctx,
+			newRepository(tx.Client()),
+			identity,
+			note,
+			penName,
+		)
 
 		return err
 	})
 	if ent.IsConstraintError(err) {
 		// Either the pen name another request just took or this user's own pending row; asking again tells them apart.
-		if refusal := s.refusePenNameOfAnother(ctx, penName, viewer.Subject); refusal != nil {
+		if refusal := s.refusePenNameOfAnother(
+			ctx,
+			penName,
+			viewer.Subject,
+		); refusal != nil {
 			return nil, refusal
 		}
 
@@ -80,11 +102,24 @@ func (s *Service) Request(ctx context.Context, viewer auth.Viewer, note, penName
 	return applied, err
 }
 
-func apply(ctx context.Context, repo *repository, identity Identity, note, penName string) (*ent.Writer, error) {
-	application := schema.WriterApplication{Note: note, AppliedAt: time.Now().UTC().Format(time.RFC3339Nano)}
+func apply(
+	ctx context.Context,
+	repo *repository,
+	identity Identity,
+	note, penName string,
+) (*ent.Writer, error) {
+	application := schema.WriterApplication{
+		Note:      note,
+		AppliedAt: time.Now().UTC().Format(time.RFC3339Nano),
+	}
 	existing, err := repo.lockedByUserID(ctx, identity.UserID)
 	if ent.IsNotFound(err) {
-		return repo.create(ctx, identity, penName, []schema.WriterApplication{application})
+		return repo.create(
+			ctx,
+			identity,
+			penName,
+			[]schema.WriterApplication{application},
+		)
 	}
 	if err != nil {
 		return nil, err
@@ -97,10 +132,22 @@ func apply(ctx context.Context, repo *repository, identity Identity, note, penNa
 	case entwriter.StatusREJECTED:
 	}
 
-	return repo.reapply(ctx, existing.ID, identity, penName, append(existing.Applications[:len(existing.Applications):len(existing.Applications)], application))
+	return repo.reapply(
+		ctx,
+		existing.ID,
+		identity,
+		penName,
+		append(
+			existing.Applications[:len(existing.Applications):len(existing.Applications)],
+			application,
+		),
+	)
 }
 
-func (s *Service) refusePenNameOfAnother(ctx context.Context, penName, userID string) error {
+func (s *Service) refusePenNameOfAnother(
+	ctx context.Context,
+	penName, userID string,
+) error {
 	owner, err := s.repo.ownerOfPenName(ctx, penName)
 	if err != nil {
 		return err
@@ -113,7 +160,10 @@ func (s *Service) refusePenNameOfAnother(ctx context.Context, penName, userID st
 }
 
 // ForUser is the writer record of a user (their latest request); nil when they never asked.
-func (s *Service) ForUser(ctx context.Context, userID string) (*ent.Writer, error) {
+func (s *Service) ForUser(
+	ctx context.Context,
+	userID string,
+) (*ent.Writer, error) {
 	found, err := s.repo.byUserID(ctx, userID)
 	if ent.IsNotFound(err) {
 		return nil, nil
@@ -124,20 +174,37 @@ func (s *Service) ForUser(ctx context.Context, userID string) (*ent.Writer, erro
 
 // Approve grants the writer role to the requester in the identity provider, then marks the request APPROVED. The identity provider is
 // called first, so its failure leaves the request PENDING for a retry; setting the grant twice is harmless, so a failed write is safe to retry.
-func (s *Service) Approve(ctx context.Context, id uuid.UUID, adminID string) (*ent.Writer, error) {
+func (s *Service) Approve(
+	ctx context.Context,
+	id uuid.UUID,
+	adminID string,
+) (*ent.Writer, error) {
 	pending, err := s.pending(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	if err = s.roles.SetUserProjectRole(ctx, pending.UserID, auth.RoleWriter); err != nil {
-		return nil, fmt.Errorf("granting the writer role to %s: %w", pending.UserID, err)
+	if err = s.roles.SetUserProjectRole(
+		ctx,
+		pending.UserID,
+		auth.RoleWriter,
+	); err != nil {
+		return nil, fmt.Errorf(
+			"granting the writer role to %s: %w",
+			pending.UserID,
+			err,
+		)
 	}
 
 	return s.review(ctx, id, adminID, entwriter.StatusAPPROVED, nil)
 }
 
 // Reject marks a pending request REJECTED with a reason the requester sees; the reason is already cleaned and checked, and blank means none.
-func (s *Service) Reject(ctx context.Context, id uuid.UUID, adminID string, reason *string) (*ent.Writer, error) {
+func (s *Service) Reject(
+	ctx context.Context,
+	id uuid.UUID,
+	adminID string,
+	reason *string,
+) (*ent.Writer, error) {
 	if _, err := s.pending(ctx, id); err != nil {
 		return nil, err
 	}
@@ -150,7 +217,10 @@ func (s *Service) Reject(ctx context.Context, id uuid.UUID, adminID string, reas
 	return s.review(ctx, id, adminID, entwriter.StatusREJECTED, rejection)
 }
 
-func (s *Service) pending(ctx context.Context, id uuid.UUID) (*ent.Writer, error) {
+func (s *Service) pending(
+	ctx context.Context,
+	id uuid.UUID,
+) (*ent.Writer, error) {
 	found, err := s.repo.byID(ctx, id)
 	if ent.IsNotFound(err) {
 		return nil, apperr.NotFound(notFoundMessage)
@@ -167,7 +237,13 @@ func (s *Service) pending(ctx context.Context, id uuid.UUID) (*ent.Writer, error
 
 // review locks the row and reads its status again, so two admins reviewing the same request at once end with one winner and one bad request.
 // Filling in the review fields of the last entry is the only time an entry of the history changes.
-func (s *Service) review(ctx context.Context, id uuid.UUID, adminID string, status entwriter.Status, rejection *string) (*ent.Writer, error) {
+func (s *Service) review(
+	ctx context.Context,
+	id uuid.UUID,
+	adminID string,
+	status entwriter.Status,
+	rejection *string,
+) (*ent.Writer, error) {
 	var reviewed *ent.Writer
 	err := entx.WithTx(ctx, s.client, func(tx *ent.Tx) error {
 		repo := newRepository(tx.Client())
@@ -184,7 +260,9 @@ func (s *Service) review(ctx context.Context, id uuid.UUID, adminID string, stat
 		if len(locked.Applications) == 0 {
 			return fmt.Errorf("%w: writer %s", errNoApplication, id)
 		}
-		history := append([]schema.WriterApplication(nil), locked.Applications...)
+		history := append(
+			[]schema.WriterApplication(nil),
+			locked.Applications...)
 		last := &history[len(history)-1]
 		reviewedAt := time.Now().UTC().Format(time.RFC3339Nano)
 		last.RejectionReason, last.ReviewedBy, last.ReviewedAt = rejection, &adminID, &reviewedAt
@@ -199,8 +277,15 @@ func (s *Service) review(ctx context.Context, id uuid.UUID, adminID string, stat
 var errNoApplication = errors.New("a pending writer without an application")
 
 // ListFilter narrows the list of requests: PENDING unless the filter names a status, and only the pen names that contain the search text.
-func ListFilter(where *ent.WriterWhereInput, search *string) *ent.WriterWhereInput {
-	conditions := make([]*ent.WriterWhereInput, 0, 3) //nolint:mnd // the filter, the status and the search
+func ListFilter(
+	where *ent.WriterWhereInput,
+	search *string,
+) *ent.WriterWhereInput {
+	conditions := make(
+		[]*ent.WriterWhereInput,
+		0,
+		3, //nolint:mnd // the filter, the status and the search
+	)
 	named := false
 	if where != nil && !isEmpty(where) {
 		conditions = append(conditions, where)
@@ -211,7 +296,10 @@ func ListFilter(where *ent.WriterWhereInput, search *string) *ent.WriterWhereInp
 		conditions = append(conditions, &ent.WriterWhereInput{Status: &pending})
 	}
 	if search != nil && strings.TrimSpace(*search) != "" {
-		conditions = append(conditions, &ent.WriterWhereInput{PenNameContainsFold: search})
+		conditions = append(
+			conditions,
+			&ent.WriterWhereInput{PenNameContainsFold: search},
+		)
 	}
 
 	return &ent.WriterWhereInput{And: conditions}
@@ -225,5 +313,7 @@ func isEmpty(where *ent.WriterWhereInput) bool {
 }
 
 func namesStatus(where *ent.WriterWhereInput) bool {
-	return where.Status != nil || where.StatusNEQ != nil || len(where.StatusIn) > 0 || len(where.StatusNotIn) > 0
+	return where.Status != nil || where.StatusNEQ != nil ||
+		len(where.StatusIn) > 0 ||
+		len(where.StatusNotIn) > 0
 }

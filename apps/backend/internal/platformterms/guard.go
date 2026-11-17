@@ -24,7 +24,11 @@ type Acceptances interface {
 func Guard(service Acceptances) graphql.FieldMiddleware {
 	return func(ctx context.Context, next graphql.Resolver) (any, error) {
 		field := graphql.GetFieldContext(ctx)
-		if field == nil || field.Object != mutationType || field.Field.Definition == nil || field.Field.Definition.Directives.ForName(skipTermsDirective) != nil {
+		if field == nil || field.Object != mutationType ||
+			field.Field.Definition == nil ||
+			field.Field.Definition.Directives.ForName(
+				skipTermsDirective,
+			) != nil {
 			return next(ctx)
 		}
 		viewer, ok := auth.ViewerFrom(ctx)

@@ -9,12 +9,17 @@ import (
 
 // WithinDays makes the bounds of a history filter whole UTC days, since a snapshot is one per day and only the day of a bound counts.
 // A range that ends before it starts is refused, compared as the clients sent them.
-func WithinDays(where *ent.StatsSnapshotWhereInput) (*ent.StatsSnapshotWhereInput, error) {
+func WithinDays(
+	where *ent.StatsSnapshotWhereInput,
+) (*ent.StatsSnapshotWhereInput, error) {
 	if where == nil {
 		return nil, nil
 	}
-	if where.DayGTE != nil && where.DayLTE != nil && where.DayLTE.Before(*where.DayGTE) {
-		return nil, apperr.BadRequest("filters.to cannot be earlier than filters.from")
+	if where.DayGTE != nil && where.DayLTE != nil &&
+		where.DayLTE.Before(*where.DayGTE) {
+		return nil, apperr.BadRequest(
+			"filters.to cannot be earlier than filters.from",
+		)
 	}
 	bounded := *where
 	bounded.DayGTE = utcDay(where.DayGTE)

@@ -57,7 +57,12 @@ func Start(ctx context.Context, cfg config.Config) (*Telemetry, error) {
 		return nil, fmt.Errorf("telemetry resource: %w", err)
 	}
 
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
+	otel.SetTextMapPropagator(
+		propagation.NewCompositeTextMapPropagator(
+			propagation.TraceContext{},
+			propagation.Baggage{},
+		),
+	)
 
 	if err := t.startTraces(ctx, cfg, res); err != nil {
 		return nil, err
@@ -75,12 +80,19 @@ func signalURL(endpoint, path string) (string, error) {
 	return url.JoinPath(endpoint, path)
 }
 
-func (t *Telemetry) startTraces(ctx context.Context, cfg config.Config, res *resource.Resource) error {
+func (t *Telemetry) startTraces(
+	ctx context.Context,
+	cfg config.Config,
+	res *resource.Resource,
+) error {
 	endpoint, err := signalURL(cfg.OTel.Endpoint, "v1/traces")
 	if err != nil {
 		return fmt.Errorf("OTEL_EXPORTER_OTLP_ENDPOINT: %w", err)
 	}
-	exporter, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(endpoint))
+	exporter, err := otlptracehttp.New(
+		ctx,
+		otlptracehttp.WithEndpointURL(endpoint),
+	)
 	if err != nil {
 		return fmt.Errorf("trace exporter: %w", err)
 	}
@@ -101,7 +113,11 @@ func (t *Telemetry) startTraces(ctx context.Context, cfg config.Config, res *res
 	return nil
 }
 
-func (t *Telemetry) startLogs(ctx context.Context, cfg config.Config, res *resource.Resource) error {
+func (t *Telemetry) startLogs(
+	ctx context.Context,
+	cfg config.Config,
+	res *resource.Resource,
+) error {
 	endpoint, err := signalURL(cfg.OTel.Endpoint, "v1/logs")
 	if err != nil {
 		return fmt.Errorf("OTEL_EXPORTER_OTLP_ENDPOINT: %w", err)
@@ -120,7 +136,10 @@ func (t *Telemetry) startLogs(ctx context.Context, cfg config.Config, res *resou
 			sdklog.WithExportTimeout(cfg.OTel.ExportTimeout),
 		)),
 	)
-	t.logHandler = otelslog.NewHandler(cfg.App.ServiceName, otelslog.WithLoggerProvider(provider))
+	t.logHandler = otelslog.NewHandler(
+		cfg.App.ServiceName,
+		otelslog.WithLoggerProvider(provider),
+	)
 	t.shutdowns = append(t.shutdowns, provider.Shutdown)
 
 	return nil
@@ -135,6 +154,8 @@ func sampler(cfg config.OTel) sdktrace.Sampler {
 	case "traceidratio":
 		return sdktrace.TraceIDRatioBased(cfg.TracesSamplerArg)
 	default:
-		return sdktrace.ParentBased(sdktrace.TraceIDRatioBased(cfg.TracesSamplerArg))
+		return sdktrace.ParentBased(
+			sdktrace.TraceIDRatioBased(cfg.TracesSamplerArg),
+		)
 	}
 }

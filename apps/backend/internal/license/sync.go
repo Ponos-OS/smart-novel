@@ -28,7 +28,11 @@ func (s *Service) KeepCanonicalSynced(ctx context.Context) {
 		}
 		wait = syncEvery
 		if err := s.syncCanonical(ctx); err != nil {
-			s.logger.WarnContext(ctx, "storing the canonical licenses of Fithara", slog.Any(logKeyError, err))
+			s.logger.WarnContext(
+				ctx,
+				"storing the canonical licenses of Fithara",
+				slog.Any(logKeyError, err),
+			)
 			wait = syncRetryAfter
 		}
 	}
@@ -43,7 +47,11 @@ func (s *Service) syncCanonical(ctx context.Context) error {
 		return fmt.Errorf("listing the licenses: %w", err)
 	}
 	if listed.JSON200 == nil {
-		return fmt.Errorf("listing the licenses: %w: %d", errUnexpectedStatus, listed.StatusCode())
+		return fmt.Errorf(
+			"listing the licenses: %w: %d",
+			errUnexpectedStatus,
+			listed.StatusCode(),
+		)
 	}
 	var failures []error
 	for _, offered := range listed.JSON200.Licenses {

@@ -50,7 +50,10 @@ func New(options Options) http.Handler {
 	}
 	graphqlOverHTTP := graphqlHandler(options)
 	mux.Handle("POST "+graphqlPath, graphqlOverHTTP)
-	mux.Handle("GET "+graphqlPath, upgradedOr(graphqlOverHTTP, playgroundHandler(options.Config)))
+	mux.Handle(
+		"GET "+graphqlPath,
+		upgradedOr(graphqlOverHTTP, playgroundHandler(options.Config)),
+	)
 
 	allowed := cors.New(cors.Options{
 		AllowedOrigins:   options.Config.App.CORSAllowedOrigins,
@@ -119,7 +122,11 @@ func graphqlHandler(options Options) http.Handler {
 	srv.AddTransport(transport.Websocket{
 		KeepAlivePingInterval: websocketPing,
 		Implementation: transport.CoderWebsocketImplementation{
-			AcceptOptions: coderws.AcceptOptions{OriginPatterns: originHosts(options.Config.App.CORSAllowedOrigins)},
+			AcceptOptions: coderws.AcceptOptions{
+				OriginPatterns: originHosts(
+					options.Config.App.CORSAllowedOrigins,
+				),
+			},
 		},
 	})
 	srv.SetErrorPresenter(errorPresenter(options.Logger))
@@ -139,7 +146,12 @@ func graphqlHandler(options Options) http.Handler {
 }
 
 // Serve blocks until ctx is cancelled, then stops accepting requests and lets the running ones finish.
-func Serve(ctx context.Context, logger *slog.Logger, port int, root http.Handler) error {
+func Serve(
+	ctx context.Context,
+	logger *slog.Logger,
+	port int,
+	root http.Handler,
+) error {
 	srv := &http.Server{
 		Addr:              fmt.Sprintf(":%d", port),
 		Handler:           root,
@@ -147,7 +159,11 @@ func Serve(ctx context.Context, logger *slog.Logger, port int, root http.Handler
 	}
 	failed := make(chan error, 1)
 	go func() {
-		logger.InfoContext(ctx, "server listening", slog.String(logKeyAddr, srv.Addr))
+		logger.InfoContext(
+			ctx,
+			"server listening",
+			slog.String(logKeyAddr, srv.Addr),
+		)
 		failed <- srv.ListenAndServe()
 	}()
 
@@ -158,9 +174,15 @@ func Serve(ctx context.Context, logger *slog.Logger, port int, root http.Handler
 	}
 
 	logger.InfoContext(ctx, "server shutting down")
-	stopCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), shutdownTimeout)
+	stopCtx, cancel := context.WithTimeout(
+		context.WithoutCancel(ctx),
+		shutdownTimeout,
+	)
 	defer cancel()
-	if err := srv.Shutdown(stopCtx); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	if err := srv.Shutdown(
+		stopCtx,
+	); err != nil &&
+		!errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("graceful shutdown: %w", err)
 	}
 

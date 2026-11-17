@@ -48,7 +48,11 @@ func run() error {
 		dataPath = "/data"
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGINT,
+		syscall.SIGTERM,
+	)
 	defer stop()
 	db, err := database.Open(ctx, databaseURL)
 	if err != nil {

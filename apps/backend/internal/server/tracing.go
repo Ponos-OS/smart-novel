@@ -26,7 +26,8 @@ func withSpanName(next http.Handler) http.Handler {
 }
 
 func formatSpanName(operation string, r *http.Request) string {
-	if name, ok := r.Context().Value(spanNameKey{}).(*spanName); ok && name.value != "" {
+	if name, ok := r.Context().Value(spanNameKey{}).(*spanName); ok &&
+		name.value != "" {
 		return name.value
 	}
 
@@ -45,7 +46,10 @@ func (operationSpan) ExtensionName() string { return "OperationSpan" }
 
 func (operationSpan) Validate(graphql.ExecutableSchema) error { return nil }
 
-func (operationSpan) MutateOperationContext(ctx context.Context, operation *graphql.OperationContext) *gqlerror.Error {
+func (operationSpan) MutateOperationContext(
+	ctx context.Context,
+	operation *graphql.OperationContext,
+) *gqlerror.Error {
 	label := operationLabel(operation.OperationName, operation.Operation)
 	kind := string(operation.Operation.Operation)
 	if name, ok := ctx.Value(spanNameKey{}).(*spanName); ok {

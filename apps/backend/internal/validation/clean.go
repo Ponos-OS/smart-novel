@@ -43,7 +43,8 @@ func Text(text string) string {
 	text = strings.ToValidUTF8(text, "")
 	text = strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(text)
 	text = strings.Map(func(r rune) rune {
-		if invisibleSpace(r) || (unicode.IsControl(r) && r != '\n' && r != '\t') {
+		if invisibleSpace(r) ||
+			(unicode.IsControl(r) && r != '\n' && r != '\t') {
 			return -1
 		}
 

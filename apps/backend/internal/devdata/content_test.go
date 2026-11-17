@@ -12,13 +12,16 @@ import (
 )
 
 func TestParseChapter(t *testing.T) {
-	text := []byte("---\r\nid: '4dd92f16-4743-47b9-960c-6529678e9bc5'\r\ntitle: 'The Beginning'\r\n---\r\n\r\n# Chapter 1\r\n\r\nIn a small village.\r\n")
+	text := []byte(
+		"---\r\nid: '4dd92f16-4743-47b9-960c-6529678e9bc5'\r\ntitle: 'The Beginning'\r\n---\r\n\r\n# Chapter 1\r\n\r\nIn a small village.\r\n",
+	)
 
 	chapter, err := devdata.ParseChapter(text)
 	if err != nil {
 		t.Fatalf("err = %v", err)
 	}
-	if chapter.ID != uuid.MustParse("4dd92f16-4743-47b9-960c-6529678e9bc5") || chapter.Title != "The Beginning" {
+	if chapter.ID != uuid.MustParse("4dd92f16-4743-47b9-960c-6529678e9bc5") ||
+		chapter.Title != "The Beginning" {
 		t.Errorf("chapter = %+v", chapter)
 	}
 	if want := "# Chapter 1\n\nIn a small village."; chapter.Content != want {
@@ -48,13 +51,21 @@ func TestLoadChaptersOrdersByNumber(t *testing.T) {
 	dir := t.TempDir()
 	write := func(name, id string) {
 		content := "---\nid: '" + id + "'\ntitle: '" + name + "'\n---\nbody"
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o600); err != nil {
+		if err := os.WriteFile(
+			filepath.Join(dir, name),
+			[]byte(content),
+			0o600,
+		); err != nil {
 			t.Fatal(err)
 		}
 	}
 	write("chapter10.md", "00000000-0000-4000-8000-000000000010")
 	write("chapter2.md", "00000000-0000-4000-8000-000000000002")
-	if err := os.WriteFile(filepath.Join(dir, "details.json"), []byte("{}"), 0o600); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(dir, "details.json"),
+		[]byte("{}"),
+		0o600,
+	); err != nil {
 		t.Fatal(err)
 	}
 
@@ -69,11 +80,20 @@ func TestLoadChaptersOrdersByNumber(t *testing.T) {
 }
 
 func TestUniqueTags(t *testing.T) {
-	novels := []devdata.NovelDetails{{Tags: []string{"Fantasy", "adventure"}}, {Tags: []string{"fantasy"}}}
+	novels := []devdata.NovelDetails{
+		{Tags: []string{"Fantasy", "adventure"}},
+		{Tags: []string{"fantasy"}},
+	}
 
 	tags := devdata.UniqueTags(novels)
 
-	if want := []string{"adventure", "fantasy"}; !reflect.DeepEqual(tags, want) {
+	if want := []string{
+		"adventure",
+		"fantasy",
+	}; !reflect.DeepEqual(
+		tags,
+		want,
+	) {
 		t.Errorf("tags = %v, want %v", tags, want)
 	}
 }

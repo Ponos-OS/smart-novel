@@ -26,16 +26,30 @@ func newRepository(client *ent.Client) *repository {
 }
 
 // tablesOf says which table each of the IDs is in; an ID that is in none is left out. Raw SQL, because an ID carries no type and ent cannot query several tables at once: this is one statement instead of one query per table and ID.
-func (r *repository) tablesOf(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]string, error) {
+func (r *repository) tablesOf(
+	ctx context.Context,
+	ids []uuid.UUID,
+) (map[uuid.UUID]string, error) {
 	texts := make([]string, len(ids))
 	for index, id := range ids {
 		texts[index] = id.String()
 	}
 	selects := make([]string, 0, len(nodeTables))
 	for _, table := range nodeTables {
-		selects = append(selects, fmt.Sprintf("SELECT id, '%s' AS found_in FROM %s WHERE id = ANY($1::uuid[])", table, table))
+		selects = append(
+			selects,
+			fmt.Sprintf(
+				"SELECT id, '%s' AS found_in FROM %s WHERE id = ANY($1::uuid[])",
+				table,
+				table,
+			),
+		)
 	}
-	rows, err := r.client.QueryContext(ctx, strings.Join(selects, " UNION ALL "), texts)
+	rows, err := r.client.QueryContext(
+		ctx,
+		strings.Join(selects, " UNION ALL "),
+		texts,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -55,11 +69,21 @@ func (r *repository) tablesOf(ctx context.Context, ids []uuid.UUID) (map[uuid.UU
 }
 
 // nodeTables are the tables of the entities that implement Node.
-var nodeTables = []string{chapter.Table, license.Table, novel.Table, statssnapshot.Table, tag.Table, writer.Table}
+var nodeTables = []string{
+	chapter.Table,
+	license.Table,
+	novel.Table,
+	statssnapshot.Table,
+	tag.Table,
+	writer.Table,
+}
 
 // load returns the entities of the IDs, by ID, with every column. The ent loader of nodes selects only the columns the GraphQL query names, and
 // the service decides who may see an entity from columns the query may not name (the owner of a license, the user of a writer).
-func (r *repository) load(ctx context.Context, tables map[uuid.UUID]string) (map[uuid.UUID]ent.Noder, error) {
+func (r *repository) load(
+	ctx context.Context,
+	tables map[uuid.UUID]string,
+) (map[uuid.UUID]ent.Noder, error) {
 	byTable := make(map[string][]uuid.UUID)
 	for id, table := range tables {
 		byTable[table] = append(byTable[table], id)
@@ -78,24 +102,43 @@ func (r *repository) load(ctx context.Context, tables map[uuid.UUID]string) (map
 	return nodes, nil
 }
 
-func (r *repository) loadTable(ctx context.Context, table string, ids []uuid.UUID) (map[uuid.UUID]ent.Noder, error) {
+func (r *repository) loadTable(
+	ctx context.Context,
+	table string,
+	ids []uuid.UUID,
+) (map[uuid.UUID]ent.Noder, error) {
 	switch table {
 	case chapter.Table:
-		rows, err := r.client.Chapter.Query().Where(chapter.IDIn(ids...)).All(ctx)
+		rows, err := r.client.Chapter.Query().
+			Where(chapter.IDIn(ids...)).
+			All(ctx)
 
-		return byID(rows, func(row *ent.Chapter) uuid.UUID { return row.ID }), err
+		return byID(
+			rows,
+			func(row *ent.Chapter) uuid.UUID { return row.ID },
+		), err
 	case license.Table:
-		rows, err := r.client.License.Query().Where(license.IDIn(ids...)).All(ctx)
+		rows, err := r.client.License.Query().
+			Where(license.IDIn(ids...)).
+			All(ctx)
 
-		return byID(rows, func(row *ent.License) uuid.UUID { return row.ID }), err
+		return byID(
+			rows,
+			func(row *ent.License) uuid.UUID { return row.ID },
+		), err
 	case novel.Table:
 		rows, err := r.client.Novel.Query().Where(novel.IDIn(ids...)).All(ctx)
 
 		return byID(rows, func(row *ent.Novel) uuid.UUID { return row.ID }), err
 	case statssnapshot.Table:
-		rows, err := r.client.StatsSnapshot.Query().Where(statssnapshot.IDIn(ids...)).All(ctx)
+		rows, err := r.client.StatsSnapshot.Query().
+			Where(statssnapshot.IDIn(ids...)).
+			All(ctx)
 
-		return byID(rows, func(row *ent.StatsSnapshot) uuid.UUID { return row.ID }), err
+		return byID(
+			rows,
+			func(row *ent.StatsSnapshot) uuid.UUID { return row.ID },
+		), err
 	case tag.Table:
 		rows, err := r.client.Tag.Query().Where(tag.IDIn(ids...)).All(ctx)
 
@@ -103,7 +146,10 @@ func (r *repository) loadTable(ctx context.Context, table string, ids []uuid.UUI
 	case writer.Table:
 		rows, err := r.client.Writer.Query().Where(writer.IDIn(ids...)).All(ctx)
 
-		return byID(rows, func(row *ent.Writer) uuid.UUID { return row.ID }), err
+		return byID(
+			rows,
+			func(row *ent.Writer) uuid.UUID { return row.ID },
+		), err
 	}
 
 	return nil, nil

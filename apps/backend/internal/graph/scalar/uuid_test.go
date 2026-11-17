@@ -16,7 +16,12 @@ func TestUnmarshalUUID(t *testing.T) {
 		want    uuid.UUID
 		wantErr bool
 	}{
-		{"a UUID", "f47ac10b-58cc-4372-a567-0e02b2c3d479", uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d479"), false},
+		{
+			"a UUID",
+			"f47ac10b-58cc-4372-a567-0e02b2c3d479",
+			uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d479"),
+			false,
+		},
 		{"not a UUID", "x", uuid.Nil, true},
 		{"empty", "", uuid.Nil, true},
 		{"a number", 42, uuid.Nil, true},
@@ -27,7 +32,13 @@ func TestUnmarshalUUID(t *testing.T) {
 
 			var invalid scalar.InvalidIDError
 			if c.wantErr != errors.As(err, &invalid) || got != c.want {
-				t.Errorf("got %v, %v; want %v, invalid ID error %v", got, err, c.want, c.wantErr)
+				t.Errorf(
+					"got %v, %v; want %v, invalid ID error %v",
+					got,
+					err,
+					c.want,
+					c.wantErr,
+				)
 			}
 		})
 	}

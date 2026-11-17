@@ -35,7 +35,11 @@ var (
 )
 
 // UserAdded answers ZITADEL's call on user.human.added: the event's aggregateID is the new user. Everyone starts as a user; one that already holds a role (the seeded ones) is left alone. The call is signed with signingKey.
-func UserAdded(signingKey string, management *zitadel.Management, logger *slog.Logger) http.Handler {
+func UserAdded(
+	signingKey string,
+	management *zitadel.Management,
+	logger *slog.Logger,
+) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxBodyBytes))
 		if err != nil {
@@ -43,7 +47,12 @@ func UserAdded(signingKey string, management *zitadel.Management, logger *slog.L
 
 			return
 		}
-		if err := verify(signingKey, r.Header.Get("ZITADEL-Signature"), body, time.Now()); err != nil {
+		if err := verify(
+			signingKey,
+			r.Header.Get("ZITADEL-Signature"),
+			body,
+			time.Now(),
+		); err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 
 			return
@@ -51,18 +60,39 @@ func UserAdded(signingKey string, management *zitadel.Management, logger *slog.L
 		var event struct {
 			AggregateID string `json:"aggregateID"`
 		}
-		if err := json.Unmarshal(body, &event); err != nil || event.AggregateID == "" {
+		if err := json.Unmarshal(
+			body,
+			&event,
+		); err != nil ||
+			event.AggregateID == "" {
 			http.Error(w, "the event has no aggregateID", http.StatusBadRequest)
 
 			return
 		}
-		if err := management.GrantProjectRoleIfAbsent(r.Context(), event.AggregateID, auth.RoleUser); err != nil {
-			logger.ErrorContext(r.Context(), "granting the first role to a new user", slog.String(logKeyUserID, event.AggregateID), slog.Any(logKeyError, err))
-			http.Error(w, "could not grant the role", http.StatusInternalServerError)
+		if err := management.GrantProjectRoleIfAbsent(
+			r.Context(),
+			event.AggregateID,
+			auth.RoleUser,
+		); err != nil {
+			logger.ErrorContext(
+				r.Context(),
+				"granting the first role to a new user",
+				slog.String(logKeyUserID, event.AggregateID),
+				slog.Any(logKeyError, err),
+			)
+			http.Error(
+				w,
+				"could not grant the role",
+				http.StatusInternalServerError,
+			)
 
 			return
 		}
-		logger.InfoContext(r.Context(), "new user got the first role", slog.String(logKeyUserID, event.AggregateID))
+		logger.InfoContext(
+			r.Context(),
+			"new user got the first role",
+			slog.String(logKeyUserID, event.AggregateID),
+		)
 		w.WriteHeader(http.StatusNoContent)
 	})
 }

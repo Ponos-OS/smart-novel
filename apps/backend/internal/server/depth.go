@@ -26,15 +26,27 @@ func (depthLimit) ExtensionName() string { return "DepthLimit" }
 
 func (depthLimit) Validate(graphql.ExecutableSchema) error { return nil }
 
-func (d depthLimit) MutateOperationContext(_ context.Context, operation *graphql.OperationContext) *gqlerror.Error {
-	if exceeds(operation.Operation.SelectionSet, operation.Doc.Fragments, 0, d.limit) {
+func (d depthLimit) MutateOperationContext(
+	_ context.Context,
+	operation *graphql.OperationContext,
+) *gqlerror.Error {
+	if exceeds(
+		operation.Operation.SelectionSet,
+		operation.Doc.Fragments,
+		0,
+		d.limit,
+	) {
 		name := operation.Operation.Name
 		if name == "" {
 			name = "operation"
 		}
 
 		return &gqlerror.Error{
-			Message:    fmt.Sprintf("'%s' exceeds maximum operation depth of %d", name, d.limit),
+			Message: fmt.Sprintf(
+				"'%s' exceeds maximum operation depth of %d",
+				name,
+				d.limit,
+			),
 			Extensions: map[string]any{extensionCode: codeValidation},
 		}
 	}
@@ -43,7 +55,11 @@ func (d depthLimit) MutateOperationContext(_ context.Context, operation *graphql
 }
 
 // exceeds reports whether any field in selections sits deeper than limit, where the fields of the operation are at depth 0.
-func exceeds(selections ast.SelectionSet, fragments ast.FragmentDefinitionList, depth, limit int) bool {
+func exceeds(
+	selections ast.SelectionSet,
+	fragments ast.FragmentDefinitionList,
+	depth, limit int,
+) bool {
 	for _, selection := range selections {
 		if selectionExceeds(selection, fragments, depth, limit) {
 			return true
@@ -53,20 +69,26 @@ func exceeds(selections ast.SelectionSet, fragments ast.FragmentDefinitionList, 
 	return false
 }
 
-func selectionExceeds(selection ast.Selection, fragments ast.FragmentDefinitionList, depth, limit int) bool {
+func selectionExceeds(
+	selection ast.Selection,
+	fragments ast.FragmentDefinitionList,
+	depth, limit int,
+) bool {
 	switch node := selection.(type) {
 	case *ast.Field:
 		if strings.HasPrefix(node.Name, "__") || len(node.SelectionSet) == 0 {
 			return false
 		}
 
-		return depth+1 > limit || exceeds(node.SelectionSet, fragments, depth+1, limit)
+		return depth+1 > limit ||
+			exceeds(node.SelectionSet, fragments, depth+1, limit)
 	case *ast.InlineFragment:
 		return exceeds(node.SelectionSet, fragments, depth, limit)
 	case *ast.FragmentSpread:
 		definition := fragments.ForName(node.Name)
 
-		return definition != nil && exceeds(definition.SelectionSet, fragments, depth, limit)
+		return definition != nil &&
+			exceeds(definition.SelectionSet, fragments, depth, limit)
 	}
 
 	return false

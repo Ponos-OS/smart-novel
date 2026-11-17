@@ -13,7 +13,11 @@ func TestErrors(t *testing.T) {
 		err      error
 		wantCode string
 	}{
-		{"bad request", apperr.BadRequest("Provide a name"), apperr.CodeBadRequest},
+		{
+			"bad request",
+			apperr.BadRequest("Provide a name"),
+			apperr.CodeBadRequest,
+		},
 		{"not found", apperr.NotFound("Tag not found"), apperr.CodeNotFound},
 		{"conflict", apperr.Conflict("Reload"), apperr.CodeConflict},
 	}

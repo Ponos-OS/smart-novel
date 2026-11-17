@@ -26,10 +26,12 @@ func New(cfg config.Config, out io.Writer, shipped slog.Handler) *slog.Logger {
 	}
 	local = traceCorrelation{local}
 	if shipped == nil {
-		return slog.New(local).With(slog.String(keyService, cfg.App.ServiceName))
+		return slog.New(local).
+			With(slog.String(keyService, cfg.App.ServiceName))
 	}
 
-	return slog.New(slog.NewMultiHandler(local, shipped)).With(slog.String(keyService, cfg.App.ServiceName))
+	return slog.New(slog.NewMultiHandler(local, shipped)).
+		With(slog.String(keyService, cfg.App.ServiceName))
 }
 
 // traceCorrelation adds the trace and span IDs of the context, so a log line can be found from its trace.
@@ -37,7 +39,10 @@ type traceCorrelation struct {
 	slog.Handler
 }
 
-func (h traceCorrelation) Handle(ctx context.Context, record slog.Record) error {
+func (h traceCorrelation) Handle(
+	ctx context.Context,
+	record slog.Record,
+) error {
 	if span := trace.SpanContextFromContext(ctx); span.IsValid() {
 		record.AddAttrs(
 			slog.String(keyTraceID, span.TraceID().String()),

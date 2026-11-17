@@ -22,7 +22,10 @@ type IssuerCheck struct {
 
 // NewIssuerCheck finds the signing keys of the issuer, so the backend does not start when ZITADEL cannot be reached, like the check of every
 // other request. The key set it keeps looks the keys up again when ZITADEL rotates one.
-func NewIssuerCheck(ctx context.Context, cfg ZitadelConfig) (*IssuerCheck, error) {
+func NewIssuerCheck(
+	ctx context.Context,
+	cfg ZitadelConfig,
+) (*IssuerCheck, error) {
 	issuer, err := url.Parse(cfg.IssuerURL)
 	if err != nil || issuer.Host == "" {
 		return nil, fmt.Errorf("issuer URL %q %w", cfg.IssuerURL, errBadURL)
@@ -34,10 +37,17 @@ func NewIssuerCheck(ctx context.Context, cfg ZitadelConfig) (*IssuerCheck, error
 	trimmed := strings.TrimRight(cfg.IssuerURL, "/")
 	discovered, err := client.Discover(ctx, trimmed, connection)
 	if err != nil {
-		return nil, fmt.Errorf("finding the signing keys of %s: %w", trimmed, err)
+		return nil, fmt.Errorf(
+			"finding the signing keys of %s: %w",
+			trimmed,
+			err,
+		)
 	}
 
-	return &IssuerCheck{issuer: trimmed, keys: rp.NewRemoteKeySet(connection, discovered.JwksURI)}, nil
+	return &IssuerCheck{
+		issuer: trimmed,
+		keys:   rp.NewRemoteKeySet(connection, discovered.JwksURI),
+	}, nil
 }
 
 // Verify returns nil for a token ZITADEL signed, expired or not.
@@ -51,5 +61,12 @@ func (c *IssuerCheck) Verify(ctx context.Context, token string) error {
 		return errWrongIssuer
 	}
 
-	return oidc.CheckSignature(ctx, token, payload, &claims, []string{"RS256"}, c.keys)
+	return oidc.CheckSignature(
+		ctx,
+		token,
+		payload,
+		&claims,
+		[]string{"RS256"},
+		c.keys,
+	)
 }

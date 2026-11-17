@@ -18,12 +18,42 @@ func TestTagVisibility(t *testing.T) {
 		desc  string
 	}{
 		{"no filter, reader", nil, false, onlyApproved, "only approved"},
-		{"pending asked by a reader", &ent.TagWhereInput{Status: &pending}, false, approvedAlongside, "approved AND the filter"},
-		{"an empty filter, reader", &ent.TagWhereInput{}, false, onlyApproved, "only approved"},
-		{"an empty filter, admin", &ent.TagWhereInput{}, true, onlyApproved, "only approved"},
+		{
+			"pending asked by a reader",
+			&ent.TagWhereInput{Status: &pending},
+			false,
+			approvedAlongside,
+			"approved AND the filter",
+		},
+		{
+			"an empty filter, reader",
+			&ent.TagWhereInput{},
+			false,
+			onlyApproved,
+			"only approved",
+		},
+		{
+			"an empty filter, admin",
+			&ent.TagWhereInput{},
+			true,
+			onlyApproved,
+			"only approved",
+		},
 		{"no filter, admin", nil, true, onlyApproved, "only approved"},
-		{"admin asks for pending", &ent.TagWhereInput{Status: &pending}, true, func(w *ent.TagWhereInput) bool { return w.Status != nil && *w.Status == pending }, "the filter unchanged"},
-		{"admin searches by name", &ent.TagWhereInput{NameContainsFold: &name}, true, approvedAlongside, "approved AND the filter"},
+		{
+			"admin asks for pending",
+			&ent.TagWhereInput{Status: &pending},
+			true,
+			func(w *ent.TagWhereInput) bool { return w.Status != nil && *w.Status == pending },
+			"the filter unchanged",
+		},
+		{
+			"admin searches by name",
+			&ent.TagWhereInput{NameContainsFold: &name},
+			true,
+			approvedAlongside,
+			"approved AND the filter",
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -40,7 +70,8 @@ func TestTagVisibility(t *testing.T) {
 }
 
 func onlyApproved(where *ent.TagWhereInput) bool {
-	return where.Status != nil && *where.Status == enttag.StatusAPPROVED && len(where.And) == 0
+	return where.Status != nil && *where.Status == enttag.StatusAPPROVED &&
+		len(where.And) == 0
 }
 
 func approvedAlongside(where *ent.TagWhereInput) bool {

@@ -57,7 +57,11 @@ func run() error {
 		return err
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGINT,
+		syscall.SIGTERM,
+	)
 	defer stop()
 
 	sdk, err := telemetry.Start(ctx, cfg)
@@ -65,7 +69,10 @@ func run() error {
 		return err
 	}
 	defer func() {
-		flushCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), telemetryFlushTimeout)
+		flushCtx, cancel := context.WithTimeout(
+			context.WithoutCancel(ctx),
+			telemetryFlushTimeout,
+		)
 		defer cancel()
 		if shutdownErr := sdk.Shutdown(flushCtx); shutdownErr != nil {
 			fmt.Fprintln(os.Stderr, "telemetry shutdown:", shutdownErr)
@@ -80,7 +87,11 @@ func run() error {
 	}
 	defer func() {
 		if closeErr := db.Close(); closeErr != nil {
-			logger.ErrorContext(ctx, "closing the database", slog.Any(logKeyError, closeErr))
+			logger.ErrorContext(
+				ctx,
+				"closing the database",
+				slog.Any(logKeyError, closeErr),
+			)
 		}
 	}()
 	if cfg.Database.SyncSchema {
@@ -112,7 +123,13 @@ func zitadelConfig(cfg config.Config) auth.ZitadelConfig {
 	}
 }
 
-func newHandler(ctx context.Context, cfg config.Config, db *database.Database, cache *redis.Client, logger *slog.Logger) (http.Handler, error) {
+func newHandler(
+	ctx context.Context,
+	cfg config.Config,
+	db *database.Database,
+	cache *redis.Client,
+	logger *slog.Logger,
+) (http.Handler, error) {
 	verifier, err := auth.NewZitadelVerifier(ctx, zitadelConfig(cfg))
 	if err != nil {
 		return nil, err
@@ -141,15 +158,36 @@ func newHandler(ctx context.Context, cfg config.Config, db *database.Database, c
 		Verifier: verifier,
 		Terms:    resolver.TermsService,
 		Routes: map[string]http.Handler{
-			"POST /zitadel-events/user-added":         zitadelevents.UserAdded(cfg.Zitadel.WebhookSigningKey, resolver.Management, logger),
-			"POST /beatrice-callbacks/gen-upload-url": ttscallbacks.GenUploadURL(issuerCheck, storage, logger),
-			"POST /beatrice-callbacks/status":         ttscallbacks.Status(resolver.NarrationService.Handle, logger),
+			"POST /zitadel-events/user-added": zitadelevents.UserAdded(
+				cfg.Zitadel.WebhookSigningKey,
+				resolver.Management,
+				logger,
+			),
+			"POST /beatrice-callbacks/gen-upload-url": ttscallbacks.GenUploadURL(
+				issuerCheck,
+				storage,
+				logger,
+			),
+			"POST /beatrice-callbacks/status": ttscallbacks.Status(
+				resolver.NarrationService.Handle,
+				logger,
+			),
 		},
-		Extensions: []graphql.HandlerExtension{graph.NewLoaderExtension(db.Client, resolver.ChapterService)},
+		Extensions: []graphql.HandlerExtension{
+			graph.NewLoaderExtension(db.Client, resolver.ChapterService),
+		},
 	}), nil
 }
 
-func newResolver(ctx context.Context, cfg config.Config, db *database.Database, cache *redis.Client, storage *objectstorage.Client, logger *slog.Logger) (*graph.Resolver, error) {
+//nolint:funlen // wiring only; golines wrapped its signature
+func newResolver(
+	ctx context.Context,
+	cfg config.Config,
+	db *database.Database,
+	cache *redis.Client,
+	storage *objectstorage.Client,
+	logger *slog.Logger,
+) (*graph.Resolver, error) {
 	management, err := zitadel.NewManagement(ctx, cfg.Zitadel)
 	if err != nil {
 		return nil, err
@@ -159,7 +197,15 @@ func newResolver(ctx context.Context, cfg config.Config, db *database.Database, 
 		return nil, err
 	}
 
-	fitharaClient, err := fithara.NewClientWithResponses(cfg.Fithara.URL, fithara.WithHTTPClient(&http.Client{Timeout: cfg.Fithara.Timeout, Transport: otelhttp.NewTransport(http.DefaultTransport)}))
+	fitharaClient, err := fithara.NewClientWithResponses(
+		cfg.Fithara.URL,
+		fithara.WithHTTPClient(
+			&http.Client{
+				Timeout:   cfg.Fithara.Timeout,
+				Transport: otelhttp.NewTransport(http.DefaultTransport),
+			},
+		),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("creating the Fithara client: %w", err)
 	}
@@ -169,26 +215,63 @@ func newResolver(ctx context.Context, cfg config.Config, db *database.Database, 
 	}
 	go licenseService.KeepCanonicalSynced(ctx)
 
-	beatriceClient := genqlient.NewClient(cfg.Beatrice.URL, beatrice.HTTPClient{HTTP: &http.Client{Timeout: cfg.Beatrice.Timeout, Transport: otelhttp.NewTransport(http.DefaultTransport)}})
-	narrationService := narration.NewService(db.Client, cache, storage, beatriceClient, cfg.Beatrice.DefaultVoice, cfg.App.InternalURL, logger)
+	beatriceClient := genqlient.NewClient(
+		cfg.Beatrice.URL,
+		beatrice.HTTPClient{
+			HTTP: &http.Client{
+				Timeout:   cfg.Beatrice.Timeout,
+				Transport: otelhttp.NewTransport(http.DefaultTransport),
+			},
+		},
+	)
+	narrationService := narration.NewService(
+		db.Client,
+		cache,
+		storage,
+		beatriceClient,
+		cfg.Beatrice.DefaultVoice,
+		cfg.App.InternalURL,
+		logger,
+	)
 	go narrationService.KeepListening(ctx)
-	llmService := llm.NewService(beatriceClient, cache, cfg.Beatrice.ExplanationTTL, logger)
+	llmService := llm.NewService(
+		beatriceClient,
+		cache,
+		cfg.Beatrice.ExplanationTTL,
+		logger,
+	)
 	statsService := stats.NewService(db, db.Client, logger)
 	go statsService.KeepSnapshotted(ctx, cfg.Stats.SnapshotSchedule)
 
 	return &graph.Resolver{
-		Client:           db.Client,
-		Logger:           logger,
-		TagService:       tag.NewService(db.Client, db),
-		NovelService:     novel.NewService(db.Client, db, licenseService, storage, narrationService, logger),
-		LicenseService:   licenseService,
-		ChapterService:   chapter.NewService(db.Client, narrationService, logger),
+		Client:     db.Client,
+		Logger:     logger,
+		TagService: tag.NewService(db.Client, db),
+		NovelService: novel.NewService(
+			db.Client,
+			db,
+			licenseService,
+			storage,
+			narrationService,
+			logger,
+		),
+		LicenseService: licenseService,
+		ChapterService: chapter.NewService(
+			db.Client,
+			narrationService,
+			logger,
+		),
 		NarrationService: narrationService,
 		StatsService:     statsService,
 		LLMService:       llmService,
 		WriterService:    writer.NewService(db.Client, management),
 		Management:       management,
 		NodeService:      node.NewService(db.Client),
-		TermsService:     platformterms.NewService(db.Client, terms, cache, logger),
+		TermsService: platformterms.NewService(
+			db.Client,
+			terms,
+			cache,
+			logger,
+		),
 	}, nil
 }

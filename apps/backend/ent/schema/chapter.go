@@ -71,7 +71,9 @@ func (Chapter) Edges() []ent.Edge {
 }
 
 func (Chapter) Indexes() []ent.Index {
-	return []ent.Index{index.Fields("novel_id").StorageKey("IDX_chapters_novel")}
+	return []ent.Index{
+		index.Fields("novel_id").StorageKey("IDX_chapters_novel"),
+	}
 }
 
 // Annotations are used to attach arbitrary metadata to schema objects (fields, edges, or the entire schema) to configure code generation or external integrations.

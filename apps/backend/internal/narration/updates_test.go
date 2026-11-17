@@ -14,7 +14,12 @@ import (
 )
 
 func newHub() *Service {
-	return &Service{logger: slog.New(slog.DiscardHandler), subscribers: make(map[uuid.UUID]map[chan *model.ChapterNarrationEvent]struct{})}
+	return &Service{
+		logger: slog.New(slog.DiscardHandler),
+		subscribers: make(
+			map[uuid.UUID]map[chan *model.ChapterNarrationEvent]struct{},
+		),
+	}
 }
 
 func TestSubscribersHearOnlyTheirChapter(t *testing.T) {
@@ -22,12 +27,26 @@ func TestSubscribersHearOnlyTheirChapter(t *testing.T) {
 	mine, other := uuid.New(), uuid.New()
 	events := uut.Subscribe(t.Context(), mine)
 
-	uut.deliver(t.Context(), other, &model.ChapterNarrationEvent{Status: entchapter.NarrationStatusFAILED})
-	uut.deliver(t.Context(), mine, &model.ChapterNarrationEvent{Status: entchapter.NarrationStatusPROCESSING})
+	uut.deliver(
+		t.Context(),
+		other,
+		&model.ChapterNarrationEvent{Status: entchapter.NarrationStatusFAILED},
+	)
+	uut.deliver(
+		t.Context(),
+		mine,
+		&model.ChapterNarrationEvent{
+			Status: entchapter.NarrationStatusPROCESSING,
+		},
+	)
 
 	got := <-events
 	if got.Status != entchapter.NarrationStatusPROCESSING || len(events) != 0 {
-		t.Errorf("got %v with %d more waiting, want PROCESSING and none", got.Status, len(events))
+		t.Errorf(
+			"got %v with %d more waiting, want PROCESSING and none",
+			got.Status,
+			len(events),
+		)
 	}
 }
 
@@ -55,7 +74,13 @@ func TestDeliverSkipsASubscriberThatIsFull(t *testing.T) {
 	events := uut.Subscribe(t.Context(), chapterID)
 
 	for range subscriberBuffer + 1 {
-		uut.deliver(t.Context(), chapterID, &model.ChapterNarrationEvent{Status: entchapter.NarrationStatusPROCESSING})
+		uut.deliver(
+			t.Context(),
+			chapterID,
+			&model.ChapterNarrationEvent{
+				Status: entchapter.NarrationStatusPROCESSING,
+			},
+		)
 	}
 
 	if len(events) != subscriberBuffer {
@@ -64,12 +89,19 @@ func TestDeliverSkipsASubscriberThatIsFull(t *testing.T) {
 }
 
 func TestErrorOfJoinsTheCodeAndTheMessage(t *testing.T) {
-	failed := ttscallbacks.Update{Status: statusFailed, Error: &ttscallbacks.UpdateError{Code: "TTS_PROVIDER_ERROR", Message: "quota exceeded"}}
+	failed := ttscallbacks.Update{
+		Status: statusFailed,
+		Error: &ttscallbacks.UpdateError{
+			Code:    "TTS_PROVIDER_ERROR",
+			Message: "quota exceeded",
+		},
+	}
 
 	result := errorOf(failed)
 	none := errorOf(ttscallbacks.Update{Status: statusFailed})
 
-	if result == nil || *result != "TTS_PROVIDER_ERROR: quota exceeded" || none != nil {
+	if result == nil || *result != "TTS_PROVIDER_ERROR: quota exceeded" ||
+		none != nil {
 		t.Errorf("got %v and %v", result, none)
 	}
 }

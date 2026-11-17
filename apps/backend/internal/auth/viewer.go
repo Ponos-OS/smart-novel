@@ -30,8 +30,16 @@ type session struct {
 	tokenErr error
 }
 
-func withViewer(ctx context.Context, viewer Viewer, token string) context.Context {
-	return context.WithValue(ctx, sessionKey{}, &session{viewer: &viewer, token: token})
+func withViewer(
+	ctx context.Context,
+	viewer Viewer,
+	token string,
+) context.Context {
+	return context.WithValue(
+		ctx,
+		sessionKey{},
+		&session{viewer: &viewer, token: token},
+	)
 }
 
 func withRejectedToken(ctx context.Context, err error) context.Context {
@@ -71,7 +79,8 @@ func Require(ctx context.Context) (Viewer, error) {
 	if viewer, ok := ViewerFrom(ctx); ok {
 		return viewer, nil
 	}
-	if current, ok := ctx.Value(sessionKey{}).(*session); ok && current.tokenErr != nil {
+	if current, ok := ctx.Value(sessionKey{}).(*session); ok &&
+		current.tokenErr != nil {
 		return Viewer{}, errInvalidToken
 	}
 
@@ -86,8 +95,11 @@ func RequireRole(ctx context.Context, minimum Role) (Viewer, error) {
 	}
 	if !viewer.HasMinimumRole(minimum) {
 		return Viewer{}, &Error{
-			code:    apperr.CodeForbidden,
-			message: fmt.Sprintf("You need at least the %q role to perform this action", minimum),
+			code: apperr.CodeForbidden,
+			message: fmt.Sprintf(
+				"You need at least the %q role to perform this action",
+				minimum,
+			),
 		}
 	}
 
@@ -105,10 +117,19 @@ func (e *Error) Error() string { return e.message }
 func (e *Error) Code() string { return e.code }
 
 var (
-	errMissingToken = &Error{code: apperr.CodeUnauthenticated, message: "Missing Bearer token in Authorization header"}
-	errInvalidToken = &Error{code: apperr.CodeUnauthenticated, message: "Invalid or expired token"}
+	errMissingToken = &Error{
+		code:    apperr.CodeUnauthenticated,
+		message: "Missing Bearer token in Authorization header",
+	}
+	errInvalidToken = &Error{
+		code:    apperr.CodeUnauthenticated,
+		message: "Invalid or expired token",
+	}
 	// ErrForbidden is what the authorization functions' callers return when a check fails.
-	ErrForbidden = &Error{code: apperr.CodeForbidden, message: "You do not have permission to do this"}
+	ErrForbidden = &Error{
+		code:    apperr.CodeForbidden,
+		message: "You do not have permission to do this",
+	}
 )
 
 // IsAuthError reports whether err is one of this package's errors.

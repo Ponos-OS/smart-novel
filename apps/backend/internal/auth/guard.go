@@ -19,7 +19,8 @@ const (
 func Guard() graphql.FieldMiddleware {
 	return func(ctx context.Context, next graphql.Resolver) (any, error) {
 		field := graphql.GetFieldContext(ctx)
-		if field == nil || !isRootObject(field.Object) || strings.HasPrefix(field.Field.Name, "__") {
+		if field == nil || !isRootObject(field.Object) ||
+			strings.HasPrefix(field.Field.Name, "__") {
 			return next(ctx)
 		}
 		directives := field.Field.Definition.Directives
@@ -27,7 +28,10 @@ func Guard() graphql.FieldMiddleware {
 			return next(ctx)
 		}
 		if marker := directives.ForName(hasRoleDirective); marker != nil {
-			if _, err := RequireRole(ctx, Role(marker.Arguments.ForName(roleArgument).Value.Raw)); err != nil {
+			if _, err := RequireRole(
+				ctx,
+				Role(marker.Arguments.ForName(roleArgument).Value.Raw),
+			); err != nil {
 				return nil, err
 			}
 

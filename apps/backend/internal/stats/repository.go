@@ -19,12 +19,19 @@ func newRepository(client *ent.Client) *repository {
 	return &repository{client: client}
 }
 
-func (r *repository) snapshotExists(ctx context.Context, day time.Time) (bool, error) {
-	return r.client.StatsSnapshot.Query().Where(statssnapshot.Day(day)).Exist(ctx)
+func (r *repository) snapshotExists(
+	ctx context.Context,
+	day time.Time,
+) (bool, error) {
+	return r.client.StatsSnapshot.Query().
+		Where(statssnapshot.Day(day)).
+		Exist(ctx)
 }
 
 // counts are exact, which is what the growth charts plot; the live totals are the planner's estimates.
-func (r *repository) counts(ctx context.Context) (novels, chapters int, err error) {
+func (r *repository) counts(
+	ctx context.Context,
+) (novels, chapters int, err error) {
 	if novels, err = r.client.Novel.Query().Count(ctx); err != nil {
 		return 0, 0, err
 	}
@@ -34,7 +41,11 @@ func (r *repository) counts(ctx context.Context) (novels, chapters int, err erro
 }
 
 // insertSnapshot writes the row of a day and reports whether this call wrote it; a row of that day that is there already is left alone.
-func (r *repository) insertSnapshot(ctx context.Context, day time.Time, novels, chapters int) (bool, error) {
+func (r *repository) insertSnapshot(
+	ctx context.Context,
+	day time.Time,
+	novels, chapters int,
+) (bool, error) {
 	err := r.client.StatsSnapshot.Create().
 		SetDay(day).SetNovelCount(novels).SetChapterCount(chapters).
 		OnConflictColumns(statssnapshot.FieldDay).DoNothing().

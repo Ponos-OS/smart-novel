@@ -23,7 +23,10 @@ func newServiceWithFithara(t *testing.T, handler http.HandlerFunc) *Service {
 	t.Helper()
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
-	client, err := fithara.NewClientWithResponses(server.URL, fithara.WithHTTPClient(&http.Client{Timeout: time.Second}))
+	client, err := fithara.NewClientWithResponses(
+		server.URL,
+		fithara.WithHTTPClient(&http.Client{Timeout: time.Second}),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +49,8 @@ func TestFindCanonicalReturnsTheLicenseOfFithara(t *testing.T) {
 
 	result, err := uut.findCanonical(context.Background(), "CC-BY-NC-4.0")
 
-	if err != nil || result == nil || result.ShortName != "CC BY-NC 4.0" || result.Id != "CC-BY-NC-4.0" {
+	if err != nil || result == nil || result.ShortName != "CC BY-NC 4.0" ||
+		result.Id != "CC-BY-NC-4.0" {
 		t.Errorf("got %+v, %v", result, err)
 	}
 }
@@ -54,9 +58,18 @@ func TestFindCanonicalReturnsTheLicenseOfFithara(t *testing.T) {
 func TestFindCanonicalGivesNothingForALicenseFitharaDoesNotOffer(t *testing.T) {
 	for name, status := range map[string]int{"unknown": http.StatusNotFound, "retired": http.StatusGone} {
 		t.Run(name, func(t *testing.T) {
-			uut := newServiceWithFithara(t, answer(status, `{"error":{"code":"UNKNOWN_LICENSE","message":"no"}}`))
+			uut := newServiceWithFithara(
+				t,
+				answer(
+					status,
+					`{"error":{"code":"UNKNOWN_LICENSE","message":"no"}}`,
+				),
+			)
 
-			result, err := uut.findCanonical(context.Background(), "CC-BY-NC-4.0")
+			result, err := uut.findCanonical(
+				context.Background(),
+				"CC-BY-NC-4.0",
+			)
 
 			if result != nil || err != nil {
 				t.Errorf("got %+v, %v, want nil, nil", result, err)
@@ -67,7 +80,10 @@ func TestFindCanonicalGivesNothingForALicenseFitharaDoesNotOffer(t *testing.T) {
 
 func TestFindCanonicalIsUnavailableWhenFitharaCannotBeAsked(t *testing.T) {
 	cases := map[string]http.HandlerFunc{
-		"a server error": answer(http.StatusInternalServerError, `{"error":{"code":"INTERNAL","message":"boom"}}`),
+		"a server error": answer(
+			http.StatusInternalServerError,
+			`{"error":{"code":"INTERNAL","message":"boom"}}`,
+		),
 		"a slow answer": func(http.ResponseWriter, *http.Request) {
 			time.Sleep(1500 * time.Millisecond)
 		},
@@ -79,7 +95,8 @@ func TestFindCanonicalIsUnavailableWhenFitharaCannotBeAsked(t *testing.T) {
 			_, err := uut.findCanonical(context.Background(), "CC-BY-NC-4.0")
 
 			var coded interface{ Code() string }
-			if !errors.As(err, &coded) || coded.Code() != apperr.CodeUnavailable {
+			if !errors.As(err, &coded) ||
+				coded.Code() != apperr.CodeUnavailable {
 				t.Errorf("error = %v, want %s", err, apperr.CodeUnavailable)
 			}
 		})

@@ -39,12 +39,25 @@ type Service struct {
 	flights  singleflight.Group
 }
 
-func NewService(beatriceClient graphql.Client, cache *redis.Client, ttl time.Duration, logger *slog.Logger) *Service {
-	return &Service{beatrice: beatriceClient, cache: cache, ttl: ttl, logger: logger}
+func NewService(
+	beatriceClient graphql.Client,
+	cache *redis.Client,
+	ttl time.Duration,
+	logger *slog.Logger,
+) *Service {
+	return &Service{
+		beatrice: beatriceClient,
+		cache:    cache,
+		ttl:      ttl,
+		logger:   logger,
+	}
 }
 
 // Explain answers from Redis when it can, and otherwise asks Beatrice once for everybody who asks for the same word in the same context.
-func (s *Service) Explain(ctx context.Context, word, sentence string) (*model.WordExplanation, error) {
+func (s *Service) Explain(
+	ctx context.Context,
+	word, sentence string,
+) (*model.WordExplanation, error) {
 	started := time.Now()
 	key := CacheKey(word, sentence)
 	explanation, hit := s.cached(ctx, key)
@@ -61,16 +74,35 @@ func (s *Service) Explain(ctx context.Context, word, sentence string) (*model.Wo
 	if hostErr != nil {
 		hostname = "unknown"
 	}
-	s.logger.InfoContext(ctx, "word explained", slog.String(logKeyWord, word), slog.String(logKeyCacheKey, key), slog.String(logKeyInstance, hostname),
-		slog.Int64(logKeyLatency, time.Since(started).Milliseconds()), slog.Bool(logKeyCacheHit, hit), slog.Bool(logKeyCoalesced, coalesced))
+	s.logger.InfoContext(
+		ctx,
+		"word explained",
+		slog.String(logKeyWord, word),
+		slog.String(logKeyCacheKey, key),
+		slog.String(logKeyInstance, hostname),
+		slog.Int64(
+			logKeyLatency,
+			time.Since(started).Milliseconds(),
+		),
+		slog.Bool(logKeyCacheHit, hit),
+		slog.Bool(logKeyCoalesced, coalesced),
+	)
 
 	return explanation, nil
 }
 
-func (s *Service) cached(ctx context.Context, key string) (*model.WordExplanation, bool) {
+func (s *Service) cached(
+	ctx context.Context,
+	key string,
+) (*model.WordExplanation, bool) {
 	value, found, err := s.cache.Get(ctx, key)
 	if err != nil {
-		s.logger.WarnContext(ctx, "reading an explanation from Redis", slog.String(logKeyCacheKey, key), slog.Any(logKeyError, err))
+		s.logger.WarnContext(
+			ctx,
+			"reading an explanation from Redis",
+			slog.String(logKeyCacheKey, key),
+			slog.Any(logKeyError, err),
+		)
 
 		return nil, false
 	}
@@ -84,7 +116,10 @@ func (s *Service) cached(ctx context.Context, key string) (*model.WordExplanatio
 
 // ask shares one call to Beatrice between the requests for the same key that run together. It does not stop when the first of them gives up,
 // because the others wait for the answer.
-func (s *Service) ask(ctx context.Context, key, word, sentence string) (explanation *model.WordExplanation, coalesced bool, err error) {
+func (s *Service) ask(
+	ctx context.Context,
+	key, word, sentence string,
+) (explanation *model.WordExplanation, coalesced bool, err error) {
 	asked, err, shared := s.flights.Do(key, func() (any, error) {
 		return s.askBeatrice(context.WithoutCancel(ctx), key, word, sentence)
 	})
@@ -101,18 +136,41 @@ func (s *Service) ask(ctx context.Context, key, word, sentence string) (explanat
 	return &copied, shared, nil
 }
 
-func (s *Service) askBeatrice(ctx context.Context, key, word, sentence string) (*model.WordExplanation, error) {
+func (s *Service) askBeatrice(
+	ctx context.Context,
+	key, word, sentence string,
+) (*model.WordExplanation, error) {
 	response, err := beatrice.ExplainWord(ctx, s.beatrice, word, sentence)
 	if err != nil {
-		s.logger.ErrorContext(ctx, "asking Beatrice to explain a word", slog.String(logKeyWord, word), slog.Any(logKeyError, err))
+		s.logger.ErrorContext(
+			ctx,
+			"asking Beatrice to explain a word",
+			slog.String(logKeyWord, word),
+			slog.Any(logKeyError, err),
+		)
 
 		return nil, unavailable()
 	}
 	said := response.ExplainWord
-	explanation := &model.WordExplanation{Meaning: said.Meaning, SimplifiedExplanation: said.SimplifiedExplanation, Synonyms: said.Synonyms, Antonyms: said.Antonyms}
+	explanation := &model.WordExplanation{
+		Meaning:               said.Meaning,
+		SimplifiedExplanation: said.SimplifiedExplanation,
+		Synonyms:              said.Synonyms,
+		Antonyms:              said.Antonyms,
+	}
 	if stored, marshalErr := json.Marshal(explanation); marshalErr == nil {
-		if setErr := s.cache.Set(ctx, key, string(stored), s.ttl); setErr != nil {
-			s.logger.WarnContext(ctx, "keeping an explanation in Redis", slog.String(logKeyCacheKey, key), slog.Any(logKeyError, setErr))
+		if setErr := s.cache.Set(
+			ctx,
+			key,
+			string(stored),
+			s.ttl,
+		); setErr != nil {
+			s.logger.WarnContext(
+				ctx,
+				"keeping an explanation in Redis",
+				slog.String(logKeyCacheKey, key),
+				slog.Any(logKeyError, setErr),
+			)
 		}
 	}
 
@@ -120,7 +178,9 @@ func (s *Service) askBeatrice(ctx context.Context, key, word, sentence string) (
 }
 
 func unavailable() error {
-	return apperr.Unavailable("The word explanation is not available right now. Try again later.")
+	return apperr.Unavailable(
+		"The word explanation is not available right now. Try again later.",
+	)
 }
 
 // CacheKey names an explanation by the word, whatever its case, and the sentence it is in, whatever its spacing and case, so the same
@@ -129,5 +189,9 @@ func CacheKey(word, sentence string) string {
 	normalized := strings.ToLower(strings.Join(strings.Fields(sentence), " "))
 	fingerprint := sha256.Sum256([]byte(normalized))
 
-	return "explain:" + strings.ToLower(strings.TrimSpace(word)) + ":" + hex.EncodeToString(fingerprint[:])
+	return "explain:" + strings.ToLower(
+		strings.TrimSpace(word),
+	) + ":" + hex.EncodeToString(
+		fingerprint[:],
+	)
 }

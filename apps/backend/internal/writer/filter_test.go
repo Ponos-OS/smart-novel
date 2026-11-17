@@ -19,8 +19,16 @@ func TestListFilterShowsPendingRequestsUnlessAStatusIsNamed(t *testing.T) {
 		{"no filter", nil, false},
 		{"a filter without a status", &ent.WriterWhereInput{}, false},
 		{"a status", &ent.WriterWhereInput{Status: &approved}, true},
-		{"a status to avoid", &ent.WriterWhereInput{StatusNEQ: &approved}, true},
-		{"a list of statuses", &ent.WriterWhereInput{StatusIn: []entwriter.Status{approved}}, true},
+		{
+			"a status to avoid",
+			&ent.WriterWhereInput{StatusNEQ: &approved},
+			true,
+		},
+		{
+			"a list of statuses",
+			&ent.WriterWhereInput{StatusIn: []entwriter.Status{approved}},
+			true,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -30,11 +38,19 @@ func TestListFilterShowsPendingRequestsUnlessAStatusIsNamed(t *testing.T) {
 				t.Fatalf("ent cannot build the filter: %v", err)
 			}
 
-			pending := slices.ContainsFunc(result.And, func(w *ent.WriterWhereInput) bool {
-				return w.Status != nil && *w.Status == entwriter.StatusPENDING
-			})
+			pending := slices.ContainsFunc(
+				result.And,
+				func(w *ent.WriterWhereInput) bool {
+					return w.Status != nil &&
+						*w.Status == entwriter.StatusPENDING
+				},
+			)
 			if pending == c.named {
-				t.Errorf("filter = %+v, want pending added = %v", result, !c.named)
+				t.Errorf(
+					"filter = %+v, want pending added = %v",
+					result,
+					!c.named,
+				)
 			}
 		})
 	}
@@ -51,10 +67,17 @@ func TestListFilterSearchesThePenNameAndIgnoresBlank(t *testing.T) {
 			t.Fatalf("ent cannot build the filter: %v", err)
 		}
 	}
-	found := slices.ContainsFunc(searched.And, func(w *ent.WriterWhereInput) bool {
-		return w.PenNameContainsFold != nil && *w.PenNameContainsFold == "mina"
-	})
-	skipped := slices.ContainsFunc(ignored.And, func(w *ent.WriterWhereInput) bool { return w.PenNameContainsFold != nil })
+	found := slices.ContainsFunc(
+		searched.And,
+		func(w *ent.WriterWhereInput) bool {
+			return w.PenNameContainsFold != nil &&
+				*w.PenNameContainsFold == "mina"
+		},
+	)
+	skipped := slices.ContainsFunc(
+		ignored.And,
+		func(w *ent.WriterWhereInput) bool { return w.PenNameContainsFold != nil },
+	)
 	if !found || skipped {
 		t.Errorf("searched = %+v, ignored = %+v", searched, ignored)
 	}

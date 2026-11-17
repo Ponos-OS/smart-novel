@@ -12,7 +12,12 @@ import (
 
 // ListFilter builds the filter of the licenses list. A finished license is released: everybody, signed in or not, sees it. A draft is private:
 // only its writer sees it, and an admin sees every license and draft. scope narrows that, and a blank search is ignored.
-func ListFilter(viewer auth.Viewer, where *ent.LicenseWhereInput, scope *model.LicenseScope, search *string) func(*ent.LicenseQuery) (*ent.LicenseQuery, error) {
+func ListFilter(
+	viewer auth.Viewer,
+	where *ent.LicenseWhereInput,
+	scope *model.LicenseScope,
+	search *string,
+) func(*ent.LicenseQuery) (*ent.LicenseQuery, error) {
 	predicates := []predicate.License{}
 	if !viewer.IsAdmin() {
 		visible := entlicense.IsDraft(false)
@@ -25,7 +30,10 @@ func ListFilter(viewer auth.Viewer, where *ent.LicenseWhereInput, scope *model.L
 		predicates = append(predicates, scopePredicate(*scope))
 	}
 	if search != nil && strings.TrimSpace(*search) != "" {
-		predicates = append(predicates, entlicense.NameContainsFold(strings.TrimSpace(*search)))
+		predicates = append(
+			predicates,
+			entlicense.NameContainsFold(strings.TrimSpace(*search)),
+		)
 	}
 
 	return func(query *ent.LicenseQuery) (*ent.LicenseQuery, error) {
@@ -41,9 +49,15 @@ func ListFilter(viewer auth.Viewer, where *ent.LicenseWhereInput, scope *model.L
 func scopePredicate(scope model.LicenseScope) predicate.License {
 	switch scope {
 	case model.LicenseScopeShared:
-		return entlicense.And(entlicense.IsDraft(false), entlicense.OwnerID(SystemOwner))
+		return entlicense.And(
+			entlicense.IsDraft(false),
+			entlicense.OwnerID(SystemOwner),
+		)
 	case model.LicenseScopePersonal:
-		return entlicense.And(entlicense.IsDraft(false), entlicense.OwnerIDNEQ(SystemOwner))
+		return entlicense.And(
+			entlicense.IsDraft(false),
+			entlicense.OwnerIDNEQ(SystemOwner),
+		)
 	case model.LicenseScopeDraft:
 	}
 

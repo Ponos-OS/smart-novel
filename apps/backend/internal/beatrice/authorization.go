@@ -8,7 +8,10 @@ import (
 type authorizationKey struct{}
 
 // WithAuthorization makes the calls made with the returned context carry the bearer token. Beatrice relays it on the callbacks it makes for the job it starts, and those are guarded here.
-func WithAuthorization(ctx context.Context, bearerToken string) context.Context {
+func WithAuthorization(
+	ctx context.Context,
+	bearerToken string,
+) context.Context {
 	return context.WithValue(ctx, authorizationKey{}, bearerToken)
 }
 
@@ -18,10 +21,13 @@ type HTTPClient struct {
 }
 
 func (c HTTPClient) Do(req *http.Request) (*http.Response, error) {
-	if token, ok := req.Context().Value(authorizationKey{}).(string); ok && token != "" {
+	if token, ok := req.Context().Value(authorizationKey{}).(string); ok &&
+		token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
-	resp, err := c.HTTP.Do(req) //nolint:gosec // the URL is BEATRICE_URL from the configuration, not something a caller chooses
+	resp, err := c.HTTP.Do( //nolint:gosec // the URL is BEATRICE_URL from the configuration, not something a caller chooses
+		req,
+	)
 	if err == nil && resp.StatusCode == http.StatusAccepted {
 		resp.StatusCode, resp.Status = http.StatusOK, "200 OK"
 	}

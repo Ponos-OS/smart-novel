@@ -42,8 +42,12 @@ func DenyUnlessCan(viewer Viewer, action Action, resource Resource) error {
 	}
 
 	return &Error{
-		code:    apperr.CodeForbidden,
-		message: fmt.Sprintf("You do not have permission to %s this %s", action, resource.noun()),
+		code: apperr.CodeForbidden,
+		message: fmt.Sprintf(
+			"You do not have permission to %s this %s",
+			action,
+			resource.noun(),
+		),
 	}
 }
 

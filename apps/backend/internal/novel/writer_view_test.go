@@ -22,12 +22,19 @@ func writerRow(status writer.Status) *ent.Writer {
 		Status:    status,
 		CreatedAt: time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC),
 		Applications: []schema.WriterApplication{
-			{Note: "I write.", AppliedAt: "2026-01-02T03:04:05Z", RejectionReason: &reason, ReviewedAt: &reviewed},
+			{
+				Note:            "I write.",
+				AppliedAt:       "2026-01-02T03:04:05Z",
+				RejectionReason: &reason,
+				ReviewedAt:      &reviewed,
+			},
 		},
 	}
 }
 
-func TestViewWriterShowsOnlyThePenNameOfAnApprovedWriterToReaders(t *testing.T) {
+func TestViewWriterShowsOnlyThePenNameOfAnApprovedWriterToReaders(
+	t *testing.T,
+) {
 	view, err := novel.ViewWriter(writerRow(writer.StatusAPPROVED), false)
 	if err != nil {
 		t.Fatalf("err = %v", err)
@@ -35,7 +42,9 @@ func TestViewWriterShowsOnlyThePenNameOfAnApprovedWriterToReaders(t *testing.T) 
 	if view.UserID != "316784561234" || view.PenName != "Mina_T" {
 		t.Errorf("view = %+v", view)
 	}
-	if view.Name != nil || view.Email != nil || view.Status != nil || view.CreatedAt != nil || view.Applications != nil {
+	if view.Name != nil || view.Email != nil || view.Status != nil ||
+		view.CreatedAt != nil ||
+		view.Applications != nil {
 		t.Errorf("a reader sees what only admins should: %+v", view)
 	}
 }
@@ -45,7 +54,12 @@ func TestViewWriterHidesAWriterThatIsNotApprovedFromReaders(t *testing.T) {
 		view, err := novel.ViewWriter(writerRow(status), false)
 
 		if err != nil || view != nil {
-			t.Errorf("%s: view = %+v, err = %v, want nothing", status, view, err)
+			t.Errorf(
+				"%s: view = %+v, err = %v, want nothing",
+				status,
+				view,
+				err,
+			)
 		}
 	}
 }
@@ -55,10 +69,13 @@ func TestViewWriterGivesAdminsEverythingForAnyStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err = %v", err)
 	}
-	if *view.Name != "Mina Tanaka" || *view.Email != "mina@smart-novel.localhost" || *view.Status != writer.StatusREJECTED {
+	if *view.Name != "Mina Tanaka" ||
+		*view.Email != "mina@smart-novel.localhost" ||
+		*view.Status != writer.StatusREJECTED {
 		t.Errorf("view = %+v", view)
 	}
-	if len(view.Applications) != 1 || view.Applications[0].ReviewedAt == nil || view.Applications[0].AppliedAt.Year() != 2026 {
+	if len(view.Applications) != 1 || view.Applications[0].ReviewedAt == nil ||
+		view.Applications[0].AppliedAt.Year() != 2026 {
 		t.Errorf("applications = %+v", view.Applications)
 	}
 }

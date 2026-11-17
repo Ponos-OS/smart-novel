@@ -30,7 +30,9 @@ func isEmpty(where *ent.TagWhereInput) bool {
 }
 
 func namesStatus(where *ent.TagWhereInput) bool {
-	return where.Status != nil || where.StatusNEQ != nil || len(where.StatusIn) > 0 || len(where.StatusNotIn) > 0
+	return where.Status != nil || where.StatusNEQ != nil ||
+		len(where.StatusIn) > 0 ||
+		len(where.StatusNotIn) > 0
 }
 
 const (

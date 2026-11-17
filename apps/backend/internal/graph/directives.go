@@ -30,25 +30,41 @@ func Directives() DirectiveRoot {
 		},
 		IsString: isString,
 		MinLength: func(ctx context.Context, _ any, next graphql.Resolver, minimum int, message *string) (any, error) {
-			return checkNext(ctx, next, message, func(c *validation.Checker, field string, texts []string) {
-				for _, text := range texts {
-					c.MinLength(field, text, minimum)
-				}
-			})
+			return checkNext(
+				ctx,
+				next,
+				message,
+				func(c *validation.Checker, field string, texts []string) {
+					for _, text := range texts {
+						c.MinLength(field, text, minimum)
+					}
+				},
+			)
 		},
 		MaxLength: func(ctx context.Context, _ any, next graphql.Resolver, maximum int, message *string) (any, error) {
-			return checkNext(ctx, next, message, func(c *validation.Checker, field string, texts []string) {
-				for _, text := range texts {
-					c.MaxLength(field, text, maximum)
-				}
-			})
+			return checkNext(
+				ctx,
+				next,
+				message,
+				func(c *validation.Checker, field string, texts []string) {
+					for _, text := range texts {
+						c.MaxLength(field, text, maximum)
+					}
+				},
+			)
 		},
 		Pattern: pattern,
 		MaxSize: maxSize,
 	}
 }
 
-func isString(ctx context.Context, _ any, next graphql.Resolver, multiline, allowEmpty bool, message *string) (any, error) {
+func isString(
+	ctx context.Context,
+	_ any,
+	next graphql.Resolver,
+	multiline, allowEmpty bool,
+	message *string,
+) (any, error) {
 	cleaner := validation.SingleLine
 	if multiline {
 		cleaner = validation.Text
@@ -58,27 +74,43 @@ func isString(ctx context.Context, _ any, next graphql.Resolver, multiline, allo
 		return value, err
 	}
 
-	return checkNext(ctx, func(context.Context) (any, error) { return value, nil }, message, func(c *validation.Checker, field string, texts []string) {
-		for _, text := range texts {
-			c.NotBlank(field, text)
-		}
-	})
+	return checkNext(
+		ctx,
+		func(context.Context) (any, error) { return value, nil },
+		message,
+		func(c *validation.Checker, field string, texts []string) {
+			for _, text := range texts {
+				c.NotBlank(field, text)
+			}
+		},
+	)
 }
 
 // patterns holds the expressions already compiled, since a directive runs on every request.
 var patterns sync.Map
 
-func pattern(ctx context.Context, _ any, next graphql.Resolver, regex string, message *string) (any, error) {
+func pattern(
+	ctx context.Context,
+	_ any,
+	next graphql.Resolver,
+	regex string,
+	message *string,
+) (any, error) {
 	compiled, err := compiledPattern(regex)
 	if err != nil {
 		return nil, err
 	}
 
-	return checkNext(ctx, next, message, func(c *validation.Checker, field string, texts []string) {
-		for _, text := range texts {
-			c.Matches(field, text, compiled)
-		}
-	})
+	return checkNext(
+		ctx,
+		next,
+		message,
+		func(c *validation.Checker, field string, texts []string) {
+			for _, text := range texts {
+				c.Matches(field, text, compiled)
+			}
+		},
+	)
 }
 
 func compiledPattern(regex string) (*regexp.Regexp, error) {
@@ -89,14 +121,23 @@ func compiledPattern(regex string) (*regexp.Regexp, error) {
 	}
 	compiled, err := regexp.Compile(regex)
 	if err != nil {
-		return nil, fmt.Errorf("the @pattern directive has an invalid expression %q: %w", regex, err)
+		return nil, fmt.Errorf(
+			"the @pattern directive has an invalid expression %q: %w",
+			regex,
+			err,
+		)
 	}
 	patterns.Store(regex, compiled)
 
 	return compiled, nil
 }
 
-func maxSize(ctx context.Context, _ any, next graphql.Resolver, maximum int) (any, error) {
+func maxSize(
+	ctx context.Context,
+	_ any,
+	next graphql.Resolver,
+	maximum int,
+) (any, error) {
 	value, err := next(ctx)
 	if err != nil {
 		return nil, err
@@ -113,7 +154,12 @@ func maxSize(ctx context.Context, _ any, next graphql.Resolver, maximum int) (an
 
 // checkNext hands the strings of the value to a rule; a value that holds none (absent, or not text) passes.
 // A message replaces the generic text of the bad request.
-func checkNext(ctx context.Context, next graphql.Resolver, message *string, rule func(*validation.Checker, string, []string)) (any, error) {
+func checkNext(
+	ctx context.Context,
+	next graphql.Resolver,
+	message *string,
+	rule func(*validation.Checker, string, []string),
+) (any, error) {
 	value, err := next(ctx)
 	if err != nil {
 		return nil, err
@@ -140,7 +186,11 @@ func checkNext(ctx context.Context, next graphql.Resolver, message *string, rule
 
 // clean runs the cleaner on every string of the value, which stays absent when it was. A NUL is refused first, since cleaning would
 // drop it without a word.
-func clean(ctx context.Context, next graphql.Resolver, cleaner func(string) string) (any, error) {
+func clean(
+	ctx context.Context,
+	next graphql.Resolver,
+	cleaner func(string) string,
+) (any, error) {
 	value, err := next(ctx)
 	if err != nil {
 		return nil, err

@@ -27,7 +27,10 @@ type settingError struct {
 func (e settingError) Error() string { return e.key + " " + e.problem }
 
 func (r *reader) fail(key, format string, args ...any) {
-	r.errs = append(r.errs, settingError{key: key, problem: fmt.Sprintf(format, args...)})
+	r.errs = append(
+		r.errs,
+		settingError{key: key, problem: fmt.Sprintf(format, args...)},
+	)
 }
 
 func (r *reader) value(key string) (string, bool) {
@@ -64,7 +67,12 @@ func (r *reader) oneOf(key string, allowed []string, fallback string) string {
 		return fallback
 	}
 	if !slices.Contains(allowed, value) {
-		r.fail(key, "must be one of %s, got %q", strings.Join(allowed, ", "), value)
+		r.fail(
+			key,
+			"must be one of %s, got %q",
+			strings.Join(allowed, ", "),
+			value,
+		)
 	}
 
 	return value
@@ -111,7 +119,10 @@ func (r *reader) positiveInt(key string, fallback int) int {
 	return number
 }
 
-func (r *reader) milliseconds(key string, fallback time.Duration) time.Duration {
+func (r *reader) milliseconds(
+	key string,
+	fallback time.Duration,
+) time.Duration {
 	value, ok := r.value(key)
 	if !ok {
 		return fallback
@@ -128,7 +139,11 @@ func (r *reader) milliseconds(key string, fallback time.Duration) time.Duration 
 func (r *reader) schedule(key string) string {
 	value := r.required(key)
 	if _, err := cron.ParseStandard(value); value != "" && err != nil {
-		r.fail(key, "must be a cron expression of five fields such as '0 3 * * *': %v", err)
+		r.fail(
+			key,
+			"must be a cron expression of five fields such as '0 3 * * *': %v",
+			err,
+		)
 	}
 
 	return value
@@ -209,14 +224,39 @@ func (r *reader) objectStorage() ObjectStorage {
 
 func (r *reader) otel() OTel {
 	return OTel{
-		Enabled:          r.boolean("OTEL_ENABLED", false),
-		Endpoint:         r.text("OTEL_EXPORTER_OTLP_ENDPOINT", ""),
-		TracesSampler:    r.oneOf("OTEL_TRACES_SAMPLER", []string{"parentbased_traceidratio", "traceidratio", "always_on", "always_off"}, "parentbased_traceidratio"),
+		Enabled:  r.boolean("OTEL_ENABLED", false),
+		Endpoint: r.text("OTEL_EXPORTER_OTLP_ENDPOINT", ""),
+		TracesSampler: r.oneOf(
+			"OTEL_TRACES_SAMPLER",
+			[]string{
+				"parentbased_traceidratio",
+				"traceidratio",
+				"always_on",
+				"always_off",
+			},
+			"parentbased_traceidratio",
+		),
 		TracesSamplerArg: r.ratio("OTEL_TRACES_SAMPLER_ARG", 1),
-		MaxQueueSize:     r.positiveInt("OTEL_BATCH_MAX_PENDING_SPANS", defaultMaxQueueSize),
-		BatchSize:        r.positiveInt("OTEL_BATCH_SPANS_PER_EXPORT", defaultBatchSize),
-		FlushInterval:    r.milliseconds("OTEL_BATCH_FLUSH_INTERVAL_MS", defaultFlushInterval),
-		ExportTimeout:    r.milliseconds("OTEL_BATCH_EXPORT_TIMEOUT_MS", defaultExportTimeout),
-		LogsExporter:     r.oneOf("OTEL_LOGS_EXPORTER", []string{LogsExporterOTLP, LogsExporterStdout}, LogsExporterStdout),
+		MaxQueueSize: r.positiveInt(
+			"OTEL_BATCH_MAX_PENDING_SPANS",
+			defaultMaxQueueSize,
+		),
+		BatchSize: r.positiveInt(
+			"OTEL_BATCH_SPANS_PER_EXPORT",
+			defaultBatchSize,
+		),
+		FlushInterval: r.milliseconds(
+			"OTEL_BATCH_FLUSH_INTERVAL_MS",
+			defaultFlushInterval,
+		),
+		ExportTimeout: r.milliseconds(
+			"OTEL_BATCH_EXPORT_TIMEOUT_MS",
+			defaultExportTimeout,
+		),
+		LogsExporter: r.oneOf(
+			"OTEL_LOGS_EXPORTER",
+			[]string{LogsExporterOTLP, LogsExporterStdout},
+			LogsExporterStdout,
+		),
 	}
 }
