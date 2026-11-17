@@ -77,7 +77,7 @@ jobs:
         id: version
         uses: ./.github/actions/next-version
 
-      - name: Expose the GitHub Actions cache to Buildx (build-images.sh creates the builder)
+      - name: Expose the GitHub Actions cache to Buildx (the infra:images tasks create the builder)
         uses: crazy-max/ghaction-github-runtime@v3
 
       - name: Seed .env from .env.example
@@ -87,7 +87,7 @@ jobs:
         env:
           IMAGE_TAG: ${{ steps.version.outputs.version }}
           DOCKER_BUILD_CACHE_SCOPE: e2e
-        run: sh infra/scripts/build-images.sh e2e
+        run: task infra:images:e2e
 
       - name: Export images
         env:

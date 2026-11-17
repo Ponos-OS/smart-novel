@@ -44,7 +44,7 @@ fi
 
 # CI builds the images once in a separate job and loads them here.
 if [ -z "${SKIP_IMAGE_BUILD:-}" ]; then
-  sh "$repo_root/infra/scripts/build-images.sh" "$mode"
+  timed "task infra:images:$mode" sh -c 'cd "$1" && task "infra:images:$2"' sh "$repo_root" "$mode"
 fi
 
 if [ "$mode" = dev ]; then

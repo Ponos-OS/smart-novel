@@ -4,7 +4,7 @@ The local environment is a `kind` cluster in Docker. Terraform defines everythin
 
 ```text
 infra/
-├── scripts/            start-dev.sh, stop-dev.sh
+├── scripts/            start-dev.sh, stop-dev.sh, force-stop-dev.sh
 └── terraform/
     ├── modules/
     │   ├── app/        Composes the component modules; knows nothing about which cluster it runs on
@@ -149,7 +149,7 @@ Fithara (the license assistant) needs only an LLM, so it is always deployed. It 
 
 The modules know nothing about development. `backend` and `frontend` take an image, a port, environment, `volumes` (host path or claim), and the frontend also an optional `command` and `files`. Anything that has to run first, such as applying the database schema, is a `pre_deploy_jobs` entry (`modules/job`): the backend and the frontend start only after all of them completed, and `use_backend_environment` gives a Job the backend's environment, including what `modules/app` fills in.
 
-Everything specific to hot reload lives in `local/1-app/main.tf`: the development images, the `hostPath` volumes that mount `apps/` from the node, the frontend start script (`local/1-app/files/`, which reads `VITE_OIDC_CLIENT_ID`) (the Go backend runs under `air`). Generated code (ent, gqlgen, the shared constants, the frontend hooks) is produced on the host by `build-images.sh`, so the containers never write into the mounted sources. A deployed environment passes production images, no volumes and its own migration Job.
+Everything specific to hot reload lives in `local/1-app/main.tf`: the development images, the `hostPath` volumes that mount `apps/` from the node, the frontend start script (`local/1-app/files/`, which reads `VITE_OIDC_CLIENT_ID`) (the Go backend runs under `air`). Generated code (ent, gqlgen, the shared constants, the frontend hooks) is produced on the host by `task infra:images:dev`, so the containers never write into the mounted sources. A deployed environment passes production images, no volumes and its own migration Job.
 
 ## Devtools
 

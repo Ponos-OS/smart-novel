@@ -1,0 +1,94 @@
+version: "3"
+
+vars:
+  IMAGE_TAG: '{{.IMAGE_TAG | default "e2e"}}'
+  BACKEND_DOCKERFILE: apps/backend/Dockerfile
+  FRONTEND_DOCKERFILE: apps/frontend/Dockerfile
+
+tasks:
+  images:dev:
+    desc: Generate the code the images need and build the development images
+    cmds:
+      - task: generate
+      - task: build:dev
+
+  images:e2e:
+    desc: Generate the code the images need and build the production images tagged IMAGE_TAG (default e2e)
+    cmds:
+      - task: generate
+      - task: build:e2e
+
+  generate:
+    internal: true
+    cmds:
+      - task: :backend:generate
+      - task: :frontend:generate
+
+  build:dev:
+    internal: true
+    deps:
+      - task: image
+        vars:
+          NAME: backend-dev
+          TAG: smart-novel-backend:dev
+          ARGS: -f {{.BACKEND_DOCKERFILE}} --target development --build-arg PORT={{.BACKEND_PORT | default "3000"}}
+      - task: image
+        vars:
+          NAME: frontend-dev
+          TAG: smart-novel-frontend:dev
+          ARGS: -f {{.FRONTEND_DOCKERFILE}} --target development
+
+  build:e2e:
+    internal: true
+    deps:
+      - task: image
+        vars:
+          NAME: backend-e2e
+          TAG: smart-novel-backend:{{.IMAGE_TAG}}
+          ARGS: -f {{.BACKEND_DOCKERFILE}} --target production --build-arg PORT={{.BACKEND_PORT | default "3000"}}
+      - task: image
+        vars:
+          NAME: backend-devdata-e2e
+          TAG: smart-novel-backend-devdata:{{.IMAGE_TAG}}
+          ARGS: -f {{.BACKEND_DOCKERFILE}} --target devdata
+      # The client ID and the project ID are generated at runtime; the frontend's start script replaces the placeholders.
+      - task: image
+        vars:
+          NAME: frontend-e2e
+          TAG: smart-novel-frontend:{{.IMAGE_TAG}}
+          ARGS: >-
+            -f {{.FRONTEND_DOCKERFILE}} --target production
+            --build-arg 'VITE_SERVICE_URL={{.VITE_SERVICE_URL}}'
+            --build-arg VITE_OIDC_CLIENT_ID=__OIDC_CLIENT_ID_PLACEHOLDER__
+            --build-arg VITE_OIDC_PROJECT_ID=__OIDC_PROJECT_ID_PLACEHOLDER__
+            --build-arg 'VITE_OIDC_AUTHORITY={{.VITE_OIDC_AUTHORITY}}'
+            --build-arg 'VITE_OIDC_REDIRECT_URI={{.VITE_OIDC_REDIRECT_URI}}'
+            --build-arg 'VITE_OIDC_SCOPE={{.VITE_OIDC_SCOPE}}'
+            --build-arg 'VITE_OTLP_ENDPOINT={{.VITE_OTLP_ENDPOINT}}'
+
+  cache-builder:
+    internal: true
+    run: once
+    desc: The default docker driver cannot export a cache, so with a cache scope the builds run on a docker-container builder of their own
+    status:
+      - test -z "$DOCKER_BUILD_CACHE_SCOPE" || docker buildx inspect smart-novel-cache > /dev/null 2>&1
+    cmds:
+      - docker buildx create --name smart-novel-cache --driver docker-container > /dev/null
+
+  image:
+    internal: true
+    dir: "{{.ROOT_DIR}}"
+    deps: [cache-builder]
+    requires:
+      vars: [NAME, TAG, ARGS]
+    # DOCKER_BUILD_CACHE_SCOPE, when set, shares the layer cache through the GitHub Actions cache; `--load` puts the result into the local daemon.
+    cmds:
+      - |
+        if [ -n "$DOCKER_BUILD_CACHE_SCOPE" ]; then
+          docker buildx build --builder smart-novel-cache --load \
+            --cache-from "type=gha,scope=$DOCKER_BUILD_CACHE_SCOPE-{{.NAME}}" \
+            --cache-to "type=gha,mode=max,scope=$DOCKER_BUILD_CACHE_SCOPE-{{.NAME}}" \
+            {{.ARGS}} -t {{.TAG}} .
+        else
+          docker build {{.ARGS}} -t {{.TAG}} .
+        fi
