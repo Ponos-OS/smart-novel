@@ -31,7 +31,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     task -t apps/backend/Taskfile.yml -d apps/backend generate:code
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    task -t apps/backend/Taskfile.yml -d apps/backend build
+    cd apps/backend && go build -trimpath -ldflags="-s -w" -o bin/server ./cmd/server
 
 # ---- migrate ------------------------------------------------------------
 # The Job that applies ent/migrate/migrations to DATABASE_URL before a release; the production image carries neither Atlas nor the migrations.
@@ -53,12 +53,20 @@ USER app
 EXPOSE $PORT
 CMD ["server"]
 
+# ---- devdata-build ---------------------------------------------------------
+# The seeder lives in its own module (apps/backend/tools); only the devdata image builds it, so the server image never fetches its dependencies.
+FROM build AS devdata-build
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    cd apps/backend/tools && go mod download \
+    && go build -trimpath -ldflags="-s -w" -o ../bin/devdata ./devdata
+
 # ---- devdata ---------------------------------------------------------------
 # The Job that fills the database of the e2e stack; the development stack runs `task seed` from the mounted sources instead. Not for production.
 FROM alpine:3.23 AS devdata
 RUN adduser -D -u 10001 app
 ENV DATA_PATH=/data
-COPY --from=build /app/apps/backend/bin/devdata /usr/local/bin/devdata
+COPY --from=devdata-build /app/apps/backend/bin/devdata /usr/local/bin/devdata
 COPY apps/backend/data /data
 USER app
 CMD ["devdata"]

@@ -45,12 +45,12 @@ tasks:
     desc: Static binaries at bin/server and bin/devdata
     cmds:
       - CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/server ./cmd/server
-      - CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/devdata ./cmd/devdata
+      - cd tools && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o ../bin/devdata ./devdata
 
   seed:
     desc: "Fill the database with demo data (default license, example novel, writers of SEEDED_WRITERS); development and e2e only"
     cmds:
-      - go run ./cmd/devdata
+      - cd tools && go run ./devdata
 
   serve:
     desc: Run with reload on change
@@ -61,6 +61,7 @@ tasks:
     deps: [generate]
     cmds:
       - go test -count=1 ./... {{.CLI_ARGS}}
+      - cd tools && go test -count=1 ./... {{.CLI_ARGS}}
 
   migrate:diff:
     desc: "Write the next versioned migration for the ent schema: task backend:migrate:diff -- <name>"
