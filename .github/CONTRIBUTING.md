@@ -177,4 +177,6 @@ task dev:start
 pnpm exec cypress open --project apps/frontend-e2e
 ```
 
-`task backend:test:e2e` and `task frontend:test:e2e` start their own cluster with the production images (`infra/scripts/start-dev.sh e2e`) and tear it down afterwards. They cannot run next to `task dev:start` (both use host port 8080), so run `task dev:stop` first.
+`task backend:test:stress` load tests the GraphQL operations of the UI with k6 on its own e2e stack (`apps/backend-stress/README.md`); `.github/workflows/stress.yml` runs it every night.
+
+`task backend:test:e2e`, `task frontend:test:e2e` and `task backend:test:stress` start their own cluster with the production images (`infra/scripts/start-dev.sh e2e`) and tear it down afterwards. They cannot run next to `task dev:start` (both use host port 8080), so run `task dev:stop` first.

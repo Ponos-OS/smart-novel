@@ -1,10 +1,4 @@
 # Nightly load test of the GraphQL operations the UI sends.
-#
-# 1. We build the production images itself,
-# 2. Seed a bulk of dummy generated novels,
-# 3. Run `task backend:test:stress` against the e2e stack,
-#
-# A breached threshold fails the job.
 
 name: Nightly Load Test
 
@@ -72,9 +66,6 @@ jobs:
           sed -i 's/^DEVDATA_NOVELS_COUNT=.*/DEVDATA_NOVELS_COUNT=100/' .env
           sed -i 's/^DEVDATA_CHAPTERS_COUNT_PER_NOVEL=.*/DEVDATA_CHAPTERS_COUNT_PER_NOVEL=10/' .env
 
-      - name: Start the e2e stack
-        run: sh infra/scripts/start-dev.sh e2e
-
       - name: Run the load test
         run: task backend:test:stress 2>&1 | tee stress.log
 
@@ -88,23 +79,11 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Persist the backend log
-        if: always()
-        run: |
-          mkdir -p local-setup/logs
-          kubectl --kubeconfig infra/terraform/local/1-app/smart-novel-config -n smart-novel logs deploy/backend > local-setup/logs/backend.log || true
-
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: stress-logs
-          path: |
-            stress.log
-            local-setup/logs
+          path: stress.log
           if-no-files-found: ignore
           retention-days: 7
-
-      - name: Stop the e2e stack
-        if: always()
-        run: sh infra/scripts/stop-dev.sh

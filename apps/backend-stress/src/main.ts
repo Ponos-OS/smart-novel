@@ -44,7 +44,10 @@ export const options: Options = {
   thresholds: {
     'graphql_failures{scenario:browse}': ['rate<0.01'],
     'graphql_failures{scenario:write}': ['rate<0.01'],
-    'http_req_duration{scenario:browse}': ['p(95)<500', 'p(99)<1000'],
+    'http_req_duration{scenario:browse}': [
+      'p(95)<1500',
+      'p(99)<2500',
+    ],
     'http_req_duration{scenario:write}': ['p(95)<1000', 'p(99)<2000'],
     checks: ['rate>0.99'],
   },

@@ -40,3 +40,11 @@
 - A workflow cannot be run before it is pushed, so only its parts were checked: the YAML parses, prettier passes, the `sed` lines set the `DEVDATA_*` keys in a copy of `.env.example`, and the seed of 100 novels of 10 chapters took 7 s and 17 MB on a throwaway Postgres (writer JSON keys are `userId`, `name`, `email`, `penName`). The AC, a green `workflow_dispatch` run, waits for a push.
 - The workflow builds the images itself (`start-dev.sh e2e`), unlike `e2e.yml`, which loads the ones `build.yml` made, because it runs alone at night.
 - No process change.
+
+## Load test, Step 7 (2026-11-18)
+
+- Same override: left uncommitted for review.
+- GitHub Actions runs cannot be started from here, so the thresholds were calibrated with three local runs on the 100 novels of 10 chapters seed (browse p95 581 to 612 ms, p99 764 to 793 ms; write p95 up to 409 ms, p99 up to 544 ms; 0 failures). The old browse `p(95)<500` was breached on that data, so the step 5 numbers (6 novels) were too optimistic: calibrate on the size the workflow seeds. Browse is now 1500/2500 ms, about 2.5 times the worst. The AC "3 to 5 workflow runs" is open until the workflow is pushed and run.
+- Review feedback: a README that says "start the stack, run, stop" is a sign the task should do it. `test:stress` now runs `start-dev.sh e2e`, a `defer:` to `stop-dev.sh` and `run.sh`; `defer` is registered after the start, so an exit 3 (a stack already exists) never tears down the user's stack. The workflow lost its start, stop and log steps. Verified once from nothing: green, no cluster or container left.
+- A calibration script that calls `task` must run before the task is changed: edit the Taskfile only after the loop ends.
+- `task backend:test:e2e` and `task backend:test:stress` own their stack, so a task that needs a stack should own it too (compare with step 5, where it was left to the user).
