@@ -30,7 +30,7 @@ try {
   started = exitCode !== clusterAlreadyExists;
 
   if (exitCode === 0) {
-    exitCode = run(`npx cypress run --project ${projectRoot}`);
+    exitCode = run(`pnpm exec cypress run --project ${projectRoot}`);
   }
 } finally {
   if (started) {
