@@ -67,6 +67,7 @@ func run(args []string) error {
 	}
 
 	return devdata.Run(ctx, db.Client, devdata.Options{
+		Tags: generateTags(bulk.seed),
 		Novels: generate(generateConfig{
 			Seed:             bulk.seed,
 			Novels:           bulk.novels,

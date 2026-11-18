@@ -34,7 +34,7 @@ func generate(config generateConfig) []devdata.Novel {
 		return nil
 	}
 	faker := gofakeit.New(config.Seed)
-	tags := tagPool(faker)
+	tags := generateTags(config.Seed)
 	novels := make([]devdata.Novel, config.Novels)
 	for index := range novels {
 		novels[index] = devdata.Novel{
@@ -53,19 +53,9 @@ func generate(config generateConfig) []devdata.Novel {
 	return novels
 }
 
-func fakeID(faker *gofakeit.Faker) uuid.UUID {
-	return uuid.MustParse(faker.UUID())
-}
-
-func state(faker *gofakeit.Faker) string {
-	if faker.Bool() {
-		return "ONGOING"
-	}
-
-	return "FINISHED"
-}
-
-func tagPool(faker *gofakeit.Faker) []string {
+// generateTags returns the pool of tags the generated novels pick from, the same ones for the same seed.
+func generateTags(seed uint64) []string {
+	faker := gofakeit.New(seed)
 	seen := map[string]bool{}
 	var pool []string
 	for len(pool) < tagPoolSize {
@@ -78,6 +68,18 @@ func tagPool(faker *gofakeit.Faker) []string {
 	}
 
 	return pool
+}
+
+func fakeID(faker *gofakeit.Faker) uuid.UUID {
+	return uuid.MustParse(faker.UUID())
+}
+
+func state(faker *gofakeit.Faker) string {
+	if faker.Bool() {
+		return "ONGOING"
+	}
+
+	return "FINISHED"
 }
 
 func pickTags(faker *gofakeit.Faker, pool []string) []string {

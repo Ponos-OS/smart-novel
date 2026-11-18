@@ -86,3 +86,16 @@ func TestGenerateNothingAtZero(t *testing.T) {
 		t.Errorf("novels = %d, want 0", len(novels))
 	}
 }
+
+func TestGenerateTagsSameSeedSameTags(t *testing.T) {
+	first := generateTags(20260101)
+
+	second := generateTags(20260101)
+
+	if !reflect.DeepEqual(first, second) {
+		t.Error("two runs with the same seed differ")
+	}
+	if len(first) != tagPoolSize {
+		t.Errorf("tags = %d, want %d", len(first), tagPoolSize)
+	}
+}

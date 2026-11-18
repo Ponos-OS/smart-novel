@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strings"
 
 	"github.com/google/uuid"
@@ -19,8 +20,6 @@ import (
 	license "github.com/Ponos-OS/smart-novel/apps/backend/internal/license"
 )
 
-var ErrTagMissing = errors.New("the tag was not added")
-
 const (
 	logKeyNovel    = "novel"
 	logKeyChapters = "chapters"
@@ -28,6 +27,7 @@ const (
 
 // Options say which novels to seed and who the seeded accounts are.
 type Options struct {
+	Tags    []string
 	Novels  []Novel
 	Writers []Writer
 	Logger  *slog.Logger
@@ -35,7 +35,7 @@ type Options struct {
 
 // Run adds the demo data; running it again changes nothing.
 func Run(ctx context.Context, client *ent.Client, options Options) error {
-	tagIDs, err := addTags(ctx, client, UniqueTags(options.Novels))
+	err := addTags(ctx, client, allTags(options))
 	if err != nil {
 		return fmt.Errorf("adding tags: %w", err)
 	}
@@ -59,7 +59,6 @@ func Run(ctx context.Context, client *ent.Client, options Options) error {
 			seed,
 			owner,
 			licenseID,
-			tagIDs,
 		); err != nil {
 			return fmt.Errorf("adding the novel %q: %w", seed.Name, err)
 		}
@@ -68,34 +67,38 @@ func Run(ctx context.Context, client *ent.Client, options Options) error {
 	return nil
 }
 
+func allTags(options Options) []string {
+	tags := slices.Clone(options.Tags)
+	for index, name := range tags {
+		tags[index] = strings.ToLower(name)
+	}
+	tags = append(tags, UniqueTags(options.Novels)...)
+	slices.Sort(tags)
+
+	return slices.Compact(tags)
+}
+
 func addTags(
 	ctx context.Context,
 	client *ent.Client,
 	names []string,
-) (map[string]uuid.UUID, error) {
-	if len(names) > 0 {
-		creates := make([]*ent.TagCreate, len(names))
-		for index, name := range names {
-			creates[index] = client.Tag.Create().SetName(name)
-		}
-		if err := client.Tag.CreateBulk(creates...).
-			OnConflictColumns(tag.FieldName).
-			DoNothing().
-			Exec(ctx); err != nil &&
-			!errors.Is(err, sql.ErrNoRows) {
-			return nil, err
-		}
+) error {
+	if len(names) == 0 {
+		return nil
 	}
-	tags, err := client.Tag.Query().Where(tag.NameIn(names...)).All(ctx)
-	if err != nil {
-		return nil, err
+	creates := make([]*ent.TagCreate, len(names))
+	for index, name := range names {
+		creates[index] = client.Tag.Create().SetName(name)
 	}
-	ids := make(map[string]uuid.UUID, len(tags))
-	for _, found := range tags {
-		ids[found.Name] = found.ID
+	err := client.Tag.CreateBulk(creates...).
+		OnConflictColumns(tag.FieldName).
+		DoNothing().
+		Exec(ctx)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
 	}
 
-	return ids, nil
+	return err
 }
 
 func addWriters(
@@ -138,20 +141,11 @@ func addNovel(
 	logger *slog.Logger,
 	seed Novel,
 	ownerID, defaultLicenseID uuid.UUID,
-	tagIDs map[string]uuid.UUID,
 ) error {
 	details := seed.NovelDetails
 	exists, err := client.Novel.Query().Where(novel.ID(details.ID)).Exist(ctx)
 	if err != nil || exists {
 		return err
-	}
-	var novelTags []uuid.UUID
-	for _, name := range details.Tags {
-		id, ok := tagIDs[strings.ToLower(name)]
-		if !ok {
-			return fmt.Errorf("%w: %q", ErrTagMissing, name)
-		}
-		novelTags = append(novelTags, id)
 	}
 	tx, err := client.Tx(ctx)
 	if err != nil {
@@ -164,7 +158,6 @@ func addNovel(
 		seed.Chapters,
 		ownerID,
 		defaultLicenseID,
-		novelTags,
 	); err != nil {
 		return errors.Join(err, tx.Rollback())
 	}
@@ -184,8 +177,11 @@ func insertNovel(
 	details NovelDetails,
 	chapters []Chapter,
 	ownerID, licenseID uuid.UUID,
-	tagIDs []uuid.UUID,
 ) error {
+	tagIDs, err := tx.Tag.Query().Where(tag.NameIn(details.Tags...)).IDs(ctx)
+	if err != nil {
+		return err
+	}
 	create := tx.Novel.Create().
 		SetID(details.ID).
 		SetName(details.Name).
