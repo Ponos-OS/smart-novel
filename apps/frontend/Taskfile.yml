@@ -10,12 +10,12 @@ tasks:
     dir: "{{.ROOT_DIR}}"
     sources:
       - apps/backend/api/*.graphql
-      - tools/go.mod
-      - tools/gensdl/*.go
+      - ../backend/tools/go.mod
+      - ../backend/tools/gensdl/*.go
     generates:
       - apps/frontend/src/generated/limits.ts
     cmds:
-      - go run ./tools/gensdl -schema apps/backend/api -out apps/frontend/src/generated/limits.ts
+      - cd apps/backend/tools && go run ./gensdl -schema ../api -out ../../frontend/src/generated/limits.ts
 
   generate:graphql-hooks:
     desc: Typed React Query hooks from the GraphQL schema of the Go backend (run `task backend:generate` first, it writes api/ent.graphql)

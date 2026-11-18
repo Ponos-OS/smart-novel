@@ -38,7 +38,7 @@ smart-novel/
 │   │   ├── data/                 # Seed cover image and license texts
 │   │   ├── ent/                  # ent schema and the Atlas migrations
 │   │   ├── internal/             # Domain packages (novel, chapter, tag, license, narration, ...)
-│   │   └── tools/                # Own Go module: the devdata seeder
+│   │   └── tools/                # Own Go module: the devdata seeder and gensdl (GraphQL schema limits to frontend constants)
 │   ├── backend-e2e/              # Backend E2E tests (Vitest)
 │   ├── backend-stress/
 │   ├── frontend/                 # React SPA
@@ -58,7 +58,6 @@ smart-novel/
 │   └── frontend-e2e/             # Frontend E2E tests (Cypress)
 ├── infra/                        # Terraform modules and scripts for the local kind cluster (see infra/README.md)
 ├── scripts/                      # Repo maintenance scripts
-├── tools/                        # Go tools (gensdl turns the limits of the GraphQL schema into frontend constants)
 ├── .env.example                  # Environment variables template
 ├── Taskfile.yml                  # Task entry points; every app has its own Taskfile.yml
 ├── go.work                       # Go workspace (apps/backend, tools)

@@ -6,6 +6,7 @@ require (
 	github.com/Ponos-OS/smart-novel/apps/backend v0.0.0
 	github.com/brianvoe/gofakeit/v7 v7.18.9
 	github.com/google/uuid v1.6.0
+	github.com/vektah/gqlparser/v2 v2.5.64
 )
 
 require (
@@ -36,7 +37,6 @@ require (
 	github.com/oapi-codegen/runtime v1.6.0 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/sosodev/duration v1.4.0 // indirect
-	github.com/vektah/gqlparser/v2 v2.5.64 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/zclconf/go-cty v1.14.4 // indirect
