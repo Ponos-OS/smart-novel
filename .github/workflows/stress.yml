@@ -1,0 +1,110 @@
+# Nightly load test of the GraphQL operations the UI sends.
+#
+# 1. We build the production images itself,
+# 2. Seed a bulk of dummy generated novels,
+# 3. Run `task backend:test:stress` against the e2e stack,
+#
+# A breached threshold fails the job.
+
+name: Nightly Load Test
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stress
+  cancel-in-progress: false
+
+jobs:
+  stress:
+    name: stress
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Task
+        uses: go-task/setup-task@v2
+        with:
+          version: 3.54.0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.3.0
+        with:
+          version: 11.20.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.13.0
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.1
+          terraform_wrapper: false
+
+      - name: Install kind
+        uses: helm/kind-action@v1
+        with:
+          install_only: true
+
+      - name: Seed .env from .env.example
+        run: cp .env.example .env
+
+      - name: Set the size of the bulk seed
+        run: |
+          sed -i 's/^DEVDATA_NOVELS_COUNT=.*/DEVDATA_NOVELS_COUNT=100/' .env
+          sed -i 's/^DEVDATA_CHAPTERS_COUNT_PER_NOVEL=.*/DEVDATA_CHAPTERS_COUNT_PER_NOVEL=10/' .env
+
+      - name: Start the e2e stack
+        run: sh infra/scripts/start-dev.sh e2e
+
+      - name: Run the load test
+        run: task backend:test:stress 2>&1 | tee stress.log
+
+      - name: Write the summary
+        if: always()
+        run: |
+          {
+            echo '## Load test'
+            echo '```'
+            sed -n '/THRESHOLDS/,$p' stress.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Persist the backend log
+        if: always()
+        run: |
+          mkdir -p local-setup/logs
+          kubectl --kubeconfig infra/terraform/local/1-app/smart-novel-config -n smart-novel logs deploy/backend > local-setup/logs/backend.log || true
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-logs
+          path: |
+            stress.log
+            local-setup/logs
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Stop the e2e stack
+        if: always()
+        run: sh infra/scripts/stop-dev.sh

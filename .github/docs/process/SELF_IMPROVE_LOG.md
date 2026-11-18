@@ -33,3 +33,10 @@
 - `pnpm add -D -w @types/k6` rewrote the whole lockfile (quote style); `pnpm exec prettier --write pnpm-lock.yaml` brought the diff back to 11 lines.
 - A `sleep` longer than a few seconds in the foreground is blocked; wait with a background `until` loop and note that its "completed" notice can be the launcher (`nohup ... &`), not the job.
 - No process change.
+
+## Load test, Step 6 (2026-11-18)
+
+- Same override: left uncommitted for review.
+- A workflow cannot be run before it is pushed, so only its parts were checked: the YAML parses, prettier passes, the `sed` lines set the `DEVDATA_*` keys in a copy of `.env.example`, and the seed of 100 novels of 10 chapters took 7 s and 17 MB on a throwaway Postgres (writer JSON keys are `userId`, `name`, `email`, `penName`). The AC, a green `workflow_dispatch` run, waits for a push.
+- The workflow builds the images itself (`start-dev.sh e2e`), unlike `e2e.yml`, which loads the ones `build.yml` made, because it runs alone at night.
+- No process change.
