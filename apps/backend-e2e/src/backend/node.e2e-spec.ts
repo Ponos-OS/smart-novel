@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 
-import { AuthorizationFixture, graphql } from '../support';
+import {
+  AuthorizationFixture,
+  graphql,
+  NovelFixture,
+} from '../support';
 
 const NODE = `#graphql
   query Node($id: ID!) {
@@ -29,8 +33,8 @@ const WRITER_EMAIL = `#graphql
 `;
 
 describe('Global Object Identification (e2e)', () => {
-  const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829'; // example-novel from the seed data
-  const CHAPTER_ID = '4769a024-6267-4abc-a412-5ab0241a8d0e'; // its second chapter
+  let NOVEL_ID: string;
+  let CHAPTER_ID: string;
   let user: string;
   let seededWriter: string;
   let writer: string;
@@ -49,6 +53,11 @@ describe('Global Object Identification (e2e)', () => {
   }
 
   beforeAll(async () => {
+    const { novelId, chapterIds } = await NovelFixture.create({
+      chapters: 1,
+    });
+    NOVEL_ID = novelId;
+    CHAPTER_ID = chapterIds[0];
     user = await AuthorizationFixture.getUserAuthorizationHeader();
     seededWriter =
       await AuthorizationFixture.getWriterAuthorizationHeader();

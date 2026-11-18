@@ -42,8 +42,11 @@ describe('Manage a novel (e2e)', () => {
       );
       cy.contains('label', 'State').find('select').select('Finished');
       // Search for it: the first page of suggestions is alphabetical
-      cy.get('input[role="combobox"]').type('fantasy');
-      cy.contains('[role="option"]', 'fantasy').click();
+      cy.seededTagName().then((tagName) => {
+        cy.get('input[role="combobox"]').type(tagName);
+        cy.contains('[role="option"]', tagName).click();
+        cy.wrap(tagName).as('tagName');
+      });
       cy.contains('button', 'Save').click();
       cy.url().should(
         'eq',
@@ -52,7 +55,11 @@ describe('Manage a novel (e2e)', () => {
       cy.contains(description, { timeout: 15000 }).should(
         'be.visible',
       );
-      cy.contains('fantasy').should('be.visible');
+      cy.get('@tagName').then((tagName) => {
+        cy.contains(tagName as unknown as string).should(
+          'be.visible',
+        );
+      });
 
       // Upload a cover: the browser PUTs straight to the bucket
       cy.contains('button', 'Edit novel').click();

@@ -19,12 +19,7 @@ import (
 	license "github.com/Ponos-OS/smart-novel/apps/backend/internal/license"
 )
 
-var (
-	ErrNovelWriterMissing = errors.New(
-		"the writer of the example novels is not among SEEDED_WRITERS",
-	)
-	ErrTagMissing = errors.New("the tag was not added")
-)
+var ErrTagMissing = errors.New("the tag was not added")
 
 const (
 	logKeyNovel    = "novel"
@@ -54,17 +49,9 @@ func Run(ctx context.Context, client *ent.Client, options Options) error {
 	if err != nil {
 		return fmt.Errorf("adding writers: %w", err)
 	}
-	unowned := 0
-	for _, seed := range options.Novels {
-		userID := seed.WriterUserID
-		if userID == "" {
-			userID = options.Writers[unowned%len(options.Writers)].UserID
-			unowned++
-		}
-		owner, ok := writerIDs[userID]
-		if !ok {
-			return fmt.Errorf("%w: %s", ErrNovelWriterMissing, userID)
-		}
+	for index, seed := range options.Novels {
+		ownerPosition := index % len(options.Writers)
+		owner := writerIDs[options.Writers[ownerPosition].UserID]
 		if err := addNovel(
 			ctx,
 			client,

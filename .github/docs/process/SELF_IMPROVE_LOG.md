@@ -13,3 +13,14 @@
 - A seeder change needs no cluster to check its rows: `docker run postgres:18.2-bookworm` on a spare port, `go run ./devdata` with `DATABASE_URL`, `SEEDED_WRITERS` and `ZITADEL_WRITER_USER_ID`, then `psql` counts. It showed idempotency, spread over writers and same-seed reproducibility in seconds; `task backend:test:e2e` (15 minutes) only proves the zero-count defaults.
 - `task test` fails 36 frontend specs when `@testing-library/user-event` is missing from `node_modules`; that is the install, not the diff (`task backend:test` is the Go part).
 - Option names were renamed three times after review; ask for the naming style of the user's env keys before adding a flag (flags mirror the env keys: `--novels-count`, `DEVDATA_NOVELS_COUNT`).
+
+## Load test, Step 4 (2026-11-18)
+
+- Same override: the user reviewed Steps 1 to 3 before each commit; Step 4 is committed on their word.
+- Removing seed data breaks e2e specs by tag name as well as by ID (`fantasy`, `adventure`): grep both. Specs now build their own novels with `NovelFixture`, and browse-only specs find a generated novel by `coverURLNotNil`.
+- Beatrice rejects text over 4000 characters, so the narration specs (backend and Cypress) create short chapters; generated chapters are 2000+ words and cannot be narrated. A creation-triggered narration must settle before a spec asserts its own.
+- `vi.waitFor` defaults to a 1 s timeout; narration waits need an explicit one (120 s here).
+- `task frontend:test:e2e` fails before Cypress with `EBADDEVENGINES` (`npx cypress run` against a `devEngines` that requires pnpm). Workaround: `sh infra/scripts/start-dev.sh e2e`, `node_modules/.bin/cypress run --project apps/frontend-e2e` with `.env` sourced, `sh infra/scripts/stop-dev.sh`.
+- A new `.env.example` key does not reach the user's existing `.env`; the `DEVDATA_*` keys were appended by hand.
+- A background run dies with the session when the context is compacted: after a resume, check `kind get clusters` and `docker ps` (`kind get clusters` listed nothing while the node container still held port 8080), run `stop-dev.sh`, and rerun.
+- No process change: each lesson is from this step only.

@@ -4,7 +4,11 @@ import Redis from 'ioredis';
 import { randomUUID } from 'node:crypto';
 import { WebSocket } from 'ws';
 
-import { AuthorizationFixture, holdNarrationLock } from '../support';
+import {
+  AuthorizationFixture,
+  holdNarrationLock,
+  NovelFixture,
+} from '../support';
 
 /** @description Must match `StatusChannel` in apps/backend/internal/ttscallbacks/handlers.go */
 const TTS_EVENTS_CHANNEL = 'chapter-narration:events';
@@ -35,6 +39,20 @@ async function getContentUpdatedAt(
 }
 
 describe('Beatrice callbacks (e2e)', () => {
+  let NOVEL_ID: string;
+  let CHAPTER_TWO_ID: string;
+
+  beforeAll(async () => {
+    const { novelId, chapterIds } = await NovelFixture.seeded({
+      authorization:
+        await AuthorizationFixture.getWriterAuthorizationHeader(),
+      index: 1,
+      minChapters: 2,
+    });
+    NOVEL_ID = novelId;
+    CHAPTER_TWO_ID = chapterIds[1];
+  });
+
   describe('POST /beatrice-callbacks/gen-upload-url', () => {
     it('should return a presigned upload URL for a valid token', async () => {
       const authorization =
@@ -149,10 +167,6 @@ describe('Beatrice callbacks (e2e)', () => {
   });
 
   describe('Step 2.1: reacting to a "completed" status', () => {
-    // Not used by any other spec's updateContent/generateAudio call, so no other narration holds its lock.
-    const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829';
-    const CHAPTER_TWO_ID = '4769a024-6267-4abc-a412-5ab0241a8d0e';
-
     it('should keep the audio URL of the chapter once Beatrice reports the job it started as completed', async () => {
       const authorization =
         await AuthorizationFixture.getWriterAuthorizationHeader();
@@ -202,9 +216,6 @@ describe('Beatrice callbacks (e2e)', () => {
   });
 
   describe('Step 2.2: chapterNarrationUpdated live progress', () => {
-    const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829';
-    const CHAPTER_TWO_ID = '4769a024-6267-4abc-a412-5ab0241a8d0e';
-
     it('should stream generating/uploading/completed progress over the chapterNarrationUpdated subscription, in order', async () => {
       const wsHost = process.env.HOST ?? 'localhost';
       const wsPort = process.env.TRAEFIK_EXPOSED_PORT ?? '8080';
@@ -329,9 +340,6 @@ describe('Beatrice callbacks (e2e)', () => {
   });
 
   describe('Step 2.3: the status of the narration kept on the chapter', () => {
-    const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829';
-    const CHAPTER_TWO_ID = '4769a024-6267-4abc-a412-5ab0241a8d0e';
-
     it('should mark the chapter FAILED when the job started for it fails, and ignore the failure of another job', async () => {
       // Arrange: this test is the Beatrice of a job of its own.
       const jobId = randomUUID();
@@ -374,11 +382,6 @@ describe('Beatrice callbacks (e2e)', () => {
   });
 
   describe('Step 2: dropping a stale out-of-order status callback', () => {
-    // Same seed chapter as Steps 2.1/2.2 above — safe to share since these `it`s run
-    // sequentially within this file and `chapterNarrationUpdated` is scoped per chapterId,
-    // so no other spec file publishes onto this specific chapter's subscription channel.
-    const CHAPTER_TWO_ID = '4769a024-6267-4abc-a412-5ab0241a8d0e';
-
     it('should drop a "queued" callback (progress 1) that arrives after "generating" (progress 2) for the same job, never regressing the chapterNarrationUpdated subscription', async () => {
       const wsHost = process.env.HOST ?? 'localhost';
       const wsPort = process.env.TRAEFIK_EXPOSED_PORT ?? '8080';

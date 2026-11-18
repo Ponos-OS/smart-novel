@@ -48,7 +48,7 @@ tasks:
       - cd tools && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o ../bin/devdata ./devdata
 
   seed:
-    desc: "Fill the database with demo data (default license, example novel, writers of SEEDED_WRITERS); development and e2e only"
+    desc: "Fill the database with demo data (default license, writers of SEEDED_WRITERS, generated novels of DEVDATA_*); development and e2e only"
     cmds:
       - cd tools && go run ./devdata {{.CLI_ARGS}}
 

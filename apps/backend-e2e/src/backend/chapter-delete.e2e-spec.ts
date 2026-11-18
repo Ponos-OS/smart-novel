@@ -1,9 +1,17 @@
 import { randomUUID } from 'node:crypto';
 
-import { AuthorizationFixture, graphql } from '../support';
+import {
+  AuthorizationFixture,
+  graphql,
+  NovelFixture,
+} from '../support';
 
 describe('Chapter deletion (e2e)', () => {
-  const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829'; // example-novel from seed data, owned by the writer
+  let NOVEL_ID: string;
+
+  beforeAll(async () => {
+    ({ novelId: NOVEL_ID } = await NovelFixture.create());
+  });
 
   async function createChapter(
     title: string,

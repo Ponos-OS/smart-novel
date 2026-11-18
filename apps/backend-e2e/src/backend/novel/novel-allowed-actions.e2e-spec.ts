@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-import { AuthorizationFixture } from '../../support';
+import { AuthorizationFixture, NovelFixture } from '../../support';
 
 const NOVEL_QUERY = `#graphql
   query GetNovel($id: ID!) {
@@ -12,7 +12,11 @@ const NOVEL_QUERY = `#graphql
 `;
 
 describe('Novel allowedActions (e2e)', () => {
-  const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829';
+  let NOVEL_ID: string;
+
+  beforeAll(async () => {
+    ({ novelId: NOVEL_ID } = await NovelFixture.create());
+  });
 
   it('should return MANAGE_TTS and EDIT_CONTENT for the novel owner (writer)', async () => {
     const authorization =

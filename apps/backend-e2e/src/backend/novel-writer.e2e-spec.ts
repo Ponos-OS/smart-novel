@@ -1,7 +1,11 @@
 import axios from 'axios';
 import { randomUUID } from 'node:crypto';
 
-import { AuthorizationFixture, ClusterFixture } from '../support';
+import {
+  AuthorizationFixture,
+  ClusterFixture,
+  NovelFixture,
+} from '../support';
 
 const WRITER_FIELDS = `#graphql
   fragment WriterFields on NovelWriter {
@@ -68,7 +72,6 @@ const WHO_AM_I = `#graphql
   }
 `;
 
-const SEEDED_NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829';
 const ONLY_THE_PEN_NAME = {
   penName: expect.any(String),
   userID: expect.stringMatching(/^\d+$/),
@@ -104,8 +107,10 @@ describe('Novel writer (e2e)', () => {
   let secondWriterId: string;
   let secondWriterPenName: string;
   let novelId: string;
+  let seededWriterNovelId: string;
 
   beforeAll(async () => {
+    ({ novelId: seededWriterNovelId } = await NovelFixture.create());
     admin = await AuthorizationFixture.getAdminAuthorizationHeader();
     secondWriter =
       await AuthorizationFixture.getWriterAuthorizationHeader({
@@ -161,7 +166,7 @@ describe('Novel writer (e2e)', () => {
     async ({ getHeader }) => {
       const data = await graphql(
         NOVEL,
-        { id: SEEDED_NOVEL_ID },
+        { id: seededWriterNovelId },
         await getHeader(),
       );
 
@@ -185,7 +190,11 @@ describe('Novel writer (e2e)', () => {
   });
 
   it('should give an admin the name, email, status and applications too', async () => {
-    const data = await graphql(NOVEL, { id: SEEDED_NOVEL_ID }, admin);
+    const data = await graphql(
+      NOVEL,
+      { id: seededWriterNovelId },
+      admin,
+    );
 
     expect(data.novel.writer).toStrictEqual({
       userID: expect.stringMatching(/^\d+$/),

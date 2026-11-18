@@ -1,5 +1,4 @@
-// Package fakedata generates novels, chapters and tags with gofakeit for load tests; the same Config always gives the same novels.
-package fakedata
+package main
 
 import (
 	"math/rand/v2"
@@ -12,8 +11,8 @@ import (
 )
 
 const (
-	// CoverURL is the cover of every generated novel: the image that data/example-novel holds, uploaded by the object storage module.
-	CoverURL = "http://s3.localhost:8080/smart-novel/covers/71a3fcd8-937d-4e3d-94de-a643ff515f82.png"
+	// coverURL is the cover of every generated novel: the image that data/example-novel holds, uploaded by the object storage module.
+	coverURL = "http://s3.localhost:8080/smart-novel/covers/71a3fcd8-937d-4e3d-94de-a643ff515f82.png"
 
 	tagPoolSize         = 24
 	maxTagsPerNovel     = 3
@@ -22,15 +21,15 @@ const (
 	descriptionSentence = 3
 )
 
-// Config says how much to generate; a zero count generates nothing.
-type Config struct {
+// generateConfig says how much to generate; a zero count generates nothing.
+type generateConfig struct {
 	Seed             uint64
 	Novels           int
 	ChaptersPerNovel int
 }
 
-// Generate returns Config.Novels novels of Config.ChaptersPerNovel chapters each.
-func Generate(config Config) []devdata.Novel {
+// generate returns generateConfig.Novels novels of generateConfig.ChaptersPerNovel chapters each, the same ones for the same Seed.
+func generate(config generateConfig) []devdata.Novel {
 	if config.Novels <= 0 {
 		return nil
 	}
@@ -45,7 +44,7 @@ func Generate(config Config) []devdata.Novel {
 				Description: sentences(faker, descriptionSentence),
 				Tags:        pickTags(faker, tags),
 				State:       state(faker),
-				CoverURL:    CoverURL,
+				CoverURL:    coverURL,
 			},
 			Chapters: chapters(faker, config.ChaptersPerNovel),
 		}

@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+import { NovelFixture } from '../support';
+
 const NOVELS = `#graphql
   query Novels($first: Int, $after: Cursor, $where: NovelWhereInput) {
     novels(first: $first, after: $after, where: $where) {
@@ -37,6 +39,11 @@ async function novels(variables: Record<string, unknown> = {}) {
 }
 
 describe('Novels (e2e)', () => {
+  beforeAll(async () => {
+    await NovelFixture.ensureTag('adventure');
+    await NovelFixture.create({ tags: ['fantasy'] });
+  });
+
   it('should return a list of novels', async () => {
     const res = await novels();
 

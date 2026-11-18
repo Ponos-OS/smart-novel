@@ -1,13 +1,26 @@
 import axios from 'axios';
 
-import { AuthorizationFixture } from '../support';
+import { AuthorizationFixture, NovelFixture } from '../support';
 
 describe('ChapterUserState (e2e)', () => {
-  const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829';
-  const CHAPTER_ONE_ID = '4dd92f16-4743-47b9-960c-6529678e9bc5';
-  const CHAPTER_TWO_ID = '4769a024-6267-4abc-a412-5ab0241a8d0e';
-  const CHAPTER_THREE_ID = 'a3987a2f-eaa5-4a05-8714-34a110511cba';
-  const CHAPTER_FOUR_ID = '038dd3f5-e921-4076-be91-66175ebd1bc3';
+  let NOVEL_ID: string;
+  let CHAPTER_ONE_ID: string;
+  let CHAPTER_TWO_ID: string;
+  let CHAPTER_THREE_ID: string;
+  let CHAPTER_FOUR_ID: string;
+
+  beforeAll(async () => {
+    const { novelId, chapterIds } = await NovelFixture.create({
+      chapters: 4,
+    });
+    NOVEL_ID = novelId;
+    [
+      CHAPTER_ONE_ID,
+      CHAPTER_TWO_ID,
+      CHAPTER_THREE_ID,
+      CHAPTER_FOUR_ID,
+    ] = chapterIds;
+  });
 
   describe('viewerState field resolver', () => {
     it('should return isRead: false for unauthenticated users', async () => {

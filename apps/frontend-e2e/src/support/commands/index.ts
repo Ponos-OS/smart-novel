@@ -28,6 +28,24 @@ declare global {
       login(username?: string, password?: string): Chainable<void>;
 
       logout(): Chainable<void>;
+
+      /**
+       * @description The path of a novel the seeder generated (the only ones with a cover) that has chapters.
+       * @example
+       * ```ts
+       * cy.seededNovelPath().then((path) => cy.visit(path))
+       * ````
+       */
+      seededNovelPath(): Chainable<string>;
+
+      /**
+       * @description The name of a tag the seeder generated.
+       * @example
+       * ```ts
+       * cy.seededTagName().then((name) => cy.get('input[role="combobox"]').type(name))
+       * ```
+       */
+      seededTagName(): Chainable<string>;
     }
   }
 }

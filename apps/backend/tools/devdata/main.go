@@ -14,14 +14,11 @@ import (
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/devdata"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/database"
-	"github.com/Ponos-OS/smart-novel/apps/backend/tools/examplenovel"
-	"github.com/Ponos-OS/smart-novel/apps/backend/tools/fakedata"
 )
 
 var (
-	errProduction     = errors.New("devdata is for development and e2e only")
-	errNoDatabaseURL  = errors.New("DATABASE_URL is not set")
-	errNoWriterUserID = errors.New("ZITADEL_WRITER_USER_ID is not set")
+	errProduction    = errors.New("devdata is for development and e2e only")
+	errNoDatabaseURL = errors.New("DATABASE_URL is not set")
 )
 
 const defaultSeed uint64 = 20260101
@@ -49,10 +46,6 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
-	novelWriter := os.Getenv("ZITADEL_WRITER_USER_ID")
-	if novelWriter == "" {
-		return errNoWriterUserID
-	}
 
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
@@ -74,13 +67,11 @@ func run(args []string) error {
 	}
 
 	return devdata.Run(ctx, db.Client, devdata.Options{
-		Novels: append(
-			[]devdata.Novel{exampleNovel(novelWriter)},
-			fakedata.Generate(fakedata.Config{
-				Seed:             bulk.seed,
-				Novels:           bulk.novels,
-				ChaptersPerNovel: bulk.chapters,
-			})...),
+		Novels: generate(generateConfig{
+			Seed:             bulk.seed,
+			Novels:           bulk.novels,
+			ChaptersPerNovel: bulk.chapters,
+		}),
 		Writers: writers,
 		Logger:  slog.New(slog.NewTextHandler(os.Stdout, nil)),
 	})
@@ -132,11 +123,4 @@ func envInt(name string, fallback int) int {
 	}
 
 	return value
-}
-
-func exampleNovel(writerUserID string) devdata.Novel {
-	novel := examplenovel.Novel()
-	novel.WriterUserID = writerUserID
-
-	return novel
 }

@@ -49,9 +49,8 @@ locals {
   )
   backend_volumes = local.hot_reload ? [local.apps_volume] : []
 
-  # Demo data for development and e2e, never production: the example novel, the default license and the seeded accounts. The development image runs devdata from the mounted sources, the e2e one carries a binary and the data.
+  # Demo data for development and e2e, never production: the generated novels, the default license and the seeded accounts. The development image runs devdata from the mounted sources, the e2e one carries a binary and the data.
   devdata_job_environment = local.zitadel == null ? {} : {
-    ZITADEL_WRITER_USER_ID = local.zitadel.user_ids["writer"]
     SEEDED_WRITERS = jsonencode([
       for writer in local.zitadel.seeded_writers : {
         userId  = writer.user_id

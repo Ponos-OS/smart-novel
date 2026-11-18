@@ -1,11 +1,38 @@
 import axios from 'axios';
 
-import { AuthorizationFixture } from '../support';
+import { AuthorizationFixture, NovelFixture } from '../support';
 
 describe('Chapter (e2e)', () => {
-  const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829'; // example-novel from seed data
-  const CHAPTER_ONE_ID = '4dd92f16-4743-47b9-960c-6529678e9bc5'; // chapter1 from seed data
-  const CHAPTER_FIVE_ID = '6d908673-b125-4729-9da9-4fb907afe2a1'; // chapter5 from seed data
+  const CHAPTER_ONE_CONTENT =
+    "# Chapter 1: The Beginning\n\nIn a small village nestled between rolling hills and ancient forests, a young adventurer named Elena discovered an old map hidden in her grandmother's attic.\n\nAs dawn broke over the horizon, Elena made her decision. Her adventure was just beginning.";
+  let NOVEL_ID: string; // a novel of the seeded writer with five chapters
+  let CHAPTER_ONE_ID: string;
+  let CHAPTER_TWO_ID: string;
+  let CHAPTER_FIVE_ID: string;
+
+  beforeAll(async () => {
+    const { novelId, chapterIds } = await NovelFixture.create({
+      chapters: [
+        { title: 'The Beginning', content: CHAPTER_ONE_CONTENT },
+        {
+          title: 'The First Challenge',
+          content: '# Two\n\nThe first challenge.',
+        },
+        {
+          title: 'Faithful Encounter',
+          content: '# Three\n\nA faithful encounter.',
+        },
+        {
+          title: 'Echoes in the Dark',
+          content: '# Four\n\nEchoes in the dark.',
+        },
+        { title: 'The Shard', content: '# Five\n\nThe shard.' },
+      ],
+    });
+    NOVEL_ID = novelId;
+    [CHAPTER_ONE_ID, CHAPTER_TWO_ID, , , CHAPTER_FIVE_ID] =
+      chapterIds;
+  });
 
   async function getContentUpdatedAt(
     chapterId: string,
@@ -80,8 +107,7 @@ describe('Chapter (e2e)', () => {
       expect.objectContaining({
         id: CHAPTER_ONE_ID,
         title: 'The Beginning',
-        content:
-          "# Chapter 1: The Beginning\n\nIn a small village nestled between rolling hills and ancient forests, a young adventurer named Elena discovered an old map hidden in her grandmother's attic. The map was yellowed with age, its edges frayed, but the intricate markings and mysterious symbols captured her imagination immediately.\n\nShe scrutinized the men's faces carefully, trying to work out who was lying about the treasure's location. The village elders had always spoken of a legendary artifact, but none had dared to seek it.\n\nAs dawn broke over the horizon, Elena made her decision. She would embark on this journey, following the map's cryptic directions into the unknown. Little did she know that this choice would change her life forever.\n\nThe path ahead was uncertain, filled with both danger and wonder. But Elena was ready. Her adventure was just beginning.",
+        content: CHAPTER_ONE_CONTENT,
       }),
     );
     expect(res.data.data.novel.chapter.createdAt).toBeDateString();
@@ -107,9 +133,7 @@ describe('Chapter (e2e)', () => {
       },
     });
 
-    expect(res.data.data.novel.chapter.next.id).toBe(
-      '4769a024-6267-4abc-a412-5ab0241a8d0e',
-    );
+    expect(res.data.data.novel.chapter.next.id).toBe(CHAPTER_TWO_ID);
   });
 
   it('should return previous chapter', async () => {
@@ -127,7 +151,7 @@ describe('Chapter (e2e)', () => {
         `,
       variables: {
         novelId: NOVEL_ID,
-        chapterId: '4769a024-6267-4abc-a412-5ab0241a8d0e',
+        chapterId: CHAPTER_TWO_ID,
       },
     });
 
@@ -722,7 +746,7 @@ describe('Chapter (e2e)', () => {
 
     expect(contentSave.data.errors).toBeUndefined();
 
-    // The content save starts a narration that touches the chapter row, so wait for it to settle.
+    // FIXME: The content save starts a narration that touches the chapter row, so wait for it to settle; Beatrice runs one job at a time, behind the narrations of the chapters this spec created. We should not really be doing this since we are mocking the Beatrice responses., right?
     await vi.waitFor(async () => {
       const { data } = await axios.post(
         '/graphql',
@@ -747,7 +771,7 @@ describe('Chapter (e2e)', () => {
       expect(data.data.novel.chapter.narrationStatus).not.toBe(
         'PROCESSING',
       );
-    });
+    }, 120_000);
     const expectedUpdatedAt = await getUpdatedAt(
       CHAPTER_FIVE_ID,
       authorizationHeader,
@@ -778,5 +802,5 @@ describe('Chapter (e2e)', () => {
     expect(titleSave.data.data.updateChapter.title).toBe(
       'Title saved after unrelated content change',
     );
-  });
+  }, 150_000);
 });

@@ -1,6 +1,5 @@
-import { graphql } from '../support';
+import { graphql, NovelFixture } from '../support';
 
-const novelId = 'c1d31ec2-f478-4648-b90b-d1e53de2a829';
 const notAUuid = Buffer.from('example-novel').toString('base64');
 const uuidCursor = Buffer.from(
   'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
@@ -17,8 +16,8 @@ const NOVELS = `#graphql
 `;
 
 const CHAPTERS = `#graphql
-  query Chapters($after: Cursor, $before: Cursor) {
-    novel(id: "${novelId}") {
+  query Chapters($novelId: ID!, $after: Cursor, $before: Cursor) {
+    novel(id: $novelId) {
       chapters(first: 1, after: $after, before: $before) {
         edges {
           cursor
@@ -39,6 +38,12 @@ const TAGS = `#graphql
 `;
 
 describe('Cursor validation (e2e)', () => {
+  let novelId: string;
+
+  beforeAll(async () => {
+    ({ novelId } = await NovelFixture.create());
+  });
+
   const connections: [string, string][] = [
     ['novels', NOVELS],
     ['chapters', CHAPTERS],
@@ -54,7 +59,7 @@ describe('Cursor validation (e2e)', () => {
     ])(
       'should answer a malformed %s cursor with INVALID_CURSOR',
       async (_arg, variables) => {
-        const data = await graphql(query, variables);
+        const data = await graphql(query, { novelId, ...variables });
 
         expect(data.errors[0].message).toBe('Invalid cursor');
         expect(data.errors[0].extensions.code).toBe('INVALID_CURSOR');

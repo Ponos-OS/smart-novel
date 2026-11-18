@@ -1,7 +1,19 @@
 import axios from 'axios';
 
+import { AuthorizationFixture, NovelFixture } from '../../support';
+
 describe('Novel (e2e)', () => {
-  const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829'; // example-novel from seed data
+  let NOVEL_ID: string;
+  let CHAPTER_IDS: string[];
+
+  beforeAll(async () => {
+    const { novelId, chapterIds } = await NovelFixture.create({
+      chapters: 4,
+      tags: ['fantasy', 'adventure'],
+    });
+    NOVEL_ID = novelId;
+    CHAPTER_IDS = chapterIds;
+  });
 
   it('should find a novel by ID', async () => {
     const res = await axios.post('/graphql', {
@@ -54,42 +66,29 @@ describe('Novel (e2e)', () => {
     const novel = res.data.data.novel;
     expect(novel).toStrictEqual(
       expect.objectContaining({
-        id: 'c1d31ec2-f478-4648-b90b-d1e53de2a829',
-        name: 'The Journey Begins',
-        description:
-          'A young hero leaves home to uncover an ancient mystery and shape the fate of the realm.',
+        id: NOVEL_ID,
+        name: expect.stringMatching(/^The Salt Road /),
+        description: 'A caravan crosses a dry sea bed.',
         state: 'ONGOING',
         writer: { penName: 'Writer_User' },
         tags: expect.arrayContaining([
           { name: 'fantasy' },
           { name: 'adventure' },
         ]),
-        // other specs add chapters to this seeded novel, so only its shape is stable
-        lastPublishedChapter: { id: expect.toBeString() },
-        firstChapter: { id: '4dd92f16-4743-47b9-960c-6529678e9bc5' },
+        lastPublishedChapter: { id: CHAPTER_IDS[3] },
+        firstChapter: { id: CHAPTER_IDS[0] },
       }),
     );
     expect(novel.lastChapterPublishedAt).toBeDateString();
 
     // Verify chapters
-    expect(novel.chapters.totalCount).toBeGreaterThanOrEqual(4);
-    expect(novel.chapters.edges.length).toBeGreaterThanOrEqual(4);
+    expect(novel.chapters.totalCount).toBe(4);
+    expect(novel.chapters.edges.length).toBe(4);
 
     const chapterIds = novel.chapters.edges.map(
       (edge: { node: { id: string } }) => edge.node.id,
     );
-    expect(chapterIds).toContain(
-      '4dd92f16-4743-47b9-960c-6529678e9bc5',
-    );
-    expect(chapterIds).toContain(
-      '4769a024-6267-4abc-a412-5ab0241a8d0e',
-    );
-    expect(chapterIds).toContain(
-      'a3987a2f-eaa5-4a05-8714-34a110511cba',
-    );
-    expect(chapterIds).toContain(
-      '038dd3f5-e921-4076-be91-66175ebd1bc3',
-    );
+    expect(chapterIds).toStrictEqual(CHAPTER_IDS);
 
     // Each edge should have cursor and node with expected fields
     for (const edge of novel.chapters.edges) {
@@ -102,6 +101,10 @@ describe('Novel (e2e)', () => {
   });
 
   it('should download the cover image', async () => {
+    const { novelId: coverNovelId } = await NovelFixture.seeded({
+      authorization:
+        await AuthorizationFixture.getWriterAuthorizationHeader(),
+    });
     const { data } = await axios.post('/graphql', {
       query: `#graphql
         query GetNovel($id: ID!) {
@@ -111,7 +114,7 @@ describe('Novel (e2e)', () => {
         }
       `,
       variables: {
-        id: NOVEL_ID,
+        id: coverNovelId,
       },
     });
 

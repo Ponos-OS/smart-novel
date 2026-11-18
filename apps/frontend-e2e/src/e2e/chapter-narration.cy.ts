@@ -1,7 +1,4 @@
 describe('Chapter Audio Narration', () => {
-  const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829';
-  const NOVEL_URL = `/novel/${NOVEL_ID}`;
-
   describe('Full flow: generate audio → live progress → audio player', () => {
     /**
      * Slow integration test against the real backend services (RabbitMQ, Beatrice, the local TTS shim, S3). Timeouts are generous to account for CPU-only local TTS synthesis.
@@ -10,10 +7,33 @@ describe('Chapter Audio Narration', () => {
       cy.login();
       cy.intercept('POST', '**/graphql').as('graphql');
 
-      cy.visit(NOVEL_URL);
+      // A novel of its own with a short chapter: Beatrice takes at most 4000 characters, so the generated chapters cannot be narrated.
+      const novelName = `Narration Novel ${Date.now()}`;
+      cy.visit('/');
+      cy.contains('button', 'New novel', { timeout: 15000 }).click();
+      cy.get('input[placeholder="Novel name"]').type(novelName);
+      cy.contains('button', 'Create novel').click();
+      cy.url().should('match', /\/novel\/[^/]+$/);
+      cy.url().then((novelUrl) => {
+        cy.contains('button', 'New Chapter', {
+          timeout: 15000,
+        }).click();
+        cy.get('input[placeholder="Chapter title"]').type('The door');
+        cy.get(
+          'textarea[placeholder="Chapter content in markdown format"]',
+        ).type('# The door\n\nThe door was there, in the fog.');
+        cy.contains('button', 'Create Chapter').click();
+        cy.url().should(
+          'match',
+          /\/novel\/[^/]+\/chapters\/[^/]+\/edit$/,
+        );
+        cy.visit(novelUrl);
+      });
       cy.wait('@graphql');
 
-      cy.contains('Chapter 1', { timeout: 10000 }).first().click();
+      cy.contains('h3', /^Chapter 1:/, { timeout: 10000 })
+        .first()
+        .click();
       cy.wait('@graphql');
 
       cy.get('.prose-container', { timeout: 15000 }).should(

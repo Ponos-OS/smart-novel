@@ -1,15 +1,13 @@
-package fakedata_test
+package main
 
 import (
 	"reflect"
 	"strings"
 	"testing"
-
-	"github.com/Ponos-OS/smart-novel/apps/backend/tools/fakedata"
 )
 
-func config() fakedata.Config {
-	return fakedata.Config{
+func config() generateConfig {
+	return generateConfig{
 		Seed:             20260101,
 		Novels:           4,
 		ChaptersPerNovel: 2,
@@ -17,9 +15,9 @@ func config() fakedata.Config {
 }
 
 func TestGenerateSameSeedSameNovels(t *testing.T) {
-	first := fakedata.Generate(config())
+	first := generate(config())
 
-	second := fakedata.Generate(config())
+	second := generate(config())
 
 	if !reflect.DeepEqual(first, second) {
 		t.Error("two runs with the same seed differ")
@@ -30,15 +28,15 @@ func TestGenerateOtherSeedOtherNovels(t *testing.T) {
 	other := config()
 	other.Seed++
 
-	novels := fakedata.Generate(other)
+	novels := generate(other)
 
-	if reflect.DeepEqual(fakedata.Generate(config()), novels) {
+	if reflect.DeepEqual(generate(config()), novels) {
 		t.Error("two seeds gave the same novels")
 	}
 }
 
 func TestGenerateHonorsCounts(t *testing.T) {
-	novels := fakedata.Generate(config())
+	novels := generate(config())
 
 	if len(novels) != 4 {
 		t.Fatalf("novels = %d, want 4", len(novels))
@@ -49,8 +47,8 @@ func TestGenerateHonorsCounts(t *testing.T) {
 		if len(novel.Chapters) != 2 {
 			t.Errorf("chapters = %d, want 2", len(novel.Chapters))
 		}
-		if novel.CoverURL != fakedata.CoverURL {
-			t.Errorf("cover = %q, want %q", novel.CoverURL, fakedata.CoverURL)
+		if novel.CoverURL != coverURL {
+			t.Errorf("cover = %q, want %q", novel.CoverURL, coverURL)
 		}
 		if len(novel.Tags) == 0 {
 			t.Error("a novel has no tag")
@@ -62,7 +60,7 @@ func TestGenerateHonorsCounts(t *testing.T) {
 }
 
 func TestGenerateChaptersHaveSeveralThousandWords(t *testing.T) {
-	novels := fakedata.Generate(config())
+	novels := generate(config())
 
 	for _, chapter := range novels[0].Chapters {
 		if words := len(strings.Fields(chapter.Content)); words < 2000 {
@@ -82,7 +80,7 @@ func TestGenerateNothingAtZero(t *testing.T) {
 	zero := config()
 	zero.Novels = 0
 
-	novels := fakedata.Generate(zero)
+	novels := generate(zero)
 
 	if len(novels) != 0 {
 		t.Errorf("novels = %d, want 0", len(novels))

@@ -6,6 +6,7 @@ import {
   ClusterFixture,
   config,
   graphql,
+  NovelFixture,
 } from '../support';
 
 /**
@@ -59,6 +60,10 @@ async function tags(
 }
 
 describe('Tags (e2e)', () => {
+  beforeAll(async () => {
+    await NovelFixture.ensureTag('fantasy');
+  });
+
   it('should page through the approved tags in name order with cursors', async () => {
     const firstPage = await tags({ first: 1 });
     const { endCursor } = firstPage.data.tags.pageInfo;
@@ -225,6 +230,7 @@ describe('Tag requests and management (e2e)', () => {
       await AuthorizationFixture.getWriterAuthorizationHeader();
     admin = await AuthorizationFixture.getAdminAuthorizationHeader();
     user = await AuthorizationFixture.getUserAuthorizationHeader();
+    await NovelFixture.ensureTag('fantasy');
   });
 
   async function requestAsWriter(name: string) {
@@ -742,6 +748,10 @@ describe('Tag requests and management (e2e)', () => {
 });
 
 describe('Tag approximateNovelCount (e2e)', () => {
+  beforeAll(async () => {
+    await NovelFixture.create({ tags: ['fantasy'] });
+  });
+
   const WITH_COUNT = `#graphql
     query WithCount {
       tags(first: 100) {
