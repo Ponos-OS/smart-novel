@@ -746,7 +746,7 @@ describe('Chapter (e2e)', () => {
 
     expect(contentSave.data.errors).toBeUndefined();
 
-    // FIXME: The content save starts a narration that touches the chapter row, so wait for it to settle; Beatrice runs one job at a time, behind the narrations of the chapters this spec created. We should not really be doing this since we are mocking the Beatrice responses., right?
+    // The content save starts a narration that touches the chapter row. Beatrice is real here (only the OpenAI endpoints are stubbed) and runs one job at a time, so wait for it to settle before saving the title.
     await vi.waitFor(async () => {
       const { data } = await axios.post(
         '/graphql',
