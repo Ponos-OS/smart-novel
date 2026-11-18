@@ -35,7 +35,7 @@ smart-novel/
 │   ├── backend/                  # Go GraphQL API (ent, entgql, gqlgen)
 │   │   ├── api/                  # GraphQL schema that extends the one ent generates
 │   │   ├── cmd/                  # server and migrategen entry points
-│   │   ├── data/                 # Novel seed data (markdown + JSON)
+│   │   ├── data/                 # Seed cover image and license texts
 │   │   ├── ent/                  # ent schema and the Atlas migrations
 │   │   ├── internal/             # Domain packages (novel, chapter, tag, license, narration, ...)
 │   │   └── tools/                # Own Go module: the devdata seeder

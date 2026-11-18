@@ -41,7 +41,6 @@ require (
 	go.uber.org/fx v1.24.0
 	golang.org/x/sync v0.24.0
 	google.golang.org/grpc v1.84.0
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -164,6 +163,7 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20261110000943-09e21b237f2c // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 tool (

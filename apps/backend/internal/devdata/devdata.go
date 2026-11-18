@@ -5,12 +5,9 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/google/uuid"
@@ -34,10 +31,10 @@ const (
 	logKeyChapters = "chapters"
 )
 
-// Options say where the example data is and who the seeded accounts are.
+// Options say which novels to seed and who the seeded accounts are.
 type Options struct {
-	DataPath string
-	Writers  []Writer
+	Novels  []Novel
+	Writers []Writer
 	// NovelWriterUserID is the account the example novels belong to; it must be one of Writers.
 	NovelWriterUserID string
 	Logger            *slog.Logger
@@ -45,15 +42,7 @@ type Options struct {
 
 // Run adds the demo data; running it again changes nothing.
 func Run(ctx context.Context, client *ent.Client, options Options) error {
-	directories, err := novelDirectories(options.DataPath)
-	if err != nil {
-		return err
-	}
-	novels := make([]NovelDetails, len(directories))
-	for index, directory := range directories {
-		novels[index] = directory.NovelDetails
-	}
-	tagIDs, err := addTags(ctx, client, UniqueTags(novels))
+	tagIDs, err := addTags(ctx, client, UniqueTags(options.Novels))
 	if err != nil {
 		return fmt.Errorf("adding tags: %w", err)
 	}
@@ -75,59 +64,21 @@ func Run(ctx context.Context, client *ent.Client, options Options) error {
 			options.NovelWriterUserID,
 		)
 	}
-	for _, directory := range directories {
+	for _, seed := range options.Novels {
 		if err := addNovel(
 			ctx,
 			client,
 			options.Logger,
-			directory,
+			seed,
 			owner,
 			licenseID,
 			tagIDs,
 		); err != nil {
-			return fmt.Errorf("adding the novel %q: %w", directory.Name, err)
+			return fmt.Errorf("adding the novel %q: %w", seed.Name, err)
 		}
 	}
 
 	return nil
-}
-
-type novelDirectory struct {
-	NovelDetails
-	dir string
-}
-
-func novelDirectories(dataPath string) ([]novelDirectory, error) {
-	entries, err := os.ReadDir(dataPath)
-	if err != nil {
-		return nil, err
-	}
-	var directories []novelDirectory
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-		dir := filepath.Join(dataPath, entry.Name())
-		raw, err := os.ReadFile( //nolint:gosec // devdata reads the data directory its operator mounted
-			filepath.Join(dir, "details.json"),
-		)
-		if errors.Is(err, os.ErrNotExist) {
-			continue
-		}
-		if err != nil {
-			return nil, err
-		}
-		var details NovelDetails
-		if err := json.Unmarshal(raw, &details); err != nil {
-			return nil, fmt.Errorf("%s/details.json: %w", entry.Name(), err)
-		}
-		directories = append(
-			directories,
-			novelDirectory{NovelDetails: details, dir: dir},
-		)
-	}
-
-	return directories, nil
 }
 
 func addTags(
@@ -198,17 +149,13 @@ func addNovel(
 	ctx context.Context,
 	client *ent.Client,
 	logger *slog.Logger,
-	directory novelDirectory,
+	seed Novel,
 	ownerID, defaultLicenseID uuid.UUID,
 	tagIDs map[string]uuid.UUID,
 ) error {
-	details := directory.NovelDetails
+	details := seed.NovelDetails
 	exists, err := client.Novel.Query().Where(novel.ID(details.ID)).Exist(ctx)
 	if err != nil || exists {
-		return err
-	}
-	chapters, err := LoadChapters(directory.dir)
-	if err != nil {
 		return err
 	}
 	var novelTags []uuid.UUID
@@ -227,7 +174,7 @@ func addNovel(
 		ctx,
 		tx,
 		details,
-		chapters,
+		seed.Chapters,
 		ownerID,
 		defaultLicenseID,
 		novelTags,
@@ -238,7 +185,7 @@ func addNovel(
 		ctx,
 		"added a novel",
 		slog.String(logKeyNovel, details.Name),
-		slog.Int(logKeyChapters, len(chapters)),
+		slog.Int(logKeyChapters, len(seed.Chapters)),
 	)
 
 	return tx.Commit()

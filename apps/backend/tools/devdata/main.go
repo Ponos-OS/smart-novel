@@ -12,6 +12,7 @@ import (
 
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/devdata"
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/database"
+	"github.com/Ponos-OS/smart-novel/apps/backend/tools/examplenovel"
 )
 
 var (
@@ -43,10 +44,6 @@ func run() error {
 	if novelWriter == "" {
 		return errNoWriterUserID
 	}
-	dataPath := os.Getenv("DATA_PATH")
-	if dataPath == "" {
-		dataPath = "/data"
-	}
 
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
@@ -68,7 +65,7 @@ func run() error {
 	}
 
 	return devdata.Run(ctx, db.Client, devdata.Options{
-		DataPath:          dataPath,
+		Novels:            []devdata.Novel{examplenovel.Novel()},
 		Writers:           writers,
 		NovelWriterUserID: novelWriter,
 		Logger:            slog.New(slog.NewTextHandler(os.Stdout, nil)),

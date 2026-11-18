@@ -2,7 +2,10 @@ module github.com/Ponos-OS/smart-novel/apps/backend/tools
 
 go 1.26.0
 
-require github.com/Ponos-OS/smart-novel/apps/backend v0.0.0
+require (
+	github.com/Ponos-OS/smart-novel/apps/backend v0.0.0
+	github.com/google/uuid v1.6.0
+)
 
 require (
 	ariga.io/atlas v0.36.2-0.20250730182955-2c6300d0a3e1 // indirect
@@ -21,7 +24,6 @@ require (
 	github.com/go-openapi/inflect v0.19.0 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/hcl/v2 v2.18.1 // indirect
