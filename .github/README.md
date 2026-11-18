@@ -40,6 +40,7 @@ smart-novel/
 │   │   ├── internal/             # Domain packages (novel, chapter, tag, license, narration, ...)
 │   │   └── tools/                # Own Go module: the devdata seeder
 │   ├── backend-e2e/              # Backend E2E tests (Vitest)
+│   ├── backend-stress/
 │   ├── frontend/                 # React SPA
 │   │   ├── public/
 │   │   └── src/
@@ -55,7 +56,6 @@ smart-novel/
 │   │       ├── test-utils/
 │   │       └── utils/            # Utilities (token-bucket, notifications)
 │   └── frontend-e2e/             # Frontend E2E tests (Cypress)
-├── docs/
 ├── infra/                        # Terraform modules and scripts for the local kind cluster (see infra/README.md)
 ├── scripts/                      # Repo maintenance scripts
 ├── tools/                        # Go tools (gensdl turns the limits of the GraphQL schema into frontend constants)
