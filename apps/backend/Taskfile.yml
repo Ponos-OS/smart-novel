@@ -91,6 +91,11 @@ tasks:
     cmds:
       - "{{.BIN}}/vitest run --config vitest.config.ts {{.CLI_ARGS}}"
 
+  test:stress:
+    desc: Load test the operations of the UI against the running, seeded e2e stack (k6 in Docker); a breached threshold fails
+    cmds:
+      - sh {{.ROOT_DIR}}/apps/backend-stress/run.sh {{.CLI_ARGS}}
+
   lint:e2e:
     dir: "{{.ROOT_DIR}}/apps/backend-e2e"
     cmds:

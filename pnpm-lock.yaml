@@ -399,6 +399,9 @@ importers:
       "@testing-library/react":
         specifier: 16.3.2
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      "@types/k6":
+        specifier: ^2.3.1
+        version: 2.3.1
       "@types/loglevel":
         specifier: ^1.5.4
         version: 1.5.4
@@ -4257,6 +4260,12 @@ packages:
     resolution:
       {
         integrity: sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==,
+      }
+
+  "@types/k6@2.3.1":
+    resolution:
+      {
+        integrity: sha512-3zbIAfQXvSDsA3ZaKC7+eczsvx1hGtL8o68iYEssOmTEmg0MuoCwZ45aAI3jDm0JtlhJZaQAszrie+M1xaqK7g==,
       }
 
   "@types/loglevel@1.5.4":
@@ -14434,6 +14443,8 @@ snapshots:
   "@types/json-schema@7.0.15": {}
 
   "@types/json5@0.0.29": {}
+
+  "@types/k6@2.3.1": {}
 
   "@types/loglevel@1.5.4": {}
 

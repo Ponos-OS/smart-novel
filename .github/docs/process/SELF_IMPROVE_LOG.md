@@ -24,3 +24,12 @@
 - A new `.env.example` key does not reach the user's existing `.env`; the `DEVDATA_*` keys were appended by hand.
 - A background run dies with the session when the context is compacted: after a resume, check `kind get clusters` and `docker ps` (`kind get clusters` listed nothing while the node container still held port 8080), run `stop-dev.sh`, and rerun.
 - No process change: each lesson is from this step only.
+
+## Load test, Step 5 (2026-11-18)
+
+- Same override: left uncommitted for review.
+- k6 is not installed on the host, so `run.sh` runs the pinned `grafana/k6` image with `--network host`; the Terraform outputs (bot key) reach it through a temporary mounted file, not `-e`. k6 reads `.ts` natively, and `open()` works only while the script loads (a first run died in `setup()` on it), so read files at module level.
+- Verified the ACs by hand against `start-dev.sh e2e` (6 novels of 5 chapters): green run; `p(95)<100` on browse failed the run with exit 99; a required variable added to `GetNovel` failed `setup()` with `operation GetNovel rejected: ...`; the database had no `Stress` novel left afterwards.
+- `pnpm add -D -w @types/k6` rewrote the whole lockfile (quote style); `pnpm exec prettier --write pnpm-lock.yaml` brought the diff back to 11 lines.
+- A `sleep` longer than a few seconds in the foreground is blocked; wait with a background `until` loop and note that its "completed" notice can be the launcher (`nohup ... &`), not the job.
+- No process change.
