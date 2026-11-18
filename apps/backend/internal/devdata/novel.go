@@ -29,7 +29,9 @@ type Chapter struct {
 // Novel is a novel to seed with its chapters.
 type Novel struct {
 	NovelDetails
-	Chapters []Chapter
+	// WriterUserID is the account that owns the novel; empty hands the novel to the next of Options.Writers in turn.
+	WriterUserID string
+	Chapters     []Chapter
 }
 
 // UniqueTags is every tag the novels use, lowercased, once, in order.

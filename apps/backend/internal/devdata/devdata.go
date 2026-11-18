@@ -35,9 +35,7 @@ const (
 type Options struct {
 	Novels  []Novel
 	Writers []Writer
-	// NovelWriterUserID is the account the example novels belong to; it must be one of Writers.
-	NovelWriterUserID string
-	Logger            *slog.Logger
+	Logger  *slog.Logger
 }
 
 // Run adds the demo data; running it again changes nothing.
@@ -56,15 +54,17 @@ func Run(ctx context.Context, client *ent.Client, options Options) error {
 	if err != nil {
 		return fmt.Errorf("adding writers: %w", err)
 	}
-	owner, ok := writerIDs[options.NovelWriterUserID]
-	if !ok {
-		return fmt.Errorf(
-			"%w: %s",
-			ErrNovelWriterMissing,
-			options.NovelWriterUserID,
-		)
-	}
+	unowned := 0
 	for _, seed := range options.Novels {
+		userID := seed.WriterUserID
+		if userID == "" {
+			userID = options.Writers[unowned%len(options.Writers)].UserID
+			unowned++
+		}
+		owner, ok := writerIDs[userID]
+		if !ok {
+			return fmt.Errorf("%w: %s", ErrNovelWriterMissing, userID)
+		}
 		if err := addNovel(
 			ctx,
 			client,

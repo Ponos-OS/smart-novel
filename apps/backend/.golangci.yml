@@ -145,6 +145,7 @@ linters:
             - golang.org/x/sync
             - github.com/robfig/cron
             - github.com/google/uuid
+            - github.com/brianvoe/gofakeit
             - github.com/jackc/pgx
             - github.com/lib/pq
             - ariga.io/atlas

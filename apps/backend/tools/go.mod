@@ -4,6 +4,7 @@ go 1.26.0
 
 require (
 	github.com/Ponos-OS/smart-novel/apps/backend v0.0.0
+	github.com/brianvoe/gofakeit/v7 v7.18.9
 	github.com/google/uuid v1.6.0
 )
 

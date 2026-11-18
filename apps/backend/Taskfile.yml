@@ -50,7 +50,7 @@ tasks:
   seed:
     desc: "Fill the database with demo data (default license, example novel, writers of SEEDED_WRITERS); development and e2e only"
     cmds:
-      - cd tools && go run ./devdata
+      - cd tools && go run ./devdata {{.CLI_ARGS}}
 
   serve:
     desc: Run with reload on change
