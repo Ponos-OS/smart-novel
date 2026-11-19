@@ -61,6 +61,13 @@ export function HomePage() {
   };
 
   const handlePageChange = (page: number) => {
+    if (page === currentPage + 1) {
+      handleNext();
+      return;
+    }
+    if (!pageCursors.has(page)) {
+      return;
+    }
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -86,10 +93,11 @@ export function HomePage() {
     );
   }
 
-  // Estimate total pages (since we don't have total count from backend)
-  const estimatedTotalPages = pageInfo?.hasNextPage
-    ? currentPage + 5
-    : currentPage;
+  // Only pages reached so far have a cursor; offer one more when there is a next page
+  const lastKnownPage = Math.max(...pageCursors.keys(), currentPage);
+  const reachablePages = pageInfo?.hasNextPage
+    ? Math.max(lastKnownPage, currentPage + 1)
+    : lastKnownPage;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -124,9 +132,9 @@ export function HomePage() {
             <div className="mt-8">
               <Pagination
                 currentPage={currentPage}
-                totalPages={estimatedTotalPages}
+                totalPages={reachablePages}
                 hasNextPage={pageInfo.hasNextPage}
-                hasPreviousPage={pageInfo.hasPreviousPage}
+                hasPreviousPage={currentPage > 1}
                 onPageChange={handlePageChange}
                 onNext={handleNext}
                 onPrevious={handlePrevious}

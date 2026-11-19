@@ -1,7 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
+import { ADMIN_NOVELS_KEY } from '../../features/admin-novels/use-admin-novels';
 import {
+  useContentStatsQuery,
   useCreateNovelMutation,
   useDefaultLicenseQuery,
   useGetNovelsQuery,
@@ -50,6 +52,12 @@ export function NovelCreatePage() {
             }),
             queryClient.invalidateQueries({
               queryKey: useSearchNovelsQuery.getKey(),
+            }),
+            queryClient.invalidateQueries({
+              queryKey: [ADMIN_NOVELS_KEY],
+            }),
+            queryClient.invalidateQueries({
+              queryKey: useContentStatsQuery.getKey(),
             }),
           ]);
           navigate(`/novel/${data.createNovel.id}`);

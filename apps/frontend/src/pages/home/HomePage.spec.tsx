@@ -177,4 +177,142 @@ describe('HomePage', () => {
       expect.anything(),
     );
   });
+
+  describe('pagination', () => {
+    const endOfSecondPage =
+      'eyJhIjoibm92ZWxzIiwiYiI6Mn0.c2lnbmF0dXJl';
+
+    const pages: Record<
+      string,
+      { cursor: string | null; next: boolean }
+    > = {
+      first: { cursor: endOfFirstPage, next: true },
+      second: { cursor: endOfSecondPage, next: true },
+      third: { cursor: null, next: false },
+    };
+
+    function stubThreePages() {
+      vi.mocked(useCanCreateNovel).mockReturnValue({
+        canCreate: false,
+        loading: false,
+      });
+      novelsQuery.mockImplementation(
+        ({ after }: { after: string | null }) => {
+          const page =
+            after === null
+              ? pages.first
+              : after === endOfFirstPage
+                ? pages.second
+                : pages.third;
+
+          return {
+            data: {
+              novels: {
+                edges: [{ cursor: 'c', node: novel }],
+                pageInfo: {
+                  hasNextPage: page.next,
+                  hasPreviousPage: false,
+                  endCursor: page.cursor,
+                },
+              },
+            },
+            isLoading: false,
+            error: null,
+          };
+        },
+      );
+    }
+
+    const pageButton = (page: number) =>
+      screen.queryByRole('button', { name: String(page) });
+
+    it('offers only the pages that can be reached', () => {
+      // Arrange
+      stubThreePages();
+
+      // Act
+      renderPage();
+
+      // Assert
+      expect(pageButton(1)).toBeTruthy();
+      expect(pageButton(2)).toBeTruthy();
+      expect(pageButton(3)).toBeNull();
+      expect(pageButton(6)).toBeNull();
+      expect(screen.queryByText('...')).toBeNull();
+    });
+
+    it('fetches the next page with the cursor the current one ended on when its number is clicked', () => {
+      // Arrange
+      stubThreePages();
+      renderPage();
+
+      // Act
+      fireEvent.click(pageButton(2)!);
+
+      // Assert
+      expect(novelsQuery).toHaveBeenLastCalledWith(
+        { first: 20, after: endOfFirstPage },
+        expect.anything(),
+      );
+    });
+
+    it('enables Previous after the first page and goes back to the first one', () => {
+      // Arrange
+      stubThreePages();
+      renderPage();
+      const previous = screen.getByRole('button', {
+        name: /previous/i,
+      });
+      expect(previous).toBeDisabled();
+
+      // Act
+      fireEvent.click(screen.getByRole('button', { name: /next/i }));
+
+      // Assert
+      expect(previous).toBeEnabled();
+
+      // Act
+      fireEvent.click(previous);
+
+      // Assert
+      expect(novelsQuery).toHaveBeenLastCalledWith(
+        { first: 20, after: null },
+        expect.anything(),
+      );
+    });
+
+    it('returns to a page already visited with the cursor it was reached by', () => {
+      // Arrange
+      stubThreePages();
+      renderPage();
+      fireEvent.click(screen.getByRole('button', { name: /next/i }));
+      fireEvent.click(screen.getByRole('button', { name: /next/i }));
+
+      // Act
+      fireEvent.click(pageButton(2)!);
+
+      // Assert
+      expect(novelsQuery).toHaveBeenLastCalledWith(
+        { first: 20, after: endOfFirstPage },
+        expect.anything(),
+      );
+    });
+
+    it('stops offering more pages on the last one', () => {
+      // Arrange
+      stubThreePages();
+      renderPage();
+
+      // Act
+      fireEvent.click(screen.getByRole('button', { name: /next/i }));
+      fireEvent.click(screen.getByRole('button', { name: /next/i }));
+
+      // Assert
+      expect(pageButton(3)).toBeTruthy();
+      expect(pageButton(4)).toBeNull();
+      expect(
+        screen.getByRole('button', { name: /next/i }),
+      ).toBeDisabled();
+    });
+  });
 });

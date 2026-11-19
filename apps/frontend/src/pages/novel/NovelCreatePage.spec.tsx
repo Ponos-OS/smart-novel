@@ -10,6 +10,12 @@ import {
 } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 
+import { ADMIN_NOVELS_KEY } from '../../features/admin-novels/use-admin-novels';
+import {
+  useContentStatsQuery,
+  useGetNovelsQuery,
+  useSearchNovelsQuery,
+} from '../../generated/graphql';
 import { useCanCreateNovel } from '../../hooks/useCanCreateNovel';
 import { showApiError } from '../../utils/notification';
 import { NovelCreatePage } from './NovelCreatePage';
@@ -64,12 +70,13 @@ vi.mock('../../utils/notification', () => ({
 }));
 
 function renderPage() {
+  const queryClient = new QueryClient();
   const router = createMemoryRouter(
     [
       {
         path: '/novels/new',
         element: (
-          <QueryClientProvider client={new QueryClient()}>
+          <QueryClientProvider client={queryClient}>
             <NovelCreatePage />
           </QueryClientProvider>
         ),
@@ -79,7 +86,9 @@ function renderPage() {
     { initialEntries: ['/novels/new'] },
   );
 
-  return render(<RouterProvider router={router} />);
+  render(<RouterProvider router={router} />);
+
+  return { queryClient };
 }
 
 function fillRequiredFields() {
@@ -146,6 +155,59 @@ describe('NovelCreatePage', () => {
       }),
     );
     expect(await screen.findByText('Novel page')).toBeTruthy();
+  });
+
+  it.each([
+    ['the novel list', useGetNovelsQuery.getKey()],
+    ['the search results', useSearchNovelsQuery.getKey()],
+    ['the admin novel list', [ADMIN_NOVELS_KEY]],
+    ['the content counts', useContentStatsQuery.getKey()],
+  ])(
+    'refreshes %s once the novel is created',
+    async (_name, queryKey) => {
+      // Arrange
+      createNovelMutate.mockImplementation((_variables, options) => {
+        options.onSuccess({
+          createNovel: { id: '78981754-46c4-4521-9216-b9b27dafeab2' },
+        });
+      });
+      const { queryClient } = renderPage();
+      const invalidateQueries = vi.spyOn(
+        queryClient,
+        'invalidateQueries',
+      );
+      fillRequiredFields();
+
+      // Act
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Create novel' }),
+      );
+
+      // Assert
+      await screen.findByText('Novel page');
+      expect(invalidateQueries).toHaveBeenCalledWith({ queryKey });
+    },
+  );
+
+  it('does not refresh any list when the mutation fails', () => {
+    // Arrange
+    createNovelMutate.mockImplementation((_variables, options) => {
+      options.onError(new Error('Network error'));
+    });
+    const { queryClient } = renderPage();
+    const invalidateQueries = vi.spyOn(
+      queryClient,
+      'invalidateQueries',
+    );
+    fillRequiredFields();
+
+    // Act
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Create novel' }),
+    );
+
+    // Assert
+    expect(invalidateQueries).not.toHaveBeenCalled();
   });
 
   it('preselects the default license and stores a license of the writer only after the text is edited', async () => {
