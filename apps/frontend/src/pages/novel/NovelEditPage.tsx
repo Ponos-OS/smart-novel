@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { ADMIN_NOVELS_KEY } from '../../features/admin-novels/use-admin-novels';
 import {
   NovelAction,
   useDeleteNovelMutation,
@@ -64,9 +65,20 @@ export function NovelEditPage() {
       },
       {
         onSuccess: async () => {
-          await queryClient.invalidateQueries({
-            queryKey: useGetNovelQuery.getKey({ id: novel.id }),
-          });
+          await Promise.all([
+            queryClient.invalidateQueries({
+              queryKey: useGetNovelQuery.getKey({ id: novel.id }),
+            }),
+            queryClient.invalidateQueries({
+              queryKey: useGetNovelsQuery.getKey(),
+            }),
+            queryClient.invalidateQueries({
+              queryKey: useSearchNovelsQuery.getKey(),
+            }),
+            queryClient.invalidateQueries({
+              queryKey: [ADMIN_NOVELS_KEY],
+            }),
+          ]);
           navigate(`/novel/${novel.id}`);
         },
         onError: () => showApiError(),

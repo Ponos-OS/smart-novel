@@ -14,6 +14,8 @@ import {
   LicenseSourceType,
   NovelAction,
   NovelState,
+  useGetNovelsQuery,
+  useSearchNovelsQuery,
 } from '../../generated/graphql';
 import { showApiError } from '../../utils/notification';
 import { NovelEditPage } from './NovelEditPage';
@@ -91,13 +93,13 @@ function novel(allowedActions: NovelAction[]) {
   };
 }
 
-function renderPage() {
+function renderPage(queryClient = new QueryClient()) {
   const router = createMemoryRouter(
     [
       {
         path: '/novels/:novelId/edit',
         element: (
-          <QueryClientProvider client={new QueryClient()}>
+          <QueryClientProvider client={queryClient}>
             <NovelEditPage />
           </QueryClientProvider>
         ),
@@ -180,6 +182,31 @@ describe('NovelEditPage', () => {
       }),
     );
     expect(await screen.findByText('Novel page')).toBeTruthy();
+  });
+
+  it('invalidates the cached novel lists after saving', async () => {
+    // Arrange
+    const queryClient = new QueryClient();
+    const invalidateQueries = vi.spyOn(
+      queryClient,
+      'invalidateQueries',
+    );
+    updateNovelMutate.mockImplementation((_variables, options) => {
+      options.onSuccess();
+    });
+    renderPage(queryClient);
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('Novel page');
+
+    // Assert
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: useGetNovelsQuery.getKey(),
+    });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: useSearchNovelsQuery.getKey(),
+    });
   });
 
   it('shows an API error and keeps the edited values when the mutation fails', () => {
