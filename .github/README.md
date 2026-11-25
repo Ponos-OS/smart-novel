@@ -1,4 +1,8 @@
-<h1><img src="../apps/frontend/public/logo.png" width="40" height="40" alt="smart-novel logo" />Smart Novel</h1>
+<p align="center">
+  <img src="../apps/frontend/public/logo.png" width="128" height="128" alt="Smart Novel logo" />
+</p>
+
+<h1 align="center">Smart Novel</h1>
 
 A modern monorepo project for managing and reading novels with AI-powered word explanations. Built with Go (ent, gqlgen), GraphQL, React and Task.
 
