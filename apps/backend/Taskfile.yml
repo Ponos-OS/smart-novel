@@ -62,6 +62,38 @@ tasks:
     cmds:
       - go test -count=1 ./... {{.CLI_ARGS}}
       - cd tools && go test -count=1 ./... {{.CLI_ARGS}}
+  test:race:
+    desc: Run tests with the race detector (detecting stuff like concurrent appends to a shared slice without a mutex)
+    cmd: go test -race ./...
+  test:detect:leaks:
+    desc: Run each test on its own to find the one that leaks a goroutine
+    silent: true
+    cmd: |
+      tmp=$(mktemp -d)
+      trap 'rm -rf "$tmp"' EXIT
+      status=0
+      dirs=$(go list -f '{{"{{.Dir}}"}}' ./...)
+      for dir in $dirs; do
+        rm -f "$tmp/pkg.test"
+        if ! out=$(go test -c -o "$tmp/pkg.test" "$dir" 2>&1); then
+          echo "$out"
+          status=1
+          continue
+        fi
+        [ -f "$tmp/pkg.test" ] || continue
+        for name in $(cd "$dir" && "$tmp/pkg.test" -test.list . | grep -E '^(Test|Example|Fuzz)'); do
+          if ! (cd "$dir" && "$tmp/pkg.test" -test.run "^$name\$" -test.timeout=1m >/dev/null 2>&1); then
+            echo "FAIL ${dir#"$PWD"/} $name"
+            status=1
+          fi
+        done
+      done
+      exit $status
+  test:e2e:
+    desc: Start the e2e stack, run the specs, tear the stack down
+    dir: "{{.ROOT_DIR}}/apps/backend-e2e"
+    cmds:
+      - "{{.BIN}}/vitest run --config vitest.config.ts {{.CLI_ARGS}}"
 
   migrate:diff:
     desc: "Write the next versioned migration for the ent schema: task backend:migrate:diff -- <name>"
@@ -84,12 +116,6 @@ tasks:
   format:
     cmds:
       - go run {{.GOLANGCI_LINT}} fmt ./...
-
-  test:e2e:
-    desc: Start the e2e stack, run the specs, tear the stack down
-    dir: "{{.ROOT_DIR}}/apps/backend-e2e"
-    cmds:
-      - "{{.BIN}}/vitest run --config vitest.config.ts {{.CLI_ARGS}}"
 
   test:stress:
     desc: Start the e2e stack, load test the operations of the UI with k6 (Docker), tear the stack down; a breached threshold fails

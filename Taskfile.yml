@@ -43,6 +43,8 @@ tasks:
     desc: Unit tests of every project
     cmds:
       - task: backend:test
+      - task: backend:test:race
+      - task: backend:test:detect:leaks
       - task: frontend:test
 
   format:
