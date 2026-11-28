@@ -15,12 +15,14 @@ import (
 // forceResolver is gqlgen's own `@goField(forceResolver: true)` directive: gqlgen calls a resolver we write (internal/graph) for the field, instead of reading
 // the struct field or calling ent's generated method. That is the only place to fill in defaults, sanitize or compute at the boundary for a generated field.
 // The argument name is gqlgen's, not ours: it must stay `forceResolver`.
-var forceResolver = entgql.Directives(
-	entgql.NewDirective("goField", &ast.Argument{
-		Name:  "forceResolver",
-		Value: &ast.Value{Raw: "true", Kind: ast.BooleanValue},
-	}),
-)
+func forceResolver() schema.Annotation {
+	return entgql.Directives(
+		entgql.NewDirective("goField", &ast.Argument{
+			Name:  "forceResolver",
+			Value: &ast.Value{Raw: "true", Kind: ast.BooleanValue},
+		}),
+	)
+}
 
 type Novel struct {
 	ent.Schema
@@ -47,7 +49,7 @@ func (Novel) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 		field.Time("first_chapter_created_at").
-			SchemaType(timestamptz).
+			SchemaType(timestamptz()).
 			Optional().
 			Nillable().
 			Comment("The created_at of the earliest chapter, kept by the chapter service.").
@@ -69,11 +71,11 @@ func (Novel) Edges() []ent.Edge {
 			Field("license_id").
 			Unique().
 			Required().
-			Annotations(forceResolver),
+			Annotations(forceResolver()),
 		// Resolved by us (graph/ent.resolvers.go) to default the order to the chapter number (ent's is the ID) and to bound the page.
 		// The price is that ent's reuse of chapters it preloaded for a list of novels is not used, so a list of novels that each select `chapters` runs one query per novel; calling ent's method from the resolver would not fix it, since ent preloads with the arguments the client sent, before the defaults exist.
 		edge.To("chapters", Chapter.Type).
-			Annotations(entsql.OnDelete(entsql.Cascade), entgql.RelayConnection(), forceResolver),
+			Annotations(entsql.OnDelete(entsql.Cascade), entgql.RelayConnection(), forceResolver()),
 		edge.To("tags", Tag.Type).
 			Through("novel_tags", NovelTag.Type),
 		edge.To("chapter_user_states", ChapterUserState.Type).

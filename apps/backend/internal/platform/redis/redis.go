@@ -135,15 +135,17 @@ func (c *Client) TryLock(
 }
 
 // unlockScript deletes the key only while it still holds the token of the caller, so a lock that expired and was taken by somebody else is not released by the first holder.
-var unlockScript = goredis.NewScript(`
+func unlockScript() *goredis.Script {
+	return goredis.NewScript(`
 if redis.call("GET", KEYS[1]) == ARGV[1] then
 	return redis.call("DEL", KEYS[1])
 end
 return 0`)
+}
 
 // Unlock releases the lock of token; one that is not the caller's, or has expired, is left alone.
 func (c *Client) Unlock(ctx context.Context, key, token string) error {
-	return unlockScript.Run(ctx, c.client, []string{key}, token).Err()
+	return unlockScript().Run(ctx, c.client, []string{key}, token).Err()
 }
 
 // SetIfAbsent writes a key unless it is there, and reports whether it did.
@@ -156,13 +158,15 @@ func (c *Client) SetIfAbsent(
 }
 
 // raiseScript sets the key to a number only when it is greater than what the key holds, a missing key counting as 0.
-var raiseScript = goredis.NewScript(`
+func raiseScript() *goredis.Script {
+	return goredis.NewScript(`
 local current = tonumber(redis.call("GET", KEYS[1]) or "0")
 if tonumber(ARGV[1]) <= current then
 	return 0
 end
 redis.call("SET", KEYS[1], ARGV[1], "PX", ARGV[2])
 return 1`)
+}
 
 // RaiseTo keeps the greatest number a key was given, for ttl after the last raise, and reports whether value is greater than what was there.
 func (c *Client) RaiseTo(
@@ -171,26 +175,28 @@ func (c *Client) RaiseTo(
 	value int,
 	ttl time.Duration,
 ) (bool, error) {
-	raised, err := raiseScript.Run(ctx, c.client, []string{key}, value, ttl.Milliseconds()).
+	raised, err := raiseScript().Run(ctx, c.client, []string{key}, value, ttl.Milliseconds()).
 		Int()
 
 	return raised == 1, err
 }
 
 // swapScript replaces the value of the key while it still holds the old one, and keeps the expiry the key had.
-var swapScript = goredis.NewScript(`
+func swapScript() *goredis.Script {
+	return goredis.NewScript(`
 if redis.call("GET", KEYS[1]) == ARGV[1] then
 	redis.call("SET", KEYS[1], ARGV[2], "KEEPTTL")
 	return 1
 end
 return 0`)
+}
 
 // Swap replaces the value of a key that still holds old, and reports whether it did; the expiry is kept.
 func (c *Client) Swap(
 	ctx context.Context,
 	key, oldValue, newValue string,
 ) (bool, error) {
-	swapped, err := swapScript.Run(ctx, c.client, []string{key}, oldValue, newValue).
+	swapped, err := swapScript().Run(ctx, c.client, []string{key}, oldValue, newValue).
 		Int()
 
 	return swapped == 1, err

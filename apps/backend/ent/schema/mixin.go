@@ -14,7 +14,9 @@ import (
 )
 
 // timestamptz makes the PostgreSQL type explicit; it is also ent's default for time fields.
-var timestamptz = map[string]string{dialect.Postgres: "timestamptz"}
+func timestamptz() map[string]string {
+	return map[string]string{dialect.Postgres: "timestamptz"}
+}
 
 // uuidID is the primary key every entity with a surrogate key shares.
 type uuidID struct{ mixin.Schema }
@@ -34,12 +36,12 @@ type timestamps struct {
 func (t timestamps) Fields() []ent.Field {
 	return []ent.Field{
 		field.Time("created_at").
-			SchemaType(timestamptz).
+			SchemaType(timestamptz()).
 			Default(time.Now).
 			Immutable().
 			Annotations(t.annotations("CREATED_AT")...),
 		field.Time("updated_at").
-			SchemaType(timestamptz).
+			SchemaType(timestamptz()).
 			Default(time.Now).
 			UpdateDefault(time.Now).
 			Annotations(t.annotations("UPDATED_AT")...),

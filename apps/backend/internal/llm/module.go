@@ -10,18 +10,20 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/redis"
 )
 
-var Module = fx.Module("llm", fx.Provide(
-	func(
-		cfg config.Config,
-		beatriceClient genqlient.Client,
-		cache *redis.Client,
-		logger *slog.Logger,
-	) *Service {
-		return NewService(
-			beatriceClient,
-			cache,
-			cfg.Beatrice.ExplanationTTL,
-			logger,
-		)
-	},
-))
+func Module() fx.Option {
+	return fx.Module("llm", fx.Provide(
+		func(
+			cfg config.Config,
+			beatriceClient genqlient.Client,
+			cache *redis.Client,
+			logger *slog.Logger,
+		) *Service {
+			return NewService(
+				beatriceClient,
+				cache,
+				cfg.Beatrice.ExplanationTTL,
+				logger,
+			)
+		},
+	))
+}

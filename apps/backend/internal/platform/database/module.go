@@ -10,13 +10,15 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/config"
 )
 
-var Module = fx.Module(
-	"database",
-	fx.Provide(
-		newDatabase,
-		func(db *Database) *ent.Client { return db.Client },
-	),
-)
+func Module() fx.Option {
+	return fx.Module(
+		"database",
+		fx.Provide(
+			newDatabase,
+			func(db *Database) *ent.Client { return db.Client },
+		),
+	)
+}
 
 func newDatabase(lc fx.Lifecycle, cfg config.Config) (*Database, error) {
 	db, err := Open(context.Background(), cfg.Database.URL)

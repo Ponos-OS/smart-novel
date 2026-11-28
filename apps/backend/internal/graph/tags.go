@@ -46,11 +46,14 @@ const (
 	logKeyError  = "error"
 )
 
-var (
-	tagsPage     = pagination.Size{Default: defaultPage, Max: maxPage}
-	novelsPage   = pagination.Size{Default: defaultPage, Max: maxPage}
-	chaptersSize = pagination.Size{Default: chaptersPage, Max: maxPage}
-	statsSize    = pagination.Size{Default: statsDefault, Max: maxPage}
-	writersPage  = pagination.Size{Default: defaultPage, Max: maxPage}
-	licensesPage = pagination.Size{Default: defaultPage, Max: maxPage}
-)
+func listSize() pagination.Size {
+	return pagination.Size{Default: defaultPage, Max: maxPage}
+}
+
+func chaptersSize() pagination.Size {
+	return pagination.Size{Default: chaptersPage, Max: maxPage}
+}
+
+func statsSize() pagination.Size {
+	return pagination.Size{Default: statsDefault, Max: maxPage}
+}

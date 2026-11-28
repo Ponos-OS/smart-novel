@@ -40,12 +40,12 @@ func (Chapter) Fields() []ent.Field {
 		field.Int("chapter_number").
 			Annotations(entgql.OrderField("CHAPTER_NUMBER")),
 		field.Time("created_at").
-			SchemaType(timestamptz).
+			SchemaType(timestamptz()).
 			Default(time.Now).
 			Immutable().
 			Annotations(entsql.DefaultExpr("CURRENT_TIMESTAMP"), entgql.OrderField("CREATED_AT")),
 		field.Time("updated_at").
-			SchemaType(timestamptz).
+			SchemaType(timestamptz()).
 			Default(time.Now).
 			UpdateDefault(time.Now).
 			Annotations(entsql.DefaultExpr("CURRENT_TIMESTAMP"), entgql.OrderField("UPDATED_AT")),

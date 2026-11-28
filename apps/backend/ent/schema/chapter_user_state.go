@@ -28,7 +28,7 @@ func (ChapterUserState) Fields() []ent.Field {
 		field.UUID("novel_id", uuid.UUID{}),
 		field.UUID("chapter_id", uuid.UUID{}),
 		field.Time("first_read_at").
-			SchemaType(timestamptz).
+			SchemaType(timestamptz()).
 			Default(time.Now).
 			Immutable().
 			Annotations(entsql.DefaultExpr("CURRENT_TIMESTAMP")),

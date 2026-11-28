@@ -8,7 +8,9 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/validation"
 )
 
-var tagsPage = pagination.Size{Default: 20, Max: 100}
+func tagsPage() pagination.Size {
+	return pagination.Size{Default: 20, Max: 100}
+}
 
 func TestBound(t *testing.T) {
 	cases := []struct {
@@ -25,7 +27,7 @@ func TestBound(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			first, last, err := pagination.Bound(c.first, c.last, tagsPage)
+			first, last, err := pagination.Bound(c.first, c.last, tagsPage())
 			if err != nil {
 				t.Fatalf("err = %v", err)
 			}
@@ -55,7 +57,7 @@ func TestBoundRefusesAnEmptyOrOversizedPage(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			_, _, err := pagination.Bound(c.first, c.last, tagsPage)
+			_, _, err := pagination.Bound(c.first, c.last, tagsPage())
 
 			if _, ok := errors.AsType[*validation.Error](err); !ok {
 				t.Errorf("err = %v, want a validation error", err)

@@ -30,7 +30,7 @@ func (NovelTag) Fields() []ent.Field {
 		field.UUID("novel_id", uuid.UUID{}),
 		field.UUID("tag_id", uuid.UUID{}),
 		field.Time("created_at").
-			SchemaType(timestamptz).
+			SchemaType(timestamptz()).
 			Default(time.Now).
 			Immutable().
 			Annotations(entsql.DefaultExpr("CURRENT_TIMESTAMP")).

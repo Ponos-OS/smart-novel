@@ -6,6 +6,8 @@ import (
 	"go.uber.org/fx"
 )
 
-var Module = fx.Module("config", fx.Provide(func() (Config, error) {
-	return Load(os.LookupEnv)
-}))
+func Module() fx.Option {
+	return fx.Module("config", fx.Provide(func() (Config, error) {
+		return Load(os.LookupEnv)
+	}))
+}

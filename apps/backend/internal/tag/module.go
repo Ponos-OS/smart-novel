@@ -7,8 +7,10 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/database"
 )
 
-var Module = fx.Module("tag", fx.Provide(
-	func(client *ent.Client, db *database.Database) *Service {
-		return NewService(client, db)
-	},
-))
+func Module() fx.Option {
+	return fx.Module("tag", fx.Provide(
+		func(client *ent.Client, db *database.Database) *Service {
+			return NewService(client, db)
+		},
+	))
+}

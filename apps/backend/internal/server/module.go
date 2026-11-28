@@ -30,11 +30,13 @@ func AsExtension(constructor any) any {
 	)
 }
 
-var Module = fx.Module(
-	"server",
-	fx.Provide(newHandler),
-	fx.Invoke(listen),
-)
+func Module() fx.Option {
+	return fx.Module(
+		"server",
+		fx.Provide(newHandler),
+		fx.Invoke(listen),
+	)
+}
 
 type handlerParams struct {
 	fx.In

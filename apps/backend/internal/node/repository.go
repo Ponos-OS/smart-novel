@@ -35,8 +35,8 @@ func (r *repository) tablesOf(
 	for index, id := range ids {
 		texts[index] = id.String()
 	}
-	selects := make([]string, 0, len(nodeTables))
-	for _, table := range nodeTables {
+	selects := make([]string, 0, len(nodeTables()))
+	for _, table := range nodeTables() {
 		selects = append(
 			selects,
 			fmt.Sprintf(
@@ -70,13 +70,15 @@ func (r *repository) tablesOf(
 }
 
 // nodeTables are the tables of the entities that implement Node.
-var nodeTables = []string{
-	chapter.Table,
-	license.Table,
-	novel.Table,
-	statssnapshot.Table,
-	tag.Table,
-	writer.Table,
+func nodeTables() []string {
+	return []string{
+		chapter.Table,
+		license.Table,
+		novel.Table,
+		statssnapshot.Table,
+		tag.Table,
+		writer.Table,
+	}
 }
 
 // load returns the entities of the IDs, by ID, with every column. The ent loader of nodes selects only the columns the GraphQL query names, and

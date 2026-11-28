@@ -29,10 +29,12 @@ const (
 )
 
 // coverExtensions maps the allowed content types to the extension their key ends with.
-var coverExtensions = map[string]string{
-	"image/jpeg": "jpg",
-	"image/png":  "png",
-	"image/webp": "webp",
+func coverExtensions() map[string]string {
+	return map[string]string{
+		"image/jpeg": "jpg",
+		"image/png":  "png",
+		"image/webp": "webp",
+	}
 }
 
 // CreateCoverUpload signs the upload of a cover. The key is ours, never the client's, so an upload can only land under this novel's prefix.
@@ -53,7 +55,7 @@ func (s *Service) CreateCoverUpload(
 	); err != nil {
 		return model.NovelCoverUpload{}, err
 	}
-	extension, ok := coverExtensions[contentType]
+	extension, ok := coverExtensions()[contentType]
 	if !ok {
 		return model.NovelCoverUpload{}, apperr.BadRequest(
 			"A cover must be one of: " + strings.Join(
@@ -156,7 +158,7 @@ func (s *Service) checkUploadedCover(
 	if !found {
 		return apperr.BadRequest("Nothing was uploaded to this key")
 	}
-	if _, allowed := coverExtensions[object.ContentType]; !allowed ||
+	if _, allowed := coverExtensions()[object.ContentType]; !allowed ||
 		object.ContentLength < 1 ||
 		object.ContentLength > CoverMaxBytes {
 		return apperr.BadRequest(
@@ -204,8 +206,8 @@ func isCoverKeyOf(novelID uuid.UUID, key string) bool {
 }
 
 func coverExtensionList() []string {
-	extensions := make([]string, 0, len(coverExtensions))
-	for _, extension := range coverExtensions {
+	extensions := make([]string, 0, len(coverExtensions()))
+	for _, extension := range coverExtensions() {
 		extensions = append(extensions, extension)
 	}
 
@@ -213,8 +215,8 @@ func coverExtensionList() []string {
 }
 
 func allowedCoverTypes() []string {
-	types := make([]string, 0, len(coverExtensions))
-	for contentType := range coverExtensions {
+	types := make([]string, 0, len(coverExtensions()))
+	for contentType := range coverExtensions() {
 		types = append(types, contentType)
 	}
 	slices.Sort(types)

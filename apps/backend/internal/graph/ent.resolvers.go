@@ -25,7 +25,7 @@ func (r *novelResolver) License(ctx context.Context, obj *ent.Novel) (*ent.Licen
 
 // Chapters is the resolver for the chapters field.
 func (r *novelResolver) Chapters(ctx context.Context, obj *ent.Novel, after *entgql.Cursor[uuid.UUID], first *int, before *entgql.Cursor[uuid.UUID], last *int, orderBy *ent.ChapterOrder, where *ent.ChapterWhereInput) (*ent.ChapterConnection, error) {
-	first, last, err := pagination.Bound(first, last, chaptersSize)
+	first, last, err := pagination.Bound(first, last, chaptersSize())
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (r *queryResolver) Nodes(ctx context.Context, ids []uuid.UUID) ([]ent.Noder
 
 // StatsSnapshots is the resolver for the statsSnapshots field.
 func (r *queryResolver) StatsSnapshots(ctx context.Context, after *entgql.Cursor[uuid.UUID], first *int, before *entgql.Cursor[uuid.UUID], last *int, orderBy *ent.StatsSnapshotOrder, where *ent.StatsSnapshotWhereInput) (*ent.StatsSnapshotConnection, error) {
-	first, last, err := pagination.Bound(first, last, statsSize)
+	first, last, err := pagination.Bound(first, last, statsSize())
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (r *queryResolver) StatsSnapshots(ctx context.Context, after *entgql.Cursor
 
 // Tags is the resolver for the tags field.
 func (r *queryResolver) Tags(ctx context.Context, after *entgql.Cursor[uuid.UUID], first *int, before *entgql.Cursor[uuid.UUID], last *int, orderBy *ent.TagOrder, where *ent.TagWhereInput) (*ent.TagConnection, error) {
-	first, last, err := pagination.Bound(first, last, tagsPage)
+	first, last, err := pagination.Bound(first, last, listSize())
 	if err != nil {
 		return nil, err
 	}

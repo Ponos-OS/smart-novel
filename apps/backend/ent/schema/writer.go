@@ -50,7 +50,7 @@ func (Writer) Fields() []ent.Field {
 			Annotations(entsql.Default("[]"), entgql.Skip(entgql.SkipAll)),
 		field.Time("created_at").
 			Comment("When the current request was filed; a rejected user who asks again will be appended in the applications list and this field will still point to the first time user initiated the request.").
-			SchemaType(timestamptz).
+			SchemaType(timestamptz()).
 			Default(time.Now).
 			Annotations(entsql.DefaultExpr("CURRENT_TIMESTAMP"), entgql.OrderField("CREATED_AT")),
 	}

@@ -43,7 +43,7 @@ task dev:start
 
 ## Dependency Injection (Fx)
 
-The backend is wired with [Fx](https://github.com/uber-go/fx) in `apps/backend/cmd/server/main.go`; there is no global state to reach for. Each package exposes `var Module = fx.Module(...)` with its constructors (an adapter when a constructor takes an interface or a config value). Whatever runs for the life of the process (a listener, a loop) is started and stopped in a lifecycle hook (`background.Keep` for a loop), never with a bare `go` in a constructor. An endpoint other services call is contributed with `route.Provide` and a GraphQL extension with `server.AsExtension`, so the server does not import its contributors. `TestOptionsWireEveryDependency` fails when a dependency is missing.
+The backend is wired with [Fx](https://github.com/uber-go/fx) in `apps/backend/cmd/server/main.go`; there is no global state to reach for. Each package exposes `func Module() fx.Option`, returning `fx.Module(...)` with its constructors (an adapter when a constructor takes an interface or a config value). Whatever runs for the life of the process (a listener, a loop) is started and stopped in a lifecycle hook (`background.Keep` for a loop), never with a bare `go` in a constructor. An endpoint other services call is contributed with `route.Provide` and a GraphQL extension with `server.AsExtension`, so the server does not import its contributors. `TestOptionsWireEveryDependency` fails when a dependency is missing.
 
 ## Database Migration Guide (ent and Atlas)
 

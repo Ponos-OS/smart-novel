@@ -59,7 +59,7 @@ func (r *queryResolver) MyWriter(ctx context.Context) (*ent.Writer, error) {
 
 // Writers is the resolver for the writers field.
 func (r *queryResolver) Writers(ctx context.Context, after *entgql.Cursor[uuid.UUID], first *int, before *entgql.Cursor[uuid.UUID], last *int, orderBy *ent.WriterOrder, where *ent.WriterWhereInput, search *string) (*ent.WriterConnection, error) {
-	first, last, err := pagination.Bound(first, last, writersPage)
+	first, last, err := pagination.Bound(first, last, listSize())
 	if err != nil {
 		return nil, err
 	}

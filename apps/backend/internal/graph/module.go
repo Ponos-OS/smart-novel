@@ -21,19 +21,21 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/writer"
 )
 
-var Module = fx.Module(
-	"graph",
-	fx.Provide(
-		newResolver,
-		func(resolver *Resolver) graphql.ExecutableSchema {
-			return NewExecutableSchema(Config{
-				Resolvers:  resolver,
-				Directives: Directives(),
-			})
-		},
-		server.AsExtension(NewLoaderExtension),
-	),
-)
+func Module() fx.Option {
+	return fx.Module(
+		"graph",
+		fx.Provide(
+			newResolver,
+			func(resolver *Resolver) graphql.ExecutableSchema {
+				return NewExecutableSchema(Config{
+					Resolvers:  resolver,
+					Directives: Directives(),
+				})
+			},
+			server.AsExtension(NewLoaderExtension),
+		),
+	)
+}
 
 type resolverParams struct {
 	fx.In

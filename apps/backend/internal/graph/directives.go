@@ -53,7 +53,7 @@ func Directives() DirectiveRoot {
 				},
 			)
 		},
-		Pattern: pattern,
+		Pattern: (&patternDirective{}).run,
 		MaxSize: maxSize,
 	}
 }
@@ -86,17 +86,19 @@ func isString(
 	)
 }
 
-// patterns holds the expressions already compiled, since a directive runs on every request.
-var patterns sync.Map
+// patternDirective keeps the expressions already compiled, since a directive runs on every request.
+type patternDirective struct {
+	compiled sync.Map
+}
 
-func pattern(
+func (d *patternDirective) run(
 	ctx context.Context,
 	_ any,
 	next graphql.Resolver,
 	regex string,
 	message *string,
 ) (any, error) {
-	compiled, err := compiledPattern(regex)
+	compiled, err := d.compile(regex)
 	if err != nil {
 		return nil, err
 	}
@@ -113,8 +115,8 @@ func pattern(
 	)
 }
 
-func compiledPattern(regex string) (*regexp.Regexp, error) {
-	if cached, found := patterns.Load(regex); found {
+func (d *patternDirective) compile(regex string) (*regexp.Regexp, error) {
+	if cached, found := d.compiled.Load(regex); found {
 		if compiled, ok := cached.(*regexp.Regexp); ok {
 			return compiled, nil
 		}
@@ -127,7 +129,7 @@ func compiledPattern(regex string) (*regexp.Regexp, error) {
 			err,
 		)
 	}
-	patterns.Store(regex, compiled)
+	d.compiled.Store(regex, compiled)
 
 	return compiled, nil
 }

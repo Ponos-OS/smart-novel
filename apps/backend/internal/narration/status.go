@@ -18,18 +18,21 @@ const (
 	progressKeepFor = 2 * lockTTL
 )
 
-var transientStatuses = map[string]bool{
-	"queued":     true,
-	"generating": true,
-	"uploading":  true,
-}
-
 func isTerminal(status string) bool {
 	return status == statusCompleted || status == statusFailed
 }
 
 func isKnown(status string) bool {
-	return isTerminal(status) || transientStatuses[status]
+	return isTerminal(status) || isTransient(status)
+}
+
+func isTransient(status string) bool {
+	switch status {
+	case "queued", "generating", "uploading":
+		return true
+	default:
+		return false
+	}
 }
 
 func progressKey(jobID string) string {

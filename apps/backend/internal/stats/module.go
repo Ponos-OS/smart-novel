@@ -12,18 +12,20 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/database"
 )
 
-var Module = fx.Module(
-	"stats",
-	fx.Provide(func(
-		db *database.Database,
-		client *ent.Client,
-		logger *slog.Logger,
-	) *Service {
-		return NewService(db, client, logger)
-	}),
-	fx.Invoke(func(lc fx.Lifecycle, cfg config.Config, service *Service) {
-		background.Keep(lc, func(ctx context.Context) {
-			service.KeepSnapshotted(ctx, cfg.Stats.SnapshotSchedule)
-		})
-	}),
-)
+func Module() fx.Option {
+	return fx.Module(
+		"stats",
+		fx.Provide(func(
+			db *database.Database,
+			client *ent.Client,
+			logger *slog.Logger,
+		) *Service {
+			return NewService(db, client, logger)
+		}),
+		fx.Invoke(func(lc fx.Lifecycle, cfg config.Config, service *Service) {
+			background.Keep(lc, func(ctx context.Context) {
+				service.KeepSnapshotted(ctx, cfg.Stats.SnapshotSchedule)
+			})
+		}),
+	)
+}

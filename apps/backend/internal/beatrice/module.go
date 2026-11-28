@@ -12,7 +12,9 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/config"
 )
 
-var Module = fx.Module("beatrice", fx.Provide(newClient))
+func Module() fx.Option {
+	return fx.Module("beatrice", fx.Provide(newClient))
+}
 
 func newClient(
 	cfg config.Config,

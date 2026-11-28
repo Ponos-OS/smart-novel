@@ -12,22 +12,24 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/platform/objectstorage"
 )
 
-var Module = fx.Module("novel", fx.Provide(
-	func(
-		client *ent.Client,
-		db *database.Database,
-		licenseService *license.Service,
-		storage *objectstorage.Client,
-		narrationService *narration.Service,
-		logger *slog.Logger,
-	) *Service {
-		return NewService(
-			client,
-			db,
-			licenseService,
-			storage,
-			narrationService,
-			logger,
-		)
-	},
-))
+func Module() fx.Option {
+	return fx.Module("novel", fx.Provide(
+		func(
+			client *ent.Client,
+			db *database.Database,
+			licenseService *license.Service,
+			storage *objectstorage.Client,
+			narrationService *narration.Service,
+			logger *slog.Logger,
+		) *Service {
+			return NewService(
+				client,
+				db,
+				licenseService,
+				storage,
+				narrationService,
+				logger,
+			)
+		},
+	))
+}

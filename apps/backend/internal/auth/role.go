@@ -11,11 +11,10 @@ const (
 	RoleUser   Role = "user"
 )
 
-// ascending lists the roles from the least to the most privileged; a higher one has every privilege of the lower ones.
-var ascending = []Role{RoleUser, RoleWriter, RoleAdmin}
-
-// rank is 0 for a name that is not a role.
+// rank is 0 for a name that is not a role. A higher role has every privilege of the lower ones.
 func rank(role Role) int {
+	ascending := []Role{RoleUser, RoleWriter, RoleAdmin}
+
 	return slices.Index(ascending, role) + 1
 }
 

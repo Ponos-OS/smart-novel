@@ -15,13 +15,15 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/ttscallbacks"
 )
 
-var Module = fx.Module(
-	"narration",
-	fx.Provide(newService, route.Provide(statusRoute)),
-	fx.Invoke(func(lc fx.Lifecycle, service *Service) {
-		background.Keep(lc, service.KeepListening)
-	}),
-)
+func Module() fx.Option {
+	return fx.Module(
+		"narration",
+		fx.Provide(newService, route.Provide(statusRoute)),
+		fx.Invoke(func(lc fx.Lifecycle, service *Service) {
+			background.Keep(lc, service.KeepListening)
+		}),
+	)
+}
 
 func newService(
 	cfg config.Config,

@@ -25,7 +25,7 @@ func (PlatformTermsAcceptance) Fields() []ent.Field {
 		field.String("user_id"),
 		field.Int("terms_version"),
 		field.Time("accepted_at").
-			SchemaType(timestamptz).
+			SchemaType(timestamptz()).
 			Default(time.Now).
 			Immutable().
 			Annotations(entsql.DefaultExpr("CURRENT_TIMESTAMP")),

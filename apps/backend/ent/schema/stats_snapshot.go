@@ -31,7 +31,7 @@ func (StatsSnapshot) Fields() []ent.Field {
 		field.Int("novel_count"),
 		field.Int("chapter_count"),
 		field.Time("created_at").
-			SchemaType(timestamptz).
+			SchemaType(timestamptz()).
 			Default(time.Now).
 			Immutable().
 			Annotations(entsql.DefaultExpr("CURRENT_TIMESTAMP"), entgql.Skip(entgql.SkipAll)),
@@ -46,14 +46,16 @@ func (StatsSnapshot) Indexes() []ent.Index {
 	}
 }
 
-var adminOnly = entgql.NewDirective("hasRole", &ast.Argument{
-	Name:  "role",
-	Value: &ast.Value{Raw: "admin", Kind: ast.EnumValue},
-})
+func adminOnly() entgql.Directive {
+	return entgql.NewDirective("hasRole", &ast.Argument{
+		Name:  "role",
+		Value: &ast.Value{Raw: "admin", Kind: ast.EnumValue},
+	})
+}
 
 func (StatsSnapshot) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
-		entgql.QueryField().Directives(adminOnly),
+		entgql.QueryField().Directives(adminOnly()),
 	}
 }

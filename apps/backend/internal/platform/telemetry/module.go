@@ -13,16 +13,18 @@ import (
 
 const flushTimeout = 10 * time.Second
 
-var Module = fx.Module(
-	"telemetry",
-	fx.Provide(
-		newTelemetry,
-		func(t *Telemetry) trace.TracerProvider { return t.TracerProvider() },
-		func(t *Telemetry) propagation.TextMapPropagator {
-			return t.Propagator()
-		},
-	),
-)
+func Module() fx.Option {
+	return fx.Module(
+		"telemetry",
+		fx.Provide(
+			newTelemetry,
+			func(t *Telemetry) trace.TracerProvider { return t.TracerProvider() },
+			func(t *Telemetry) propagation.TextMapPropagator {
+				return t.Propagator()
+			},
+		),
+	)
+}
 
 func newTelemetry(lc fx.Lifecycle, cfg config.Config) (*Telemetry, error) {
 	t, err := Start(context.Background(), cfg)

@@ -150,7 +150,7 @@ func (r *queryResolver) Novel(ctx context.Context, id uuid.UUID) (*ent.Novel, er
 
 // Novels is the resolver for the novels field.
 func (r *queryResolver) Novels(ctx context.Context, after *entgql.Cursor[uuid.UUID], first *int, before *entgql.Cursor[uuid.UUID], last *int, orderBy *ent.NovelOrder, where *ent.NovelWhereInput, chapterCount *model.ChapterCountRangeInput, ownerIDs []string) (*ent.NovelConnection, error) {
-	first, last, err := pagination.Bound(first, last, novelsPage)
+	first, last, err := pagination.Bound(first, last, listSize())
 	if err != nil {
 		return nil, err
 	}

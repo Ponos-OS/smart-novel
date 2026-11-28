@@ -98,7 +98,7 @@ func (r *queryResolver) DefaultLicense(ctx context.Context) (*ent.License, error
 // Licenses is the resolver for the licenses field.
 func (r *queryResolver) Licenses(ctx context.Context, after *entgql.Cursor[uuid.UUID], first *int, before *entgql.Cursor[uuid.UUID], last *int, orderBy *ent.LicenseOrder, where *ent.LicenseWhereInput, scope *model.LicenseScope, search *string) (*ent.LicenseConnection, error) {
 	viewer, _ := auth.ViewerFrom(ctx)
-	first, last, err := pagination.Bound(first, last, licensesPage)
+	first, last, err := pagination.Bound(first, last, listSize())
 	if err != nil {
 		return nil, err
 	}
