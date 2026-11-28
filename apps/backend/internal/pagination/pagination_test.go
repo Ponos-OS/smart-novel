@@ -8,8 +8,6 @@ import (
 	"github.com/Ponos-OS/smart-novel/apps/backend/internal/validation"
 )
 
-func intPtr(value int) *int { return &value }
-
 var tagsPage = pagination.Size{Default: 20, Max: 100}
 
 func TestBound(t *testing.T) {
@@ -20,10 +18,10 @@ func TestBound(t *testing.T) {
 		wantFirst *int
 		wantLast  *int
 	}{
-		{"neither asks for the default first", nil, nil, intPtr(20), nil},
-		{"first is kept", intPtr(5), nil, intPtr(5), nil},
-		{"last is kept without a first", nil, intPtr(7), nil, intPtr(7)},
-		{"the maximum is allowed", intPtr(100), nil, intPtr(100), nil},
+		{"neither asks for the default first", nil, nil, new(20), nil},
+		{"first is kept", new(5), nil, new(5), nil},
+		{"last is kept without a first", nil, new(7), nil, new(7)},
+		{"the maximum is allowed", new(100), nil, new(100), nil},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -50,17 +48,16 @@ func TestBoundRefusesAnEmptyOrOversizedPage(t *testing.T) {
 		first *int
 		last  *int
 	}{
-		{"first below one", intPtr(0), nil},
-		{"last below one", nil, intPtr(-1)},
-		{"first above the maximum", intPtr(101), nil},
-		{"last above the maximum", nil, intPtr(101)},
+		{"first below one", new(0), nil},
+		{"last below one", nil, new(-1)},
+		{"first above the maximum", new(101), nil},
+		{"last above the maximum", nil, new(101)},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			_, _, err := pagination.Bound(c.first, c.last, tagsPage)
 
-			var invalid *validation.Error
-			if !errors.As(err, &invalid) {
+			if _, ok := errors.AsType[*validation.Error](err); !ok {
 				t.Errorf("err = %v, want a validation error", err)
 			}
 		})

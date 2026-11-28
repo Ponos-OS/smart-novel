@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"slices"
 	"strings"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -37,10 +38,8 @@ func hasNUL(value any) bool {
 	case string:
 		return strings.ContainsRune(typed, 0)
 	case []any:
-		for _, item := range typed {
-			if hasNUL(item) {
-				return true
-			}
+		if slices.ContainsFunc(typed, hasNUL) {
+			return true
 		}
 	case map[string]any:
 		for key, item := range typed {

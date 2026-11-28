@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -138,7 +139,7 @@ func apply(
 		identity,
 		penName,
 		append(
-			existing.Applications[:len(existing.Applications):len(existing.Applications)],
+			slices.Clip(existing.Applications),
 			application,
 		),
 	)

@@ -132,8 +132,7 @@ func (c *Client) Head(
 		ctx,
 		&s3.HeadObjectInput{Bucket: aws.String(c.bucket), Key: aws.String(key)},
 	)
-	var notFound *types.NotFound
-	if errors.As(err, &notFound) {
+	if _, ok := errors.AsType[*types.NotFound](err); ok {
 		return Object{}, false, nil
 	}
 	if err != nil {

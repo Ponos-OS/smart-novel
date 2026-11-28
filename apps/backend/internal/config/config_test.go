@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"maps"
 	"strings"
 	"testing"
 	"time"
@@ -36,9 +37,7 @@ func environment(overrides map[string]string) config.Lookup {
 		"BACKEND_INTERNAL_URL":                "http://backend:3000",
 		"FITHARA_URL":                         "http://fithara:8000",
 	}
-	for key, value := range overrides {
-		values[key] = value
-	}
+	maps.Copy(values, overrides)
 
 	return func(key string) (string, bool) {
 		value, ok := values[key]

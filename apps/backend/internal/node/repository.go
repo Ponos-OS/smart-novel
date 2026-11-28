@@ -3,6 +3,7 @@ package node
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strings"
 
 	"github.com/google/uuid"
@@ -94,9 +95,7 @@ func (r *repository) load(
 		if err != nil {
 			return nil, err
 		}
-		for id, node := range found {
-			nodes[id] = node
-		}
+		maps.Copy(nodes, found)
 	}
 
 	return nodes, nil

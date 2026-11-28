@@ -26,6 +26,7 @@ linters:
     - intrange
     - misspell
     - mnd
+    - modernize
     - nakedret
     - nestif
     - nilerr

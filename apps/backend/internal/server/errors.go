@@ -67,8 +67,7 @@ func errorPresenter(logger *slog.Logger) graphql.ErrorPresenterFunc {
 			return presented
 		}
 
-		var client ClientError
-		if errors.As(presented.Err, &client) {
+		if client, ok := errors.AsType[ClientError](presented.Err); ok {
 			logger.WarnContext(ctx, "client error",
 				slog.String(logKeyPath, presented.Path.String()),
 				slog.String(logKeyCode, client.Code()),
